@@ -94,7 +94,12 @@ qemu_irq isa_bus_get_irq(ISABus *bus, unsigned irqnum)
  */
 qemu_irq isa_get_irq(ISADevice *dev, unsigned isairq)
 {
-    assert(!dev || ISA_BUS(qdev_get_parent_bus(DEVICE(dev))) == isabus);
+    ISABus *isabus;
+
+    assert(dev);
+    assert(isairq < ISA_NUM_IRQS);
+    isabus = isa_bus_from_device(dev);
+
     return isa_bus_get_irq(isabus, isairq);
 }
 
@@ -137,10 +142,6 @@ int isa_register_portio_list(ISADevice *dev,
                              void *opaque, const char *name)
 {
     assert(piolist && !piolist->owner);
-
-    if (!isabus) {
-        return -ENODEV;
-    }
 
     /* START is how we should treat DEV, regardless of the actual
        contents of the portio array.  This is how the old code
@@ -258,18 +259,20 @@ static char *isabus_get_fw_dev_path(DeviceState *dev)
 
 MemoryRegion *isa_address_space(ISADevice *dev)
 {
-    if (dev) {
-        return isa_bus_from_device(dev)->address_space;
-    }
+    ISABus *isabus;
+
+    assert(dev);
+    isabus = isa_bus_from_device(dev);
 
     return isabus->address_space;
 }
 
 MemoryRegion *isa_address_space_io(ISADevice *dev)
 {
-    if (dev) {
-        return isa_bus_from_device(dev)->address_space_io;
-    }
+    ISABus *isabus;
+
+    assert(dev);
+    isabus = isa_bus_from_device(dev);
 
     return isabus->address_space_io;
 }
