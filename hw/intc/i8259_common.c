@@ -31,9 +31,6 @@
 #include "monitor/monitor.h"
 #include "qapi/error.h"
 
-static int irq_level[16];
-static uint64_t irq_count[16];
-
 void pic_reset_common(PICCommonState *s)
 {
     s->last_irr = 0;
@@ -106,12 +103,12 @@ ISADevice *i8259_init_chip(const char *name, ISABus *bus, bool master)
     return isadev;
 }
 
-void pic_stat_update_irq(int irq, int level)
+void pic_stat_update_irq(PICCommonState* s, int irq, int level)
 {
-    if (level != irq_level[irq]) {
-        irq_level[irq] = level;
+    if (level != s->irq_level[irq]) {
+        s->irq_level[irq] = level;
         if (level == 1) {
-            irq_count[irq]++;
+            s->irq_count[irq]++;
         }
     }
 }
@@ -121,13 +118,8 @@ static bool pic_get_statistics(InterruptStatsProvider *obj,
 {
     PICCommonState *s = PIC_COMMON(obj);
 
-    if (s->master) {
-        *irq_counts = irq_count;
-        *nb_irqs = ARRAY_SIZE(irq_count);
-    } else {
-        *irq_counts = NULL;
-        *nb_irqs = 0;
-    }
+    *irq_counts = s->irq_count;
+    *nb_irqs = ARRAY_SIZE(s->irq_count);
 
     return true;
 }
