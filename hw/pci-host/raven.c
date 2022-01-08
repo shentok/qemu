@@ -119,6 +119,8 @@ static const MemoryRegionOps raven_pci_io_ops = {
 static uint64_t raven_intack_read(void *opaque, hwaddr addr,
                                   unsigned int size)
 {
+    I8259CommonState *isa_pic = opaque;
+
     return pic_read_irq(isa_pic);
 }
 
@@ -273,7 +275,7 @@ static void raven_pcihost_realizefn(DeviceState *d, Error **errp)
                           "pciio", 0x00400000);
     memory_region_add_subregion(address_space_mem, 0x80800000, &h->mmcfg);
 
-    memory_region_init_io(&s->pci_intack, OBJECT(s), &raven_intack_ops, s,
+    memory_region_init_io(&s->pci_intack, OBJECT(s), &raven_intack_ops, isa_pic,
                           "pci-intack", 1);
     memory_region_add_subregion(address_space_mem, 0xbffffff0, &s->pci_intack);
 

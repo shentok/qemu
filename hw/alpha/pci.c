@@ -68,6 +68,8 @@ const MemoryRegionOps alpha_pci_conf1_ops = {
 
 static uint64_t iack_read(void *opaque, hwaddr addr, unsigned size)
 {
+    I8259CommonState *isa_pic = opaque;
+
     return pic_read_irq(isa_pic);
 }
 
