@@ -749,8 +749,8 @@ static void i8042_realizefn(DeviceState *dev, Error **errp)
         return;
     }
 
-    s->irq_kbd = isa_get_irq(isadev, isa_s->kbd_irq);
-    s->irq_mouse = isa_get_irq(isadev, isa_s->mouse_irq);
+    s->irq_kbd = isa_bus_get_irq(isa_bus_from_device(isadev), isa_s->kbd_irq);
+    s->irq_mouse = isa_bus_get_irq(isa_bus_from_device(isadev), isa_s->mouse_irq);
 
     isa_register_ioport(isadev, isa_s->io + 0, 0x60);
     isa_register_ioport(isadev, isa_s->io + 1, 0x64);

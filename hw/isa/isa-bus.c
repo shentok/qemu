@@ -69,16 +69,16 @@ void isa_bus_irqs(ISABus *bus, qemu_irq *irqs)
 }
 
 /*
- * isa_get_irq() returns the corresponding qemu_irq entry for the i8259.
+ * isa_bus_get_irq() returns the corresponding qemu_irq entry for the i8259.
  *
  * This function is only for special cases such as the 'ferr', and
  * temporary use for normal devices until they are converted to qdev.
  */
-qemu_irq isa_get_irq(ISADevice *dev, unsigned isairq)
+qemu_irq isa_bus_get_irq(ISABus *bus, unsigned isairq)
 {
-    assert(dev);
+    assert(bus);
     assert(isairq < ISA_NUM_IRQS);
-    return isa_bus_from_device(dev)->irqs[isairq];
+    return bus->irqs[isairq];
 }
 
 void isa_bus_dma(ISABus *bus, IsaDma *dma8, IsaDma *dma16)

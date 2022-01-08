@@ -553,7 +553,7 @@ static void parallel_isa_realizefn(DeviceState *dev, Error **errp)
     index++;
 
     base = isa->iobase;
-    s->irq = isa_get_irq(isadev, isa->isairq);
+    s->irq = isa_bus_get_irq(isa_bus_from_device(isadev), isa->isairq);
     qemu_register_reset(parallel_reset, s);
 
     qemu_chr_fe_set_handlers(&s->chr, parallel_can_receive, NULL,

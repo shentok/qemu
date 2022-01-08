@@ -972,7 +972,7 @@ ISADevice *mc146818_rtc_init(ISABus *bus, int base_year, qemu_irq intercept_irq)
     if (intercept_irq) {
         qdev_connect_gpio_out(dev, 0, intercept_irq);
     } else {
-        qemu_irq irq = isa_get_irq(isadev, s->isairq);
+        qemu_irq irq = isa_bus_get_irq(isa_bus_from_device(isadev), s->isairq);
         qdev_connect_gpio_out(dev, 0, irq);
     }
 

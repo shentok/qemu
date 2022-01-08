@@ -127,7 +127,7 @@ static void tpm_tis_isa_realizefn(DeviceState *dev, Error **errp)
         return;
     }
 
-    s->irq = isa_get_irq(ISA_DEVICE(dev), s->irq_num);
+    s->irq = isa_bus_get_irq(isa_bus_from_device(ISA_DEVICE(dev)), s->irq_num);
 
     memory_region_add_subregion(isa_address_space(ISA_DEVICE(dev)),
                                 TPM_TIS_ADDR_BASE, &s->mmio);

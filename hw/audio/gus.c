@@ -282,7 +282,7 @@ static void gus_realizefn (DeviceState *dev, Error **errp)
     s->emu.himemaddr = s->himem;
     s->emu.gusdatapos = s->emu.himemaddr + 1024 * 1024 + 32;
     s->emu.opaque = s;
-    s->pic = isa_get_irq(d, s->emu.gusirq);
+    s->pic = isa_bus_get_irq(isa_bus_from_device(d), s->emu.gusirq);
 
     AUD_set_active_out (s->voice, 1);
 }

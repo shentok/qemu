@@ -67,9 +67,9 @@ static void test_irq_line_write(void *opaque, hwaddr addr, uint64_t data,
                           unsigned len)
 {
     PCTestdev *dev = opaque;
-    ISADevice *isa = ISA_DEVICE(dev);
+    ISABus *isa = isa_bus_from_device(ISA_DEVICE(dev));
 
-    qemu_set_irq(isa_get_irq(isa, addr), !!data);
+    qemu_set_irq(isa_bus_get_irq(isa, addr), !!data);
 }
 
 static const MemoryRegionOps test_irq_ops = {

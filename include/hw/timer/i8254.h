@@ -58,7 +58,7 @@ static inline ISADevice *i8254_pit_init(ISABus *bus, int base, qemu_irq alt_irq)
     }
     isa_realize_and_unref(d, bus, &error_fatal);
     qdev_connect_gpio_out(dev, 0,
-                          alt_irq ? alt_irq : isa_get_irq(d, 0));
+                          alt_irq ? alt_irq : isa_bus_get_irq(bus, 0));
 
     return d;
 }
