@@ -575,7 +575,7 @@ int cpu_get_pic_interrupt(CPUX86State *env)
     int intno;
 
     if (!kvm_irqchip_in_kernel() && !whpx_apic_in_platform()) {
-        intno = apic_get_interrupt(cpu->apic_state);
+        intno = apic_read_irq(cpu->apic_state);
         if (intno >= 0) {
             return intno;
         }

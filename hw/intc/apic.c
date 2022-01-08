@@ -568,7 +568,7 @@ static bool apic_check_pic(APICCommonState *s)
     return true;
 }
 
-int apic_get_interrupt(DeviceState *dev)
+int apic_read_irq(DeviceState *dev)
 {
     APICCommonState *s = APIC(dev);
     int intno;
