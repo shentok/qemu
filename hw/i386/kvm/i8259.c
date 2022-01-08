@@ -20,21 +20,21 @@
 #include "qom/object.h"
 
 #define TYPE_KVM_I8259 "kvm-i8259"
-typedef struct KVMPICClass KVMPICClass;
-DECLARE_CLASS_CHECKERS(KVMPICClass, KVM_PIC,
+typedef struct KVMI8259Class KVMI8259Class;
+DECLARE_CLASS_CHECKERS(KVMI8259Class, KVM_I8259,
                        TYPE_KVM_I8259)
 
 /**
- * KVMPICClass:
+ * KVMI8259Class:
  * @parent_realize: The parent's realizefn.
  */
-struct KVMPICClass {
-    PICCommonClass parent_class;
+struct KVMI8259Class {
+    I8259CommonClass parent_class;
 
     DeviceRealize parent_realize;
 };
 
-static void kvm_pic_get(PICCommonState *s)
+static void kvm_pic_get(I8259CommonState *s)
 {
     struct kvm_irqchip chip;
     struct kvm_pic_state *kpic;
@@ -67,7 +67,7 @@ static void kvm_pic_get(PICCommonState *s)
     s->elcr_mask = kpic->elcr_mask;
 }
 
-static void kvm_pic_put(PICCommonState *s)
+static void kvm_pic_put(I8259CommonState *s)
 {
     struct kvm_irqchip chip;
     struct kvm_pic_state *kpic;
@@ -103,29 +103,29 @@ static void kvm_pic_put(PICCommonState *s)
 
 static void kvm_pic_reset(DeviceState *dev)
 {
-    PICCommonState *s = PIC_COMMON(dev);
+    I8259CommonState *s = I8259_COMMON(dev);
 
     s->elcr = 0;
-    pic_reset_common(s);
+    i8259_reset_common(s);
 
     kvm_pic_put(s);
 }
 
 static void kvm_pic_set_irq(void *opaque, int irq, int level)
 {
-    PICCommonState *s = opaque;
+    I8259CommonState *s = opaque;
     int irq_index = s->master ? irq : irq - 8;
     int delivered;
 
-    pic_stat_update_irq(s, irq_index, level);
+    i8259_stat_update_irq(s, irq_index, level);
     delivered = kvm_set_irq(kvm_state, irq, level);
     kvm_report_irq_delivered(delivered);
 }
 
 static void kvm_pic_realize(DeviceState *dev, Error **errp)
 {
-    PICCommonState *s = PIC_COMMON(dev);
-    KVMPICClass *kpc = KVM_PIC_GET_CLASS(dev);
+    I8259CommonState *s = I8259_COMMON(dev);
+    KVMI8259Class *kpc = KVM_I8259_GET_CLASS(dev);
 
     memory_region_init_io(&s->base_io, OBJECT(dev), NULL, NULL, "kvm-pic", 2);
     memory_region_init_io(&s->elcr_io, OBJECT(dev), NULL, NULL, "kvm-elcr", 1);
@@ -152,8 +152,8 @@ qemu_irq *kvm_i8259_init(ISABus *bus)
 
 static void kvm_i8259_class_init(ObjectClass *klass, void *data)
 {
-    KVMPICClass *kpc = KVM_PIC_CLASS(klass);
-    PICCommonClass *k = PIC_COMMON_CLASS(klass);
+    KVMI8259Class *kpc = KVM_I8259_CLASS(klass);
+    I8259CommonClass *k = I8259_COMMON_CLASS(klass);
     DeviceClass *dc = DEVICE_CLASS(klass);
 
     dc->reset     = kvm_pic_reset;
@@ -164,10 +164,10 @@ static void kvm_i8259_class_init(ObjectClass *klass, void *data)
 
 static const TypeInfo kvm_i8259_info = {
     .name = TYPE_KVM_I8259,
-    .parent = TYPE_PIC_COMMON,
-    .instance_size = sizeof(PICCommonState),
+    .parent = TYPE_I8259_COMMON,
+    .instance_size = sizeof(I8259CommonState),
     .class_init = kvm_i8259_class_init,
-    .class_size = sizeof(KVMPICClass),
+    .class_size = sizeof(KVMI8259Class),
 };
 
 static void kvm_pic_register_types(void)

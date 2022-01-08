@@ -38,16 +38,16 @@
 //#define DEBUG_IRQ_LATENCY
 
 #define TYPE_I8259 "isa-i8259"
-typedef struct PICClass PICClass;
-DECLARE_CLASS_CHECKERS(PICClass, PIC,
+typedef struct I8259Class I8259Class;
+DECLARE_CLASS_CHECKERS(I8259Class, I8259,
                        TYPE_I8259)
 
 /**
- * PICClass:
+ * I8259Class:
  * @parent_realize: The parent's realizefn.
  */
-struct PICClass {
-    PICCommonClass parent_class;
+struct I8259Class {
+    I8259CommonClass parent_class;
 
     DeviceRealize parent_realize;
 };
@@ -55,12 +55,12 @@ struct PICClass {
 #ifdef DEBUG_IRQ_LATENCY
 static int64_t irq_time[16];
 #endif
-PICCommonState *isa_pic;
-static PICCommonState *slave_pic;
+I8259CommonState *isa_pic;
+static I8259CommonState *slave_pic;
 
 /* return the highest priority found in mask (highest = smallest
    number). Return 8 if no irq */
-static int get_priority(PICCommonState *s, int mask)
+static int get_priority(I8259CommonState *s, int mask)
 {
     int priority;
 
@@ -75,7 +75,7 @@ static int get_priority(PICCommonState *s, int mask)
 }
 
 /* return the pic wanted interrupt. return -1 if none */
-static int pic_get_irq(PICCommonState *s)
+static int pic_get_irq(I8259CommonState *s)
 {
     int mask, cur_priority, priority;
 
@@ -104,7 +104,7 @@ static int pic_get_irq(PICCommonState *s)
 }
 
 /* Update INT output. Must be called every time the output may have changed. */
-static void pic_update_irq(PICCommonState *s)
+static void pic_update_irq(I8259CommonState *s)
 {
     int irq;
 
@@ -120,11 +120,11 @@ static void pic_update_irq(PICCommonState *s)
 /* set irq level. If an edge is detected, then the IRR is set to 1 */
 static void pic_set_irq(void *opaque, int irq, int level)
 {
-    PICCommonState *s = opaque;
+    I8259CommonState *s = opaque;
     int mask = 1 << irq;
 
     trace_pic_set_irq(s->master, irq, level);
-    pic_stat_update_irq(s, irq, level);
+    i8259_stat_update_irq(s, irq, level);
 
 #ifdef DEBUG_IRQ_LATENCY
     if (level) {
@@ -157,7 +157,7 @@ static void pic_set_irq(void *opaque, int irq, int level)
 }
 
 /* acknowledge interrupt 'irq' */
-static void pic_intack(PICCommonState *s, int irq)
+static void pic_intack(I8259CommonState *s, int irq)
 {
     if (s->auto_eoi) {
         if (s->rotate_on_auto_eoi) {
@@ -173,7 +173,7 @@ static void pic_intack(PICCommonState *s, int irq)
     pic_update_irq(s);
 }
 
-int pic_read_irq(PICCommonState *s)
+int pic_read_irq(I8259CommonState *s)
 {
     int irq, intno;
 
@@ -213,15 +213,15 @@ int pic_read_irq(PICCommonState *s)
     return intno;
 }
 
-static void pic_init_reset(PICCommonState *s)
+static void pic_init_reset(I8259CommonState *s)
 {
-    pic_reset_common(s);
+    i8259_reset_common(s);
     pic_update_irq(s);
 }
 
 static void pic_reset(DeviceState *dev)
 {
-    PICCommonState *s = PIC_COMMON(dev);
+    I8259CommonState *s = I8259_COMMON(dev);
 
     s->elcr = 0;
     s->ltim = 0;
@@ -231,7 +231,7 @@ static void pic_reset(DeviceState *dev)
 static void pic_ioport_write(void *opaque, hwaddr addr64,
                              uint64_t val64, unsigned size)
 {
-    PICCommonState *s = opaque;
+    I8259CommonState *s = opaque;
     uint32_t addr = addr64;
     uint32_t val = val64;
     int priority, cmd, irq;
@@ -324,7 +324,7 @@ static void pic_ioport_write(void *opaque, hwaddr addr64,
 static uint64_t pic_ioport_read(void *opaque, hwaddr addr,
                                 unsigned size)
 {
-    PICCommonState *s = opaque;
+    I8259CommonState *s = opaque;
     int ret;
 
     if (s->poll) {
@@ -351,7 +351,7 @@ static uint64_t pic_ioport_read(void *opaque, hwaddr addr,
     return ret;
 }
 
-int pic_get_output(PICCommonState *s)
+int pic_get_output(I8259CommonState *s)
 {
     return (pic_get_irq(s) >= 0);
 }
@@ -359,14 +359,14 @@ int pic_get_output(PICCommonState *s)
 static void elcr_ioport_write(void *opaque, hwaddr addr,
                               uint64_t val, unsigned size)
 {
-    PICCommonState *s = opaque;
+    I8259CommonState *s = opaque;
     s->elcr = val & s->elcr_mask;
 }
 
 static uint64_t elcr_ioport_read(void *opaque, hwaddr addr,
                                  unsigned size)
 {
-    PICCommonState *s = opaque;
+    I8259CommonState *s = opaque;
     return s->elcr;
 }
 
@@ -390,8 +390,8 @@ static const MemoryRegionOps pic_elcr_ioport_ops = {
 
 static void pic_realize(DeviceState *dev, Error **errp)
 {
-    PICCommonState *s = PIC_COMMON(dev);
-    PICClass *pc = PIC_GET_CLASS(dev);
+    I8259CommonState *s = I8259_COMMON(dev);
+    I8259Class *pc = I8259_GET_CLASS(dev);
 
     memory_region_init_io(&s->base_io, OBJECT(s), &pic_base_ioport_ops, s,
                           "pic", 2);
@@ -421,7 +421,7 @@ qemu_irq *i8259_init(ISABus *bus, qemu_irq parent_irq_in)
         irq_set[i] = qdev_get_gpio_in(dev, i);
     }
 
-    isa_pic = PIC_COMMON(dev);
+    isa_pic = I8259_COMMON(dev);
 
     isadev = i8259_init_chip(TYPE_I8259, bus, false);
     dev = DEVICE(isadev);
@@ -431,14 +431,14 @@ qemu_irq *i8259_init(ISABus *bus, qemu_irq parent_irq_in)
         irq_set[i + 8] = qdev_get_gpio_in(dev, i);
     }
 
-    slave_pic = PIC_COMMON(dev);
+    slave_pic = I8259_COMMON(dev);
 
     return irq_set;
 }
 
 static void i8259_class_init(ObjectClass *klass, void *data)
 {
-    PICClass *k = PIC_CLASS(klass);
+    I8259Class *k = I8259_CLASS(klass);
     DeviceClass *dc = DEVICE_CLASS(klass);
 
     device_class_set_parent_realize(dc, pic_realize, &k->parent_realize);
@@ -447,10 +447,10 @@ static void i8259_class_init(ObjectClass *klass, void *data)
 
 static const TypeInfo i8259_info = {
     .name       = TYPE_I8259,
-    .instance_size = sizeof(PICCommonState),
-    .parent     = TYPE_PIC_COMMON,
+    .instance_size = sizeof(I8259CommonState),
+    .parent     = TYPE_I8259_COMMON,
     .class_init = i8259_class_init,
-    .class_size = sizeof(PICClass),
+    .class_size = sizeof(I8259Class),
 };
 
 static void pic_register_types(void)
