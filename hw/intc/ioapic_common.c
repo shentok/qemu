@@ -29,14 +29,6 @@
 #include "hw/intc/ioapic_internal.h"
 #include "hw/sysbus.h"
 
-/* ioapic_no count start from 0 to MAX_IOAPICS,
- * remove as static variable from ioapic_common_init.
- * now as a global variable, let child to increase the counter
- * then we can drop the 'instance_no' argument
- * and convert to our QOM's realize function
- */
-int ioapic_no;
-
 void ioapic_stat_update_irq(IOAPICCommonState *s, int irq, int level)
 {
     if (level != s->irq_level[irq]) {
@@ -155,16 +147,10 @@ static void ioapic_common_realize(DeviceState *dev, Error **errp)
     IOAPICCommonState *s = IOAPIC_COMMON(dev);
     IOAPICCommonClass *info;
 
-    if (ioapic_no >= MAX_IOAPICS) {
-        error_setg(errp, "Only %d ioapics allowed", MAX_IOAPICS);
-        return;
-    }
-
     info = IOAPIC_COMMON_GET_CLASS(s);
     info->realize(dev, errp);
 
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->io_memory);
-    ioapic_no++;
 }
 
 static void ioapic_print_info(InterruptStatsProvider *obj,

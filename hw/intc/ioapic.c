@@ -40,10 +40,18 @@
 #define APIC_POLARITY_SHIFT 14
 #define APIC_TRIG_MODE_SHIFT 15
 
+#define MAX_IOAPICS 2
+
 static IOAPICCommonState *ioapics[MAX_IOAPICS];
 
-/* global variable from ioapic_common.c */
-extern int ioapic_no;
+/*
+ * ioapic_no count start from 0 to MAX_IOAPICS,
+ * remove as static variable from ioapic_common_init.
+ * now as a global variable, let child to increase the counter
+ * then we can drop the 'instance_no' argument
+ * and convert to our QOM's realize function
+ */
+static int ioapic_no;
 
 struct ioapic_entry_info {
     /* fields parsed from IOAPIC entries */
@@ -450,6 +458,11 @@ static void ioapic_realize(DeviceState *dev, Error **errp)
 {
     IOAPICCommonState *s = IOAPIC_COMMON(dev);
 
+    if (ioapic_no >= MAX_IOAPICS) {
+        error_setg(errp, "Only %d ioapics allowed", MAX_IOAPICS);
+        return;
+    }
+
     if (s->version != 0x11 && s->version != 0x20) {
         error_setg(errp, "IOAPIC only supports version 0x11 or 0x20 "
                    "(default: 0x%x).", IOAPIC_VER_DEF);
@@ -465,6 +478,7 @@ static void ioapic_realize(DeviceState *dev, Error **errp)
     qdev_init_gpio_in(dev, ioapic_set_irq, IOAPIC_NUM_PINS);
 
     ioapics[ioapic_no] = s;
+    ioapic_no++;
     s->machine_done.notify = ioapic_machine_done_notify;
     qemu_add_machine_init_done_notifier(&s->machine_done);
 }
