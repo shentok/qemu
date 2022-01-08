@@ -66,12 +66,14 @@ struct PICCommonState {
     uint32_t master; /* reflects /SP input pin */
     uint32_t iobase;
     uint32_t elcr_addr;
+    int irq_level[8];
+    uint64_t irq_count[8];
     MemoryRegion base_io;
     MemoryRegion elcr_io;
 };
 
 void pic_reset_common(PICCommonState *s);
 ISADevice *i8259_init_chip(const char *name, ISABus *bus, bool master);
-void pic_stat_update_irq(int irq, int level);
+void pic_stat_update_irq(PICCommonState *s, int irq, int level);
 
 #endif /* QEMU_I8259_INTERNAL_H */

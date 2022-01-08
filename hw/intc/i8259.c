@@ -122,13 +122,13 @@ static void pic_set_irq(void *opaque, int irq, int level)
 {
     PICCommonState *s = opaque;
     int mask = 1 << irq;
-    int irq_index = s->master ? irq : irq + 8;
 
     trace_pic_set_irq(s->master, irq, level);
-    pic_stat_update_irq(irq_index, level);
+    pic_stat_update_irq(s, irq, level);
 
 #ifdef DEBUG_IRQ_LATENCY
     if (level) {
+        int irq_index = s->master ? irq : irq + 8;
         irq_time[irq_index] = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
     }
 #endif
