@@ -291,14 +291,6 @@ static inline void pci_set_irq_state(PCIDevice *d, int irq_num, int level)
         d->irq_state |= level << irq_num;
 }
 
-static void pci_bus_change_irq_level(PCIBus *bus, int irq_num, int change)
-{
-    assert(irq_num >= 0);
-    assert(irq_num < bus->nirq);
-    bus->irq_count[irq_num] += change;
-    bus->set_irq(bus->irq_opaque, irq_num, bus->irq_count[irq_num] != 0);
-}
-
 static void pci_change_irq_level(PCIDevice *pci_dev, int irq_num, int change)
 {
     PCIBus *bus;
@@ -314,7 +306,11 @@ static void pci_change_irq_level(PCIDevice *pci_dev, int irq_num, int change)
             break;
         pci_dev = bus->parent_dev;
     }
-    pci_bus_change_irq_level(bus, irq_num, change);
+
+    assert(irq_num >= 0);
+    assert(irq_num < bus->nirq);
+    bus->irq_count[irq_num] += change;
+    bus->set_irq(bus->irq_opaque, irq_num, bus->irq_count[irq_num] != 0);
 }
 
 int pci_bus_get_irq_level(PCIBus *bus, int irq_num)
