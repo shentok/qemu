@@ -1833,7 +1833,7 @@ static void vfio_pci_enable_rp_atomics(VFIOPCIDevice *vdev)
     struct vfio_device_info_cap_pci_atomic_comp *cap;
     g_autofree struct vfio_device_info *info = NULL;
     PCIBus *bus = pci_get_bus(&vdev->pdev);
-    PCIDevice *parent = bus->parent_dev;
+    PCIDevice *parent = bus->bridge;
     struct vfio_info_cap_header *hdr;
     uint32_t mask = 0;
     uint8_t *pos;
@@ -1894,7 +1894,7 @@ static void vfio_pci_enable_rp_atomics(VFIOPCIDevice *vdev)
 static void vfio_pci_disable_rp_atomics(VFIOPCIDevice *vdev)
 {
     if (vdev->clear_parent_atomics_on_exit) {
-        PCIDevice *parent = pci_get_bus(&vdev->pdev)->parent_dev;
+        PCIDevice *parent = pci_get_bus(&vdev->pdev)->bridge;
         uint8_t *pos = parent->config + parent->exp.exp_cap + PCI_EXP_DEVCAP2;
 
         pci_long_test_and_clear_mask(pos, PCI_EXP_DEVCAP2_ATOMIC_COMP32 |

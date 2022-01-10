@@ -168,7 +168,7 @@ static void pcie_bus_realize(BusState *qbus, Error **errp)
     if (pci_bus_is_root(bus)) {
         bus->flags |= PCI_BUS_EXTENDED_CONFIG_SPACE;
     } else {
-        PCIBus *parent_bus = pci_get_bus(bus->parent_dev);
+        PCIBus *parent_bus = pci_get_bus(bus->bridge);
 
         if (pci_bus_allows_extended_config_space(parent_bus)) {
             bus->flags |= PCI_BUS_EXTENDED_CONFIG_SPACE;
@@ -190,7 +190,7 @@ static int pcibus_num(PCIBus *bus)
     if (pci_bus_is_root(bus)) {
         return 0; /* pci host bridge */
     }
-    return bus->parent_dev->config[PCI_SECONDARY_BUS];
+    return bus->bridge->config[PCI_SECONDARY_BUS];
 }
 
 static uint16_t pcibus_numa_node(PCIBus *bus)
@@ -301,10 +301,10 @@ static void pci_change_irq_level(PCIDevice *pci_dev, int irq_num, int change)
         irq_num = bus->map_irq(pci_dev, irq_num);
         trace_pci_route_irq(dev_irq, DEVICE(pci_dev)->canonical_path, irq_num,
                             pci_bus_is_root(bus) ? "root-complex"
-                                    : DEVICE(bus->parent_dev)->canonical_path);
+                                    : DEVICE(bus->bridge)->canonical_path);
         if (bus->set_irq)
             break;
-        pci_dev = bus->parent_dev;
+        pci_dev = bus->bridge;
     }
 
     assert(irq_num >= 0);
@@ -455,7 +455,7 @@ PCIBus *pci_device_root_bus(const PCIDevice *d)
     PCIBus *bus = pci_get_bus(d);
 
     while (!pci_bus_is_root(bus)) {
-        d = bus->parent_dev;
+        d = bus->bridge;
         assert(d != NULL);
 
         bus = pci_get_bus(d);
@@ -485,7 +485,7 @@ bool pci_bus_bypass_iommu(PCIBus *bus)
     PCIHostState *host_bridge;
 
     if (!pci_bus_is_root(bus)) {
-        rootbus = pci_device_root_bus(bus->parent_dev);
+        rootbus = pci_device_root_bus(bus->bridge);
     }
 
     host_bridge = PCI_HOST_BRIDGE(rootbus->qbus.parent);
@@ -1078,7 +1078,7 @@ static PCIReqIDCache pci_req_id_cache_get(PCIDevice *dev)
 
     while (!pci_bus_is_root(pci_get_bus(dev))) {
         /* We are under PCI/PCIe bridges */
-        parent = pci_get_bus(dev)->parent_dev;
+        parent = pci_get_bus(dev)->bridge;
         if (pci_is_express(parent)) {
             if (pcie_cap_get_type(parent) == PCI_EXP_TYPE_PCI_BRIDGE) {
                 /* When we pass through PCIe-to-PCI/PCIX bridges, we
@@ -1149,10 +1149,10 @@ static PCIDevice *do_pci_register_device(PCIDevice *pci_dev,
     bool is_bridge = IS_PCI_BRIDGE(pci_dev);
 
     /* Only pci bridges can be attached to extra PCI root buses */
-    if (pci_bus_is_root(bus) && bus->parent_dev && !is_bridge) {
+    if (pci_bus_is_root(bus) && bus->bridge && !is_bridge) {
         error_setg(errp,
                    "PCI: Only PCI/PCIe bridges can be plugged into %s",
-                    bus->parent_dev->name);
+                    bus->bridge->name);
         return NULL;
     }
 
@@ -1674,8 +1674,8 @@ PCIINTxRoute pci_device_route_intx_to_irq(PCIDevice *dev, int pin)
         pin = bus->map_irq(dev, pin);
         trace_pci_route_irq(dev_irq, DEVICE(dev)->canonical_path, pin,
                             pci_bus_is_root(bus) ? "root-complex"
-                                    : DEVICE(bus->parent_dev)->canonical_path);
-        dev = bus->parent_dev;
+                                    : DEVICE(bus->bridge)->canonical_path);
+        dev = bus->bridge;
     } while (dev);
 
     if (!bus->route_intx_to_irq) {
@@ -1893,7 +1893,7 @@ PCIDevice *pci_nic_init_nofail(NICInfo *nd, PCIBus *rootbus,
         exit(1);
     }
 
-    assert(!rootbus->parent_dev);
+    assert(!rootbus->bridge);
 
     if (!devaddr) {
         devfn = -1;
@@ -1991,7 +1991,7 @@ PCIBus *pci_find_bus_nr(PCIBus *bus, int bus_num)
 
     /* Consider all bus numbers in range for the host pci bridge. */
     if (!pci_bus_is_root(bus) &&
-        !pci_secondary_bus_in_range(bus->parent_dev, bus_num)) {
+        !pci_secondary_bus_in_range(bus->bridge, bus_num)) {
         return NULL;
     }
 
@@ -2007,7 +2007,7 @@ PCIBus *pci_find_bus_nr(PCIBus *bus, int bus_num)
                     break;
                 }
             } else {
-                if (pci_secondary_bus_in_range(sec->parent_dev, bus_num)) {
+                if (pci_secondary_bus_in_range(sec->bridge, bus_num)) {
                     break;
                 }
             }
@@ -2581,7 +2581,7 @@ static char *pcibus_get_dev_path(DeviceState *dev)
 
     /* Calculate # of slots on path between device and root. */;
     slot_depth = 0;
-    for (t = d; t; t = pci_get_bus(t)->parent_dev) {
+    for (t = d; t; t = pci_get_bus(t)->bridge) {
         ++slot_depth;
     }
 
@@ -2596,7 +2596,7 @@ static char *pcibus_get_dev_path(DeviceState *dev)
     /* Fill in slot numbers. We walk up from device to root, so need to print
      * them in the reverse order, last to first. */
     p = path + path_len;
-    for (t = d; t; t = pci_get_bus(t)->parent_dev) {
+    for (t = d; t; t = pci_get_bus(t)->bridge) {
         p -= slot_len;
         s = snprintf(slot, sizeof slot, ":%02x.%x",
                      PCI_SLOT(t->devfn), PCI_FUNC(t->devfn));
@@ -2681,8 +2681,8 @@ AddressSpace *pci_device_iommu_address_space(PCIDevice *dev)
     PCIBus *iommu_bus = bus;
     uint8_t devfn = dev->devfn;
 
-    while (iommu_bus && !iommu_bus->iommu_fn && iommu_bus->parent_dev) {
-        PCIBus *parent_bus = pci_get_bus(iommu_bus->parent_dev);
+    while (iommu_bus && !iommu_bus->iommu_fn && iommu_bus->bridge) {
+        PCIBus *parent_bus = pci_get_bus(iommu_bus->bridge);
 
         /*
          * The requester ID of the provided device may be aliased, as seen from
@@ -2706,7 +2706,7 @@ AddressSpace *pci_device_iommu_address_space(PCIDevice *dev)
          * in QEMU.
          */
         if (!pci_bus_is_express(iommu_bus)) {
-            PCIDevice *parent = iommu_bus->parent_dev;
+            PCIDevice *parent = iommu_bus->bridge;
 
             if (pci_is_express(parent) &&
                 pcie_cap_get_type(parent) == PCI_EXP_TYPE_PCI_BRIDGE) {

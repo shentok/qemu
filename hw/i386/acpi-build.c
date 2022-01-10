@@ -615,7 +615,7 @@ static bool build_append_notfication_callback(Aml *parent_scope,
     GQueue *pcnt_bus_list = g_queue_new();
 
     QLIST_FOREACH(sec, &bus->child, sibling) {
-        Aml *br_scope = aml_scope("S%.02X", sec->parent_dev->devfn);
+        Aml *br_scope = aml_scope("S%.02X", sec->bridge->devfn);
         if (pci_bus_is_root(sec)) {
             continue;
         }
@@ -654,7 +654,7 @@ static bool build_append_notfication_callback(Aml *parent_scope,
 
     /* Notify about child bus events in any case */
     while ((sec = g_queue_pop_head(pcnt_bus_list))) {
-        aml_append(method, aml_name("^S%.02X.PCNT", sec->parent_dev->devfn));
+        aml_append(method, aml_name("^S%.02X.PCNT", sec->bridge->devfn));
     }
 
     aml_append(parent_scope, method);

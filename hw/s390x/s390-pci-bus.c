@@ -1007,7 +1007,7 @@ static void s390_pci_update_subordinate(PCIDevice *dev, uint32_t nr)
 
     pci_default_write_config(dev, PCI_SUBORDINATE_BUS, nr, 1);
     while (!pci_bus_is_root(pci_get_bus(dev))) {
-        dev = pci_get_bus(dev)->parent_dev;
+        dev = pci_get_bus(dev)->bridge;
 
         old_nr = pci_default_read_config(dev, PCI_SUBORDINATE_BUS, 1);
         if (old_nr < nr) {

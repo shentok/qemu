@@ -42,7 +42,7 @@ struct PCIBus {
     pci_route_irq_fn route_intx_to_irq;
     void *irq_opaque;
     PCIDevice *devices[PCI_SLOT_MAX * PCI_FUNC_MAX];
-    PCIDevice *parent_dev;
+    PCIDevice *bridge;
     MemoryRegion *address_space_mem;
     MemoryRegion *address_space_io;
 

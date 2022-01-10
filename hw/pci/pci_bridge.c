@@ -64,7 +64,7 @@ int pci_bridge_ssvid_init(PCIDevice *dev, uint8_t offset,
 /* Accessor function to get parent bridge device from pci bus. */
 PCIDevice *pci_bridge_get_device(PCIBus *bus)
 {
-    return bus->parent_dev;
+    return bus->bridge;
 }
 
 /* Accessor function to get secondary bus from pci-to-pci bridge device */
@@ -375,7 +375,7 @@ void pci_bridge_initfn(PCIDevice *dev, const char *typename)
 
     qbus_init(sec_bus, sizeof(br->sec_bus), typename, DEVICE(dev),
               br->bus_name);
-    sec_bus->parent_dev = dev;
+    sec_bus->bridge = dev;
     sec_bus->map_irq = br->map_irq ? br->map_irq : pci_swizzle_map_irq_fn;
     sec_bus->address_space_mem = &br->address_space_mem;
     memory_region_init(&br->address_space_mem, OBJECT(br), "pci_bridge_pci", UINT64_MAX);

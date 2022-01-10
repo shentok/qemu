@@ -73,14 +73,14 @@ bool cxl_get_hb_passthrough(PCIHostState *hb)
 
 static int pxb_bus_num(PCIBus *bus)
 {
-    PXBDev *pxb = PXB_DEV(bus->parent_dev);
+    PXBDev *pxb = PXB_DEV(bus->bridge);
 
     return pxb->bus_nr;
 }
 
 static uint16_t pxb_bus_numa_node(PCIBus *bus)
 {
-    PXBDev *pxb = PXB_DEV(bus->parent_dev);
+    PXBDev *pxb = PXB_DEV(bus->bridge);
 
     return pxb->numa_node;
 }
@@ -138,7 +138,7 @@ static char *pxb_host_ofw_unit_address(const SysBusDevice *dev)
 
     pxb_host = PCI_HOST_BRIDGE(dev);
     pxb_bus = pxb_host->bus;
-    pxb_dev = PXB_DEV(pxb_bus->parent_dev);
+    pxb_dev = PXB_DEV(pxb_bus->bridge);
     position = g_list_index(pxb_dev_list, pxb_dev);
     assert(position >= 0);
 
@@ -243,7 +243,7 @@ static void pxb_register_bus(PCIDevice *dev, PCIBus *pxb_bus, Error **errp)
     PCIBus *bus = pci_get_bus(dev);
     int pxb_bus_num = pci_bus_num(pxb_bus);
 
-    if (bus->parent_dev) {
+    if (bus->bridge) {
         error_setg(errp, "PXB devices can be attached only to root bus");
         return;
     }
@@ -259,7 +259,7 @@ static void pxb_register_bus(PCIDevice *dev, PCIBus *pxb_bus, Error **errp)
 
 static int pxb_map_irq_fn(PCIDevice *pci_dev, int pin)
 {
-    PCIDevice *pxb = pci_get_bus(pci_dev)->parent_dev;
+    PCIDevice *pxb = pci_get_bus(pci_dev)->bridge;
 
     /*
      * First carry out normal swizzle to handle
@@ -318,10 +318,10 @@ static gint pxb_compare(gconstpointer a, gconstpointer b)
            0;
 }
 
-static void pxb_dev_realize_common(PCIDevice *dev, enum BusType type,
+static void pxb_dev_realize_common(PCIDevice *bridge, enum BusType type,
                                    Error **errp)
 {
-    PXBDev *pxb = PXB_DEV(dev);
+    PXBDev *pxb = PXB_DEV(bridge);
     DeviceState *ds, *bds = NULL;
     PCIBus *bus;
     const char *dev_name = NULL;
@@ -339,8 +339,8 @@ static void pxb_dev_realize_common(PCIDevice *dev, enum BusType type,
         return;
     }
 
-    if (dev->qdev.id && *dev->qdev.id) {
-        dev_name = dev->qdev.id;
+    if (bridge->qdev.id && *bridge->qdev.id) {
+        dev_name = bridge->qdev.id;
     }
 
     ds = qdev_new(type == CXL ? TYPE_PXB_CXL_HOST : TYPE_PXB_HOST);
@@ -349,7 +349,7 @@ static void pxb_dev_realize_common(PCIDevice *dev, enum BusType type,
     } else if (type == CXL) {
         bus = pci_root_bus_new(ds, dev_name, NULL, NULL, 0, TYPE_PXB_CXL_BUS);
         bus->flags |= PCI_BUS_CXL;
-        PXB_CXL_DEV(dev)->cxl_host_bridge = PXB_CXL_HOST(ds);
+        PXB_CXL_DEV(bridge)->cxl_host_bridge = PXB_CXL_HOST(ds);
     } else {
         bus = pci_root_bus_new(ds, "pxb-internal", NULL, NULL, 0, TYPE_PXB_BUS);
         bds = qdev_new("pci-bridge");
@@ -358,15 +358,15 @@ static void pxb_dev_realize_common(PCIDevice *dev, enum BusType type,
         qdev_prop_set_bit(bds, PCI_BRIDGE_DEV_PROP_SHPC, false);
     }
 
-    bus->parent_dev = dev;
-    bus->address_space_mem = pci_get_bus(dev)->address_space_mem;
-    bus->address_space_io = pci_get_bus(dev)->address_space_io;
+    bus->bridge = bridge;
+    bus->address_space_mem = pci_get_bus(bridge)->address_space_mem;
+    bus->address_space_io = pci_get_bus(bridge)->address_space_io;
     bus->map_irq = pxb_map_irq_fn;
 
     PCI_HOST_BRIDGE(ds)->bus = bus;
     PCI_HOST_BRIDGE(ds)->bypass_iommu = pxb->bypass_iommu;
 
-    pxb_register_bus(dev, bus, &local_err);
+    pxb_register_bus(bridge, bus, &local_err);
     if (local_err) {
         error_propagate(errp, local_err);
         goto err_register_bus;
@@ -377,9 +377,9 @@ static void pxb_dev_realize_common(PCIDevice *dev, enum BusType type,
         qdev_realize_and_unref(bds, &bus->qbus, &error_fatal);
     }
 
-    pci_word_test_and_set_mask(dev->config + PCI_STATUS,
+    pci_word_test_and_set_mask(bridge->config + PCI_STATUS,
                                PCI_STATUS_66MHZ | PCI_STATUS_FAST_BACK);
-    pci_config_set_class(dev->config, PCI_CLASS_BRIDGE_HOST);
+    pci_config_set_class(bridge->config, PCI_CLASS_BRIDGE_HOST);
 
     pxb_dev_list = g_list_insert_sorted(pxb_dev_list, pxb, pxb_compare);
     return;

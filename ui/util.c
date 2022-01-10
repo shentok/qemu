@@ -35,8 +35,8 @@ static bool append_pci_address(char *buf, size_t buf_size, const PCIDevice *pci)
      * equivalent to if (!pci_bus_is_root(bus)), but the function is not built
      * with PCI_CONFIG=n, avoid using an #ifdef by checking directly
      */
-    if (bus->parent_dev != NULL) {
-        append_pci_address(buf, buf_size, bus->parent_dev);
+    if (bus->bridge != NULL) {
+        append_pci_address(buf, buf_size, bus->bridge);
     }
 
     size_t len = strlen(buf);
