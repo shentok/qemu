@@ -233,7 +233,7 @@ static void piix4_realize(PCIDevice *dev, Error **errp)
     isa_bus_irqs(isa_bus, s->isa);
 
     /* initialize pit */
-    i8254_pit_init(isa_bus, 0x40, 0, NULL);
+    i8254_pit_init(isa_bus, 0x40, NULL);
 
     /* DMA */
     i8257_dma_init(isa_bus, 0);

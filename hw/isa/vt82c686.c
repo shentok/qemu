@@ -593,7 +593,7 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
                           &error_fatal);
     s->isa_irqs = i8259_init(s->isa_bus, *isa_irq);
     isa_bus_irqs(s->isa_bus, s->isa_irqs);
-    i8254_pit_init(s->isa_bus, 0x40, 0, NULL);
+    i8254_pit_init(s->isa_bus, 0x40, NULL);
     i8257_dma_init(s->isa_bus, 0);
     mc146818_rtc_init(s->isa_bus, 2000, NULL);
 
