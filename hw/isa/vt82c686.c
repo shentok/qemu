@@ -658,7 +658,7 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
 
     s->isa_irqs_in = i8259_init(isa_bus, *isa_irq);
     isa_bus_register_input_irqs(isa_bus, s->isa_irqs_in);
-    i8254_pit_init(isa_bus, 0x40, 0, NULL);
+    i8254_pit_init(isa_bus, 0x40, s->isa_irqs_in[0]);
     i8257_dma_init(isa_bus, 0);
 
     qdev_init_gpio_in_named(dev, via_isa_set_pci_irq, "pirq", PCI_NUM_PINS);

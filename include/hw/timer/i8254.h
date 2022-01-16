@@ -45,8 +45,7 @@ OBJECT_DECLARE_TYPE(PITCommonState, PITCommonClass, PIT_COMMON)
 #define TYPE_I8254 "isa-pit"
 #define TYPE_KVM_I8254 "kvm-pit"
 
-static inline ISADevice *i8254_pit_init(ISABus *bus, int base, int isa_irq,
-                                        qemu_irq alt_irq)
+static inline ISADevice *i8254_pit_init(ISABus *bus, int base, qemu_irq irq)
 {
     DeviceState *dev;
     ISADevice *d;
@@ -55,9 +54,7 @@ static inline ISADevice *i8254_pit_init(ISABus *bus, int base, int isa_irq,
     dev = DEVICE(d);
     qdev_prop_set_uint32(dev, "iobase", base);
     isa_realize_and_unref(d, bus, &error_fatal);
-    qdev_connect_gpio_out(dev, 0,
-                          isa_irq >= 0 ? isa_bus_get_irq(bus, isa_irq)
-                                       : alt_irq);
+    qdev_connect_gpio_out(dev, 0, irq);
 
     return d;
 }

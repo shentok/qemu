@@ -99,7 +99,7 @@ static void i82378_realize(PCIDevice *pci, Error **errp)
     isa_bus_register_input_irqs(isabus, s->isa_irqs_in);
 
     /* 1 82C54 (pit) */
-    pit = i8254_pit_init(isabus, 0x40, 0, NULL);
+    pit = i8254_pit_init(isabus, 0x40, s->isa_irqs_in[0]);
 
     /* speaker */
     pcspk_init(isa_new(TYPE_PC_SPEAKER), isabus, pit);
