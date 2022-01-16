@@ -25,8 +25,6 @@
 #include "sysemu/sysemu.h"
 #include "hw/isa/isa.h"
 
-static ISABus *isabus;
-
 static char *isabus_get_fw_dev_path(DeviceState *dev);
 
 static void isa_bus_class_init(ObjectClass *klass, void *data)
@@ -52,10 +50,8 @@ static const TypeInfo isa_bus_info = {
 ISABus *isa_bus_new(DeviceState *dev, MemoryRegion* address_space,
                     MemoryRegion *address_space_io, Error **errp)
 {
-    if (isabus) {
-        error_setg(errp, "Can't create a second ISA bus");
-        return NULL;
-    }
+    ISABus *isabus;
+
     if (!dev) {
         dev = qdev_new("isabus-bridge");
         sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
@@ -80,9 +76,9 @@ void isa_bus_irqs(ISABus *bus, qemu_irq *irqs)
  */
 qemu_irq isa_get_irq(ISADevice *dev, unsigned isairq)
 {
-    assert(!dev || ISA_BUS(qdev_get_parent_bus(DEVICE(dev))) == isabus);
+    assert(dev);
     assert(isairq < ISA_NUM_IRQS);
-    return isabus->irqs[isairq];
+    return isa_bus_from_device(dev)->irqs[isairq];
 }
 
 void isa_connect_gpio_out(ISADevice *isadev, int gpioirq, unsigned isairq)
@@ -114,6 +110,7 @@ static inline void isa_init_ioport(ISADevice *dev, uint16_t ioport)
 
 void isa_register_ioport(ISADevice *dev, MemoryRegion *io, uint16_t start)
 {
+    ISABus *isabus = isa_bus_from_device(dev);
     memory_region_add_subregion(isabus->address_space_io, start, io);
     isa_init_ioport(dev, start);
 }
@@ -123,7 +120,9 @@ int isa_register_portio_list(ISADevice *dev,
                              const MemoryRegionPortio *pio_start,
                              void *opaque, const char *name)
 {
+    ISABus *isabus;
     assert(piolist && !piolist->owner);
+    isabus = isa_bus_from_device(dev);
 
     if (!isabus) {
         return -ENODEV;
@@ -268,20 +267,16 @@ static char *isabus_get_fw_dev_path(DeviceState *dev)
 
 MemoryRegion *isa_address_space(ISADevice *dev)
 {
-    if (dev) {
-        return isa_bus_from_device(dev)->address_space;
-    }
+    assert(dev);
 
-    return isabus->address_space;
+    return isa_bus_from_device(dev)->address_space;
 }
 
 MemoryRegion *isa_address_space_io(ISADevice *dev)
 {
-    if (dev) {
-        return isa_bus_from_device(dev)->address_space_io;
-    }
+    assert(dev);
 
-    return isabus->address_space_io;
+    return isa_bus_from_device(dev)->address_space_io;
 }
 
 type_init(isabus_register_types)
