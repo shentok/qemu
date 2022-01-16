@@ -944,8 +944,7 @@ static void rtc_realizefn(DeviceState *dev, Error **errp)
     QLIST_INSERT_HEAD(&rtc_devices, s, link);
 }
 
-MC146818RtcState *mc146818_rtc_init(ISABus *bus, int base_year,
-                                    qemu_irq intercept_irq)
+MC146818RtcState *mc146818_rtc_init(ISABus *bus, int base_year, qemu_irq irq)
 {
     DeviceState *dev;
     ISADevice *isadev;
@@ -956,11 +955,7 @@ MC146818RtcState *mc146818_rtc_init(ISABus *bus, int base_year,
     s = MC146818_RTC(isadev);
     qdev_prop_set_int32(dev, "base_year", base_year);
     isa_realize_and_unref(isadev, bus, &error_fatal);
-    if (intercept_irq) {
-        qdev_connect_gpio_out(dev, 0, intercept_irq);
-    } else {
-        isa_connect_gpio_out(isadev, 0, s->isairq);
-    }
+    qdev_connect_gpio_out(dev, 0, irq);
 
     object_property_add_alias(qdev_get_machine(), "rtc-time", OBJECT(isadev),
                               "date");

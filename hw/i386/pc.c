@@ -1308,6 +1308,7 @@ void pc_basic_device_init(struct PCMachineState *pcms,
         rtc_irq = qdev_get_gpio_in(hpet, HPET_LEGACY_RTC_INT);
     } else {
         pit_irq = isa_bus_get_irq(isa_bus, 0);
+        rtc_irq = isa_bus_get_irq(isa_bus, RTC_ISA_IRQ);
     }
 
     if (rtc_irq) {

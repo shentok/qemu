@@ -51,8 +51,7 @@ struct MC146818RtcState {
 
 #define RTC_ISA_IRQ 8
 
-MC146818RtcState *mc146818_rtc_init(ISABus *bus, int base_year,
-                                    qemu_irq intercept_irq);
+MC146818RtcState *mc146818_rtc_init(ISABus *bus, int base_year, qemu_irq irq);
 void mc146818rtc_set_cmos_data(MC146818RtcState *s, int addr, int val);
 int mc146818rtc_get_cmos_data(MC146818RtcState *s, int addr);
 void qmp_rtc_reset_reinjection(Error **errp);

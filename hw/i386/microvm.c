@@ -266,7 +266,9 @@ static void microvm_devices_init(MicrovmMachineState *mms)
 
     if (mms->rtc == ON_OFF_AUTO_ON ||
         (mms->rtc == ON_OFF_AUTO_AUTO && !kvm_enabled())) {
-        microvm_set_rtc(mms, mc146818_rtc_init(isa_bus, 2000, NULL));
+        microvm_set_rtc(mms,
+                        mc146818_rtc_init(isa_bus, 2000,
+                                          gsi_state->i8259_irq[RTC_ISA_IRQ]));
     }
 
     if (mms->isa_serial) {
