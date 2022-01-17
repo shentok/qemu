@@ -257,7 +257,7 @@ static void virtio_vga_inst_initfn(Object *obj)
 }
 
 
-static VirtioPCIDeviceTypeInfo virtio_vga_info = {
+static const VirtioPCIDeviceTypeInfo virtio_vga_info = {
     .generic_name  = TYPE_VIRTIO_VGA,
     .parent        = TYPE_VIRTIO_VGA_BASE,
     .instance_size = sizeof(VirtIOVGA),
