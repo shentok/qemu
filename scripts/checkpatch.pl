@@ -2896,6 +2896,7 @@ sub process {
 				TypeInfo|
 				USBDesc[A-Z][a-zA-Z0-9]*|
 				VhostOps|
+				VirtioPCIDeviceTypeInfo|
 				VMStateDescription|
 				VMStateInfo}x;
 		if ($line !~ /\bconst\b/ &&
