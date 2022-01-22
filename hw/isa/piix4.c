@@ -44,7 +44,6 @@ struct PIIX4State {
     qemu_irq cpu_intr;
     qemu_irq *isa;
 
-    RTCState rtc;
     /* Reset Control Register */
     MemoryRegion rcr_mem;
     uint8_t rcr;
@@ -178,9 +177,12 @@ static const MemoryRegionOps piix4_rcr_ops = {
 
 static void piix4_realize(PCIDevice *dev, Error **errp)
 {
+    ERRP_GUARD();
     PIIX4State *s = PIIX4_PCI_DEVICE(dev);
+    ISADevice *rtc;
     ISABus *isa_bus;
     qemu_irq *i8259_out_irq;
+    uint32_t irq;
 
     isa_bus = isa_bus_new(DEVICE(dev), pci_address_space(dev),
                           pci_address_space_io(dev), errp);
@@ -212,18 +214,16 @@ static void piix4_realize(PCIDevice *dev, Error **errp)
     i8257_dma_init(isa_bus, 0);
 
     /* RTC */
-    qdev_prop_set_int32(DEVICE(&s->rtc), "base_year", 2000);
-    if (!qdev_realize(DEVICE(&s->rtc), BUS(isa_bus), errp)) {
+    rtc = isa_new(TYPE_MC146818_RTC);
+    qdev_prop_set_int32(DEVICE(rtc), "base_year", 2000);
+    if (!qdev_realize_and_unref(DEVICE(rtc), BUS(isa_bus), errp)) {
         return;
     }
-    s->rtc.irq = isa_get_irq(ISA_DEVICE(&s->rtc), s->rtc.isairq);
-}
-
-static void piix4_init(Object *obj)
-{
-    PIIX4State *s = PIIX4_PCI_DEVICE(obj);
-
-    object_initialize(&s->rtc, sizeof(s->rtc), TYPE_MC146818_RTC);
+    irq = object_property_get_uint(OBJECT(rtc), "irq", errp);
+    if (*errp) {
+        return;
+    }
+    isa_connect_gpio_out(rtc, 0, irq);
 }
 
 static void piix4_class_init(ObjectClass *klass, void *data)
@@ -250,7 +250,6 @@ static const TypeInfo piix4_info = {
     .name          = TYPE_PIIX4_PCI_DEVICE,
     .parent        = TYPE_PCI_DEVICE,
     .instance_size = sizeof(PIIX4State),
-    .instance_init = piix4_init,
     .class_init    = piix4_class_init,
     .interfaces = (InterfaceInfo[]) {
         { INTERFACE_CONVENTIONAL_PCI_DEVICE },
