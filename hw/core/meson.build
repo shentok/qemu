@@ -24,6 +24,8 @@ endif
 
 common_ss.add(files('cpu-common.c'))
 common_ss.add(files('machine-smp.c'))
+common_ss.add(when: 'CONFIG_SERIAL', if_true: files('fdt_generic_devices_serial.c'))
+common_ss.add(when: 'CONFIG_PFLASH_CFI01', if_true: files('fdt_generic_devices_flash.c'))
 softmmu_ss.add(when: 'CONFIG_FITLOADER', if_true: files('loader-fit.c'))
 softmmu_ss.add(when: 'CONFIG_GENERIC_LOADER', if_true: files('generic-loader.c'))
 softmmu_ss.add(when: ['CONFIG_GUEST_LOADER', fdt], if_true: files('guest-loader.c'))
@@ -49,6 +51,13 @@ softmmu_ss.add(files(
   'sysbus.c',
   'vm-change-state-handler.c',
   'clock-vmstate.c',
+))
+
+softmmu_ss.add(files(
+  'fdt_generic.c',
+  'fdt_generic_devices.c',
+  'fdt_generic_util.c',
+  'fdt_generic_user_creatable.c',
 ))
 
 specific_ss.add(when: 'CONFIG_SOFTMMU', if_true: files(
