@@ -76,7 +76,7 @@ static void add_to_table(
  */
 
 static int fdt_init_search_table(
-        char *node_path,
+        const char *node_path,
         FDTMachineInfo *fdti,
         const char *key, /* string to match */
         TableListNode **head) /* head of the list to search */
@@ -102,7 +102,7 @@ void add_to_compat_table(FDTInitFn fdt_init, const char *compat, void *opaque)
     add_to_table(fdt_init, compat, opaque, &compat_list_head);
 }
 
-int fdt_init_compat(char *node_path, FDTMachineInfo *fdti, const char *compat)
+int fdt_init_compat(const char *node_path, FDTMachineInfo *fdti, const char *compat)
 {
     return fdt_init_search_table(node_path, fdti, compat, &compat_list_head);
 }
@@ -114,7 +114,7 @@ void add_to_inst_bind_table(FDTInitFn fdt_init, const char *name, void *opaque)
     add_to_table(fdt_init, name, opaque, &inst_bind_list_head);
 }
 
-int fdt_init_inst_bind(char *node_path, FDTMachineInfo *fdti,
+int fdt_init_inst_bind(const char *node_path, FDTMachineInfo *fdti,
         const char *name)
 {
     return fdt_init_search_table(node_path, fdti, name, &inst_bind_list_head);
@@ -151,7 +151,7 @@ void fdt_init_yield(FDTMachineInfo *fdti)
     DB_PRINT(1, "Unyield #%d\n", this_yield);
 }
 
-void fdt_init_set_opaque(FDTMachineInfo *fdti, char *node_path, void *opaque)
+void fdt_init_set_opaque(FDTMachineInfo *fdti, const char *node_path, void *opaque)
 {
     FDTDevOpaque *dp;
     for (dp = fdti->dev_opaques;
@@ -163,7 +163,7 @@ void fdt_init_set_opaque(FDTMachineInfo *fdti, char *node_path, void *opaque)
     dp->opaque = opaque;
 }
 
-int fdt_init_has_opaque(FDTMachineInfo *fdti, char *node_path)
+int fdt_init_has_opaque(FDTMachineInfo *fdti, const char *node_path)
 {
     FDTDevOpaque *dp;
     for (dp = fdti->dev_opaques; dp->node_path; dp++) {
@@ -211,7 +211,7 @@ void *fdt_init_get_cpu_cluster(FDTMachineInfo *fdti, const char *compat)
     return fdt_init_add_cpu_cluster(fdti, compat);
 }
 
-void *fdt_init_get_opaque(FDTMachineInfo *fdti, char *node_path)
+void *fdt_init_get_opaque(FDTMachineInfo *fdti, const char *node_path)
 {
     FDTDevOpaque *dp;
     for (dp = fdti->dev_opaques; dp->node_path; dp++) {

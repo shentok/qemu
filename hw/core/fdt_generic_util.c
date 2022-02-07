@@ -72,10 +72,10 @@
 
 int fdt_serial_ports;
 
-static int simple_bus_fdt_init(char *bus_node_path, FDTMachineInfo *fdti);
+static int simple_bus_fdt_init(const char *bus_node_path, FDTMachineInfo *fdti);
 
 static void fdt_get_irq_info_from_intc(FDTMachineInfo *fdti, qemu_irq *ret,
-                                       char *intc_node_path,
+                                       const char *intc_node_path,
                                        uint32_t *cells, uint32_t num_cells,
                                        uint32_t max, Error **errp);
 
@@ -226,11 +226,11 @@ struct FDTInitNodeArgs {
     FDTMachineInfo *fdti;
 };
 
-static int fdt_init_qdev(char *node_path, FDTMachineInfo *fdti,
+static int fdt_init_qdev(const char *node_path, FDTMachineInfo *fdti,
                          const char *compat);
 
 static int check_compat(const char *prefix, const char *compat,
-                        char *node_path, FDTMachineInfo *fdti)
+                        const char *node_path, FDTMachineInfo *fdti)
 {
     char *compat_prefixed = g_strconcat(prefix, compat, NULL);
     const int done = !fdt_init_compat(node_path, fdti, compat_prefixed);
@@ -241,7 +241,7 @@ static int check_compat(const char *prefix, const char *compat,
 static void fdt_init_node(void *args)
 {
     struct FDTInitNodeArgs *a = args;
-    char *node_path = a->node_path;
+    const char *const node_path = a->node_path;
     FDTMachineInfo *fdti = a->fdti;
     g_free(a);
 
@@ -319,11 +319,10 @@ exit:
     if (!fdt_init_has_opaque(fdti, node_path)) {
         fdt_init_set_opaque(fdti, node_path, NULL);
     }
-    g_free(node_path);
     return;
 }
 
-static int simple_bus_fdt_init(char *node_path, FDTMachineInfo *fdti)
+static int simple_bus_fdt_init(const char *node_path, FDTMachineInfo *fdti)
 {
     int i;
     int num_children = qemu_devtree_get_num_children(fdti->fdt, node_path,
@@ -348,7 +347,7 @@ static int simple_bus_fdt_init(char *node_path, FDTMachineInfo *fdti)
     return 0;
 }
 
-static qemu_irq fdt_get_gpio(FDTMachineInfo *fdti, char *node_path,
+static qemu_irq fdt_get_gpio(FDTMachineInfo *fdti, const char *node_path,
                              int *cur_cell, qemu_irq input,
                              const FDTGenericGPIOSet *gpio_set,
                              const char *debug_success, bool *end) {
@@ -522,7 +521,7 @@ fail_silent:
 }
 
 static void fdt_get_irq_info_from_intc(FDTMachineInfo *fdti, qemu_irq *ret,
-                                       char *intc_node_path,
+                                       const char *intc_node_path,
                                        uint32_t *cells, uint32_t num_cells,
                                        uint32_t max, Error **errp)
 {
@@ -558,7 +557,7 @@ fail:
 static uint32_t imap_cache[32 * 1024];
 static bool imap_cached = false;
 
-qemu_irq *fdt_get_irq_info(FDTMachineInfo *fdti, char *node_path, int irq_idx,
+qemu_irq *fdt_get_irq_info(FDTMachineInfo *fdti, const char *node_path, int irq_idx,
                           char *info, bool *map_mode) {
     void *fdt = fdti->fdt;
     uint32_t intc_phandle, intc_cells, cells[32];
@@ -766,7 +765,7 @@ fail:
     return NULL;
 }
 
-qemu_irq *fdt_get_irq(FDTMachineInfo *fdti, char *node_path, int irq_idx,
+qemu_irq *fdt_get_irq(FDTMachineInfo *fdti, const char *node_path, int irq_idx,
                       bool *map_mode)
 {
     return fdt_get_irq_info(fdti, node_path, irq_idx, NULL, map_mode);
@@ -841,7 +840,7 @@ static inline const char *trim_vendor(const char *s)
  *   http://events17.linuxfoundation.org/sites/events/files/slides/talk_11.pdf
  */
 static bool fdt_attach_blockdev(FDTMachineInfo *fdti,
-                                char *node_path, Object *dev)
+                                const char *node_path, Object *dev)
 {
     static const char propname[] = "blockdev-node-name";
     const char *label;
@@ -876,7 +875,7 @@ static bool fdt_attach_blockdev(FDTMachineInfo *fdti,
 }
 
 static void fdt_attach_blockdev_noname(FDTMachineInfo *fdti,
-                                char *node_path, Object *dev)
+                                const char *node_path, Object *dev)
 {
     const char *blockdev_name = NULL;
 
@@ -893,7 +892,7 @@ static void fdt_attach_blockdev_noname(FDTMachineInfo *fdti,
     fdt_attach_blockdev(fdti, node_path, dev);
 }
 
-static void fdt_attach_drive(FDTMachineInfo *fdti, char *node_path,
+static void fdt_attach_drive(FDTMachineInfo *fdti, const char *node_path,
                              Object *dev, BlockInterfaceType drive_type)
 {
     DriveInfo *dinfo = NULL;
@@ -1019,7 +1018,7 @@ static const int fdt_generic_reg_cells_defaults[] = {
  * We look for qemu-fdt-abort-on-error properties up the tree.
  * If we find one, we abort with the provided error message.
  */
-static void fdt_dev_error(FDTMachineInfo *fdti, char *node_path,
+static void fdt_dev_error(FDTMachineInfo *fdti, const char *node_path,
                           const char *compat)
 {
     const char *abort_on_error;
@@ -1080,7 +1079,7 @@ static void fdt_init_qdev_array_prop(Object *obj, QEMUDevtreeProp *prop)
     }
 }
 
-static void fdt_prop_override(char *node_path,
+static void fdt_prop_override(const char *node_path,
                               QEMUDevtreeProp *props,
                               QEMUDevtreeProp *prop,
                               const char *prefix,
@@ -1100,7 +1099,7 @@ static void fdt_prop_override(char *node_path,
     g_free(pfxPropname);
 }
 
-static int fdt_init_qdev(char *node_path, FDTMachineInfo *fdti,
+static int fdt_init_qdev(const char *node_path, FDTMachineInfo *fdti,
                          const char *compat)
 {
     Object *dev, *parent;

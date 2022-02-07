@@ -36,7 +36,7 @@
     } \
 } while (0);
 
-static int uart16550_fdt_init(char *node_path, FDTMachineInfo *fdti,
+static int uart16550_fdt_init(const char *node_path, FDTMachineInfo *fdti,
     void *priv)
 {
     /* FIXME: Pass in dynamically */

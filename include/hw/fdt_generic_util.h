@@ -18,7 +18,7 @@ FDTMachineInfo *fdt_generic_create_machine(void *fdt, qemu_irq *cpu_irq);
  * and the specified irq (by the interrupts device-tree property) is retrieved
  */
 
-qemu_irq *fdt_get_irq(FDTMachineInfo *fdti, char *node_path, int irq_idx,
+qemu_irq *fdt_get_irq(FDTMachineInfo *fdti, const char *node_path, int irq_idx,
                       bool *map_mode);
 
 /*
@@ -28,8 +28,8 @@ qemu_irq *fdt_get_irq(FDTMachineInfo *fdti, char *node_path, int irq_idx,
  * optional (i.e. can be NULL)
  */
 
-qemu_irq *fdt_get_irq_info(FDTMachineInfo *fdti, char *node_path, int irq_idx,
-                           char *info, bool *map_mode);
+qemu_irq *fdt_get_irq_info(FDTMachineInfo *fdti, const char *node_path,
+                           int irq_idx, char *info, bool *map_mode);
 
 #define TYPE_FDT_GENERIC_INTC "fdt-generic-intc"
 

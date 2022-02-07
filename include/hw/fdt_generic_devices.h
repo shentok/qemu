@@ -15,7 +15,7 @@ typedef struct FDTMemoryInfo {
 
 #endif
 
-int pflash_cfi01_fdt_init(char *node_path, FDTMachineInfo *fdti, void *opaque);
+int pflash_cfi01_fdt_init(const char *node_path, FDTMachineInfo *fdti, void *opaque);
 
 extern int fdt_generic_num_cpus;
 

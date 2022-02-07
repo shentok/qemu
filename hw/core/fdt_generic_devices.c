@@ -44,12 +44,12 @@
 
 int fdt_generic_num_cpus;
 
-static int i2c_bus_fdt_init(char *node_path, FDTMachineInfo *fdti, void *priv)
+static int i2c_bus_fdt_init(const char *node_path, FDTMachineInfo *fdti, void *priv)
 {
     Object *parent;
     DeviceState *dev;
     char parent_node_path[DT_PATH_LENGTH];
-    char *node_name = qemu_devtree_get_node_name(fdti->fdt, node_path);
+    const char *node_name = qemu_devtree_get_node_name(fdti->fdt, node_path);
 
     DB_PRINT_NP(1, "\n");
     /* FIXME: share this code with fdt_generic_util.c/fdt_init_qdev() */
@@ -75,7 +75,7 @@ static int i2c_bus_fdt_init(char *node_path, FDTMachineInfo *fdti, void *priv)
     return 0;
 }
 
-static int sysmem_fdt_init(char *node_path, FDTMachineInfo *fdti,
+static int sysmem_fdt_init(const char *node_path, FDTMachineInfo *fdti,
                            void *priv)
 {
     fdt_init_set_opaque(fdti, node_path, OBJECT(get_system_memory()));

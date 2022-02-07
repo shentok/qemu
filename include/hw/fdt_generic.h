@@ -59,7 +59,7 @@ typedef struct FDTMachineInfo {
 FDTMachineInfo *fdt_init_new_fdti(void *fdt);
 void fdt_init_destroy_fdti(FDTMachineInfo *fdti);
 
-typedef int (*FDTInitFn)(char *, FDTMachineInfo *, void *);
+typedef int (*FDTInitFn)(const char *, FDTMachineInfo *, void *);
 
 /* associate a FDTInitFn with a FDT compatibility */
 
@@ -71,12 +71,12 @@ void add_to_compat_table(FDTInitFn, const char *, void *);
  * be returned. Returns non-zero on not found or error
  */
 
-int fdt_init_compat(char *, FDTMachineInfo *, const char *);
+int fdt_init_compat(const char *, FDTMachineInfo *, const char *);
 
 /* same as above, but associates with a FDT node name (rather than compat) */
 
 void add_to_inst_bind_table(FDTInitFn, const char *, void *);
-int fdt_init_inst_bind(char *, FDTMachineInfo *, const char *);
+int fdt_init_inst_bind(const char *, FDTMachineInfo *, const char *);
 
 void dump_compat_table(void);
 void dump_inst_bind_table(void);
@@ -92,9 +92,9 @@ void fdt_init_yield(FDTMachineInfo *);
 
 /* set, check and get per device opaques. Keyed by fdt node_paths */
 
-void fdt_init_set_opaque(FDTMachineInfo *fdti, char *node_path, void *opaque);
-int fdt_init_has_opaque(FDTMachineInfo *fdti, char *node_path);
-void *fdt_init_get_opaque(FDTMachineInfo *fdti, char *node_path);
+void fdt_init_set_opaque(FDTMachineInfo *fdti, const char *node_path, void *opaque);
+int fdt_init_has_opaque(FDTMachineInfo *fdti, const char *node_path);
+void *fdt_init_get_opaque(FDTMachineInfo *fdti, const char *node_path);
 
 void *fdt_init_get_cpu_cluster(FDTMachineInfo *fdti, const char *compat);
 

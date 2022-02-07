@@ -45,7 +45,7 @@
     } \
 } while (0);
 
-int pflash_cfi01_fdt_init(char *node_path, FDTMachineInfo *fdti, void *opaque)
+int pflash_cfi01_fdt_init(const char *node_path, FDTMachineInfo *fdti, void *opaque)
 {
 
     uint32_t flash_base = 0;

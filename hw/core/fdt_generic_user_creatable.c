@@ -118,7 +118,7 @@ static Object *user_creatable_from_fdt(void *fdt, const char *node_path,
     return obj;
 }
 
-static int user_creatable_fdt_init(char *node_path, FDTMachineInfo *fdti,
+static int user_creatable_fdt_init(const char *node_path, FDTMachineInfo *fdti,
                                    void *priv)
 {
     const char *type = priv;
@@ -171,7 +171,7 @@ fdt_register_compatibility_opaque(user_creatable_fdt_init,
  * This is just in case DTB places a user-creatable node inside
  * a container, .e.g, "/objects".
  */
-static int container_fdt_init(char *node_path, FDTMachineInfo *fdti,
+static int container_fdt_init(const char *node_path, FDTMachineInfo *fdti,
                               void *priv)
 {
     fdt_init_set_opaque(fdti, node_path,
