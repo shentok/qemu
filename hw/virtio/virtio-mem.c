@@ -1070,34 +1070,32 @@ static void virtio_mem_remove_size_change_notifier(VirtIOMEM *vmem,
     notifier_remove(notifier);
 }
 
-static void virtio_mem_get_size(Object *obj, Visitor *v, const char *name,
-                                void *opaque, Error **errp)
+static void virtio_mem_get_size(ObjectProperty *oprop, Object *obj,
+                                Visitor *v, Error **errp)
 {
     const VirtIOMEM *vmem = VIRTIO_MEM(obj);
     uint64_t value = vmem->size;
 
-    visit_type_size(v, name, &value, errp);
+    visit_type_size(v, oprop->name, &value, errp);
 }
 
-static void virtio_mem_get_requested_size(Object *obj, Visitor *v,
-                                          const char *name, void *opaque,
-                                          Error **errp)
+static void virtio_mem_get_requested_size(ObjectProperty *oprop, Object *obj,
+                                          Visitor *v, Error **errp)
 {
     const VirtIOMEM *vmem = VIRTIO_MEM(obj);
     uint64_t value = vmem->requested_size;
 
-    visit_type_size(v, name, &value, errp);
+    visit_type_size(v, oprop->name, &value, errp);
 }
 
-static void virtio_mem_set_requested_size(Object *obj, Visitor *v,
-                                          const char *name, void *opaque,
-                                          Error **errp)
+static void virtio_mem_set_requested_size(ObjectProperty *oprop, Object *obj,
+                                          Visitor *v, Error **errp)
 {
     VirtIOMEM *vmem = VIRTIO_MEM(obj);
     Error *err = NULL;
     uint64_t value;
 
-    visit_type_size(v, name, &value, &err);
+    visit_type_size(v, oprop->name, &value, &err);
     if (err) {
         error_propagate(errp, err);
         return;
@@ -1110,12 +1108,12 @@ static void virtio_mem_set_requested_size(Object *obj, Visitor *v,
     if (DEVICE(obj)->realized) {
         if (!QEMU_IS_ALIGNED(value, vmem->block_size)) {
             error_setg(errp, "'%s' has to be multiples of '%s' (0x%" PRIx64
-                       ")", name, VIRTIO_MEM_BLOCK_SIZE_PROP,
+                       ")", oprop->name, VIRTIO_MEM_BLOCK_SIZE_PROP,
                        vmem->block_size);
             return;
         } else if (value > memory_region_size(&vmem->memdev->mr)) {
             error_setg(errp, "'%s' cannot exceed the memory backend size"
-                       "(0x%" PRIx64 ")", name,
+                       "(0x%" PRIx64 ")", oprop->name,
                        memory_region_size(&vmem->memdev->mr));
             return;
         }
@@ -1134,8 +1132,8 @@ static void virtio_mem_set_requested_size(Object *obj, Visitor *v,
     }
 }
 
-static void virtio_mem_get_block_size(Object *obj, Visitor *v, const char *name,
-                                      void *opaque, Error **errp)
+static void virtio_mem_get_block_size(ObjectProperty *oprop, Object *obj,
+                                      Visitor *v, Error **errp)
 {
     const VirtIOMEM *vmem = VIRTIO_MEM(obj);
     uint64_t value = vmem->block_size;
@@ -1152,33 +1150,33 @@ static void virtio_mem_get_block_size(Object *obj, Visitor *v, const char *name,
         }
     }
 
-    visit_type_size(v, name, &value, errp);
+    visit_type_size(v, oprop->name, &value, errp);
 }
 
-static void virtio_mem_set_block_size(Object *obj, Visitor *v, const char *name,
-                                      void *opaque, Error **errp)
+static void virtio_mem_set_block_size(ObjectProperty *oprop, Object *obj,
+                                      Visitor *v, Error **errp)
 {
     VirtIOMEM *vmem = VIRTIO_MEM(obj);
     Error *err = NULL;
     uint64_t value;
 
     if (DEVICE(obj)->realized) {
-        error_setg(errp, "'%s' cannot be changed", name);
+        error_setg(errp, "'%s' cannot be changed", oprop->name);
         return;
     }
 
-    visit_type_size(v, name, &value, &err);
+    visit_type_size(v, oprop->name, &value, &err);
     if (err) {
         error_propagate(errp, err);
         return;
     }
 
     if (value < VIRTIO_MEM_MIN_BLOCK_SIZE) {
-        error_setg(errp, "'%s' property has to be at least 0x%" PRIx32, name,
+        error_setg(errp, "'%s' property has to be at least 0x%" PRIx32, oprop->name,
                    VIRTIO_MEM_MIN_BLOCK_SIZE);
         return;
     } else if (!is_power_of_2(value)) {
-        error_setg(errp, "'%s' property has to be a power of two", name);
+        error_setg(errp, "'%s' property has to be a power of two", oprop->name);
         return;
     }
     vmem->block_size = value;

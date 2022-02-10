@@ -50,48 +50,48 @@ struct EMC141XClass {
 #define TYPE_EMC141X "emc141x"
 OBJECT_DECLARE_TYPE(EMC141XState, EMC141XClass, EMC141X)
 
-static void emc141x_get_temperature(Object *obj, Visitor *v, const char *name,
-                                    void *opaque, Error **errp)
+static void emc141x_get_temperature(ObjectProperty *oprop, Object *obj,
+                                    Visitor *v, Error **errp)
 {
     EMC141XState *s = EMC141X(obj);
     EMC141XClass *sc = EMC141X_GET_CLASS(s);
     int64_t value;
     unsigned tempid;
 
-    if (sscanf(name, "temperature%u", &tempid) != 1) {
-        error_setg(errp, "error reading %s: %s", name, g_strerror(errno));
+    if (sscanf(oprop->name, "temperature%u", &tempid) != 1) {
+        error_setg(errp, "error reading %s: %s", oprop->name, g_strerror(errno));
         return;
     }
 
     if (tempid >= sc->sensors_count) {
-        error_setg(errp, "error reading %s", name);
+        error_setg(errp, "error reading %s", oprop->name);
         return;
     }
 
     value = s->sensor[tempid].raw_temp_current * 1000;
 
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
-static void emc141x_set_temperature(Object *obj, Visitor *v, const char *name,
-                                    void *opaque, Error **errp)
+static void emc141x_set_temperature(ObjectProperty *oprop, Object *obj,
+                                    Visitor *v, Error **errp)
 {
     EMC141XState *s = EMC141X(obj);
     EMC141XClass *sc = EMC141X_GET_CLASS(s);
     int64_t temp;
     unsigned tempid;
 
-    if (!visit_type_int(v, name, &temp, errp)) {
+    if (!visit_type_int(v, oprop->name, &temp, errp)) {
         return;
     }
 
-    if (sscanf(name, "temperature%u", &tempid) != 1) {
-        error_setg(errp, "error reading %s: %s", name, g_strerror(errno));
+    if (sscanf(oprop->name, "temperature%u", &tempid) != 1) {
+        error_setg(errp, "error reading %s: %s", oprop->name, g_strerror(errno));
         return;
     }
 
     if (tempid >= sc->sensors_count) {
-        error_setg(errp, "error reading %s", name);
+        error_setg(errp, "error reading %s", oprop->name);
         return;
     }
 

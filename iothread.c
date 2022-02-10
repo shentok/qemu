@@ -268,21 +268,21 @@ static bool iothread_set_param(Object *obj, Visitor *v,
     return true;
 }
 
-static void iothread_get_poll_param(Object *obj, Visitor *v,
-        const char *name, void *opaque, Error **errp)
+static void iothread_get_poll_param(ObjectProperty *oprop, Object *obj,
+                                    Visitor *v, Error **errp)
 {
-    IOThreadParamInfo *info = opaque;
+    IOThreadParamInfo *info = oprop->opaque;
 
-    iothread_get_param(obj, v, name, info, errp);
+    iothread_get_param(obj, v, oprop->name, info, errp);
 }
 
-static void iothread_set_poll_param(Object *obj, Visitor *v,
-        const char *name, void *opaque, Error **errp)
+static void iothread_set_poll_param(ObjectProperty *oprop, Object *obj,
+                                    Visitor *v, Error **errp)
 {
     IOThread *iothread = IOTHREAD(obj);
-    IOThreadParamInfo *info = opaque;
+    IOThreadParamInfo *info = oprop->opaque;
 
-    if (!iothread_set_param(obj, v, name, info, errp)) {
+    if (!iothread_set_param(obj, v, oprop->name, info, errp)) {
         return;
     }
 

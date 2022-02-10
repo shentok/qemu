@@ -671,26 +671,24 @@ bool hpage_1m_allowed(void)
     return get_machine_class()->hpage_1m_allowed;
 }
 
-static void machine_get_loadparm(Object *obj, Visitor *v,
-                                 const char *name, void *opaque,
+static void machine_get_loadparm(ObjectProperty *oprop, Object *obj, Visitor *v,
                                  Error **errp)
 {
     S390CcwMachineState *ms = S390_CCW_MACHINE(obj);
     char *str = g_strndup((char *) ms->loadparm, sizeof(ms->loadparm));
 
-    visit_type_str(v, name, &str, errp);
+    visit_type_str(v, oprop->name, &str, errp);
     g_free(str);
 }
 
-static void machine_set_loadparm(Object *obj, Visitor *v,
-                                 const char *name, void *opaque,
+static void machine_set_loadparm(ObjectProperty *oprop, Object *obj, Visitor *v,
                                  Error **errp)
 {
     S390CcwMachineState *ms = S390_CCW_MACHINE(obj);
     char *val;
     int i;
 
-    if (!visit_type_str(v, name, &val, errp)) {
+    if (!visit_type_str(v, oprop->name, &val, errp)) {
         return;
     }
 

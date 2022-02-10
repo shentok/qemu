@@ -217,12 +217,12 @@ static void efuse_realize(DeviceState *dev, Error **errp)
     }
 }
 
-static void efuse_prop_set_drive(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void efuse_prop_set_drive(ObjectProperty *oprop, Object *obj,
+                                 Visitor *v, Error **errp)
 {
     DeviceState *dev = DEVICE(obj);
 
-    qdev_prop_drive.set(obj, v, name, opaque, errp);
+    qdev_prop_drive.set(oprop, obj, v, errp);
 
     /* Fill initial data if backend is attached after realized */
     if (dev->realized) {
@@ -230,10 +230,10 @@ static void efuse_prop_set_drive(Object *obj, Visitor *v, const char *name,
     }
 }
 
-static void efuse_prop_get_drive(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void efuse_prop_get_drive(ObjectProperty *oprop, Object *obj,
+                                 Visitor *v, Error **errp)
 {
-    qdev_prop_drive.get(obj, v, name, opaque, errp);
+    qdev_prop_drive.get(oprop, obj, v, errp);
 }
 
 static void efuse_prop_release_drive(ObjectProperty *oprop, Object *obj)

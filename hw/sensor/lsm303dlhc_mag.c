@@ -82,48 +82,48 @@ OBJECT_DECLARE_SIMPLE_TYPE(LSM303DLHCMagState, LSM303DLHC_MAG)
 uint32_t xy_gain[] = { 1100, 1100, 855, 670, 450, 400, 330, 230 };
 uint32_t z_gain[] = { 980, 980, 760, 600, 400, 355, 295, 205 };
 
-static void lsm303dlhc_mag_get_x(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void lsm303dlhc_mag_get_x(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                 Error **errp)
 {
     LSM303DLHCMagState *s = LSM303DLHC_MAG(obj);
     int gm = extract32(s->crb, 5, 3);
 
     /* Convert to uT where 1000 = 1 uT. Conversion factor depends on gain. */
     int64_t value = muldiv64(s->x, 100000, xy_gain[gm]);
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
-static void lsm303dlhc_mag_get_y(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void lsm303dlhc_mag_get_y(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                 Error **errp)
 {
     LSM303DLHCMagState *s = LSM303DLHC_MAG(obj);
     int gm = extract32(s->crb, 5, 3);
 
     /* Convert to uT where 1000 = 1 uT. Conversion factor depends on gain. */
     int64_t value = muldiv64(s->y, 100000, xy_gain[gm]);
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
-static void lsm303dlhc_mag_get_z(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void lsm303dlhc_mag_get_z(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                 Error **errp)
 {
     LSM303DLHCMagState *s = LSM303DLHC_MAG(obj);
     int gm = extract32(s->crb, 5, 3);
 
     /* Convert to uT where 1000 = 1 uT. Conversion factor depends on gain. */
     int64_t value = muldiv64(s->z, 100000, z_gain[gm]);
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
-static void lsm303dlhc_mag_set_x(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void lsm303dlhc_mag_set_x(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                 Error **errp)
 {
     LSM303DLHCMagState *s = LSM303DLHC_MAG(obj);
     int64_t value;
     int64_t reg;
     int gm = extract32(s->crb, 5, 3);
 
-    if (!visit_type_int(v, name, &value, errp)) {
+    if (!visit_type_int(v, oprop->name, &value, errp)) {
         return;
     }
 
@@ -138,15 +138,15 @@ static void lsm303dlhc_mag_set_x(Object *obj, Visitor *v, const char *name,
     s->x = (int16_t)reg;
 }
 
-static void lsm303dlhc_mag_set_y(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void lsm303dlhc_mag_set_y(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                 Error **errp)
 {
     LSM303DLHCMagState *s = LSM303DLHC_MAG(obj);
     int64_t value;
     int64_t reg;
     int gm = extract32(s->crb, 5, 3);
 
-    if (!visit_type_int(v, name, &value, errp)) {
+    if (!visit_type_int(v, oprop->name, &value, errp)) {
         return;
     }
 
@@ -161,15 +161,15 @@ static void lsm303dlhc_mag_set_y(Object *obj, Visitor *v, const char *name,
     s->y = (int16_t)reg;
 }
 
-static void lsm303dlhc_mag_set_z(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void lsm303dlhc_mag_set_z(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                 Error **errp)
 {
     LSM303DLHCMagState *s = LSM303DLHC_MAG(obj);
     int64_t value;
     int64_t reg;
     int gm = extract32(s->crb, 5, 3);
 
-    if (!visit_type_int(v, name, &value, errp)) {
+    if (!visit_type_int(v, oprop->name, &value, errp)) {
         return;
     }
 
@@ -187,9 +187,8 @@ static void lsm303dlhc_mag_set_z(Object *obj, Visitor *v, const char *name,
 /*
  * Get handler for the temperature property.
  */
-static void lsm303dlhc_mag_get_temperature(Object *obj, Visitor *v,
-                                           const char *name, void *opaque,
-                                           Error **errp)
+static void lsm303dlhc_mag_get_temperature(ObjectProperty *oprop, Object *obj,
+                                           Visitor *v, Error **errp)
 {
     LSM303DLHCMagState *s = LSM303DLHC_MAG(obj);
     int64_t value;
@@ -197,20 +196,19 @@ static void lsm303dlhc_mag_get_temperature(Object *obj, Visitor *v,
     /* Convert to 1 lsb = 0.125 C to 1 = 0.001 C for 'temperature' property. */
     value = s->temperature * 125;
 
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
 /*
  * Set handler for the temperature property.
  */
-static void lsm303dlhc_mag_set_temperature(Object *obj, Visitor *v,
-                                           const char *name, void *opaque,
-                                           Error **errp)
+static void lsm303dlhc_mag_set_temperature(ObjectProperty *oprop, Object *obj,
+                                           Visitor *v, Error **errp)
 {
     LSM303DLHCMagState *s = LSM303DLHC_MAG(obj);
     int64_t value;
 
-    if (!visit_type_int(v, name, &value, errp)) {
+    if (!visit_type_int(v, oprop->name, &value, errp)) {
         return;
     }
 

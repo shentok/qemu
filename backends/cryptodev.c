@@ -142,28 +142,28 @@ int cryptodev_backend_crypto_operation(
 }
 
 static void
-cryptodev_backend_get_queues(Object *obj, Visitor *v, const char *name,
-                             void *opaque, Error **errp)
+cryptodev_backend_get_queues(ObjectProperty *prop, Object *obj, Visitor *v,
+                             Error **errp)
 {
     CryptoDevBackend *backend = CRYPTODEV_BACKEND(obj);
     uint32_t value = backend->conf.peers.queues;
 
-    visit_type_uint32(v, name, &value, errp);
+    visit_type_uint32(v, prop->name, &value, errp);
 }
 
 static void
-cryptodev_backend_set_queues(Object *obj, Visitor *v, const char *name,
-                             void *opaque, Error **errp)
+cryptodev_backend_set_queues(ObjectProperty *prop, Object *obj, Visitor *v,
+                             Error **errp)
 {
     CryptoDevBackend *backend = CRYPTODEV_BACKEND(obj);
     uint32_t value;
 
-    if (!visit_type_uint32(v, name, &value, errp)) {
+    if (!visit_type_uint32(v, prop->name, &value, errp)) {
         return;
     }
     if (!value) {
         error_setg(errp, "Property '%s.%s' doesn't take value '%" PRIu32 "'",
-                   object_get_typename(obj), name, value);
+                   object_get_typename(obj), prop->name, value);
         return;
     }
     backend->conf.peers.queues = value;

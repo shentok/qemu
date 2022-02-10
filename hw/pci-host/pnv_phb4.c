@@ -1714,35 +1714,33 @@ static const TypeInfo pnv_phb5_type_info = {
     .instance_size = sizeof(PnvPHB4),
 };
 
-static void pnv_phb4_root_bus_get_prop(Object *obj, Visitor *v,
-                                       const char *name,
-                                       void *opaque, Error **errp)
+static void pnv_phb4_root_bus_get_prop(ObjectProperty *oprop, Object *obj,
+                                       Visitor *v, Error **errp)
 {
     PnvPHB4RootBus *bus = PNV_PHB4_ROOT_BUS(obj);
     uint64_t value = 0;
 
-    if (strcmp(name, "phb-id") == 0) {
+    if (strcmp(oprop->name, "phb-id") == 0) {
         value = bus->phb_id;
     } else {
         value = bus->chip_id;
     }
 
-    visit_type_size(v, name, &value, errp);
+    visit_type_size(v, oprop->name, &value, errp);
 }
 
-static void pnv_phb4_root_bus_set_prop(Object *obj, Visitor *v,
-                                       const char *name,
-                                       void *opaque, Error **errp)
+static void pnv_phb4_root_bus_set_prop(ObjectProperty *oprop, Object *obj,
+                                       Visitor *v, Error **errp)
 
 {
     PnvPHB4RootBus *bus = PNV_PHB4_ROOT_BUS(obj);
     uint64_t value;
 
-    if (!visit_type_size(v, name, &value, errp)) {
+    if (!visit_type_size(v, oprop->name, &value, errp)) {
         return;
     }
 
-    if (strcmp(name, "phb-id") == 0) {
+    if (strcmp(oprop->name, "phb-id") == 0) {
         bus->phb_id = value;
     } else {
         bus->chip_id = value;

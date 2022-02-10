@@ -40,43 +40,43 @@ host_memory_backend_get_name(HostMemoryBackend *backend)
 }
 
 static void
-host_memory_backend_get_size(Object *obj, Visitor *v, const char *name,
-                             void *opaque, Error **errp)
+host_memory_backend_get_size(ObjectProperty *prop, Object *obj, Visitor *v,
+                             Error **errp)
 {
     HostMemoryBackend *backend = MEMORY_BACKEND(obj);
     uint64_t value = backend->size;
 
-    visit_type_size(v, name, &value, errp);
+    visit_type_size(v, prop->name, &value, errp);
 }
 
 static void
-host_memory_backend_set_size(Object *obj, Visitor *v, const char *name,
-                             void *opaque, Error **errp)
+host_memory_backend_set_size(ObjectProperty *prop, Object *obj, Visitor *v,
+                             Error **errp)
 {
     HostMemoryBackend *backend = MEMORY_BACKEND(obj);
     uint64_t value;
 
     if (host_memory_backend_mr_inited(backend)) {
-        error_setg(errp, "cannot change property %s of %s ", name,
+        error_setg(errp, "cannot change property %s of %s ", prop->name,
                    object_get_typename(obj));
         return;
     }
 
-    if (!visit_type_size(v, name, &value, errp)) {
+    if (!visit_type_size(v, prop->name, &value, errp)) {
         return;
     }
     if (!value) {
         error_setg(errp,
                    "property '%s' of %s doesn't take value '%" PRIu64 "'",
-                   name, object_get_typename(obj), value);
+                   prop->name, object_get_typename(obj), value);
         return;
     }
     backend->size = value;
 }
 
 static void
-host_memory_backend_get_host_nodes(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+host_memory_backend_get_host_nodes(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
     HostMemoryBackend *backend = MEMORY_BACKEND(obj);
     uint16List *host_nodes = NULL;
@@ -100,19 +100,19 @@ host_memory_backend_get_host_nodes(Object *obj, Visitor *v, const char *name,
     } while (true);
 
 ret:
-    visit_type_uint16List(v, name, &host_nodes, errp);
+    visit_type_uint16List(v, oprop->name, &host_nodes, errp);
     qapi_free_uint16List(host_nodes);
 }
 
 static void
-host_memory_backend_set_host_nodes(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+host_memory_backend_set_host_nodes(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
 #ifdef CONFIG_NUMA
     HostMemoryBackend *backend = MEMORY_BACKEND(obj);
     uint16List *l, *host_nodes = NULL;
 
-    visit_type_uint16List(v, name, &host_nodes, errp);
+    visit_type_uint16List(v, oprop->name, &host_nodes, errp);
 
     for (l = host_nodes; l; l = l->next) {
         if (l->value >= MAX_NODES) {
@@ -242,24 +242,24 @@ static void host_memory_backend_set_prealloc(Object *obj, bool value,
     }
 }
 
-static void host_memory_backend_get_prealloc_threads(Object *obj, Visitor *v,
-    const char *name, void *opaque, Error **errp)
+static void host_memory_backend_get_prealloc_threads(ObjectProperty *prop,
+    Object *obj, Visitor *v, Error **errp)
 {
     HostMemoryBackend *backend = MEMORY_BACKEND(obj);
-    visit_type_uint32(v, name, &backend->prealloc_threads, errp);
+    visit_type_uint32(v, prop->name, &backend->prealloc_threads, errp);
 }
 
-static void host_memory_backend_set_prealloc_threads(Object *obj, Visitor *v,
-    const char *name, void *opaque, Error **errp)
+static void host_memory_backend_set_prealloc_threads(ObjectProperty *prop,
+    Object *obj, Visitor *v, Error **errp)
 {
     HostMemoryBackend *backend = MEMORY_BACKEND(obj);
     uint32_t value;
 
-    if (!visit_type_uint32(v, name, &value, errp)) {
+    if (!visit_type_uint32(v, prop->name, &value, errp)) {
         return;
     }
     if (value <= 0) {
-        error_setg(errp, "property '%s' of %s doesn't take value '%d'", name,
+        error_setg(errp, "property '%s' of %s doesn't take value '%d'", prop->name,
                    object_get_typename(obj), value);
         return;
     }

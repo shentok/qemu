@@ -32,17 +32,17 @@
 #include "hw/mem/memory-device.h"
 #include "sysemu/hostmem.h"
 
-static void nvdimm_get_label_size(Object *obj, Visitor *v, const char *name,
-                                  void *opaque, Error **errp)
+static void nvdimm_get_label_size(ObjectProperty *prop, Object *obj,
+                                  Visitor *v, Error **errp)
 {
     NVDIMMDevice *nvdimm = NVDIMM(obj);
     uint64_t value = nvdimm->label_size;
 
-    visit_type_size(v, name, &value, errp);
+    visit_type_size(v, prop->name, &value, errp);
 }
 
-static void nvdimm_set_label_size(Object *obj, Visitor *v, const char *name,
-                                  void *opaque, Error **errp)
+static void nvdimm_set_label_size(ObjectProperty *prop, Object *obj,
+                                  Visitor *v, Error **errp)
 {
     NVDIMMDevice *nvdimm = NVDIMM(obj);
     uint64_t value;
@@ -52,45 +52,45 @@ static void nvdimm_set_label_size(Object *obj, Visitor *v, const char *name,
         return;
     }
 
-    if (!visit_type_size(v, name, &value, errp)) {
+    if (!visit_type_size(v, prop->name, &value, errp)) {
         return;
     }
     if (value < MIN_NAMESPACE_LABEL_SIZE) {
         error_setg(errp, "Property '%s.%s' (0x%" PRIx64 ") is required"
-                   " at least 0x%lx", object_get_typename(obj), name, value,
-                   MIN_NAMESPACE_LABEL_SIZE);
+                   " at least 0x%lx", object_get_typename(obj), prop->name,
+                   value, MIN_NAMESPACE_LABEL_SIZE);
         return;
     }
 
     nvdimm->label_size = value;
 }
 
-static void nvdimm_get_uuid(Object *obj, Visitor *v, const char *name,
-                                  void *opaque, Error **errp)
+static void nvdimm_get_uuid(ObjectProperty *prop, Object *obj, Visitor *v,
+                            Error **errp)
 {
     NVDIMMDevice *nvdimm = NVDIMM(obj);
     char *value = NULL;
 
     value = qemu_uuid_unparse_strdup(&nvdimm->uuid);
 
-    visit_type_str(v, name, &value, errp);
+    visit_type_str(v, prop->name, &value, errp);
     g_free(value);
 }
 
 
-static void nvdimm_set_uuid(Object *obj, Visitor *v, const char *name,
-                                  void *opaque, Error **errp)
+static void nvdimm_set_uuid(ObjectProperty *prop, Object *obj, Visitor *v,
+                            Error **errp)
 {
     NVDIMMDevice *nvdimm = NVDIMM(obj);
     char *value;
 
-    if (!visit_type_str(v, name, &value, errp)) {
+    if (!visit_type_str(v, prop->name, &value, errp)) {
         return;
     }
 
     if (qemu_uuid_parse(value, &nvdimm->uuid) != 0) {
         error_setg(errp, "Property '%s.%s' has invalid value",
-                   object_get_typename(obj), name);
+                   object_get_typename(obj), prop->name);
     }
 
     g_free(value);

@@ -206,28 +206,27 @@ aspeed_kcs_get_channel_by_register(int reg)
     return NULL;
 }
 
-static void aspeed_kcs_get_register_property(Object *obj,
+static void aspeed_kcs_get_register_property(ObjectProperty *oprop,
+                                             Object *obj,
                                              Visitor *v,
-                                             const char *name,
-                                             void *opaque,
                                              Error **errp)
 {
     const struct aspeed_kcs_register_data *data;
     AspeedLPCState *s = ASPEED_LPC(obj);
     uint32_t val;
 
-    data = aspeed_kcs_get_register_data_by_name(name);
+    data = aspeed_kcs_get_register_data_by_name(oprop->name);
     if (!data) {
         return;
     }
 
-    if (!strncmp("odr", name, 3)) {
+    if (!strncmp("odr", oprop->name, 3)) {
         s->regs[data->chan->str] &= ~STR_OBF;
     }
 
     val = s->regs[data->reg];
 
-    visit_type_uint32(v, name, &val, errp);
+    visit_type_uint32(v, oprop->name, &val, errp);
 }
 
 static bool aspeed_kcs_channel_enabled(AspeedLPCState *s,
@@ -261,30 +260,29 @@ aspeed_kcs_channel_ibf_irq_enabled(AspeedLPCState *s,
     }
 }
 
-static void aspeed_kcs_set_register_property(Object *obj,
+static void aspeed_kcs_set_register_property(ObjectProperty *oprop,
+                                             Object *obj,
                                              Visitor *v,
-                                             const char *name,
-                                             void *opaque,
                                              Error **errp)
 {
     const struct aspeed_kcs_register_data *data;
     AspeedLPCState *s = ASPEED_LPC(obj);
     uint32_t val;
 
-    data = aspeed_kcs_get_register_data_by_name(name);
+    data = aspeed_kcs_get_register_data_by_name(oprop->name);
     if (!data) {
         return;
     }
 
-    if (!visit_type_uint32(v, name, &val, errp)) {
+    if (!visit_type_uint32(v, oprop->name, &val, errp)) {
         return;
     }
 
-    if (strncmp("str", name, 3)) {
+    if (strncmp("str", oprop->name, 3)) {
         s->regs[data->reg] = val;
     }
 
-    if (!strncmp("idr", name, 3)) {
+    if (!strncmp("idr", oprop->name, 3)) {
         s->regs[data->chan->str] |= STR_IBF;
         if (aspeed_kcs_channel_ibf_irq_enabled(s, data->chan)) {
             enum aspeed_lpc_subdevice subdev;

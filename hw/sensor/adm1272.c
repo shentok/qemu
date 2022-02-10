@@ -412,40 +412,40 @@ static int adm1272_write_data(PMBusDevice *pmdev, const uint8_t *buf,
     return 0;
 }
 
-static void adm1272_get(Object *obj, Visitor *v, const char *name, void *opaque,
+static void adm1272_get(ObjectProperty *oprop, Object *obj, Visitor *v,
                         Error **errp)
 {
     uint16_t value;
 
-    if (strcmp(name, "vin") == 0 || strcmp(name, "vout") == 0) {
-        value = adm1272_direct_to_millivolts(*(uint16_t *)opaque);
-    } else if (strcmp(name, "iout") == 0) {
-        value = adm1272_direct_to_milliamps(*(uint16_t *)opaque);
-    } else if (strcmp(name, "pin") == 0) {
-        value = adm1272_direct_to_watts(*(uint16_t *)opaque);
+    if (strcmp(oprop->name, "vin") == 0 || strcmp(oprop->name, "vout") == 0) {
+        value = adm1272_direct_to_millivolts(*(uint16_t *)oprop->opaque);
+    } else if (strcmp(oprop->name, "iout") == 0) {
+        value = adm1272_direct_to_milliamps(*(uint16_t *)oprop->opaque);
+    } else if (strcmp(oprop->name, "pin") == 0) {
+        value = adm1272_direct_to_watts(*(uint16_t *)oprop->opaque);
     } else {
-        value = *(uint16_t *)opaque;
+        value = *(uint16_t *)oprop->opaque;
     }
 
-    visit_type_uint16(v, name, &value, errp);
+    visit_type_uint16(v, oprop->name, &value, errp);
 }
 
-static void adm1272_set(Object *obj, Visitor *v, const char *name, void *opaque,
-                        Error **errp)
+static void adm1272_set(ObjectProperty *oprop, Object *obj,
+                        Visitor *v, Error **errp)
 {
     ADM1272State *s = ADM1272(obj);
-    uint16_t *internal = opaque;
+    uint16_t *internal = oprop->opaque;
     uint16_t value;
 
-    if (!visit_type_uint16(v, name, &value, errp)) {
+    if (!visit_type_uint16(v, oprop->name, &value, errp)) {
         return;
     }
 
-    if (strcmp(name, "vin") == 0 || strcmp(name, "vout") == 0) {
+    if (strcmp(oprop->name, "vin") == 0 || strcmp(oprop->name, "vout") == 0) {
         *internal = adm1272_millivolts_to_direct(value);
-    } else if (strcmp(name, "iout") == 0) {
+    } else if (strcmp(oprop->name, "iout") == 0) {
         *internal = adm1272_milliamps_to_direct(value);
-    } else if (strcmp(name, "pin") == 0) {
+    } else if (strcmp(oprop->name, "pin") == 0) {
         *internal = adm1272_watts_to_direct(value);
     } else {
         *internal = value;

@@ -82,9 +82,8 @@ static void *thread_context_run(void *opaque)
     }
 }
 
-static void thread_context_set_cpu_affinity(Object *obj, Visitor *v,
-                                            const char *name, void *opaque,
-                                            Error **errp)
+static void thread_context_set_cpu_affinity(ObjectProperty *oprop, Object *obj,
+                                            Visitor *v, Error **errp)
 {
     ThreadContext *tc = THREAD_CONTEXT(obj);
     uint16List *l, *host_cpus = NULL;
@@ -97,7 +96,7 @@ static void thread_context_set_cpu_affinity(Object *obj, Visitor *v,
         return;
     }
 
-    visit_type_uint16List(v, name, &host_cpus, &err);
+    visit_type_uint16List(v, oprop->name, &host_cpus, &err);
     if (err) {
         error_propagate(errp, err);
         return;
@@ -135,9 +134,8 @@ out:
     qapi_free_uint16List(host_cpus);
 }
 
-static void thread_context_get_cpu_affinity(Object *obj, Visitor *v,
-                                            const char *name, void *opaque,
-                                            Error **errp)
+static void thread_context_get_cpu_affinity(ObjectProperty *oprop, Object *obj,
+                                            Visitor *v, Error **errp)
 {
     unsigned long *bitmap, nbits, value;
     ThreadContext *tc = THREAD_CONTEXT(obj);
@@ -164,13 +162,12 @@ static void thread_context_get_cpu_affinity(Object *obj, Visitor *v,
     }
     g_free(bitmap);
 
-    visit_type_uint16List(v, name, &host_cpus, errp);
+    visit_type_uint16List(v, oprop->name, &host_cpus, errp);
     qapi_free_uint16List(host_cpus);
 }
 
-static void thread_context_set_node_affinity(Object *obj, Visitor *v,
-                                             const char *name, void *opaque,
-                                             Error **errp)
+static void thread_context_set_node_affinity(ObjectProperty *oprop, Object *obj,
+                                             Visitor *v, Error **errp)
 {
 #ifdef CONFIG_NUMA
     const int nbits = numa_num_possible_cpus();
@@ -186,7 +183,7 @@ static void thread_context_set_node_affinity(Object *obj, Visitor *v,
         return;
     }
 
-    visit_type_uint16List(v, name, &host_nodes, &err);
+    visit_type_uint16List(v, oprop->name, &host_nodes, &err);
     if (err) {
         error_propagate(errp, err);
         return;
@@ -241,14 +238,13 @@ out:
 #endif
 }
 
-static void thread_context_get_thread_id(Object *obj, Visitor *v,
-                                         const char *name, void *opaque,
-                                         Error **errp)
+static void thread_context_get_thread_id(ObjectProperty *oprop, Object *obj,
+                                         Visitor *v, Error **errp)
 {
     ThreadContext *tc = THREAD_CONTEXT(obj);
     uint64_t value = tc->thread_id;
 
-    visit_type_uint64(v, name, &value, errp);
+    visit_type_uint64(v, oprop->name, &value, errp);
 }
 
 static void thread_context_instance_complete(UserCreatable *uc, Error **errp)

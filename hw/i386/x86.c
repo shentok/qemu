@@ -1260,21 +1260,21 @@ bool x86_machine_is_smm_enabled(const X86MachineState *x86ms)
     return false;
 }
 
-static void x86_machine_get_smm(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void x86_machine_get_smm(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                Error **errp)
 {
     X86MachineState *x86ms = X86_MACHINE(obj);
     OnOffAuto smm = x86ms->smm;
 
-    visit_type_OnOffAuto(v, name, &smm, errp);
+    visit_type_OnOffAuto(v, oprop->name, &smm, errp);
 }
 
-static void x86_machine_set_smm(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void x86_machine_set_smm(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                Error **errp)
 {
     X86MachineState *x86ms = X86_MACHINE(obj);
 
-    visit_type_OnOffAuto(v, name, &x86ms->smm, errp);
+    visit_type_OnOffAuto(v, oprop->name, &x86ms->smm, errp);
 }
 
 bool x86_machine_is_acpi_enabled(const X86MachineState *x86ms)
@@ -1285,55 +1285,55 @@ bool x86_machine_is_acpi_enabled(const X86MachineState *x86ms)
     return true;
 }
 
-static void x86_machine_get_acpi(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void x86_machine_get_acpi(ObjectProperty *oprop, Object *obj,
+                                 Visitor *v, Error **errp)
 {
     X86MachineState *x86ms = X86_MACHINE(obj);
     OnOffAuto acpi = x86ms->acpi;
 
-    visit_type_OnOffAuto(v, name, &acpi, errp);
+    visit_type_OnOffAuto(v, oprop->name, &acpi, errp);
 }
 
-static void x86_machine_set_acpi(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void x86_machine_set_acpi(ObjectProperty *oprop, Object *obj,
+                                 Visitor *v, Error **errp)
 {
     X86MachineState *x86ms = X86_MACHINE(obj);
 
-    visit_type_OnOffAuto(v, name, &x86ms->acpi, errp);
+    visit_type_OnOffAuto(v, oprop->name, &x86ms->acpi, errp);
 }
 
-static void x86_machine_get_pit(Object *obj, Visitor *v, const char *name,
-                                    void *opaque, Error **errp)
+static void x86_machine_get_pit(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                Error **errp)
 {
     X86MachineState *x86ms = X86_MACHINE(obj);
     OnOffAuto pit = x86ms->pit;
 
-    visit_type_OnOffAuto(v, name, &pit, errp);
+    visit_type_OnOffAuto(v, oprop->name, &pit, errp);
 }
 
-static void x86_machine_set_pit(Object *obj, Visitor *v, const char *name,
-                                    void *opaque, Error **errp)
+static void x86_machine_set_pit(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                Error **errp)
 {
     X86MachineState *x86ms = X86_MACHINE(obj);;
 
-    visit_type_OnOffAuto(v, name, &x86ms->pit, errp);
+    visit_type_OnOffAuto(v, oprop->name, &x86ms->pit, errp);
 }
 
-static void x86_machine_get_pic(Object *obj, Visitor *v, const char *name,
-                                void *opaque, Error **errp)
+static void x86_machine_get_pic(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                Error **errp)
 {
     X86MachineState *x86ms = X86_MACHINE(obj);
     OnOffAuto pic = x86ms->pic;
 
-    visit_type_OnOffAuto(v, name, &pic, errp);
+    visit_type_OnOffAuto(v, oprop->name, &pic, errp);
 }
 
-static void x86_machine_set_pic(Object *obj, Visitor *v, const char *name,
-                                void *opaque, Error **errp)
+static void x86_machine_set_pic(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                Error **errp)
 {
     X86MachineState *x86ms = X86_MACHINE(obj);
 
-    visit_type_OnOffAuto(v, name, &x86ms->pic, errp);
+    visit_type_OnOffAuto(v, oprop->name, &x86ms->pic, errp);
 }
 
 static char *x86_machine_get_oem_id(Object *obj, Error **errp)
@@ -1381,40 +1381,40 @@ static void x86_machine_set_oem_table_id(Object *obj, const char *value,
     strncpy(x86ms->oem_table_id, value, 8);
 }
 
-static void x86_machine_get_bus_lock_ratelimit(Object *obj, Visitor *v,
-                                const char *name, void *opaque, Error **errp)
+static void x86_machine_get_bus_lock_ratelimit(ObjectProperty *oprop,
+                                Object *obj, Visitor *v, Error **errp)
 {
     X86MachineState *x86ms = X86_MACHINE(obj);
     uint64_t bus_lock_ratelimit = x86ms->bus_lock_ratelimit;
 
-    visit_type_uint64(v, name, &bus_lock_ratelimit, errp);
+    visit_type_uint64(v, oprop->name, &bus_lock_ratelimit, errp);
 }
 
-static void x86_machine_set_bus_lock_ratelimit(Object *obj, Visitor *v,
-                               const char *name, void *opaque, Error **errp)
+static void x86_machine_set_bus_lock_ratelimit(ObjectProperty *oprop,
+                               Object *obj, Visitor *v, Error **errp)
 {
     X86MachineState *x86ms = X86_MACHINE(obj);
 
-    visit_type_uint64(v, name, &x86ms->bus_lock_ratelimit, errp);
+    visit_type_uint64(v, oprop->name, &x86ms->bus_lock_ratelimit, errp);
 }
 
-static void machine_get_sgx_epc(Object *obj, Visitor *v, const char *name,
-                                void *opaque, Error **errp)
+static void machine_get_sgx_epc(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                Error **errp)
 {
     X86MachineState *x86ms = X86_MACHINE(obj);
     SgxEPCList *list = x86ms->sgx_epc_list;
 
-    visit_type_SgxEPCList(v, name, &list, errp);
+    visit_type_SgxEPCList(v, oprop->name, &list, errp);
 }
 
-static void machine_set_sgx_epc(Object *obj, Visitor *v, const char *name,
-                                void *opaque, Error **errp)
+static void machine_set_sgx_epc(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                Error **errp)
 {
     X86MachineState *x86ms = X86_MACHINE(obj);
     SgxEPCList *list;
 
     list = x86ms->sgx_epc_list;
-    visit_type_SgxEPCList(v, name, &x86ms->sgx_epc_list, errp);
+    visit_type_SgxEPCList(v, oprop->name, &x86ms->sgx_epc_list, errp);
 
     qapi_free_SgxEPCList(list);
 }

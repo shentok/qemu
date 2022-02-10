@@ -172,24 +172,22 @@ static void tcg_set_thread(Object *obj, const char *value, Error **errp)
     }
 }
 
-static void tcg_get_tb_size(Object *obj, Visitor *v,
-                            const char *name, void *opaque,
+static void tcg_get_tb_size(ObjectProperty *prop, Object *obj, Visitor *v,
                             Error **errp)
 {
     TCGState *s = TCG_STATE(obj);
     uint32_t value = s->tb_size;
 
-    visit_type_uint32(v, name, &value, errp);
+    visit_type_uint32(v, prop->name, &value, errp);
 }
 
-static void tcg_set_tb_size(Object *obj, Visitor *v,
-                            const char *name, void *opaque,
+static void tcg_set_tb_size(ObjectProperty *prop, Object *obj, Visitor *v,
                             Error **errp)
 {
     TCGState *s = TCG_STATE(obj);
     uint32_t value;
 
-    if (!visit_type_uint32(v, name, &value, errp)) {
+    if (!visit_type_uint32(v, prop->name, &value, errp)) {
         return;
     }
 

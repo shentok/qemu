@@ -107,8 +107,8 @@ OBJECT_DECLARE_TYPE(TMP421State, TMP421Class, TMP421)
 static const int32_t mins[2] = { -40000, -55000 };
 static const int32_t maxs[2] = { 127000, 150000 };
 
-static void tmp421_get_temperature(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+static void tmp421_get_temperature(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
     TMP421State *s = TMP421(obj);
     bool ext_range = (s->config[0] & TMP421_CONFIG_RANGE);
@@ -116,26 +116,26 @@ static void tmp421_get_temperature(Object *obj, Visitor *v, const char *name,
     int64_t value;
     int tempid;
 
-    if (sscanf(name, "temperature%d", &tempid) != 1) {
-        error_setg(errp, "error reading %s: %s", name, g_strerror(errno));
+    if (sscanf(oprop->name, "temperature%d", &tempid) != 1) {
+        error_setg(errp, "error reading %s: %s", oprop->name, g_strerror(errno));
         return;
     }
 
     if (tempid >= 4 || tempid < 0) {
-        error_setg(errp, "error reading %s", name);
+        error_setg(errp, "error reading %s", oprop->name);
         return;
     }
 
     value = ((s->temperature[tempid] - offset) * 1000 + 128) / 256;
 
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
 /* Units are 0.001 centigrades relative to 0 C.  s->temperature is 8.8
  * fixed point, so units are 1/256 centigrades.  A simple ratio will do.
  */
-static void tmp421_set_temperature(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+static void tmp421_set_temperature(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
     TMP421State *s = TMP421(obj);
     int64_t temp;
@@ -143,7 +143,7 @@ static void tmp421_set_temperature(Object *obj, Visitor *v, const char *name,
     int offset = ext_range * 64 * 256;
     int tempid;
 
-    if (!visit_type_int(v, name, &temp, errp)) {
+    if (!visit_type_int(v, oprop->name, &temp, errp)) {
         return;
     }
 
@@ -153,13 +153,13 @@ static void tmp421_set_temperature(Object *obj, Visitor *v, const char *name,
         return;
     }
 
-    if (sscanf(name, "temperature%d", &tempid) != 1) {
-        error_setg(errp, "error reading %s: %s", name, g_strerror(errno));
+    if (sscanf(oprop->name, "temperature%d", &tempid) != 1) {
+        error_setg(errp, "error reading %s: %s", oprop->name, g_strerror(errno));
         return;
     }
 
     if (tempid >= 4 || tempid < 0) {
-        error_setg(errp, "error reading %s", name);
+        error_setg(errp, "error reading %s", oprop->name);
         return;
     }
 

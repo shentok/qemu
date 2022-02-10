@@ -31,18 +31,16 @@ typedef struct ObjectProperty ObjectProperty;
 
 /**
  * typedef ObjectPropertyAccessor:
+ * @prop: the object property to be accessed
  * @obj: the object that owns the property
  * @v: the visitor that contains the property data
- * @name: the name of the property
- * @opaque: the object property opaque
  * @errp: a pointer to an Error that is filled if getting/setting fails.
  *
  * Called when trying to get/set a property.
  */
-typedef void (ObjectPropertyAccessor)(Object *obj,
+typedef void (ObjectPropertyAccessor)(ObjectProperty *prop,
+                                      Object *obj,
                                       Visitor *v,
-                                      const char *name,
-                                      void *opaque,
                                       Error **errp);
 
 /**

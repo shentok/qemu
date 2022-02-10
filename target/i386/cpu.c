@@ -4296,9 +4296,8 @@ static void mark_unavailable_features(X86CPU *cpu, FeatureWord w, uint64_t mask,
     }
 }
 
-static void x86_cpuid_version_get_family(Object *obj, Visitor *v,
-                                         const char *name, void *opaque,
-                                         Error **errp)
+static void x86_cpuid_version_get_family(ObjectProperty *oprop, Object *obj,
+                                         Visitor *v, Error **errp)
 {
     X86CPU *cpu = X86_CPU(obj);
     CPUX86State *env = &cpu->env;
@@ -4308,12 +4307,11 @@ static void x86_cpuid_version_get_family(Object *obj, Visitor *v,
     if (value == 0xf) {
         value += (env->cpuid_version >> 20) & 0xff;
     }
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
-static void x86_cpuid_version_set_family(Object *obj, Visitor *v,
-                                         const char *name, void *opaque,
-                                         Error **errp)
+static void x86_cpuid_version_set_family(ObjectProperty *oprop, Object *obj,
+                                         Visitor *v, Error **errp)
 {
     X86CPU *cpu = X86_CPU(obj);
     CPUX86State *env = &cpu->env;
@@ -4321,12 +4319,12 @@ static void x86_cpuid_version_set_family(Object *obj, Visitor *v,
     const int64_t max = 0xff + 0xf;
     int64_t value;
 
-    if (!visit_type_int(v, name, &value, errp)) {
+    if (!visit_type_int(v, oprop->name, &value, errp)) {
         return;
     }
     if (value < min || value > max) {
         error_setg(errp, QERR_PROPERTY_VALUE_OUT_OF_RANGE, "",
-                   name ? name : "null", value, min, max);
+                   oprop->name ? oprop->name : "null", value, min, max);
         return;
     }
 
@@ -4338,9 +4336,8 @@ static void x86_cpuid_version_set_family(Object *obj, Visitor *v,
     }
 }
 
-static void x86_cpuid_version_get_model(Object *obj, Visitor *v,
-                                        const char *name, void *opaque,
-                                        Error **errp)
+static void x86_cpuid_version_get_model(ObjectProperty *oprop, Object *obj,
+                                        Visitor *v, Error **errp)
 {
     X86CPU *cpu = X86_CPU(obj);
     CPUX86State *env = &cpu->env;
@@ -4348,12 +4345,11 @@ static void x86_cpuid_version_get_model(Object *obj, Visitor *v,
 
     value = (env->cpuid_version >> 4) & 0xf;
     value |= ((env->cpuid_version >> 16) & 0xf) << 4;
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
-static void x86_cpuid_version_set_model(Object *obj, Visitor *v,
-                                        const char *name, void *opaque,
-                                        Error **errp)
+static void x86_cpuid_version_set_model(ObjectProperty *oprop, Object *obj,
+                                        Visitor *v, Error **errp)
 {
     X86CPU *cpu = X86_CPU(obj);
     CPUX86State *env = &cpu->env;
@@ -4361,12 +4357,12 @@ static void x86_cpuid_version_set_model(Object *obj, Visitor *v,
     const int64_t max = 0xff;
     int64_t value;
 
-    if (!visit_type_int(v, name, &value, errp)) {
+    if (!visit_type_int(v, oprop->name, &value, errp)) {
         return;
     }
     if (value < min || value > max) {
         error_setg(errp, QERR_PROPERTY_VALUE_OUT_OF_RANGE, "",
-                   name ? name : "null", value, min, max);
+                   oprop->name ? oprop->name : "null", value, min, max);
         return;
     }
 
@@ -4374,21 +4370,19 @@ static void x86_cpuid_version_set_model(Object *obj, Visitor *v,
     env->cpuid_version |= ((value & 0xf) << 4) | ((value >> 4) << 16);
 }
 
-static void x86_cpuid_version_get_stepping(Object *obj, Visitor *v,
-                                           const char *name, void *opaque,
-                                           Error **errp)
+static void x86_cpuid_version_get_stepping(ObjectProperty *oprop, Object *obj,
+                                           Visitor *v, Error **errp)
 {
     X86CPU *cpu = X86_CPU(obj);
     CPUX86State *env = &cpu->env;
     int64_t value;
 
     value = env->cpuid_version & 0xf;
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
-static void x86_cpuid_version_set_stepping(Object *obj, Visitor *v,
-                                           const char *name, void *opaque,
-                                           Error **errp)
+static void x86_cpuid_version_set_stepping(ObjectProperty *oprop, Object *obj,
+                                           Visitor *v, Error **errp)
 {
     X86CPU *cpu = X86_CPU(obj);
     CPUX86State *env = &cpu->env;
@@ -4396,12 +4390,12 @@ static void x86_cpuid_version_set_stepping(Object *obj, Visitor *v,
     const int64_t max = 0xf;
     int64_t value;
 
-    if (!visit_type_int(v, name, &value, errp)) {
+    if (!visit_type_int(v, oprop->name, &value, errp)) {
         return;
     }
     if (value < min || value > max) {
         error_setg(errp, QERR_PROPERTY_VALUE_OUT_OF_RANGE, "",
-                   name ? name : "null", value, min, max);
+                   oprop->name ? oprop->name : "null", value, min, max);
         return;
     }
 
@@ -4480,30 +4474,30 @@ static void x86_cpuid_set_model_id(Object *obj, const char *model_id,
     }
 }
 
-static void x86_cpuid_get_tsc_freq(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+static void x86_cpuid_get_tsc_freq(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
     X86CPU *cpu = X86_CPU(obj);
     int64_t value;
 
     value = cpu->env.tsc_khz * 1000;
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
-static void x86_cpuid_set_tsc_freq(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+static void x86_cpuid_set_tsc_freq(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
     X86CPU *cpu = X86_CPU(obj);
     const int64_t min = 0;
     const int64_t max = INT64_MAX;
     int64_t value;
 
-    if (!visit_type_int(v, name, &value, errp)) {
+    if (!visit_type_int(v, oprop->name, &value, errp)) {
         return;
     }
     if (value < min || value > max) {
         error_setg(errp, QERR_PROPERTY_VALUE_OUT_OF_RANGE, "",
-                   name ? name : "null", value, min, max);
+                   oprop->name ? oprop->name : "null", value, min, max);
         return;
     }
 
@@ -4511,11 +4505,10 @@ static void x86_cpuid_set_tsc_freq(Object *obj, Visitor *v, const char *name,
 }
 
 /* Generic getter for "feature-words" and "filtered-features" properties */
-static void x86_cpu_get_feature_words(Object *obj, Visitor *v,
-                                      const char *name, void *opaque,
-                                      Error **errp)
+static void x86_cpu_get_feature_words(ObjectProperty *oprop, Object *obj,
+                                      Visitor *v, Error **errp)
 {
-    uint64_t *array = (uint64_t *)opaque;
+    uint64_t *array = (uint64_t *)oprop->opaque;
     FeatureWord w;
     X86CPUFeatureWordInfo word_infos[FEATURE_WORDS] = { };
     X86CPUFeatureWordInfoList list_entries[FEATURE_WORDS] = { };
@@ -4702,8 +4695,8 @@ static void x86_cpu_list_feature_names(FeatureWordArray features,
     }
 }
 
-static void x86_cpu_get_unavailable_features(Object *obj, Visitor *v,
-                                             const char *name, void *opaque,
+static void x86_cpu_get_unavailable_features(ObjectProperty *oprop,
+                                             Object *obj, Visitor *v,
                                              Error **errp)
 {
     X86CPU *xc = X86_CPU(obj);
@@ -6664,30 +6657,30 @@ typedef struct BitProperty {
     uint64_t mask;
 } BitProperty;
 
-static void x86_cpu_get_bit_prop(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void x86_cpu_get_bit_prop(ObjectProperty *oprop, Object *obj,
+                                 Visitor *v, Error **errp)
 {
     X86CPU *cpu = X86_CPU(obj);
-    BitProperty *fp = opaque;
+    BitProperty *fp = oprop->opaque;
     uint64_t f = cpu->env.features[fp->w];
     bool value = (f & fp->mask) == fp->mask;
-    visit_type_bool(v, name, &value, errp);
+    visit_type_bool(v, oprop->name, &value, errp);
 }
 
-static void x86_cpu_set_bit_prop(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void x86_cpu_set_bit_prop(ObjectProperty *oprop, Object *obj,
+                                 Visitor *v, Error **errp)
 {
     DeviceState *dev = DEVICE(obj);
     X86CPU *cpu = X86_CPU(obj);
-    BitProperty *fp = opaque;
+    BitProperty *fp = oprop->opaque;
     bool value;
 
     if (dev->realized) {
-        qdev_prop_set_after_realize(dev, name, errp);
+        qdev_prop_set_after_realize(dev, oprop->name, errp);
         return;
     }
 
-    if (!visit_type_bool(v, name, &value, errp)) {
+    if (!visit_type_bool(v, oprop->name, &value, errp)) {
         return;
     }
 

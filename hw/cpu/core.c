@@ -15,22 +15,22 @@
 #include "sysemu/cpus.h"
 #include "hw/boards.h"
 
-static void core_prop_get_core_id(Object *obj, Visitor *v, const char *name,
-                                  void *opaque, Error **errp)
+static void core_prop_get_core_id(ObjectProperty *oprop, Object *obj,
+                                  Visitor *v, Error **errp)
 {
     CPUCore *core = CPU_CORE(obj);
     int64_t value = core->core_id;
 
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
-static void core_prop_set_core_id(Object *obj, Visitor *v, const char *name,
-                                  void *opaque, Error **errp)
+static void core_prop_set_core_id(ObjectProperty *oprop, Object *obj,
+                                  Visitor *v, Error **errp)
 {
     CPUCore *core = CPU_CORE(obj);
     int64_t value;
 
-    if (!visit_type_int(v, name, &value, errp)) {
+    if (!visit_type_int(v, oprop->name, &value, errp)) {
         return;
     }
 
@@ -42,22 +42,22 @@ static void core_prop_set_core_id(Object *obj, Visitor *v, const char *name,
     core->core_id = value;
 }
 
-static void core_prop_get_nr_threads(Object *obj, Visitor *v, const char *name,
-                                     void *opaque, Error **errp)
+static void core_prop_get_nr_threads(ObjectProperty *oprop, Object *obj,
+                                     Visitor *v, Error **errp)
 {
     CPUCore *core = CPU_CORE(obj);
     int64_t value = core->nr_threads;
 
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
-static void core_prop_set_nr_threads(Object *obj, Visitor *v, const char *name,
-                                     void *opaque, Error **errp)
+static void core_prop_set_nr_threads(ObjectProperty *oprop, Object *obj,
+                                     Visitor *v, Error **errp)
 {
     CPUCore *core = CPU_CORE(obj);
     int64_t value;
 
-    if (!visit_type_int(v, name, &value, errp)) {
+    if (!visit_type_int(v, oprop->name, &value, errp)) {
         return;
     }
 

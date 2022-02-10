@@ -185,17 +185,17 @@ static void aspeed_sdmc_reset(DeviceState *dev)
     s->regs[0x100 | (0x50 / 4)] = 0xfffffff;
 }
 
-static void aspeed_sdmc_get_ram_size(Object *obj, Visitor *v, const char *name,
-                                     void *opaque, Error **errp)
+static void aspeed_sdmc_get_ram_size(ObjectProperty *oprop, Object *obj,
+                                     Visitor *v, Error **errp)
 {
     AspeedSDMCState *s = ASPEED_SDMC(obj);
     int64_t value = s->ram_size;
 
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
-static void aspeed_sdmc_set_ram_size(Object *obj, Visitor *v, const char *name,
-                                     void *opaque, Error **errp)
+static void aspeed_sdmc_set_ram_size(ObjectProperty *oprop, Object *obj,
+                                     Visitor *v, Error **errp)
 {
     int i;
     char *sz;
@@ -203,7 +203,7 @@ static void aspeed_sdmc_set_ram_size(Object *obj, Visitor *v, const char *name,
     AspeedSDMCState *s = ASPEED_SDMC(obj);
     AspeedSDMCClass *asc = ASPEED_SDMC_GET_CLASS(s);
 
-    if (!visit_type_int(v, name, &value, errp)) {
+    if (!visit_type_int(v, oprop->name, &value, errp)) {
         return;
     }
 

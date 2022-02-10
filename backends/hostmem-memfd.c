@@ -73,8 +73,8 @@ memfd_backend_set_hugetlb(Object *o, bool value, Error **errp)
 }
 
 static void
-memfd_backend_set_hugetlbsize(Object *obj, Visitor *v, const char *name,
-                              void *opaque, Error **errp)
+memfd_backend_set_hugetlbsize(ObjectProperty *prop, Object *obj, Visitor *v,
+                              Error **errp)
 {
     HostMemoryBackendMemfd *m = MEMORY_BACKEND_MEMFD(obj);
     uint64_t value;
@@ -84,25 +84,25 @@ memfd_backend_set_hugetlbsize(Object *obj, Visitor *v, const char *name,
         return;
     }
 
-    if (!visit_type_size(v, name, &value, errp)) {
+    if (!visit_type_size(v, prop->name, &value, errp)) {
         return;
     }
     if (!value) {
         error_setg(errp, "Property '%s.%s' doesn't take value '%" PRIu64 "'",
-                   object_get_typename(obj), name, value);
+                   object_get_typename(obj), prop->name, value);
         return;
     }
     m->hugetlbsize = value;
 }
 
 static void
-memfd_backend_get_hugetlbsize(Object *obj, Visitor *v, const char *name,
-                              void *opaque, Error **errp)
+memfd_backend_get_hugetlbsize(ObjectProperty *prop, Object *obj, Visitor *v,
+                              Error **errp)
 {
     HostMemoryBackendMemfd *m = MEMORY_BACKEND_MEMFD(obj);
     uint64_t value = m->hugetlbsize;
 
-    visit_type_size(v, name, &value, errp);
+    visit_type_size(v, prop->name, &value, errp);
 }
 
 static bool

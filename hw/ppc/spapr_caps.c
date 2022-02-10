@@ -69,24 +69,24 @@ typedef struct SpaprCapabilityInfo {
     bool (*migrate_needed)(void *opaque);
 } SpaprCapabilityInfo;
 
-static void spapr_cap_get_bool(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void spapr_cap_get_bool(ObjectProperty *oprop, Object *obj, Visitor *v,
+                               Error **errp)
 {
-    SpaprCapabilityInfo *cap = opaque;
+    SpaprCapabilityInfo *cap = oprop->opaque;
     SpaprMachineState *spapr = SPAPR_MACHINE(obj);
     bool value = spapr_get_cap(spapr, cap->index) == SPAPR_CAP_ON;
 
-    visit_type_bool(v, name, &value, errp);
+    visit_type_bool(v, oprop->name, &value, errp);
 }
 
-static void spapr_cap_set_bool(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void spapr_cap_set_bool(ObjectProperty *oprop, Object *obj, Visitor *v,
+                               Error **errp)
 {
-    SpaprCapabilityInfo *cap = opaque;
+    SpaprCapabilityInfo *cap = oprop->opaque;
     SpaprMachineState *spapr = SPAPR_MACHINE(obj);
     bool value;
 
-    if (!visit_type_bool(v, name, &value, errp)) {
+    if (!visit_type_bool(v, oprop->name, &value, errp)) {
         return;
     }
 
@@ -95,10 +95,10 @@ static void spapr_cap_set_bool(Object *obj, Visitor *v, const char *name,
 }
 
 
-static void spapr_cap_get_string(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void spapr_cap_get_string(ObjectProperty *oprop, Object *obj,
+                                 Visitor *v, Error **errp)
 {
-    SpaprCapabilityInfo *cap = opaque;
+    SpaprCapabilityInfo *cap = oprop->opaque;
     SpaprMachineState *spapr = SPAPR_MACHINE(obj);
     g_autofree char *val = NULL;
     uint8_t value = spapr_get_cap(spapr, cap->index);
@@ -110,18 +110,19 @@ static void spapr_cap_get_string(Object *obj, Visitor *v, const char *name,
 
     val = g_strdup(cap->possible->vals[value]);
 
-    visit_type_str(v, name, &val, errp);
+    visit_type_str(v, oprop->name, &val, errp);
+    g_free(val);
 }
 
-static void spapr_cap_set_string(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void spapr_cap_set_string(ObjectProperty *oprop, Object *obj,
+                                 Visitor *v, Error **errp)
 {
-    SpaprCapabilityInfo *cap = opaque;
+    SpaprCapabilityInfo *cap = oprop->opaque;
     SpaprMachineState *spapr = SPAPR_MACHINE(obj);
     uint8_t i;
     g_autofree char *val = NULL;
 
-    if (!visit_type_str(v, name, &val, errp)) {
+    if (!visit_type_str(v, oprop->name, &val, errp)) {
         return;
     }
 
@@ -141,26 +142,26 @@ static void spapr_cap_set_string(Object *obj, Visitor *v, const char *name,
                cap->name);
 }
 
-static void spapr_cap_get_pagesize(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+static void spapr_cap_get_pagesize(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
-    SpaprCapabilityInfo *cap = opaque;
+    SpaprCapabilityInfo *cap = oprop->opaque;
     SpaprMachineState *spapr = SPAPR_MACHINE(obj);
     uint8_t val = spapr_get_cap(spapr, cap->index);
     uint64_t pagesize = (1ULL << val);
 
-    visit_type_size(v, name, &pagesize, errp);
+    visit_type_size(v, oprop->name, &pagesize, errp);
 }
 
-static void spapr_cap_set_pagesize(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+static void spapr_cap_set_pagesize(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
-    SpaprCapabilityInfo *cap = opaque;
+    SpaprCapabilityInfo *cap = oprop->opaque;
     SpaprMachineState *spapr = SPAPR_MACHINE(obj);
     uint64_t pagesize;
     uint8_t val;
 
-    if (!visit_type_size(v, name, &pagesize, errp)) {
+    if (!visit_type_size(v, oprop->name, &pagesize, errp)) {
         return;
     }
 

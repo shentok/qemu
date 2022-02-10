@@ -796,31 +796,31 @@ static void sparc_cpu_initfn(Object *obj)
     }
 }
 
-static void sparc_get_nwindows(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void sparc_get_nwindows(ObjectProperty *oprop, Object *obj,
+                               Visitor *v, Error **errp)
 {
     SPARCCPU *cpu = SPARC_CPU(obj);
     int64_t value = cpu->env.def.nwindows;
 
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
-static void sparc_set_nwindows(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void sparc_set_nwindows(ObjectProperty *oprop, Object *obj,
+                               Visitor *v, Error **errp)
 {
     const int64_t min = MIN_NWINDOWS;
     const int64_t max = MAX_NWINDOWS;
     SPARCCPU *cpu = SPARC_CPU(obj);
     int64_t value;
 
-    if (!visit_type_int(v, name, &value, errp)) {
+    if (!visit_type_int(v, oprop->name, &value, errp)) {
         return;
     }
 
     if (value < min || value > max) {
         error_setg(errp, "Property %s.%s doesn't take value %" PRId64
                    " (minimum: %" PRId64 ", maximum: %" PRId64 ")",
-                   object_get_typename(obj), name ? name : "null",
+                   object_get_typename(obj), oprop->name ? oprop->name : "null",
                    value, min, max);
         return;
     }

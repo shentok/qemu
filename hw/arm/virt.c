@@ -2411,21 +2411,21 @@ bool virt_is_acpi_enabled(VirtMachineState *vms)
     return true;
 }
 
-static void virt_get_acpi(Object *obj, Visitor *v, const char *name,
-                          void *opaque, Error **errp)
+static void virt_get_acpi(ObjectProperty *prop, Object *obj, Visitor *v,
+                          Error **errp)
 {
     VirtMachineState *vms = VIRT_MACHINE(obj);
     OnOffAuto acpi = vms->acpi;
 
-    visit_type_OnOffAuto(v, name, &acpi, errp);
+    visit_type_OnOffAuto(v, prop->name, &acpi, errp);
 }
 
-static void virt_set_acpi(Object *obj, Visitor *v, const char *name,
-                          void *opaque, Error **errp)
+static void virt_set_acpi(ObjectProperty *prop, Object *obj, Visitor *v,
+                          Error **errp)
 {
     VirtMachineState *vms = VIRT_MACHINE(obj);
 
-    visit_type_OnOffAuto(v, name, &vms->acpi, errp);
+    visit_type_OnOffAuto(v, prop->name, &vms->acpi, errp);
 }
 
 static bool virt_get_ras(Object *obj, Error **errp)

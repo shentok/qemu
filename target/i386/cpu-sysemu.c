@@ -327,8 +327,8 @@ GuestPanicInformation *x86_cpu_get_crash_info(CPUState *cs)
 
     return panic_info;
 }
-void x86_cpu_get_crash_info_qom(Object *obj, Visitor *v,
-                                const char *name, void *opaque,
+
+void x86_cpu_get_crash_info_qom(ObjectProperty *oprop, Object *obj, Visitor *v,
                                 Error **errp)
 {
     CPUState *cs = CPU(obj);

@@ -575,19 +575,19 @@ static int max34451_write_data(PMBusDevice *pmdev, const uint8_t *buf,
     return 0;
 }
 
-static void max34451_get(Object *obj, Visitor *v, const char *name,
-                                     void *opaque, Error **errp)
+static void max34451_get(ObjectProperty *oprop, Object *obj, Visitor *v,
+                         Error **errp)
 {
-    visit_type_uint16(v, name, (uint16_t *)opaque, errp);
+    visit_type_uint16(v, oprop->name, (uint16_t *)oprop->opaque, errp);
 }
 
-static void max34451_set(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void max34451_set(ObjectProperty *oprop, Object *obj, Visitor *v,
+                         Error **errp)
 {
     MAX34451State *s = MAX34451(obj);
-    uint16_t *internal = opaque;
+    uint16_t *internal = oprop->opaque;
     uint16_t value;
-    if (!visit_type_uint16(v, name, &value, errp)) {
+    if (!visit_type_uint16(v, oprop->name, &value, errp)) {
         return;
     }
 

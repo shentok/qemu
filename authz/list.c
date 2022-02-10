@@ -84,23 +84,23 @@ qauthz_list_prop_get_policy(Object *obj,
 
 
 static void
-qauthz_list_prop_get_rules(Object *obj, Visitor *v, const char *name,
-                           void *opaque, Error **errp)
+qauthz_list_prop_get_rules(ObjectProperty *prop, Object *obj, Visitor *v,
+                           Error **errp)
 {
     QAuthZList *lauthz = QAUTHZ_LIST(obj);
 
-    visit_type_QAuthZListRuleList(v, name, &lauthz->rules, errp);
+    visit_type_QAuthZListRuleList(v, prop->name, &lauthz->rules, errp);
 }
 
 static void
-qauthz_list_prop_set_rules(Object *obj, Visitor *v, const char *name,
-                           void *opaque, Error **errp)
+qauthz_list_prop_set_rules(ObjectProperty *prop, Object *obj, Visitor *v,
+                           Error **errp)
 {
     QAuthZList *lauthz = QAUTHZ_LIST(obj);
     QAuthZListRuleList *oldrules;
 
     oldrules = lauthz->rules;
-    visit_type_QAuthZListRuleList(v, name, &lauthz->rules, errp);
+    visit_type_QAuthZListRuleList(v, prop->name, &lauthz->rules, errp);
 
     qapi_free_QAuthZListRuleList(oldrules);
 }

@@ -812,21 +812,21 @@ bool loongarch_is_acpi_enabled(LoongArchMachineState *lams)
     return true;
 }
 
-static void loongarch_get_acpi(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void loongarch_get_acpi(ObjectProperty *oprop, Object *obj, Visitor *v,
+                               Error **errp)
 {
     LoongArchMachineState *lams = LOONGARCH_MACHINE(obj);
     OnOffAuto acpi = lams->acpi;
 
-    visit_type_OnOffAuto(v, name, &acpi, errp);
+    visit_type_OnOffAuto(v, oprop->name, &acpi, errp);
 }
 
-static void loongarch_set_acpi(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void loongarch_set_acpi(ObjectProperty *oprop, Object *obj, Visitor *v,
+                               Error **errp)
 {
     LoongArchMachineState *lams = LOONGARCH_MACHINE(obj);
 
-    visit_type_OnOffAuto(v, name, &lams->acpi, errp);
+    visit_type_OnOffAuto(v, oprop->name, &lams->acpi, errp);
 }
 
 static void loongarch_machine_initfn(Object *obj)

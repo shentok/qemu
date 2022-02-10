@@ -238,14 +238,14 @@ static void balloon_stats_poll_cb(void *opaque)
     s->stats_vq_elem = NULL;
 }
 
-static void balloon_stats_get_all(Object *obj, Visitor *v, const char *name,
-                                  void *opaque, Error **errp)
+static void balloon_stats_get_all(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                  Error **errp)
 {
     Error *err = NULL;
     VirtIOBalloon *s = VIRTIO_BALLOON(obj);
     int i;
 
-    if (!visit_start_struct(v, name, NULL, 0, &err)) {
+    if (!visit_start_struct(v, oprop->name, NULL, 0, &err)) {
         goto out;
     }
     if (!visit_type_int(v, "last-update", &s->stats_last_update, &err)) {
@@ -273,22 +273,20 @@ out:
     error_propagate(errp, err);
 }
 
-static void balloon_stats_get_poll_interval(Object *obj, Visitor *v,
-                                            const char *name, void *opaque,
+static void balloon_stats_get_poll_interval(ObjectProperty *oprop, Object *obj, Visitor *v,
                                             Error **errp)
 {
     VirtIOBalloon *s = VIRTIO_BALLOON(obj);
-    visit_type_int(v, name, &s->stats_poll_interval, errp);
+    visit_type_int(v, oprop->name, &s->stats_poll_interval, errp);
 }
 
-static void balloon_stats_set_poll_interval(Object *obj, Visitor *v,
-                                            const char *name, void *opaque,
+static void balloon_stats_set_poll_interval(ObjectProperty *oprop, Object *obj, Visitor *v,
                                             Error **errp)
 {
     VirtIOBalloon *s = VIRTIO_BALLOON(obj);
     int64_t value;
 
-    if (!visit_type_int(v, name, &value, errp)) {
+    if (!visit_type_int(v, oprop->name, &value, errp)) {
         return;
     }
 

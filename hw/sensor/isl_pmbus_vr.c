@@ -43,19 +43,19 @@ static int isl_pmbus_vr_write_data(PMBusDevice *pmdev, const uint8_t *buf,
 }
 
 /* TODO: Implement coefficients support in pmbus_device.c for qmp */
-static void isl_pmbus_vr_get(Object *obj, Visitor *v, const char *name,
-                             void *opaque, Error **errp)
+static void isl_pmbus_vr_get(ObjectProperty *oprop, Object *obj, Visitor *v,
+                             Error **errp)
 {
-    visit_type_uint16(v, name, (uint16_t *)opaque, errp);
+    visit_type_uint16(v, oprop->name, (uint16_t *)oprop->opaque, errp);
 }
 
-static void isl_pmbus_vr_set(Object *obj, Visitor *v, const char *name,
-                             void *opaque, Error **errp)
+static void isl_pmbus_vr_set(ObjectProperty *oprop, Object *obj, Visitor *v,
+                             Error **errp)
 {
     PMBusDevice *pmdev = PMBUS_DEVICE(obj);
-    uint16_t *internal = opaque;
+    uint16_t *internal = oprop->opaque;
     uint16_t value;
-    if (!visit_type_uint16(v, name, &value, errp)) {
+    if (!visit_type_uint16(v, oprop->name, &value, errp)) {
         return;
     }
 

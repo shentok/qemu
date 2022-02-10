@@ -59,8 +59,8 @@ void x86_cpu_expand_features(X86CPU *cpu, Error **errp);
 
 #ifndef CONFIG_USER_ONLY
 GuestPanicInformation *x86_cpu_get_crash_info(CPUState *cs);
-void x86_cpu_get_crash_info_qom(Object *obj, Visitor *v,
-                                const char *name, void *opaque, Error **errp);
+void x86_cpu_get_crash_info_qom(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                Error **errp);
 
 void x86_cpu_apic_create(X86CPU *cpu, Error **errp);
 void x86_cpu_apic_realize(X86CPU *cpu, Error **errp);

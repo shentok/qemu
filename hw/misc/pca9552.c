@@ -249,21 +249,21 @@ static int pca955x_event(I2CSlave *i2c, enum i2c_event event)
     return 0;
 }
 
-static void pca955x_get_led(Object *obj, Visitor *v, const char *name,
-                            void *opaque, Error **errp)
+static void pca955x_get_led(ObjectProperty *oprop, Object *obj,
+                            Visitor *v, Error **errp)
 {
     PCA955xClass *k = PCA955X_GET_CLASS(obj);
     PCA955xState *s = PCA955X(obj);
     int led, rc, reg;
     uint8_t state;
 
-    rc = sscanf(name, "led%2d", &led);
+    rc = sscanf(oprop->name, "led%2d", &led);
     if (rc != 1) {
-        error_setg(errp, "%s: error reading %s", __func__, name);
+        error_setg(errp, "%s: error reading %s", __func__, oprop->name);
         return;
     }
     if (led < 0 || led > k->pin_count) {
-        error_setg(errp, "%s invalid led %s", __func__, name);
+        error_setg(errp, "%s invalid led %s", __func__, oprop->name);
         return;
     }
     /*
@@ -273,7 +273,7 @@ static void pca955x_get_led(Object *obj, Visitor *v, const char *name,
      */
     reg = PCA9552_LS0 + led / 4;
     state = (pca955x_read(s, reg) >> ((led % 4) * 2)) & 0x3;
-    visit_type_str(v, name, (char **)&led_state[state], errp);
+    visit_type_str(v, oprop->name, (char **)&led_state[state], errp);
 }
 
 /*
@@ -286,8 +286,8 @@ static inline uint8_t pca955x_ledsel(uint8_t oldval, int led_num, int state)
                 ((state & 0x3) << (led_num << 1));
 }
 
-static void pca955x_set_led(Object *obj, Visitor *v, const char *name,
-                            void *opaque, Error **errp)
+static void pca955x_set_led(ObjectProperty *oprop, Object *obj,
+                            Visitor *v, Error **errp)
 {
     PCA955xClass *k = PCA955X_GET_CLASS(obj);
     PCA955xState *s = PCA955X(obj);
@@ -295,16 +295,16 @@ static void pca955x_set_led(Object *obj, Visitor *v, const char *name,
     uint8_t state;
     char *state_str;
 
-    if (!visit_type_str(v, name, &state_str, errp)) {
+    if (!visit_type_str(v, oprop->name, &state_str, errp)) {
         return;
     }
-    rc = sscanf(name, "led%2d", &led);
+    rc = sscanf(oprop->name, "led%2d", &led);
     if (rc != 1) {
-        error_setg(errp, "%s: error reading %s", __func__, name);
+        error_setg(errp, "%s: error reading %s", __func__, oprop->name);
         return;
     }
     if (led < 0 || led > k->pin_count) {
-        error_setg(errp, "%s invalid led %s", __func__, name);
+        error_setg(errp, "%s invalid led %s", __func__, oprop->name);
         return;
     }
 

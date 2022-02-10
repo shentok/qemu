@@ -7680,22 +7680,22 @@ static Property nvme_props[] = {
     DEFINE_PROP_END_OF_LIST(),
 };
 
-static void nvme_get_smart_warning(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+static void nvme_get_smart_warning(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
     NvmeCtrl *n = NVME(obj);
     uint8_t value = n->smart_critical_warning;
 
-    visit_type_uint8(v, name, &value, errp);
+    visit_type_uint8(v, oprop->name, &value, errp);
 }
 
-static void nvme_set_smart_warning(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+static void nvme_set_smart_warning(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
     NvmeCtrl *n = NVME(obj);
     uint8_t value, old_value, cap = 0, index, event;
 
-    if (!visit_type_uint8(v, name, &value, errp)) {
+    if (!visit_type_uint8(v, oprop->name, &value, errp)) {
         return;
     }
 
