@@ -77,13 +77,12 @@ keyctl_error:
 
 
 static void
-qcrypto_secret_prop_set_key(Object *obj, Visitor *v,
-                            const char *name, void *opaque,
-                            Error **errp)
+qcrypto_secret_prop_set_key(ObjectProperty *oprop, Object *obj,
+                            Visitor *v, Error **errp)
 {
     QCryptoSecretKeyring *secret = QCRYPTO_SECRET_KEYRING(obj);
     int32_t value;
-    visit_type_int32(v, name, &value, errp);
+    visit_type_int32(v, oprop->name, &value, errp);
     if (!value) {
         error_setg(errp, "'serial' should not be equal to 0");
     }
@@ -92,13 +91,12 @@ qcrypto_secret_prop_set_key(Object *obj, Visitor *v,
 
 
 static void
-qcrypto_secret_prop_get_key(Object *obj, Visitor *v,
-                            const char *name, void *opaque,
-                            Error **errp)
+qcrypto_secret_prop_get_key(ObjectProperty *oprop, Object *obj,
+                            Visitor *v, Error **errp)
 {
     QCryptoSecretKeyring *secret = QCRYPTO_SECRET_KEYRING(obj);
     int32_t value = secret->serial;
-    visit_type_int32(v, name, &value, errp);
+    visit_type_int32(v, oprop->name, &value, errp);
 }
 
 

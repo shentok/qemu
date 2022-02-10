@@ -332,10 +332,10 @@ static char *disk_to_vbd_name(unsigned int disk)
     return name;
 }
 
-static void xen_block_get_vdev(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void xen_block_get_vdev(ObjectProperty *oprop, Object *obj, Visitor *v,
+                               Error **errp)
 {
-    Property *prop = opaque;
+    Property *prop = oprop->opaque;
     XenBlockVdev *vdev = object_field_prop_ptr(obj, prop);
     char *str;
 
@@ -364,7 +364,7 @@ static void xen_block_get_vdev(Object *obj, Visitor *v, const char *name,
         return;
     }
 
-    visit_type_str(v, name, &str, errp);
+    visit_type_str(v, oprop->name, &str, errp);
     g_free(str);
 }
 
@@ -392,15 +392,15 @@ static int vbd_name_to_disk(const char *name, const char **endp,
     return 0;
 }
 
-static void xen_block_set_vdev(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void xen_block_set_vdev(ObjectProperty *oprop, Object *obj, Visitor *v,
+                               Error **errp)
 {
-    Property *prop = opaque;
+    Property *prop = oprop->opaque;
     XenBlockVdev *vdev = object_field_prop_ptr(obj, prop);
     char *str, *p;
     const char *end;
 
-    if (!visit_type_str(v, name, &str, errp)) {
+    if (!visit_type_str(v, oprop->name, &str, errp)) {
         return;
     }
 

@@ -1491,29 +1491,27 @@ void vfio_setup_resetfn_quirk(VFIOPCIDevice *vdev)
  *
  * https://lists.gnu.org/archive/html/qemu-devel/2017-08/pdfUda5iEpgOS.pdf
  */
-static void get_nv_gpudirect_clique_id(Object *obj, Visitor *v,
-                                       const char *name, void *opaque,
-                                       Error **errp)
+static void get_nv_gpudirect_clique_id(ObjectProperty *oprop, Object *obj,
+                                       Visitor *v, Error **errp)
 {
-    Property *prop = opaque;
+    Property *prop = oprop->opaque;
     uint8_t *ptr = object_field_prop_ptr(obj, prop);
 
-    visit_type_uint8(v, name, ptr, errp);
+    visit_type_uint8(v, oprop->name, ptr, errp);
 }
 
-static void set_nv_gpudirect_clique_id(Object *obj, Visitor *v,
-                                       const char *name, void *opaque,
-                                       Error **errp)
+static void set_nv_gpudirect_clique_id(ObjectProperty *oprop, Object *obj,
+                                       Visitor *v, Error **errp)
 {
-    Property *prop = opaque;
+    Property *prop = oprop->opaque;
     uint8_t value, *ptr = object_field_prop_ptr(obj, prop);
 
-    if (!visit_type_uint8(v, name, &value, errp)) {
+    if (!visit_type_uint8(v, oprop->name, &value, errp)) {
         return;
     }
 
     if (value & ~0xF) {
-        error_setg(errp, "Property %s: valid range 0-15", name);
+        error_setg(errp, "Property %s: valid range 0-15", oprop->name);
         return;
     }
 

@@ -97,24 +97,24 @@ static void usb_msd_class_storage_initfn(ObjectClass *klass, void *data)
     device_class_set_props(dc, msd_properties);
 }
 
-static void usb_msd_get_bootindex(Object *obj, Visitor *v, const char *name,
-                                  void *opaque, Error **errp)
+static void usb_msd_get_bootindex(ObjectProperty *oprop, Object *obj,
+                                  Visitor *v, Error **errp)
 {
     USBDevice *dev = USB_DEVICE(obj);
     MSDState *s = USB_STORAGE_DEV(dev);
 
-    visit_type_int32(v, name, &s->conf.bootindex, errp);
+    visit_type_int32(v, oprop->name, &s->conf.bootindex, errp);
 }
 
-static void usb_msd_set_bootindex(Object *obj, Visitor *v, const char *name,
-                                  void *opaque, Error **errp)
+static void usb_msd_set_bootindex(ObjectProperty *oprop, Object *obj,
+                                  Visitor *v, Error **errp)
 {
     USBDevice *dev = USB_DEVICE(obj);
     MSDState *s = USB_STORAGE_DEV(dev);
     int32_t boot_index;
     Error *local_err = NULL;
 
-    if (!visit_type_int32(v, name, &boot_index, errp)) {
+    if (!visit_type_int32(v, oprop->name, &boot_index, errp)) {
         return;
     }
     /* check whether bootindex is present in fw_boot_order list  */

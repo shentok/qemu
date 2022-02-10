@@ -242,10 +242,10 @@ int ppc_compat_max_vthreads(PowerPCCPU *cpu)
     return n_threads;
 }
 
-static void ppc_compat_prop_get(Object *obj, Visitor *v, const char *name,
-                                void *opaque, Error **errp)
+static void ppc_compat_prop_get(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                Error **errp)
 {
-    uint32_t compat_pvr = *((uint32_t *)opaque);
+    uint32_t compat_pvr = *((uint32_t *)oprop->opaque);
     const char *value;
 
     if (!compat_pvr) {
@@ -258,16 +258,16 @@ static void ppc_compat_prop_get(Object *obj, Visitor *v, const char *name,
         value = compat->name;
     }
 
-    visit_type_str(v, name, (char **)&value, errp);
+    visit_type_str(v, oprop->name, (char **)&value, errp);
 }
 
-static void ppc_compat_prop_set(Object *obj, Visitor *v, const char *name,
-                                void *opaque, Error **errp)
+static void ppc_compat_prop_set(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                Error **errp)
 {
     char *value;
     uint32_t compat_pvr;
 
-    if (!visit_type_str(v, name, &value, errp)) {
+    if (!visit_type_str(v, oprop->name, &value, errp)) {
         return;
     }
 
@@ -292,7 +292,7 @@ static void ppc_compat_prop_set(Object *obj, Visitor *v, const char *name,
         compat_pvr = compat->pvr;
     }
 
-    *((uint32_t *)opaque) = compat_pvr;
+    *((uint32_t *)oprop->opaque) = compat_pvr;
 
 out:
     g_free(value);

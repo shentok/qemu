@@ -231,22 +231,22 @@ static void ide_dev_initfn(IDEDevice *dev, IDEDriveKind kind, Error **errp)
                          dev->conf.lsecs);
 }
 
-static void ide_dev_get_bootindex(Object *obj, Visitor *v, const char *name,
-                                  void *opaque, Error **errp)
+static void ide_dev_get_bootindex(ObjectProperty *oprop, Object *obj,
+                                  Visitor *v, Error **errp)
 {
     IDEDevice *d = IDE_DEVICE(obj);
 
-    visit_type_int32(v, name, &d->conf.bootindex, errp);
+    visit_type_int32(v, oprop->name, &d->conf.bootindex, errp);
 }
 
-static void ide_dev_set_bootindex(Object *obj, Visitor *v, const char *name,
-                                  void *opaque, Error **errp)
+static void ide_dev_set_bootindex(ObjectProperty *oprop, Object *obj,
+                                  Visitor *v, Error **errp)
 {
     IDEDevice *d = IDE_DEVICE(obj);
     int32_t boot_index;
     Error *local_err = NULL;
 
-    if (!visit_type_int32(v, name, &boot_index, errp)) {
+    if (!visit_type_int32(v, oprop->name, &boot_index, errp)) {
         return;
     }
     /* check whether bootindex is present in fw_boot_order list  */

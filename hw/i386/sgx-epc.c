@@ -27,8 +27,8 @@ static Property sgx_epc_properties[] = {
     DEFINE_PROP_END_OF_LIST(),
 };
 
-static void sgx_epc_get_size(Object *obj, Visitor *v, const char *name,
-                             void *opaque, Error **errp)
+static void sgx_epc_get_size(ObjectProperty *oprop, Object *obj,
+                             Visitor *v, Error **errp)
 {
     Error *local_err = NULL;
     uint64_t value;
@@ -39,7 +39,7 @@ static void sgx_epc_get_size(Object *obj, Visitor *v, const char *name,
         return;
     }
 
-    visit_type_uint64(v, name, &value, errp);
+    visit_type_uint64(v, oprop->name, &value, errp);
 }
 
 static void sgx_epc_init(Object *obj)

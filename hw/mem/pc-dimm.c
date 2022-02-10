@@ -155,8 +155,8 @@ static Property pc_dimm_properties[] = {
     DEFINE_PROP_END_OF_LIST(),
 };
 
-static void pc_dimm_get_size(Object *obj, Visitor *v, const char *name,
-                             void *opaque, Error **errp)
+static void pc_dimm_get_size(ObjectProperty *oprop, Object *obj,
+                             Visitor *v, Error **errp)
 {
     Error *local_err = NULL;
     uint64_t value;
@@ -167,7 +167,7 @@ static void pc_dimm_get_size(Object *obj, Visitor *v, const char *name,
         return;
     }
 
-    visit_type_uint64(v, name, &value, errp);
+    visit_type_uint64(v, oprop->name, &value, errp);
 }
 
 static void pc_dimm_init(Object *obj)

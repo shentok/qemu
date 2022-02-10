@@ -316,16 +316,16 @@ static SpaprDREntitySense logical_entity_sense(SpaprDrc *drc)
     }
 }
 
-static void prop_get_index(Object *obj, Visitor *v, const char *name,
-                           void *opaque, Error **errp)
+static void prop_get_index(ObjectProperty *oprop, Object *obj, Visitor *v,
+                           Error **errp)
 {
     SpaprDrc *drc = SPAPR_DR_CONNECTOR(obj);
     uint32_t value = spapr_drc_index(drc);
-    visit_type_uint32(v, name, &value, errp);
+    visit_type_uint32(v, oprop->name, &value, errp);
 }
 
-static void prop_get_fdt(Object *obj, Visitor *v, const char *name,
-                         void *opaque, Error **errp)
+static void prop_get_fdt(ObjectProperty *oprop, Object *obj, Visitor *v,
+                         Error **errp)
 {
     SpaprDrc *drc = SPAPR_DR_CONNECTOR(obj);
     QNull *null = NULL;
@@ -354,7 +354,7 @@ static void prop_get_fdt(Object *obj, Visitor *v, const char *name,
         case FDT_BEGIN_NODE:
             fdt_depth++;
             name = fdt_get_name(fdt, fdt_offset, &name_len);
-            if (!visit_start_struct(v, name, NULL, 0, errp)) {
+            if (!visit_start_struct(v, oprop->name, NULL, 0, errp)) {
                 return;
             }
             break;

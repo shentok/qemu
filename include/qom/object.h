@@ -31,27 +31,24 @@ typedef struct ObjectProperty ObjectProperty;
 
 /**
  * typedef ObjectPropertyAccessor:
+ * @prop: the object property to be accessed
  * @obj: the object that owns the property
  * @v: the visitor that contains the property data
- * @name: the name of the property
- * @opaque: the object property opaque
  * @errp: a pointer to an Error that is filled if getting/setting fails.
  *
  * Called when trying to get/set a property.
  */
-typedef void (ObjectPropertyAccessor)(Object *obj,
+typedef void (ObjectPropertyAccessor)(ObjectProperty *prop,
+                                      Object *obj,
                                       Visitor *v,
-                                      const char *name,
-                                      void *opaque,
                                       Error **errp);
 
 /**
  * typedef ObjectPropertyResolve:
+ * @prop: the property to be resolved
  * @obj: the object that owns the property
- * @opaque: the opaque registered with the property
- * @part: the name of the property
  *
- * Resolves the #Object corresponding to property @part.
+ * Resolves the #Object corresponding to property @prop.
  *
  * The returned object can also be used as a starting point
  * to resolve a relative path starting with "@part".
@@ -60,30 +57,25 @@ typedef void (ObjectPropertyAccessor)(Object *obj,
  * returns the #Object corresponding to "@path/@part".
  * If "@path/@part" is not a valid object path, it returns #NULL.
  */
-typedef Object *(ObjectPropertyResolve)(Object *obj,
-                                        void *opaque,
-                                        const char *part);
+typedef Object *(ObjectPropertyResolve)(ObjectProperty *prop, Object *obj);
 
 /**
  * typedef ObjectPropertyRelease:
  * @obj: the object that owns the property
- * @name: the name of the property
- * @opaque: the opaque registered with the property
+ * @prop: the property to be released
  *
  * Called when a property is removed from a object.
  */
-typedef void (ObjectPropertyRelease)(Object *obj,
-                                     const char *name,
-                                     void *opaque);
+typedef void (ObjectPropertyRelease)(ObjectProperty *prop, Object *obj);
 
 /**
  * typedef ObjectPropertyInit:
- * @obj: the object that owns the property
  * @prop: the property to set
+ * @obj: the object that owns the property
  *
  * Called when a property is initialized.
  */
-typedef void (ObjectPropertyInit)(Object *obj, ObjectProperty *prop);
+typedef void (ObjectPropertyInit)(ObjectProperty *prop, Object *obj);
 
 struct ObjectProperty
 {

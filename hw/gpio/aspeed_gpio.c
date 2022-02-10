@@ -897,8 +897,8 @@ static int get_set_idx(AspeedGPIOState *s, const char *group, int *group_idx)
     return -1;
 }
 
-static void aspeed_gpio_get_pin(Object *obj, Visitor *v, const char *name,
-                                void *opaque, Error **errp)
+static void aspeed_gpio_get_pin(ObjectProperty *oprop, Object *obj,
+                                Visitor *v, Error **errp)
 {
     int pin = 0xfff;
     bool level = true;
@@ -906,10 +906,10 @@ static void aspeed_gpio_get_pin(Object *obj, Visitor *v, const char *name,
     AspeedGPIOState *s = ASPEED_GPIO(obj);
     int set_idx, group_idx = 0;
 
-    if (sscanf(name, "gpio%2[A-Z]%1d", group, &pin) != 2) {
+    if (sscanf(oprop->name, "gpio%2[A-Z]%1d", group, &pin) != 2) {
         /* 1.8V gpio */
-        if (sscanf(name, "gpio%3[18A-E]%1d", group, &pin) != 2) {
-            error_setg(errp, "%s: error reading %s", __func__, name);
+        if (sscanf(oprop->name, "gpio%3[18A-E]%1d", group, &pin) != 2) {
+            error_setg(errp, "%s: error reading %s", __func__, oprop->name);
             return;
         }
     }
@@ -920,11 +920,11 @@ static void aspeed_gpio_get_pin(Object *obj, Visitor *v, const char *name,
     }
     pin =  pin + group_idx * GPIOS_PER_GROUP;
     level = aspeed_gpio_get_pin_level(s, set_idx, pin);
-    visit_type_bool(v, name, &level, errp);
+    visit_type_bool(v, oprop->name, &level, errp);
 }
 
-static void aspeed_gpio_set_pin(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void aspeed_gpio_set_pin(ObjectProperty *oprop, Object *obj,
+                                Visitor *v, Error **errp)
 {
     bool level;
     int pin = 0xfff;
@@ -932,13 +932,13 @@ static void aspeed_gpio_set_pin(Object *obj, Visitor *v, const char *name,
     AspeedGPIOState *s = ASPEED_GPIO(obj);
     int set_idx, group_idx = 0;
 
-    if (!visit_type_bool(v, name, &level, errp)) {
+    if (!visit_type_bool(v, oprop->name, &level, errp)) {
         return;
     }
-    if (sscanf(name, "gpio%2[A-Z]%1d", group, &pin) != 2) {
+    if (sscanf(oprop->name, "gpio%2[A-Z]%1d", group, &pin) != 2) {
         /* 1.8V gpio */
-        if (sscanf(name, "gpio%3[18A-E]%1d", group, &pin) != 2) {
-            error_setg(errp, "%s: error reading %s", __func__, name);
+        if (sscanf(oprop->name, "gpio%3[18A-E]%1d", group, &pin) != 2) {
+            error_setg(errp, "%s: error reading %s", __func__, oprop->name);
             return;
         }
     }

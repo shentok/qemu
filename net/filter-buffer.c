@@ -144,29 +144,27 @@ static void filter_buffer_status_changed(NetFilterState *nf, Error **errp)
     }
 }
 
-static void filter_buffer_get_interval(Object *obj, Visitor *v,
-                                       const char *name, void *opaque,
-                                       Error **errp)
+static void filter_buffer_get_interval(ObjectProperty *oprop, Object *obj,
+                                       Visitor *v, Error **errp)
 {
     FilterBufferState *s = FILTER_BUFFER(obj);
     uint32_t value = s->interval;
 
-    visit_type_uint32(v, name, &value, errp);
+    visit_type_uint32(v, oprop->name, &value, errp);
 }
 
-static void filter_buffer_set_interval(Object *obj, Visitor *v,
-                                       const char *name, void *opaque,
-                                       Error **errp)
+static void filter_buffer_set_interval(ObjectProperty *oprop, Object *obj,
+                                       Visitor *v, Error **errp)
 {
     FilterBufferState *s = FILTER_BUFFER(obj);
     uint32_t value;
 
-    if (!visit_type_uint32(v, name, &value, errp)) {
+    if (!visit_type_uint32(v, oprop->name, &value, errp)) {
         return;
     }
     if (!value) {
         error_setg(errp, "Property '%s.%s' requires a positive value",
-                   object_get_typename(obj), name);
+                   object_get_typename(obj), oprop->name);
         return;
     }
     s->interval = value;

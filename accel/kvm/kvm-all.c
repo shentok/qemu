@@ -3488,19 +3488,17 @@ static bool kvm_accel_has_memory(MachineState *ms, AddressSpace *as,
     return false;
 }
 
-static void kvm_get_kvm_shadow_mem(Object *obj, Visitor *v,
-                                   const char *name, void *opaque,
+static void kvm_get_kvm_shadow_mem(ObjectProperty *prop, Object *obj, Visitor *v,
                                    Error **errp)
 {
     KVMState *s = KVM_STATE(obj);
     int64_t value = s->kvm_shadow_mem;
 
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, prop->name, &value, errp);
 }
 
-static void kvm_set_kvm_shadow_mem(Object *obj, Visitor *v,
-                                   const char *name, void *opaque,
-                                   Error **errp)
+static void kvm_set_kvm_shadow_mem(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
     KVMState *s = KVM_STATE(obj);
     int64_t value;
@@ -3510,16 +3508,15 @@ static void kvm_set_kvm_shadow_mem(Object *obj, Visitor *v,
         return;
     }
 
-    if (!visit_type_int(v, name, &value, errp)) {
+    if (!visit_type_int(v, oprop->name, &value, errp)) {
         return;
     }
 
     s->kvm_shadow_mem = value;
 }
 
-static void kvm_set_kernel_irqchip(Object *obj, Visitor *v,
-                                   const char *name, void *opaque,
-                                   Error **errp)
+static void kvm_set_kernel_irqchip(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
     KVMState *s = KVM_STATE(obj);
     OnOffSplit mode;
@@ -3529,7 +3526,7 @@ static void kvm_set_kernel_irqchip(Object *obj, Visitor *v,
         return;
     }
 
-    if (!visit_type_OnOffSplit(v, name, &mode, errp)) {
+    if (!visit_type_OnOffSplit(v, oprop->name, &mode, errp)) {
         return;
     }
     switch (mode) {
@@ -3571,18 +3568,16 @@ bool kvm_kernel_irqchip_split(void)
     return kvm_state->kernel_irqchip_split == ON_OFF_AUTO_ON;
 }
 
-static void kvm_get_dirty_ring_size(Object *obj, Visitor *v,
-                                    const char *name, void *opaque,
+static void kvm_get_dirty_ring_size(ObjectProperty *prop, Object *obj, Visitor *v,
                                     Error **errp)
 {
     KVMState *s = KVM_STATE(obj);
     uint32_t value = s->kvm_dirty_ring_size;
 
-    visit_type_uint32(v, name, &value, errp);
+    visit_type_uint32(v, prop->name, &value, errp);
 }
 
-static void kvm_set_dirty_ring_size(Object *obj, Visitor *v,
-                                    const char *name, void *opaque,
+static void kvm_set_dirty_ring_size(ObjectProperty *prop, Object *obj, Visitor *v,
                                     Error **errp)
 {
     KVMState *s = KVM_STATE(obj);
@@ -3594,7 +3589,7 @@ static void kvm_set_dirty_ring_size(Object *obj, Visitor *v,
         return;
     }
 
-    visit_type_uint32(v, name, &value, &error);
+    visit_type_uint32(v, prop->name, &value, &error);
     if (error) {
         error_propagate(errp, error);
         return;

@@ -497,7 +497,7 @@ static void object_class_property_init_all(Object *obj)
     object_class_property_iter_init(&iter, object_get_class(obj));
     while ((prop = object_property_iter_next(&iter))) {
         if (prop->init) {
-            prop->init(obj, prop);
+            prop->init(prop, obj);
         }
     }
 }
@@ -629,7 +629,7 @@ static void object_property_del_all(Object *obj)
         while ((prop = object_property_iter_next(&iter)) != NULL) {
             if (g_hash_table_add(done, prop)) {
                 if (prop->release) {
-                    prop->release(obj, prop->name, prop->opaque);
+                    prop->release(prop, obj);
                     released = true;
                     break;
                 }
@@ -640,6 +640,12 @@ static void object_property_del_all(Object *obj)
     g_hash_table_unref(obj->properties);
 }
 
+typedef struct {
+    ObjectProperty prop;
+
+    Object *child;
+} ChildProperty;
+
 static void object_property_del_child(Object *obj, Object *child)
 {
     ObjectProperty *prop;
@@ -649,21 +655,35 @@ static void object_property_del_child(Object *obj, Object *child)
     g_hash_table_iter_init(&iter, obj->properties);
     while (g_hash_table_iter_next(&iter, &key, &value)) {
         prop = value;
-        if (object_property_is_child(prop) && prop->opaque == child) {
-            if (prop->release) {
-                prop->release(obj, prop->name, prop->opaque);
-                prop->release = NULL;
-            }
-            break;
+        if (!object_property_is_child(prop)) {
+            continue;
         }
+
+        ChildProperty *cprop = (ChildProperty *)prop;
+        if (cprop->child != child) {
+            continue;
+        }
+
+        if (prop->release) {
+            prop->release(prop, obj);
+            prop->release = NULL;
+        }
+        break;
     }
     g_hash_table_iter_init(&iter, obj->properties);
     while (g_hash_table_iter_next(&iter, &key, &value)) {
         prop = value;
-        if (object_property_is_child(prop) && prop->opaque == child) {
-            g_hash_table_iter_remove(&iter);
-            break;
+        if (!object_property_is_child(prop)) {
+            continue;
         }
+
+        ChildProperty *cprop = (ChildProperty *)prop;
+        if (cprop->child != child) {
+            continue;
+        }
+
+        g_hash_table_iter_remove(&iter);
+        break;
     }
 }
 
@@ -1115,7 +1135,8 @@ static int do_object_child_foreach(Object *obj,
     g_hash_table_iter_init(&iter, obj->properties);
     while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&prop)) {
         if (object_property_is_child(prop)) {
-            Object *child = prop->opaque;
+            ChildProperty *cprop = (ChildProperty *)prop;
+            Object *child = cprop->child;
 
             ret = fn(child, opaque);
             if (ret != 0) {
@@ -1428,7 +1449,7 @@ void object_property_del(Object *obj, const char *name)
     ObjectProperty *prop = g_hash_table_lookup(obj->properties, name);
 
     if (prop->release) {
-        prop->release(obj, name, prop->opaque);
+        prop->release(prop, obj);
     }
     g_hash_table_remove(obj->properties, name);
 }
@@ -1448,7 +1469,7 @@ bool object_property_get(Object *obj, const char *name, Visitor *v,
                    object_get_typename(obj), name);
         return false;
     }
-    prop->get(obj, v, name, prop->opaque, &err);
+    prop->get(prop, obj, v, &err);
     error_propagate(errp, err);
     return !err;
 }
@@ -1468,7 +1489,7 @@ bool object_property_set(Object *obj, const char *name, Visitor *v,
                    object_get_typename(obj), name);
         return false;
     }
-    prop->set(obj, v, name, prop->opaque, errp);
+    prop->set(prop, obj, v, errp);
     return !*errp;
 }
 
@@ -1596,12 +1617,12 @@ int64_t object_property_get_int(Object *obj, const char *name,
     return retval;
 }
 
-static void object_property_init_defval(Object *obj, ObjectProperty *prop)
+static void object_property_init_defval(ObjectProperty *prop, Object *obj)
 {
     Visitor *v = qobject_input_visitor_new(prop->defval);
 
     assert(prop->set != NULL);
-    prop->set(obj, v, prop->name, prop->opaque, &error_abort);
+    prop->set(prop, obj, v, &error_abort);
 
     visit_free(v);
 }
@@ -1770,32 +1791,30 @@ Object *object_get_internal_root(void)
     return internal_root;
 }
 
-typedef struct {
-    ObjectProperty prop;
-} ChildProperty;
-
-static void object_get_child_property(Object *obj, Visitor *v,
-                                      const char *name, void *opaque,
-                                      Error **errp)
+static void object_get_child_property(ObjectProperty *prop, Object *obj,
+                                      Visitor *v, Error **errp)
 {
-    Object *child = opaque;
+    ChildProperty *cprop = (ChildProperty *)prop;
+    Object *child = cprop->child;
     char *path;
 
     path = object_get_canonical_path(child);
-    visit_type_str(v, name, &path, errp);
+    visit_type_str(v, prop->name, &path, errp);
     g_free(path);
 }
 
-static Object *object_resolve_child_property(Object *parent, void *opaque,
-                                             const char *part)
+static Object *object_resolve_child_property(ObjectProperty *prop,
+                                             Object *parent)
 {
-    return opaque;
+    ChildProperty *cprop = (ChildProperty *)prop;
+
+    return cprop->child;
 }
 
-static void object_finalize_child_property(Object *obj, const char *name,
-                                           void *opaque)
+static void object_finalize_child_property(ObjectProperty *prop, Object *obj)
 {
-    Object *child = opaque;
+    ChildProperty *cprop = (ChildProperty *)prop;
+    Object *child = cprop->child;
 
     if (child->class->unparent) {
         (child->class->unparent)(child);
@@ -1822,7 +1841,9 @@ object_property_try_add_child(Object *obj, const char *name,
     if (!op) {
         return NULL;
     }
-    op->opaque = child;
+    ChildProperty *cprop = (ChildProperty *)op;
+    cprop->child = child;
+    op->opaque = NULL;
     op->release = object_finalize_child_property;
     op->resolve = object_resolve_child_property;
     object_ref(child);
@@ -1867,21 +1888,20 @@ object_link_get_targetp(Object *obj, LinkProperty *lprop)
     }
 }
 
-static void object_get_link_property(Object *obj, Visitor *v,
-                                     const char *name, void *opaque,
-                                     Error **errp)
+static void object_get_link_property(ObjectProperty *prop, Object *obj,
+                                     Visitor *v, Error **errp)
 {
-    LinkProperty *lprop = opaque;
+    LinkProperty *lprop = (LinkProperty *)prop;
     Object **targetp = object_link_get_targetp(obj, lprop);
     char *path;
 
     if (*targetp) {
         path = object_get_canonical_path(*targetp);
-        visit_type_str(v, name, &path, errp);
+        visit_type_str(v, prop->name, &path, errp);
         g_free(path);
     } else {
         path = (char *)"";
-        visit_type_str(v, name, &path, errp);
+        visit_type_str(v, prop->name, &path, errp);
     }
 }
 
@@ -1925,23 +1945,22 @@ static Object *object_resolve_link(Object *obj, const char *name,
     return target;
 }
 
-static void object_set_link_property(Object *obj, Visitor *v,
-                                     const char *name, void *opaque,
-                                     Error **errp)
+static void object_set_link_property(ObjectProperty *prop, Object *obj,
+                                     Visitor *v, Error **errp)
 {
     Error *local_err = NULL;
-    LinkProperty *prop = opaque;
-    Object **targetp = object_link_get_targetp(obj, prop);
+    LinkProperty *lprop = (LinkProperty *)prop;
+    Object **targetp = object_link_get_targetp(obj, lprop);
     Object *old_target = *targetp;
     Object *new_target;
     char *path = NULL;
 
-    if (!visit_type_str(v, name, &path, errp)) {
+    if (!visit_type_str(v, prop->name, &path, errp)) {
         return;
     }
 
     if (*path) {
-        new_target = object_resolve_link(obj, name, path, errp);
+        new_target = object_resolve_link(obj, prop->name, path, errp);
         if (!new_target) {
             g_free(path);
             return;
@@ -1952,34 +1971,33 @@ static void object_set_link_property(Object *obj, Visitor *v,
 
     g_free(path);
 
-    prop->check(obj, name, new_target, &local_err);
+    lprop->check(obj, prop->name, new_target, &local_err);
     if (local_err) {
         error_propagate(errp, local_err);
         return;
     }
 
     *targetp = new_target;
-    if (prop->flags & OBJ_PROP_LINK_STRONG) {
+    if (lprop->flags & OBJ_PROP_LINK_STRONG) {
         object_ref(new_target);
         object_unref(old_target);
     }
 }
 
-static Object *object_resolve_link_property(Object *parent, void *opaque,
-                                            const char *part)
+static Object *object_resolve_link_property(ObjectProperty *prop,
+                                            Object *parent)
 {
-    LinkProperty *lprop = opaque;
+    LinkProperty *lprop = (LinkProperty *)prop;
 
     return *object_link_get_targetp(parent, lprop);
 }
 
-static void object_release_link_property(Object *obj, const char *name,
-                                         void *opaque)
+static void object_release_link_property(ObjectProperty *prop, Object *obj)
 {
-    LinkProperty *prop = opaque;
-    Object **targetp = object_link_get_targetp(obj, prop);
+    LinkProperty *lprop = (LinkProperty *)prop;
+    Object **targetp = object_link_get_targetp(obj, lprop);
 
-    if ((prop->flags & OBJ_PROP_LINK_STRONG) && *targetp) {
+    if ((lprop->flags & OBJ_PROP_LINK_STRONG) && *targetp) {
         object_unref(*targetp);
     }
 }
@@ -2000,7 +2018,7 @@ object_add_link_prop(Object *obj, const char *name,
                                       sizeof(LinkProperty),
                                       object_get_link_property,
                                       check ? object_set_link_property : NULL);
-    op->opaque = op;
+    op->opaque = NULL;
     op->release = object_release_link_property;
     op->resolve = object_resolve_link_property;
 
@@ -2045,7 +2063,7 @@ object_class_property_add_link(ObjectClass *oc,
                                             object_get_link_property,
                                             check ? object_set_link_property : NULL);
 
-    op->opaque = op;
+    op->opaque = NULL;
     op->release = object_release_link_property;
     op->resolve = object_resolve_link_property;
 
@@ -2083,7 +2101,8 @@ const char *object_get_canonical_path_component(const Object *obj)
             continue;
         }
 
-        if (prop->opaque == obj) {
+        ChildProperty *cprop = (ChildProperty *)prop;
+        if (cprop->child == obj) {
             return prop->name;
         }
     }
@@ -2130,7 +2149,7 @@ Object *object_resolve_path_component(Object *parent, const char *part)
     }
 
     if (prop->resolve) {
-        return prop->resolve(parent, prop->opaque, part);
+        return prop->resolve(prop, parent);
     } else {
         return NULL;
     }
@@ -2177,7 +2196,9 @@ static Object *object_resolve_partial_path(Object *parent,
             continue;
         }
 
-        found = object_resolve_partial_path(prop->opaque, parts,
+        ChildProperty *cprop = (ChildProperty *)prop;
+
+        found = object_resolve_partial_path(cprop->child, parts,
                                             typename, ambiguous);
         if (found) {
             if (obj) {
@@ -2244,34 +2265,34 @@ typedef struct StringProperty
     void (*set)(Object *, const char *, Error **);
 } StringProperty;
 
-static void property_get_str(Object *obj, Visitor *v, const char *name,
-                             void *opaque, Error **errp)
+static void property_get_str(ObjectProperty *prop, Object *obj, Visitor *v,
+                             Error **errp)
 {
-    StringProperty *prop = opaque;
+    StringProperty *sprop = (StringProperty *)prop;
     char *value;
     Error *err = NULL;
 
-    value = prop->get(obj, &err);
+    value = sprop->get(obj, &err);
     if (err) {
         error_propagate(errp, err);
         return;
     }
 
-    visit_type_str(v, name, &value, errp);
+    visit_type_str(v, prop->name, &value, errp);
     g_free(value);
 }
 
-static void property_set_str(Object *obj, Visitor *v, const char *name,
-                             void *opaque, Error **errp)
+static void property_set_str(ObjectProperty *prop, Object *obj, Visitor *v,
+                             Error **errp)
 {
-    StringProperty *prop = opaque;
+    StringProperty *sprop = (StringProperty *)prop;
     char *value;
 
-    if (!visit_type_str(v, name, &value, errp)) {
+    if (!visit_type_str(v, prop->name, &value, errp)) {
         return;
     }
 
-    prop->set(obj, value, errp);
+    sprop->set(obj, value, errp);
     g_free(value);
 }
 
@@ -2291,7 +2312,7 @@ object_property_add_str(Object *obj, const char *name,
     {
         StringProperty *sprop = (StringProperty*)prop;
 
-        prop->opaque = sprop;
+        prop->opaque = NULL;
         prop->release = NULL;
 
         sprop->get = get;
@@ -2318,7 +2339,7 @@ object_class_property_add_str(ObjectClass *klass, const char *name,
     {
         StringProperty *sprop = (StringProperty*)prop;
 
-        prop->opaque = sprop;
+        prop->opaque = NULL;
         prop->release = NULL;
 
         sprop->get = get;
@@ -2336,10 +2357,10 @@ typedef struct BoolProperty
     void (*set)(Object *, bool, Error **);
 } BoolProperty;
 
-static void property_get_bool(Object *obj, Visitor *v, const char *name,
-                              void *opaque, Error **errp)
+static void property_get_bool(ObjectProperty *oprop, Object *obj, Visitor *v,
+                              Error **errp)
 {
-    BoolProperty *prop = opaque;
+    BoolProperty *prop = (BoolProperty *)oprop;
     bool value;
     Error *err = NULL;
 
@@ -2349,16 +2370,16 @@ static void property_get_bool(Object *obj, Visitor *v, const char *name,
         return;
     }
 
-    visit_type_bool(v, name, &value, errp);
+    visit_type_bool(v, oprop->name, &value, errp);
 }
 
-static void property_set_bool(Object *obj, Visitor *v, const char *name,
-                              void *opaque, Error **errp)
+static void property_set_bool(ObjectProperty *oprop, Object *obj, Visitor *v,
+                              Error **errp)
 {
-    BoolProperty *prop = opaque;
+    BoolProperty *prop = (BoolProperty *)oprop;
     bool value;
 
-    if (!visit_type_bool(v, name, &value, errp)) {
+    if (!visit_type_bool(v, oprop->name, &value, errp)) {
         return;
     }
 
@@ -2381,7 +2402,7 @@ object_property_add_bool(Object *obj, const char *name,
     {
         BoolProperty *bprop = (BoolProperty*)prop;
 
-        prop->opaque = bprop;
+        prop->opaque = NULL;
         prop->release = NULL;
 
         bprop->get = get;
@@ -2407,7 +2428,7 @@ object_class_property_add_bool(ObjectClass *klass, const char *name,
     {
         BoolProperty *bprop = (BoolProperty*)prop;
 
-        prop->opaque = bprop;
+        prop->opaque = NULL;
         prop->release = NULL;
 
         bprop->get = get;
@@ -2417,10 +2438,10 @@ object_class_property_add_bool(ObjectClass *klass, const char *name,
     return prop;
 }
 
-static void property_get_enum(Object *obj, Visitor *v, const char *name,
-                              void *opaque, Error **errp)
+static void property_get_enum(ObjectProperty *oprop, Object *obj, Visitor *v,
+                              Error **errp)
 {
-    EnumProperty *prop = opaque;
+    EnumProperty *prop = (EnumProperty *)oprop;
     int value;
     Error *err = NULL;
 
@@ -2430,16 +2451,16 @@ static void property_get_enum(Object *obj, Visitor *v, const char *name,
         return;
     }
 
-    visit_type_enum(v, name, &value, prop->lookup, errp);
+    visit_type_enum(v, oprop->name, &value, prop->lookup, errp);
 }
 
-static void property_set_enum(Object *obj, Visitor *v, const char *name,
-                              void *opaque, Error **errp)
+static void property_set_enum(ObjectProperty *oprop, Object *obj, Visitor *v,
+                              Error **errp)
 {
-    EnumProperty *prop = opaque;
+    EnumProperty *prop = (EnumProperty *)oprop;
     int value;
 
-    if (!visit_type_enum(v, name, &value, prop->lookup, errp)) {
+    if (!visit_type_enum(v, oprop->name, &value, prop->lookup, errp)) {
         return;
     }
     prop->set(obj, value, errp);
@@ -2463,7 +2484,7 @@ object_property_add_enum(Object *obj, const char *name,
     {
         EnumProperty *eprop = (EnumProperty*)prop;
 
-        prop->opaque = eprop;
+        prop->opaque = NULL;
         prop->release = NULL;
 
         eprop->lookup = lookup;
@@ -2492,7 +2513,7 @@ object_class_property_add_enum(ObjectClass *klass, const char *name,
     {
         EnumProperty *eprop = (EnumProperty*)prop;
 
-        prop->opaque = eprop;
+        prop->opaque = NULL;
         prop->release = NULL;
 
         eprop->lookup = lookup;
@@ -2509,10 +2530,10 @@ typedef struct TMProperty {
     void (*get)(Object *, struct tm *, Error **);
 } TMProperty;
 
-static void property_get_tm(Object *obj, Visitor *v, const char *name,
-                            void *opaque, Error **errp)
+static void property_get_tm(ObjectProperty *oprop, Object *obj, Visitor *v,
+                            Error **errp)
 {
-    TMProperty *prop = opaque;
+    TMProperty *prop = (TMProperty *)oprop;
     Error *err = NULL;
     struct tm value;
 
@@ -2522,7 +2543,7 @@ static void property_get_tm(Object *obj, Visitor *v, const char *name,
         return;
     }
 
-    if (!visit_start_struct(v, name, NULL, 0, errp)) {
+    if (!visit_start_struct(v, oprop->name, NULL, 0, errp)) {
         return;
     }
     if (!visit_type_int32(v, "tm_year", &value.tm_year, errp)) {
@@ -2563,7 +2584,7 @@ object_property_add_tm(Object *obj, const char *name,
     {
         TMProperty *tprop = (TMProperty*)prop;
 
-        prop->opaque = tprop;
+        prop->opaque = NULL;
         prop->release = NULL;
 
         tprop->get = get;
@@ -2587,7 +2608,7 @@ object_class_property_add_tm(ObjectClass *klass, const char *name,
     {
         TMProperty *tprop = (TMProperty*)prop;
 
-        prop->opaque = tprop;
+        prop->opaque = NULL;
         prop->release = NULL;
 
         tprop->get = get;
@@ -2601,80 +2622,80 @@ static char *object_get_type(Object *obj, Error **errp)
     return g_strdup(object_get_typename(obj));
 }
 
-static void property_get_uint8_ptr(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+static void property_get_uint8_ptr(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
-    uint8_t value = *(uint8_t *)opaque;
-    visit_type_uint8(v, name, &value, errp);
+    uint8_t value = *(uint8_t *)oprop->opaque;
+    visit_type_uint8(v, oprop->name, &value, errp);
 }
 
-static void property_set_uint8_ptr(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+static void property_set_uint8_ptr(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
-    uint8_t *field = opaque;
+    uint8_t *field = oprop->opaque;
     uint8_t value;
 
-    if (!visit_type_uint8(v, name, &value, errp)) {
+    if (!visit_type_uint8(v, oprop->name, &value, errp)) {
         return;
     }
 
     *field = value;
 }
 
-static void property_get_uint16_ptr(Object *obj, Visitor *v, const char *name,
-                                    void *opaque, Error **errp)
+static void property_get_uint16_ptr(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                    Error **errp)
 {
-    uint16_t value = *(uint16_t *)opaque;
-    visit_type_uint16(v, name, &value, errp);
+    uint16_t value = *(uint16_t *)oprop->opaque;
+    visit_type_uint16(v, oprop->name, &value, errp);
 }
 
-static void property_set_uint16_ptr(Object *obj, Visitor *v, const char *name,
-                                    void *opaque, Error **errp)
+static void property_set_uint16_ptr(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                    Error **errp)
 {
-    uint16_t *field = opaque;
+    uint16_t *field = oprop->opaque;
     uint16_t value;
 
-    if (!visit_type_uint16(v, name, &value, errp)) {
+    if (!visit_type_uint16(v, oprop->name, &value, errp)) {
         return;
     }
 
     *field = value;
 }
 
-static void property_get_uint32_ptr(Object *obj, Visitor *v, const char *name,
-                                    void *opaque, Error **errp)
+static void property_get_uint32_ptr(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                    Error **errp)
 {
-    uint32_t value = *(uint32_t *)opaque;
-    visit_type_uint32(v, name, &value, errp);
+    uint32_t value = *(uint32_t *)oprop->opaque;
+    visit_type_uint32(v, oprop->name, &value, errp);
 }
 
-static void property_set_uint32_ptr(Object *obj, Visitor *v, const char *name,
-                                    void *opaque, Error **errp)
+static void property_set_uint32_ptr(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                    Error **errp)
 {
-    uint32_t *field = opaque;
+    uint32_t *field = oprop->opaque;
     uint32_t value;
 
-    if (!visit_type_uint32(v, name, &value, errp)) {
+    if (!visit_type_uint32(v, oprop->name, &value, errp)) {
         return;
     }
 
     *field = value;
 }
 
-static void property_get_uint64_ptr(Object *obj, Visitor *v, const char *name,
-                                    void *opaque, Error **errp)
+static void property_get_uint64_ptr(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                    Error **errp)
 {
-    uint64_t value = *(uint64_t *)opaque;
-    visit_type_uint64(v, name, &value, errp);
+    uint64_t value = *(uint64_t *)oprop->opaque;
+    visit_type_uint64(v, oprop->name, &value, errp);
 }
 
-static void property_set_uint64_ptr(Object *obj, Visitor *v, const char *name,
-                                    void *opaque, Error **errp)
+static void property_set_uint64_ptr(ObjectProperty *oprop, Object *obj, Visitor *v,
+                                    Error **errp)
 {
-    uint64_t *field = opaque;
+    uint64_t *field = oprop->opaque;
     uint64_t value;
 
-    if (!visit_type_uint64(v, name, &value, errp)) {
+    if (!visit_type_uint64(v, oprop->name, &value, errp)) {
         return;
     }
 
@@ -2848,37 +2869,36 @@ typedef struct {
     char *target_name;
 } AliasProperty;
 
-static void property_get_alias(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void property_get_alias(ObjectProperty *oprop, Object *obj, Visitor *v,
+                               Error **errp)
 {
-    AliasProperty *prop = opaque;
-    Visitor *alias_v = visitor_forward_field(v, prop->target_name, name);
+    AliasProperty *prop = (AliasProperty *)oprop;
+    Visitor *alias_v = visitor_forward_field(v, prop->target_name, oprop->name);
 
     object_property_get(prop->target_obj, prop->target_name, alias_v, errp);
     visit_free(alias_v);
 }
 
-static void property_set_alias(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void property_set_alias(ObjectProperty *oprop, Object *obj, Visitor *v,
+                               Error **errp)
 {
-    AliasProperty *prop = opaque;
-    Visitor *alias_v = visitor_forward_field(v, prop->target_name, name);
+    AliasProperty *prop = (AliasProperty *)oprop;
+    Visitor *alias_v = visitor_forward_field(v, prop->target_name, oprop->name);
 
     object_property_set(prop->target_obj, prop->target_name, alias_v, errp);
     visit_free(alias_v);
 }
 
-static Object *property_resolve_alias(Object *obj, void *opaque,
-                                      const char *part)
+static Object *property_resolve_alias(ObjectProperty *prop, Object *obj)
 {
-    AliasProperty *prop = opaque;
+    AliasProperty *aprop = (AliasProperty *)prop;
 
-    return object_resolve_path_component(prop->target_obj, prop->target_name);
+    return object_resolve_path_component(aprop->target_obj, aprop->target_name);
 }
 
-static void property_release_alias(Object *obj, const char *name, void *opaque)
+static void property_release_alias(ObjectProperty *oprop, Object *obj)
 {
-    AliasProperty *prop = opaque;
+    AliasProperty *prop = (AliasProperty *)oprop;
 
     g_free(prop->target_name);
 }
@@ -2905,7 +2925,7 @@ object_property_add_alias(Object *obj, const char *name,
     op = object_property_add_internal(obj, name, prop_type,
                                       sizeof(AliasProperty),
                                       property_get_alias, property_set_alias);
-    op->opaque = op;
+    op->opaque = NULL;
     op->release = property_release_alias;
     op->resolve = property_resolve_alias;
     if (target_prop->defval) {

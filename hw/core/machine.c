@@ -344,24 +344,22 @@ static void machine_set_dumpdtb(Object *obj, const char *value, Error **errp)
     ms->dumpdtb = g_strdup(value);
 }
 
-static void machine_get_phandle_start(Object *obj, Visitor *v,
-                                      const char *name, void *opaque,
-                                      Error **errp)
+static void machine_get_phandle_start(ObjectProperty *oprop, Object *obj,
+                                      Visitor *v, Error **errp)
 {
     MachineState *ms = MACHINE(obj);
     int64_t value = ms->phandle_start;
 
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
-static void machine_set_phandle_start(Object *obj, Visitor *v,
-                                      const char *name, void *opaque,
-                                      Error **errp)
+static void machine_set_phandle_start(ObjectProperty *oprop, Object *obj,
+                                      Visitor *v, Error **errp)
 {
     MachineState *ms = MACHINE(obj);
     int64_t value;
 
-    if (!visit_type_int(v, name, &value, errp)) {
+    if (!visit_type_int(v, oprop->name, &value, errp)) {
         return;
     }
 
@@ -534,8 +532,8 @@ static void machine_set_hmat(Object *obj, bool value, Error **errp)
     ms->numa_state->hmat_enabled = value;
 }
 
-static void machine_get_mem(Object *obj, Visitor *v, const char *name,
-                            void *opaque, Error **errp)
+static void machine_get_mem(ObjectProperty *oprop, Object *obj, Visitor *v,
+                            Error **errp)
 {
     MachineState *ms = MACHINE(obj);
     MemorySizeConfiguration mem = {
@@ -548,11 +546,11 @@ static void machine_get_mem(Object *obj, Visitor *v, const char *name,
     };
     MemorySizeConfiguration *p_mem = &mem;
 
-    visit_type_MemorySizeConfiguration(v, name, &p_mem, &error_abort);
+    visit_type_MemorySizeConfiguration(v, oprop->name, &p_mem, &error_abort);
 }
 
-static void machine_set_mem(Object *obj, Visitor *v, const char *name,
-                            void *opaque, Error **errp)
+static void machine_set_mem(ObjectProperty *oprop, Object *obj, Visitor *v,
+                            Error **errp)
 {
     MachineState *ms = MACHINE(obj);
     MachineClass *mc = MACHINE_GET_CLASS(obj);
@@ -560,7 +558,7 @@ static void machine_set_mem(Object *obj, Visitor *v, const char *name,
 
     ERRP_GUARD();
 
-    if (!visit_type_MemorySizeConfiguration(v, name, &mem, errp)) {
+    if (!visit_type_MemorySizeConfiguration(v, oprop->name, &mem, errp)) {
         return;
     }
 
@@ -820,8 +818,8 @@ void machine_set_cpu_numa_node(MachineState *machine,
     }
 }
 
-static void machine_get_smp(Object *obj, Visitor *v, const char *name,
-                            void *opaque, Error **errp)
+static void machine_get_smp(ObjectProperty *oprop, Object *obj,
+                            Visitor *v, Error **errp)
 {
     MachineState *ms = MACHINE(obj);
     SMPConfiguration *config = &(SMPConfiguration){
@@ -834,30 +832,30 @@ static void machine_get_smp(Object *obj, Visitor *v, const char *name,
         .has_maxcpus = true, .maxcpus = ms->smp.max_cpus,
     };
 
-    if (!visit_type_SMPConfiguration(v, name, &config, &error_abort)) {
+    if (!visit_type_SMPConfiguration(v, oprop->name, &config, &error_abort)) {
         return;
     }
 }
 
-static void machine_set_smp(Object *obj, Visitor *v, const char *name,
-                            void *opaque, Error **errp)
+static void machine_set_smp(ObjectProperty *oprop, Object *obj,
+                            Visitor *v, Error **errp)
 {
     MachineState *ms = MACHINE(obj);
     g_autoptr(SMPConfiguration) config = NULL;
 
-    if (!visit_type_SMPConfiguration(v, name, &config, errp)) {
+    if (!visit_type_SMPConfiguration(v, oprop->name, &config, errp)) {
         return;
     }
 
     machine_parse_smp_config(ms, config, errp);
 }
 
-static void machine_get_boot(Object *obj, Visitor *v, const char *name,
-                            void *opaque, Error **errp)
+static void machine_get_boot(ObjectProperty *oprop, Object *obj, Visitor *v,
+                             Error **errp)
 {
     MachineState *ms = MACHINE(obj);
     BootConfiguration *config = &ms->boot_config;
-    visit_type_BootConfiguration(v, name, &config, &error_abort);
+    visit_type_BootConfiguration(v, oprop->name, &config, &error_abort);
 }
 
 static void machine_free_boot_config(MachineState *ms)
@@ -879,14 +877,14 @@ static void machine_copy_boot_config(MachineState *ms, BootConfiguration *config
     }
 }
 
-static void machine_set_boot(Object *obj, Visitor *v, const char *name,
-                            void *opaque, Error **errp)
+static void machine_set_boot(ObjectProperty *oprop, Object *obj, Visitor *v,
+                             Error **errp)
 {
     ERRP_GUARD();
     MachineState *ms = MACHINE(obj);
     BootConfiguration *config = NULL;
 
-    if (!visit_type_BootConfiguration(v, name, &config, errp)) {
+    if (!visit_type_BootConfiguration(v, oprop->name, &config, errp)) {
         return;
     }
     if (config->has_order) {

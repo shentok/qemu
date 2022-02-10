@@ -469,12 +469,12 @@ static void bbram_ctrl_init(Object *obj)
     sysbus_init_irq(sbd, &s->irq_bbram);
 }
 
-static void bbram_prop_set_drive(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void bbram_prop_set_drive(ObjectProperty *oprop, Object *obj,
+                                 Visitor *v, Error **errp)
 {
     DeviceState *dev = DEVICE(obj);
 
-    qdev_prop_drive.set(obj, v, name, opaque, errp);
+    qdev_prop_drive.set(oprop, obj, v, errp);
 
     /* Fill initial data if backend is attached after realized */
     if (dev->realized) {
@@ -482,16 +482,15 @@ static void bbram_prop_set_drive(Object *obj, Visitor *v, const char *name,
     }
 }
 
-static void bbram_prop_get_drive(Object *obj, Visitor *v, const char *name,
-                                 void *opaque, Error **errp)
+static void bbram_prop_get_drive(ObjectProperty *oprop, Object *obj,
+                                 Visitor *v, Error **errp)
 {
-    qdev_prop_drive.get(obj, v, name, opaque, errp);
+    qdev_prop_drive.get(oprop, obj, v, errp);
 }
 
-static void bbram_prop_release_drive(Object *obj, const char *name,
-                                     void *opaque)
+static void bbram_prop_release_drive(ObjectProperty *oprop, Object *obj)
 {
-    qdev_prop_drive.release(obj, name, opaque);
+    qdev_prop_drive.release(oprop, obj);
 }
 
 static const PropertyInfo bbram_prop_drive = {

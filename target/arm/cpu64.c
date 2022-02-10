@@ -315,8 +315,8 @@ void arm_cpu_sve_finalize(ARMCPU *cpu, Error **errp)
     cpu->sve_vq.map = vq_map;
 }
 
-static void cpu_max_get_sve_max_vq(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+static void cpu_max_get_sve_max_vq(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
     ARMCPU *cpu = ARM_CPU(obj);
     uint32_t value;
@@ -327,16 +327,16 @@ static void cpu_max_get_sve_max_vq(Object *obj, Visitor *v, const char *name,
     } else {
         value = cpu->sve_max_vq;
     }
-    visit_type_uint32(v, name, &value, errp);
+    visit_type_uint32(v, oprop->name, &value, errp);
 }
 
-static void cpu_max_set_sve_max_vq(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+static void cpu_max_set_sve_max_vq(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
     ARMCPU *cpu = ARM_CPU(obj);
     uint32_t max_vq;
 
-    if (!visit_type_uint32(v, name, &max_vq, errp)) {
+    if (!visit_type_uint32(v, oprop->name, &max_vq, errp)) {
         return;
     }
 
@@ -361,12 +361,12 @@ static void cpu_max_set_sve_max_vq(Object *obj, Visitor *v, const char *name,
  * object_property_add_bool interface because they make use of the
  * contents of "name" to determine which bit on which to operate.
  */
-static void cpu_arm_get_vq(Object *obj, Visitor *v, const char *name,
-                           void *opaque, Error **errp)
+static void cpu_arm_get_vq(ObjectProperty *oprop, Object *obj, Visitor *v,
+                           Error **errp)
 {
     ARMCPU *cpu = ARM_CPU(obj);
-    ARMVQMap *vq_map = opaque;
-    uint32_t vq = atoi(&name[3]) / 128;
+    ARMVQMap *vq_map = oprop->opaque;
+    uint32_t vq = atoi(&oprop->name[3]) / 128;
     bool sve = vq_map == &cpu->sve_vq;
     bool value;
 
@@ -378,17 +378,17 @@ static void cpu_arm_get_vq(Object *obj, Visitor *v, const char *name,
     } else {
         value = extract32(vq_map->map, vq - 1, 1);
     }
-    visit_type_bool(v, name, &value, errp);
+    visit_type_bool(v, oprop->name, &value, errp);
 }
 
-static void cpu_arm_set_vq(Object *obj, Visitor *v, const char *name,
-                           void *opaque, Error **errp)
+static void cpu_arm_set_vq(ObjectProperty *oprop, Object *obj, Visitor *v,
+                           Error **errp)
 {
-    ARMVQMap *vq_map = opaque;
-    uint32_t vq = atoi(&name[3]) / 128;
+    ARMVQMap *vq_map = oprop->opaque;
+    uint32_t vq = atoi(&oprop->name[3]) / 128;
     bool value;
 
-    if (!visit_type_bool(v, name, &value, errp)) {
+    if (!visit_type_bool(v, oprop->name, &value, errp)) {
         return;
     }
 
@@ -491,14 +491,13 @@ static void cpu_arm_set_sme_fa64(Object *obj, bool value, Error **errp)
 
 #ifdef CONFIG_USER_ONLY
 /* Mirror linux /proc/sys/abi/{sve,sme}_default_vector_length. */
-static void cpu_arm_set_default_vec_len(Object *obj, Visitor *v,
-                                        const char *name, void *opaque,
-                                        Error **errp)
+static void cpu_arm_set_default_vec_len(ObjectProperty *oprop, Object *obj,
+                                        Visitor *v, Error **errp)
 {
-    uint32_t *ptr_default_vq = opaque;
+    uint32_t *ptr_default_vq = oprop->opaque;
     int32_t default_len, default_vq, remainder;
 
-    if (!visit_type_int32(v, name, &default_len, errp)) {
+    if (!visit_type_int32(v, oprop->name, &default_len, errp)) {
         return;
     }
 
@@ -535,14 +534,13 @@ static void cpu_arm_set_default_vec_len(Object *obj, Visitor *v,
     *ptr_default_vq = default_vq;
 }
 
-static void cpu_arm_get_default_vec_len(Object *obj, Visitor *v,
-                                        const char *name, void *opaque,
-                                        Error **errp)
+static void cpu_arm_get_default_vec_len(ObjectProperty *oprop, Object *obj,
+                                        Visitor *v, Error **errp)
 {
-    uint32_t *ptr_default_vq = opaque;
+    uint32_t *ptr_default_vq = oprop->opaque;
     int32_t value = *ptr_default_vq * 16;
 
-    visit_type_int32(v, name, &value, errp);
+    visit_type_int32(v, oprop->name, &value, errp);
 }
 #endif
 

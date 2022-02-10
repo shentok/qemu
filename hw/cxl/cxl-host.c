@@ -258,43 +258,43 @@ const MemoryRegionOps cfmws_ops = {
     },
 };
 
-static void machine_get_cxl(Object *obj, Visitor *v, const char *name,
-                            void *opaque, Error **errp)
+static void machine_get_cxl(ObjectProperty *oprop, Object *obj, Visitor *v,
+                            Error **errp)
 {
-    CXLState *cxl_state = opaque;
+    CXLState *cxl_state = oprop->opaque;
     bool value = cxl_state->is_enabled;
 
-    visit_type_bool(v, name, &value, errp);
+    visit_type_bool(v, oprop->name, &value, errp);
 }
 
-static void machine_set_cxl(Object *obj, Visitor *v, const char *name,
-                            void *opaque, Error **errp)
+static void machine_set_cxl(ObjectProperty *oprop, Object *obj, Visitor *v,
+                            Error **errp)
 {
-    CXLState *cxl_state = opaque;
+    CXLState *cxl_state = oprop->opaque;
     bool value;
 
-    if (!visit_type_bool(v, name, &value, errp)) {
+    if (!visit_type_bool(v, oprop->name, &value, errp)) {
         return;
     }
     cxl_state->is_enabled = value;
 }
 
-static void machine_get_cfmw(Object *obj, Visitor *v, const char *name,
-                             void *opaque, Error **errp)
+static void machine_get_cfmw(ObjectProperty *oprop, Object *obj, Visitor *v,
+                             Error **errp)
 {
-    CXLFixedMemoryWindowOptionsList **list = opaque;
+    CXLFixedMemoryWindowOptionsList **list = oprop->opaque;
 
-    visit_type_CXLFixedMemoryWindowOptionsList(v, name, list, errp);
+    visit_type_CXLFixedMemoryWindowOptionsList(v, oprop->name, list, errp);
 }
 
-static void machine_set_cfmw(Object *obj, Visitor *v, const char *name,
-                             void *opaque, Error **errp)
+static void machine_set_cfmw(ObjectProperty *oprop, Object *obj, Visitor *v,
+                             Error **errp)
 {
-    CXLState *state = opaque;
+    CXLState *state = oprop->opaque;
     CXLFixedMemoryWindowOptionsList *cfmw_list = NULL;
     CXLFixedMemoryWindowOptionsList *it;
 
-    visit_type_CXLFixedMemoryWindowOptionsList(v, name, &cfmw_list, errp);
+    visit_type_CXLFixedMemoryWindowOptionsList(v, oprop->name, &cfmw_list, errp);
     if (!cfmw_list) {
         return;
     }

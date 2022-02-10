@@ -424,29 +424,29 @@ static Property apic_properties_common[] = {
     DEFINE_PROP_END_OF_LIST(),
 };
 
-static void apic_common_get_id(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void apic_common_get_id(ObjectProperty *oprop, Object *obj,
+                               Visitor *v, Error **errp)
 {
     APICCommonState *s = APIC_COMMON(obj);
     uint32_t value;
 
     value = s->apicbase & MSR_IA32_APICBASE_EXTD ? s->initial_apic_id : s->id;
-    visit_type_uint32(v, name, &value, errp);
+    visit_type_uint32(v, oprop->name, &value, errp);
 }
 
-static void apic_common_set_id(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void apic_common_set_id(ObjectProperty *oprop, Object *obj, Visitor *v,
+                               Error **errp)
 {
     APICCommonState *s = APIC_COMMON(obj);
     DeviceState *dev = DEVICE(obj);
     uint32_t value;
 
     if (dev->realized) {
-        qdev_prop_set_after_realize(dev, name, errp);
+        qdev_prop_set_after_realize(dev, oprop->name, errp);
         return;
     }
 
-    if (!visit_type_uint32(v, name, &value, errp)) {
+    if (!visit_type_uint32(v, oprop->name, &value, errp)) {
         return;
     }
 

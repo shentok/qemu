@@ -5674,19 +5674,17 @@ static void kvm_arch_set_notify_vmexit(Object *obj, int value, Error **errp)
     s->notify_vmexit = value;
 }
 
-static void kvm_arch_get_notify_window(Object *obj, Visitor *v,
-                                       const char *name, void *opaque,
-                                       Error **errp)
+static void kvm_arch_get_notify_window(ObjectProperty *oprop, Object *obj,
+                                       Visitor *v, Error **errp)
 {
     KVMState *s = KVM_STATE(obj);
     uint32_t value = s->notify_window;
 
-    visit_type_uint32(v, name, &value, errp);
+    visit_type_uint32(v, oprop->name, &value, errp);
 }
 
-static void kvm_arch_set_notify_window(Object *obj, Visitor *v,
-                                       const char *name, void *opaque,
-                                       Error **errp)
+static void kvm_arch_set_notify_window(ObjectProperty *oprop, Object *obj,
+                                       Visitor *v, Error **errp)
 {
     KVMState *s = KVM_STATE(obj);
     Error *error = NULL;
@@ -5697,7 +5695,7 @@ static void kvm_arch_set_notify_window(Object *obj, Visitor *v,
         return;
     }
 
-    visit_type_uint32(v, name, &value, &error);
+    visit_type_uint32(v, oprop->name, &value, &error);
     if (error) {
         error_propagate(errp, error);
         return;

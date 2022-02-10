@@ -1066,85 +1066,79 @@ static void compare_set_notify_dev(Object *obj, const char *value, Error **errp)
     s->notify_dev = g_strdup(value);
 }
 
-static void compare_get_timeout(Object *obj, Visitor *v,
-                                const char *name, void *opaque,
-                                Error **errp)
+static void compare_get_timeout(ObjectProperty *oprop, Object *obj,
+                                Visitor *v, Error **errp)
 {
     CompareState *s = COLO_COMPARE(obj);
     uint64_t value = s->compare_timeout;
 
-    visit_type_uint64(v, name, &value, errp);
+    visit_type_uint64(v, oprop->name, &value, errp);
 }
 
-static void compare_set_timeout(Object *obj, Visitor *v,
-                                const char *name, void *opaque,
-                                Error **errp)
+static void compare_set_timeout(ObjectProperty *oprop, Object *obj,
+                                Visitor *v, Error **errp)
 {
     CompareState *s = COLO_COMPARE(obj);
     uint32_t value;
 
-    if (!visit_type_uint32(v, name, &value, errp)) {
+    if (!visit_type_uint32(v, oprop->name, &value, errp)) {
         return;
     }
     if (!value) {
         error_setg(errp, "Property '%s.%s' requires a positive value",
-                   object_get_typename(obj), name);
+                   object_get_typename(obj), oprop->name);
         return;
     }
     s->compare_timeout = value;
 }
 
-static void compare_get_expired_scan_cycle(Object *obj, Visitor *v,
-                                           const char *name, void *opaque,
-                                           Error **errp)
+static void compare_get_expired_scan_cycle(ObjectProperty *oprop, Object *obj,
+                                           Visitor *v, Error **errp)
 {
     CompareState *s = COLO_COMPARE(obj);
     uint32_t value = s->expired_scan_cycle;
 
-    visit_type_uint32(v, name, &value, errp);
+    visit_type_uint32(v, oprop->name, &value, errp);
 }
 
-static void compare_set_expired_scan_cycle(Object *obj, Visitor *v,
-                                           const char *name, void *opaque,
-                                           Error **errp)
+static void compare_set_expired_scan_cycle(ObjectProperty *oprop, Object *obj,
+                                           Visitor *v, Error **errp)
 {
     CompareState *s = COLO_COMPARE(obj);
     uint32_t value;
 
-    if (!visit_type_uint32(v, name, &value, errp)) {
+    if (!visit_type_uint32(v, oprop->name, &value, errp)) {
         return;
     }
     if (!value) {
         error_setg(errp, "Property '%s.%s' requires a positive value",
-                   object_get_typename(obj), name);
+                   object_get_typename(obj), oprop->name);
         return;
     }
     s->expired_scan_cycle = value;
 }
 
-static void get_max_queue_size(Object *obj, Visitor *v,
-                               const char *name, void *opaque,
-                               Error **errp)
+static void get_max_queue_size(ObjectProperty *oprop, Object *obj,
+                               Visitor *v, Error **errp)
 {
     uint32_t value = max_queue_size;
 
-    visit_type_uint32(v, name, &value, errp);
+    visit_type_uint32(v, oprop->name, &value, errp);
 }
 
-static void set_max_queue_size(Object *obj, Visitor *v,
-                               const char *name, void *opaque,
-                               Error **errp)
+static void set_max_queue_size(ObjectProperty *oprop, Object *obj,
+                               Visitor *v, Error **errp)
 {
     Error *local_err = NULL;
     uint64_t value;
 
-    visit_type_uint64(v, name, &value, &local_err);
+    visit_type_uint64(v, oprop->name, &value, &local_err);
     if (local_err) {
         goto out;
     }
     if (!value) {
         error_setg(&local_err, "Property '%s.%s' requires a positive value",
-                   object_get_typename(obj), name);
+                   object_get_typename(obj), oprop->name);
         goto out;
     }
     max_queue_size = value;

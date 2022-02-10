@@ -39,26 +39,26 @@ static EventLoopBaseParamInfo thread_pool_max_info = {
     "thread-pool-max", offsetof(EventLoopBase, thread_pool_max),
 };
 
-static void event_loop_base_get_param(Object *obj, Visitor *v,
-        const char *name, void *opaque, Error **errp)
+static void event_loop_base_get_param(ObjectProperty *oprop, Object *obj,
+                                      Visitor *v, Error **errp)
 {
     EventLoopBase *event_loop_base = EVENT_LOOP_BASE(obj);
-    EventLoopBaseParamInfo *info = opaque;
+    EventLoopBaseParamInfo *info = oprop->opaque;
     int64_t *field = (void *)event_loop_base + info->offset;
 
-    visit_type_int64(v, name, field, errp);
+    visit_type_int64(v, oprop->name, field, errp);
 }
 
-static void event_loop_base_set_param(Object *obj, Visitor *v,
-        const char *name, void *opaque, Error **errp)
+static void event_loop_base_set_param(ObjectProperty *oprop, Object *obj,
+                                      Visitor *v, Error **errp)
 {
     EventLoopBaseClass *bc = EVENT_LOOP_BASE_GET_CLASS(obj);
     EventLoopBase *base = EVENT_LOOP_BASE(obj);
-    EventLoopBaseParamInfo *info = opaque;
+    EventLoopBaseParamInfo *info = oprop->opaque;
     int64_t *field = (void *)base + info->offset;
     int64_t value;
 
-    if (!visit_type_int64(v, name, &value, errp)) {
+    if (!visit_type_int64(v, oprop->name, &value, errp)) {
         return;
     }
 

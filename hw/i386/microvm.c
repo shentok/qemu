@@ -487,55 +487,55 @@ static void microvm_machine_reset(MachineState *machine, ShutdownCause reason)
     }
 }
 
-static void microvm_machine_get_rtc(Object *obj, Visitor *v, const char *name,
-                                    void *opaque, Error **errp)
+static void microvm_machine_get_rtc(ObjectProperty *oprop, Object *obj,
+                                    Visitor *v, Error **errp)
 {
     MicrovmMachineState *mms = MICROVM_MACHINE(obj);
     OnOffAuto rtc = mms->rtc;
 
-    visit_type_OnOffAuto(v, name, &rtc, errp);
+    visit_type_OnOffAuto(v, oprop->name, &rtc, errp);
 }
 
-static void microvm_machine_set_rtc(Object *obj, Visitor *v, const char *name,
-                                    void *opaque, Error **errp)
+static void microvm_machine_set_rtc(ObjectProperty *oprop, Object *obj,
+                                    Visitor *v, Error **errp)
 {
     MicrovmMachineState *mms = MICROVM_MACHINE(obj);
 
-    visit_type_OnOffAuto(v, name, &mms->rtc, errp);
+    visit_type_OnOffAuto(v, oprop->name, &mms->rtc, errp);
 }
 
-static void microvm_machine_get_pcie(Object *obj, Visitor *v, const char *name,
-                                     void *opaque, Error **errp)
+static void microvm_machine_get_pcie(ObjectProperty *oprop, Object *obj,
+                                     Visitor *v, Error **errp)
 {
     MicrovmMachineState *mms = MICROVM_MACHINE(obj);
     OnOffAuto pcie = mms->pcie;
 
-    visit_type_OnOffAuto(v, name, &pcie, errp);
+    visit_type_OnOffAuto(v, oprop->name, &pcie, errp);
 }
 
-static void microvm_machine_set_pcie(Object *obj, Visitor *v, const char *name,
-                                     void *opaque, Error **errp)
+static void microvm_machine_set_pcie(ObjectProperty *oprop, Object *obj,
+                                     Visitor *v, Error **errp)
 {
     MicrovmMachineState *mms = MICROVM_MACHINE(obj);
 
-    visit_type_OnOffAuto(v, name, &mms->pcie, errp);
+    visit_type_OnOffAuto(v, oprop->name, &mms->pcie, errp);
 }
 
-static void microvm_machine_get_ioapic2(Object *obj, Visitor *v, const char *name,
-                                        void *opaque, Error **errp)
+static void microvm_machine_get_ioapic2(ObjectProperty *oprop, Object *obj,
+                                        Visitor *v, Error **errp)
 {
     MicrovmMachineState *mms = MICROVM_MACHINE(obj);
     OnOffAuto ioapic2 = mms->ioapic2;
 
-    visit_type_OnOffAuto(v, name, &ioapic2, errp);
+    visit_type_OnOffAuto(v, oprop->name, &ioapic2, errp);
 }
 
-static void microvm_machine_set_ioapic2(Object *obj, Visitor *v, const char *name,
-                                        void *opaque, Error **errp)
+static void microvm_machine_set_ioapic2(ObjectProperty *oprop, Object *obj,
+                                        Visitor *v, Error **errp)
 {
     MicrovmMachineState *mms = MICROVM_MACHINE(obj);
 
-    visit_type_OnOffAuto(v, name, &mms->ioapic2, errp);
+    visit_type_OnOffAuto(v, oprop->name, &mms->ioapic2, errp);
 }
 
 static bool microvm_machine_get_isa_serial(Object *obj, Error **errp)

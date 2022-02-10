@@ -95,31 +95,29 @@ static void file_memory_backend_set_discard_data(Object *o, bool value,
     MEMORY_BACKEND_FILE(o)->discard_data = value;
 }
 
-static void file_memory_backend_get_align(Object *o, Visitor *v,
-                                          const char *name, void *opaque,
-                                          Error **errp)
+static void file_memory_backend_get_align(ObjectProperty *prop, Object *o,
+                                          Visitor *v, Error **errp)
 {
     HostMemoryBackendFile *fb = MEMORY_BACKEND_FILE(o);
     uint64_t val = fb->align;
 
-    visit_type_size(v, name, &val, errp);
+    visit_type_size(v, prop->name, &val, errp);
 }
 
-static void file_memory_backend_set_align(Object *o, Visitor *v,
-                                          const char *name, void *opaque,
-                                          Error **errp)
+static void file_memory_backend_set_align(ObjectProperty *prop, Object *o,
+                                          Visitor *v, Error **errp)
 {
     HostMemoryBackend *backend = MEMORY_BACKEND(o);
     HostMemoryBackendFile *fb = MEMORY_BACKEND_FILE(o);
     uint64_t val;
 
     if (host_memory_backend_mr_inited(backend)) {
-        error_setg(errp, "cannot change property '%s' of %s", name,
+        error_setg(errp, "cannot change property '%s' of %s", prop->name,
                    object_get_typename(o));
         return;
     }
 
-    if (!visit_type_size(v, name, &val, errp)) {
+    if (!visit_type_size(v, prop->name, &val, errp)) {
         return;
     }
     fb->align = val;

@@ -805,13 +805,13 @@ static void throttle_group_obj_finalize(Object *obj)
     g_free(tg->name);
 }
 
-static void throttle_group_set(Object *obj, Visitor *v, const char * name,
-                               void *opaque, Error **errp)
+static void throttle_group_set(ObjectProperty *oprop, Object *obj,
+                               Visitor *v, Error **errp)
 
 {
     ThrottleGroup *tg = THROTTLE_GROUP(obj);
     ThrottleConfig *cfg;
-    ThrottleParamInfo *info = opaque;
+    ThrottleParamInfo *info = oprop->opaque;
     int64_t value;
 
     /* If we have finished initialization, don't accept individual property
@@ -823,7 +823,7 @@ static void throttle_group_set(Object *obj, Visitor *v, const char * name,
         return;
     }
 
-    if (!visit_type_int64(v, name, &value, errp)) {
+    if (!visit_type_int64(v, oprop->name, &value, errp)) {
         return;
     }
     if (value < 0) {
@@ -853,12 +853,12 @@ static void throttle_group_set(Object *obj, Visitor *v, const char * name,
     }
 }
 
-static void throttle_group_get(Object *obj, Visitor *v, const char *name,
-                               void *opaque, Error **errp)
+static void throttle_group_get(ObjectProperty *oprop, Object *obj,
+                               Visitor *v, Error **errp)
 {
     ThrottleGroup *tg = THROTTLE_GROUP(obj);
     ThrottleConfig cfg;
-    ThrottleParamInfo *info = opaque;
+    ThrottleParamInfo *info = oprop->opaque;
     int64_t value;
 
     throttle_get_config(&tg->ts, &cfg);
@@ -877,12 +877,11 @@ static void throttle_group_get(Object *obj, Visitor *v, const char *name,
         break;
     }
 
-    visit_type_int64(v, name, &value, errp);
+    visit_type_int64(v, oprop->name, &value, errp);
 }
 
-static void throttle_group_set_limits(Object *obj, Visitor *v,
-                                      const char *name, void *opaque,
-                                      Error **errp)
+static void throttle_group_set_limits(ObjectProperty *oprop, Object *obj,
+                                      Visitor *v, Error **errp)
 
 {
     ThrottleGroup *tg = THROTTLE_GROUP(obj);
@@ -890,7 +889,7 @@ static void throttle_group_set_limits(Object *obj, Visitor *v,
     ThrottleLimits *argp;
     Error *local_err = NULL;
 
-    if (!visit_type_ThrottleLimits(v, name, &argp, errp)) {
+    if (!visit_type_ThrottleLimits(v, oprop->name, &argp, errp)) {
         return;
     }
     qemu_mutex_lock(&tg->lock);
@@ -908,9 +907,8 @@ unlock:
     return;
 }
 
-static void throttle_group_get_limits(Object *obj, Visitor *v,
-                                      const char *name, void *opaque,
-                                      Error **errp)
+static void throttle_group_get_limits(ObjectProperty *oprop, Object *obj,
+                                      Visitor *v, Error **errp)
 {
     ThrottleGroup *tg = THROTTLE_GROUP(obj);
     ThrottleConfig cfg;
@@ -923,7 +921,7 @@ static void throttle_group_get_limits(Object *obj, Visitor *v,
 
     throttle_config_to_limits(&cfg, argp);
 
-    visit_type_ThrottleLimits(v, name, &argp, errp);
+    visit_type_ThrottleLimits(v, oprop->name, &argp, errp);
 }
 
 static bool throttle_group_can_be_deleted(UserCreatable *uc)

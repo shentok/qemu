@@ -1613,9 +1613,8 @@ static HotplugHandler *pc_get_hotplug_handler(MachineState *machine,
 }
 
 static void
-pc_machine_get_device_memory_region_size(Object *obj, Visitor *v,
-                                         const char *name, void *opaque,
-                                         Error **errp)
+pc_machine_get_device_memory_region_size(ObjectProperty *oprop, Object *obj,
+                                         Visitor *v, Error **errp)
 {
     MachineState *ms = MACHINE(obj);
     int64_t value = 0;
@@ -1624,24 +1623,24 @@ pc_machine_get_device_memory_region_size(Object *obj, Visitor *v,
         value = memory_region_size(&ms->device_memory->mr);
     }
 
-    visit_type_int(v, name, &value, errp);
+    visit_type_int(v, oprop->name, &value, errp);
 }
 
-static void pc_machine_get_vmport(Object *obj, Visitor *v, const char *name,
-                                  void *opaque, Error **errp)
+static void pc_machine_get_vmport(ObjectProperty *oprop, Object *obj,
+                                  Visitor *v, Error **errp)
 {
     PCMachineState *pcms = PC_MACHINE(obj);
     OnOffAuto vmport = pcms->vmport;
 
-    visit_type_OnOffAuto(v, name, &vmport, errp);
+    visit_type_OnOffAuto(v, oprop->name, &vmport, errp);
 }
 
-static void pc_machine_set_vmport(Object *obj, Visitor *v, const char *name,
-                                  void *opaque, Error **errp)
+static void pc_machine_set_vmport(ObjectProperty *oprop, Object *obj,
+                                  Visitor *v, Error **errp)
 {
     PCMachineState *pcms = PC_MACHINE(obj);
 
-    visit_type_OnOffAuto(v, name, &pcms->vmport, errp);
+    visit_type_OnOffAuto(v, oprop->name, &pcms->vmport, errp);
 }
 
 static bool pc_machine_get_smbus(Object *obj, Error **errp)
@@ -1715,41 +1714,39 @@ static void pc_machine_set_default_bus_bypass_iommu(Object *obj, bool value,
     pcms->default_bus_bypass_iommu = value;
 }
 
-static void pc_machine_get_smbios_ep(Object *obj, Visitor *v, const char *name,
-                                     void *opaque, Error **errp)
+static void pc_machine_get_smbios_ep(ObjectProperty *oprop, Object *obj,
+                                     Visitor *v, Error **errp)
 {
     PCMachineState *pcms = PC_MACHINE(obj);
     SmbiosEntryPointType smbios_entry_point_type = pcms->smbios_entry_point_type;
 
-    visit_type_SmbiosEntryPointType(v, name, &smbios_entry_point_type, errp);
+    visit_type_SmbiosEntryPointType(v, oprop->name, &smbios_entry_point_type, errp);
 }
 
-static void pc_machine_set_smbios_ep(Object *obj, Visitor *v, const char *name,
-                                     void *opaque, Error **errp)
+static void pc_machine_set_smbios_ep(ObjectProperty *oprop, Object *obj,
+                                     Visitor *v, Error **errp)
 {
     PCMachineState *pcms = PC_MACHINE(obj);
 
-    visit_type_SmbiosEntryPointType(v, name, &pcms->smbios_entry_point_type, errp);
+    visit_type_SmbiosEntryPointType(v, oprop->name, &pcms->smbios_entry_point_type, errp);
 }
 
-static void pc_machine_get_max_ram_below_4g(Object *obj, Visitor *v,
-                                            const char *name, void *opaque,
-                                            Error **errp)
+static void pc_machine_get_max_ram_below_4g(ObjectProperty *oprop, Object *obj,
+                                            Visitor *v, Error **errp)
 {
     PCMachineState *pcms = PC_MACHINE(obj);
     uint64_t value = pcms->max_ram_below_4g;
 
-    visit_type_size(v, name, &value, errp);
+    visit_type_size(v, oprop->name, &value, errp);
 }
 
-static void pc_machine_set_max_ram_below_4g(Object *obj, Visitor *v,
-                                            const char *name, void *opaque,
-                                            Error **errp)
+static void pc_machine_set_max_ram_below_4g(ObjectProperty *oprop, Object *obj,
+                                            Visitor *v, Error **errp)
 {
     PCMachineState *pcms = PC_MACHINE(obj);
     uint64_t value;
 
-    if (!visit_type_size(v, name, &value, errp)) {
+    if (!visit_type_size(v, oprop->name, &value, errp)) {
         return;
     }
     if (value > 4 * GiB) {
@@ -1767,25 +1764,23 @@ static void pc_machine_set_max_ram_below_4g(Object *obj, Visitor *v,
     pcms->max_ram_below_4g = value;
 }
 
-static void pc_machine_get_max_fw_size(Object *obj, Visitor *v,
-                                       const char *name, void *opaque,
-                                       Error **errp)
+static void pc_machine_get_max_fw_size(ObjectProperty *oprop, Object *obj,
+                                       Visitor *v, Error **errp)
 {
     PCMachineState *pcms = PC_MACHINE(obj);
     uint64_t value = pcms->max_fw_size;
 
-    visit_type_size(v, name, &value, errp);
+    visit_type_size(v, oprop->name, &value, errp);
 }
 
-static void pc_machine_set_max_fw_size(Object *obj, Visitor *v,
-                                       const char *name, void *opaque,
-                                       Error **errp)
+static void pc_machine_set_max_fw_size(ObjectProperty *oprop, Object *obj,
+                                       Visitor *v, Error **errp)
 {
     PCMachineState *pcms = PC_MACHINE(obj);
     Error *error = NULL;
     uint64_t value;
 
-    visit_type_size(v, name, &value, &error);
+    visit_type_size(v, oprop->name, &value, &error);
     if (error) {
         error_propagate(errp, error);
         return;

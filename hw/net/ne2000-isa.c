@@ -95,26 +95,24 @@ static void isa_ne2000_class_initfn(ObjectClass *klass, void *data)
     set_bit(DEVICE_CATEGORY_NETWORK, dc->categories);
 }
 
-static void isa_ne2000_get_bootindex(Object *obj, Visitor *v,
-                                     const char *name, void *opaque,
-                                     Error **errp)
+static void isa_ne2000_get_bootindex(ObjectProperty *oprop, Object *obj,
+                                     Visitor *v, Error **errp)
 {
     ISANE2000State *isa = ISA_NE2000(obj);
     NE2000State *s = &isa->ne2000;
 
-    visit_type_int32(v, name, &s->c.bootindex, errp);
+    visit_type_int32(v, oprop->name, &s->c.bootindex, errp);
 }
 
-static void isa_ne2000_set_bootindex(Object *obj, Visitor *v,
-                                     const char *name, void *opaque,
-                                     Error **errp)
+static void isa_ne2000_set_bootindex(ObjectProperty *oprop, Object *obj,
+                                     Visitor *v, Error **errp)
 {
     ISANE2000State *isa = ISA_NE2000(obj);
     NE2000State *s = &isa->ne2000;
     int32_t boot_index;
     Error *local_err = NULL;
 
-    if (!visit_type_int32(v, name, &boot_index, errp)) {
+    if (!visit_type_int32(v, oprop->name, &boot_index, errp)) {
         return;
     }
     /* check whether bootindex is present in fw_boot_order list  */

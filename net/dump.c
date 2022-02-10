@@ -177,27 +177,27 @@ static void filter_dump_setup(NetFilterState *nf, Error **errp)
     net_dump_state_init(&nfds->ds, nfds->filename, nfds->maxlen, errp);
 }
 
-static void filter_dump_get_maxlen(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+static void filter_dump_get_maxlen(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
     NetFilterDumpState *nfds = FILTER_DUMP(obj);
     uint32_t value = nfds->maxlen;
 
-    visit_type_uint32(v, name, &value, errp);
+    visit_type_uint32(v, oprop->name, &value, errp);
 }
 
-static void filter_dump_set_maxlen(Object *obj, Visitor *v, const char *name,
-                                   void *opaque, Error **errp)
+static void filter_dump_set_maxlen(ObjectProperty *oprop, Object *obj,
+                                   Visitor *v, Error **errp)
 {
     NetFilterDumpState *nfds = FILTER_DUMP(obj);
     uint32_t value;
 
-    if (!visit_type_uint32(v, name, &value, errp)) {
+    if (!visit_type_uint32(v, oprop->name, &value, errp)) {
         return;
     }
     if (value == 0) {
         error_setg(errp, "Property '%s.%s' doesn't take value '%u'",
-                   object_get_typename(obj), name, value);
+                   object_get_typename(obj), oprop->name, value);
         return;
     }
     nfds->maxlen = value;

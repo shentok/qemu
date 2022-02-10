@@ -87,9 +87,8 @@ static GuestPanicInformation *s390_cpu_get_crash_info(CPUState *cs)
     return panic_info;
 }
 
-static void s390_cpu_get_crash_info_qom(Object *obj, Visitor *v,
-                                        const char *name, void *opaque,
-                                        Error **errp)
+static void s390_cpu_get_crash_info_qom(ObjectProperty *oprop, Object *obj,
+                                        Visitor *v, Error **errp)
 {
     CPUState *cs = CPU(obj);
     GuestPanicInformation *panic_info;

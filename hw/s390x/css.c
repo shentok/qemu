@@ -2455,10 +2455,10 @@ void css_reset(void)
     channel_subsys.max_ssid = 0;
 }
 
-static void get_css_devid(Object *obj, Visitor *v, const char *name,
-                          void *opaque, Error **errp)
+static void get_css_devid(ObjectProperty *oprop, Object *obj, Visitor *v,
+                          Error **errp)
 {
-    Property *prop = opaque;
+    Property *prop = oprop->opaque;
     CssDevId *dev_id = object_field_prop_ptr(obj, prop);
     char buffer[] = "xx.x.xxxx";
     char *p = buffer;
@@ -2478,28 +2478,28 @@ static void get_css_devid(Object *obj, Visitor *v, const char *name,
         snprintf(buffer, sizeof(buffer), "<unset>");
     }
 
-    visit_type_str(v, name, &p, errp);
+    visit_type_str(v, oprop->name, &p, errp);
 }
 
 /*
  * parse <cssid>.<ssid>.<devid> and assert valid range for cssid/ssid
  */
-static void set_css_devid(Object *obj, Visitor *v, const char *name,
-                          void *opaque, Error **errp)
+static void set_css_devid(ObjectProperty *oprop, Object *obj, Visitor *v,
+                          Error **errp)
 {
-    Property *prop = opaque;
+    Property *prop = oprop->opaque;
     CssDevId *dev_id = object_field_prop_ptr(obj, prop);
     char *str;
     int num, n1, n2;
     unsigned int cssid, ssid, devid;
 
-    if (!visit_type_str(v, name, &str, errp)) {
+    if (!visit_type_str(v, oprop->name, &str, errp)) {
         return;
     }
 
     num = sscanf(str, "%2x.%1x%n.%4x%n", &cssid, &ssid, &n1, &devid, &n2);
     if (num != 3 || (n2 - n1) != 5 || strlen(str) != n2) {
-        error_set_from_qdev_prop_error(errp, EINVAL, obj, name, str);
+        error_set_from_qdev_prop_error(errp, EINVAL, obj, oprop->name, str);
         goto out;
     }
     if ((cssid > MAX_CSSID) || (ssid > MAX_SSID)) {
