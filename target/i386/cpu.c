@@ -6678,7 +6678,7 @@ static void x86_cpu_register_bit_prop(X86CPUClass *xcc,
 
     op = object_class_property_find(oc, prop_name);
     if (op) {
-        fp = op->opaque;
+        fp =  op->opaque;
         assert(fp->w == w);
         fp->mask |= mask;
     } else {

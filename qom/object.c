@@ -624,7 +624,7 @@ static void object_property_del_all(Object *obj)
         while ((prop = object_property_iter_next(&iter)) != NULL) {
             if (g_hash_table_add(done, prop)) {
                 if (prop->release) {
-                    prop->release(obj, prop->name, prop->opaque);
+                    prop->release(obj, prop->name, prop->opaque );
                     released = true;
                     break;
                 }
@@ -644,9 +644,9 @@ static void object_property_del_child(Object *obj, Object *child)
     g_hash_table_iter_init(&iter, obj->properties);
     while (g_hash_table_iter_next(&iter, &key, &value)) {
         prop = value;
-        if (object_property_is_child(prop) && prop->opaque == child) {
+        if (object_property_is_child(prop) && prop->opaque  == child) {
             if (prop->release) {
-                prop->release(obj, prop->name, prop->opaque);
+                prop->release(obj, prop->name, prop->opaque );
                 prop->release = NULL;
             }
             break;
@@ -655,7 +655,7 @@ static void object_property_del_child(Object *obj, Object *child)
     g_hash_table_iter_init(&iter, obj->properties);
     while (g_hash_table_iter_next(&iter, &key, &value)) {
         prop = value;
-        if (object_property_is_child(prop) && prop->opaque == child) {
+        if (object_property_is_child(prop) && prop->opaque  == child) {
             g_hash_table_iter_remove(&iter);
             break;
         }
@@ -1105,7 +1105,7 @@ static int do_object_child_foreach(Object *obj,
     g_hash_table_iter_init(&iter, obj->properties);
     while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&prop)) {
         if (object_property_is_child(prop)) {
-            Object *child = prop->opaque;
+            Object *child = prop->opaque ;
 
             ret = fn(child, opaque);
             if (ret != 0) {
@@ -1198,7 +1198,7 @@ object_property_try_add(Object *obj, const char *name, const char *type,
                         ObjectPropertyAccessor *get,
                         ObjectPropertyAccessor *set,
                         ObjectPropertyRelease *release,
-                        void *opaque, Error **errp)
+                        void *opaque , Error **errp)
 {
     ObjectProperty *prop;
     size_t name_len = strlen(name);
@@ -1213,7 +1213,7 @@ object_property_try_add(Object *obj, const char *name, const char *type,
             char *full_name = g_strdup_printf("%s[%d]", name_no_array, i);
 
             ret = object_property_try_add(obj, full_name, type, get, set,
-                                          release, opaque, NULL);
+                                          release, opaque , NULL);
             g_free(full_name);
             if (ret) {
                 break;
@@ -1238,7 +1238,7 @@ object_property_try_add(Object *obj, const char *name, const char *type,
     prop->get = get;
     prop->set = set;
     prop->release = release;
-    prop->opaque = opaque;
+    prop->opaque  = opaque ;
 
     g_hash_table_insert(obj->properties, prop->name, prop);
     return prop;
@@ -1262,7 +1262,7 @@ object_class_property_add(ObjectClass *klass,
                           ObjectPropertyAccessor *get,
                           ObjectPropertyAccessor *set,
                           ObjectPropertyRelease *release,
-                          void *opaque)
+                          void *opaque )
 {
     ObjectProperty *prop;
 
@@ -1276,7 +1276,7 @@ object_class_property_add(ObjectClass *klass,
     prop->get = get;
     prop->set = set;
     prop->release = release;
-    prop->opaque = opaque;
+    prop->opaque  = opaque ;
 
     g_hash_table_insert(klass->properties, prop->name, prop);
 
@@ -1367,7 +1367,7 @@ void object_property_del(Object *obj, const char *name)
     ObjectProperty *prop = g_hash_table_lookup(obj->properties, name);
 
     if (prop->release) {
-        prop->release(obj, name, prop->opaque);
+        prop->release(obj, name, prop->opaque );
     }
     g_hash_table_remove(obj->properties, name);
 }
@@ -1386,7 +1386,7 @@ bool object_property_get(Object *obj, const char *name, Visitor *v,
         error_setg(errp, QERR_PERMISSION_DENIED);
         return false;
     }
-    prop->get(obj, v, name, prop->opaque, &err);
+    prop->get(obj, v, name, prop->opaque , &err);
     error_propagate(errp, err);
     return !err;
 }
@@ -1405,7 +1405,7 @@ bool object_property_set(Object *obj, const char *name, Visitor *v,
         error_setg(errp, QERR_PERMISSION_DENIED);
         return false;
     }
-    prop->set(obj, v, name, prop->opaque, errp);
+    prop->set(obj, v, name, prop->opaque , errp);
     return !*errp;
 }
 
@@ -1538,7 +1538,7 @@ static void object_property_init_defval(Object *obj, ObjectProperty *prop)
     Visitor *v = qobject_input_visitor_new(prop->defval2);
 
     assert(prop->set != NULL);
-    prop->set(obj, v, prop->name, prop->opaque, &error_abort);
+    prop->set(obj, v, prop->name, prop->opaque , &error_abort);
 
     visit_free(v);
 }
@@ -1627,7 +1627,7 @@ int object_property_get_enum(Object *obj, const char *name,
         return -1;
     }
 
-    enumprop = prop->opaque;
+    enumprop = prop->opaque ;
 
     str = object_property_get_str(obj, name, errp);
     if (!str) {
@@ -2007,7 +2007,7 @@ const char *object_get_canonical_path_component(const Object *obj)
             continue;
         }
 
-        if (prop->opaque == obj) {
+        if (prop->opaque  == obj) {
             return prop->name;
         }
     }
@@ -2054,7 +2054,7 @@ Object *object_resolve_path_component(Object *parent, const char *part)
     }
 
     if (prop->resolve) {
-        return prop->resolve(parent, prop->opaque, part);
+        return prop->resolve(parent, prop->opaque , part);
     } else {
         return NULL;
     }
@@ -2101,7 +2101,7 @@ static Object *object_resolve_partial_path(Object *parent,
             continue;
         }
 
-        found = object_resolve_partial_path(prop->opaque, parts,
+        found = object_resolve_partial_path(prop->opaque , parts,
                                             typename, ambiguous);
         if (found) {
             if (obj) {
