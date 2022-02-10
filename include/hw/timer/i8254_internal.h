@@ -54,6 +54,7 @@ struct PITCommonState {
     ISADevice dev;
     MemoryRegion ioports;
     uint32_t iobase;
+    int isairq;
     PITChannelState channels[3];
 };
 

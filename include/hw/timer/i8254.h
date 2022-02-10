@@ -54,6 +54,9 @@ static inline ISADevice *i8254_pit_init(ISABus *bus, int base, int isa_irq,
     d = isa_new(TYPE_I8254);
     dev = DEVICE(d);
     qdev_prop_set_uint32(dev, "iobase", base);
+    if (isa_irq >= 0) {
+        qdev_prop_set_int32(dev, "irq", isa_irq);
+    }
     isa_realize_and_unref(d, bus, &error_fatal);
     qdev_connect_gpio_out(dev, 0,
                           isa_irq >= 0 ? isa_get_irq(d, isa_irq) : alt_irq);

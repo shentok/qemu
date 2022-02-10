@@ -352,6 +352,7 @@ static void pit_realizefn(DeviceState *dev, Error **errp)
 
 static Property pit_properties[] = {
     DEFINE_PROP_UINT32("iobase", PITCommonState, iobase,  -1),
+    DEFINE_PROP_INT32("irq", PITCommonState, isairq, -1),
     DEFINE_PROP_END_OF_LIST(),
 };
 
