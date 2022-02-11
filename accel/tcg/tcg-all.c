@@ -195,6 +195,13 @@ static void tcg_set_tb_size(Object *obj, Visitor *v,
     s->tb_size = value;
 }
 
+static const struct ObjectPropertyClassInfo tcg_tb_size_nfo =
+{
+    .type = "int",
+    .get = tcg_get_tb_size,
+    .set = tcg_set_tb_size
+};
+
 static bool tcg_get_splitwx(Object *obj, Error **errp)
 {
     TCGState *s = TCG_STATE(obj);
@@ -218,9 +225,7 @@ static void tcg_accel_class_init(ObjectClass *oc, void *data)
                                   tcg_get_thread,
                                   tcg_set_thread);
 
-    object_class_property_add(oc, "tb-size", "int",
-        tcg_get_tb_size, tcg_set_tb_size,
-        NULL, NULL);
+    object_class_property_add(oc, "tb-size", &tcg_tb_size_nfo, NULL);
     object_class_property_set_description(oc, "tb-size",
         "TCG translation block cache size");
 

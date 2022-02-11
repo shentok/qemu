@@ -1258,10 +1258,7 @@ object_property_add(Object *obj, const char *name, const char *type,
 ObjectProperty *
 object_class_property_add(ObjectClass *klass,
                           const char *name,
-                          const char *type,
-                          ObjectPropertyAccessor *get,
-                          ObjectPropertyAccessor *set,
-                          ObjectPropertyRelease *release,
+                          const struct ObjectPropertyClassInfo *info,
                           void *opaque )
 {
     ObjectProperty *prop;
@@ -1271,11 +1268,11 @@ object_class_property_add(ObjectClass *klass,
     prop = g_malloc0(sizeof(*prop));
 
     prop->name = g_strdup(name);
-    prop->type = g_strdup(type);
+    prop->type = g_strdup(info->type);
 
-    prop->get = get;
-    prop->set = set;
-    prop->release = release;
+    prop->get = info->get;
+    prop->set = info->set;
+    prop->release = info->release;
     prop->opaque  = opaque ;
 
     g_hash_table_insert(klass->properties, prop->name, prop);

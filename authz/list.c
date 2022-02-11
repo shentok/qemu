@@ -105,6 +105,12 @@ qauthz_list_prop_set_rules(Object *obj, Visitor *v, const char *name,
     qapi_free_QAuthZListRuleList(oldrules);
 }
 
+static const struct ObjectPropertyClassInfo qauthz_list_property_info =
+{
+    .type = "QAuthZListRule",
+    .get = qauthz_list_prop_get_rules,
+    .set = qauthz_list_prop_set_rules
+};
 
 static void
 qauthz_list_finalize(Object *obj)
@@ -126,10 +132,7 @@ qauthz_list_class_init(ObjectClass *oc, void *data)
                                    qauthz_list_prop_get_policy,
                                    qauthz_list_prop_set_policy);
 
-    object_class_property_add(oc, "rules", "QAuthZListRule",
-                              qauthz_list_prop_get_rules,
-                              qauthz_list_prop_set_rules,
-                              NULL, NULL);
+    object_class_property_add(oc, "rules", &qauthz_list_property_info, NULL);
 
     authz->is_allowed = qauthz_list_is_allowed;
 }

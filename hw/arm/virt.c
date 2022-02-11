@@ -2430,6 +2430,13 @@ static void virt_set_acpi(Object *obj, Visitor *v, const char *name,
     visit_type_OnOffAuto(v, name, &vms->acpi, errp);
 }
 
+static const struct ObjectPropertyClassInfo onOffAutoInfo =
+{
+    .type = "OnOffAuto",
+    .get = virt_get_acpi,
+    .set = virt_set_acpi
+};
+
 static bool virt_get_ras(Object *obj, Error **errp)
 {
     VirtMachineState *vms = VIRT_MACHINE(obj);
@@ -2928,9 +2935,7 @@ static void virt_machine_class_init(ObjectClass *oc, void *data)
     mc->auto_enable_numa_with_memdev = true;
     mc->default_ram_id = "mach-virt.ram";
 
-    object_class_property_add(oc, "acpi", "OnOffAuto",
-        virt_get_acpi, virt_set_acpi,
-        NULL, NULL);
+    object_class_property_add(oc, "acpi", &onOffAutoInfo, NULL);
     object_class_property_set_description(oc, "acpi",
         "Enable ACPI");
     object_class_property_add_bool(oc, "secure", virt_get_secure,

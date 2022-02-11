@@ -86,6 +86,16 @@ typedef void (ObjectPropertyRelease)(Object *obj,
  */
 typedef void (ObjectPropertyInit)(Object *obj, ObjectProperty *prop);
 
+struct ObjectPropertyClassInfo
+{
+    const char *type;
+    ObjectPropertyAccessor *get;
+    ObjectPropertyAccessor *set;
+    ObjectPropertyResolve *resolve;
+    ObjectPropertyRelease *release;
+    ObjectPropertyInit *init;
+};
+
 struct ObjectProperty
 {
     char *name;
@@ -1070,10 +1080,7 @@ ObjectProperty *object_property_add(Object *obj, const char *name,
 void object_property_del(Object *obj, const char *name);
 
 ObjectProperty *object_class_property_add(ObjectClass *klass, const char *name,
-                                          const char *type,
-                                          ObjectPropertyAccessor *get,
-                                          ObjectPropertyAccessor *set,
-                                          ObjectPropertyRelease *release,
+                                          const struct ObjectPropertyClassInfo *info,
                                           void *opaque);
 
 /**
