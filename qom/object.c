@@ -273,9 +273,9 @@ static void object_property_free(gpointer data)
 {
     ObjectProperty *prop = data;
 
-    if (prop->defval) {
-        qobject_unref(prop->defval);
-        prop->defval = NULL;
+    if (prop->defval2) {
+        qobject_unref(prop->defval2);
+        prop->defval2 = NULL;
     }
     g_free(prop->name);
     g_free(prop->type);
@@ -1535,7 +1535,7 @@ int64_t object_property_get_int(Object *obj, const char *name,
 
 static void object_property_init_defval(Object *obj, ObjectProperty *prop)
 {
-    Visitor *v = qobject_input_visitor_new(prop->defval);
+    Visitor *v = qobject_input_visitor_new(prop->defval2);
 
     assert(prop->set != NULL);
     prop->set(obj, v, prop->name, prop->opaque, &error_abort);
@@ -1545,10 +1545,10 @@ static void object_property_init_defval(Object *obj, ObjectProperty *prop)
 
 static void object_property_set_default(ObjectProperty *prop, QObject *defval)
 {
-    assert(!prop->defval);
+    assert(!prop->defval2);
     assert(!prop->init);
 
-    prop->defval = defval;
+    prop->defval2 = defval;
     prop->init = object_property_init_defval;
 }
 
@@ -2760,8 +2760,8 @@ object_property_add_alias(Object *obj, const char *name,
                              property_release_alias,
                              prop);
     op->resolve = property_resolve_alias;
-    if (target_prop->defval) {
-        op->defval = qobject_ref(target_prop->defval);
+    if (target_prop->defval2) {
+        op->defval2 = qobject_ref(target_prop->defval2);
     }
 
     object_property_set_description(obj, op->name,

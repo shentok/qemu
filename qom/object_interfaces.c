@@ -220,7 +220,7 @@ bool type_print_class_properties(const char *type)
 
         g_ptr_array_add(array,
                         object_property_help(prop->name, prop->type,
-                                             prop->defval, prop->description));
+                                             prop->defval2, prop->description));
     }
     g_ptr_array_sort(array, (GCompareFunc)qemu_pstrcmp0);
     if (array->len > 0) {

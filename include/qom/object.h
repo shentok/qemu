@@ -97,7 +97,7 @@ struct ObjectProperty
     ObjectPropertyRelease *release;
     ObjectPropertyInit *init;
     void *opaque;
-    QObject *defval;
+    QObject *defval2;
 };
 
 /**
