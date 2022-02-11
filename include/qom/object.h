@@ -89,6 +89,7 @@ typedef void (ObjectPropertyInit)(Object *obj, ObjectProperty *prop);
 struct ObjectPropertyClassInfo
 {
     const char *type;
+    const char *description;
     ObjectPropertyAccessor *get;
     ObjectPropertyAccessor *set;
     ObjectPropertyResolve *resolve;
@@ -1907,8 +1908,7 @@ ObjectProperty *object_property_add_const_link(Object *obj, const char *name,
  */
 void object_property_set_description(Object *obj, const char *name,
                                      const char *description);
-void object_class_property_set_description(ObjectClass *klass, const char *name,
-                                           const char *description);
+void object_class_property_set_description(void);
 
 /**
  * object_child_foreach:

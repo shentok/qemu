@@ -1269,6 +1269,7 @@ object_class_property_add(ObjectClass *klass,
 
     prop->name = g_strdup(name);
     prop->type = g_strdup(info->type);
+    prop->description = g_strdup(info->description);
 
     prop->get = info->get;
     prop->set = info->set;
@@ -2772,17 +2773,6 @@ void object_property_set_description(Object *obj, const char *name,
     ObjectProperty *op;
 
     op = object_property_find_err(obj, name, &error_abort);
-    g_free(op->description);
-    op->description = g_strdup(description);
-}
-
-void object_class_property_set_description(ObjectClass *klass,
-                                           const char *name,
-                                           const char *description)
-{
-    ObjectProperty *op;
-
-    op = g_hash_table_lookup(klass->properties, name);
     g_free(op->description);
     op->description = g_strdup(description);
 }
