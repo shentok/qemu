@@ -2303,6 +2303,8 @@ object_class_property_add_str(ObjectClass *klass, const char *name,
 
 typedef struct BoolProperty
 {
+    ObjectProperty prop;
+
     bool (*get)(Object *, Error **);
     void (*set)(Object *, bool, Error **);
 } BoolProperty;
@@ -2341,16 +2343,25 @@ object_property_add_bool(Object *obj, const char *name,
                          bool (*get)(Object *, Error **),
                          void (*set)(Object *, bool, Error **))
 {
-    BoolProperty *prop = g_malloc0(sizeof(*prop));
+    ObjectProperty *prop;
 
-    prop->get = get;
-    prop->set = set;
+    prop = object_property_add_internal(obj, name, "bool",
+                                        sizeof(BoolProperty),
+                                        get ? property_get_bool : NULL,
+                                        set ? property_set_bool : NULL);
 
-    return object_property_add(obj, name, "bool",
-                               get ? property_get_bool : NULL,
-                               set ? property_set_bool : NULL,
-                               property_release_data,
-                               prop);
+    if (prop)
+    {
+        BoolProperty *bprop = (BoolProperty*)prop;
+
+        prop->opaque = bprop;
+        prop->release = NULL;
+
+        bprop->get = get;
+        bprop->set = set;
+    }
+
+    return prop;
 }
 
 ObjectProperty *
@@ -2358,16 +2369,25 @@ object_class_property_add_bool(ObjectClass *klass, const char *name,
                                     bool (*get)(Object *, Error **),
                                     void (*set)(Object *, bool, Error **))
 {
-    BoolProperty *prop = g_malloc0(sizeof(*prop));
+    ObjectProperty *prop;
 
-    prop->get = get;
-    prop->set = set;
+    prop = object_class_property_add_internal(klass, name, "bool",
+                                              sizeof(BoolProperty),
+                                              get ? property_get_bool : NULL,
+                                              set ? property_set_bool : NULL);
 
-    return object_class_property_add(klass, name, "bool",
-                                     get ? property_get_bool : NULL,
-                                     set ? property_set_bool : NULL,
-                                     NULL,
-                                     prop);
+    if (prop)
+    {
+        BoolProperty *bprop = (BoolProperty*)prop;
+
+        prop->opaque = bprop;
+        prop->release = NULL;
+
+        bprop->get = get;
+        bprop->set = set;
+    }
+
+    return prop;
 }
 
 static void property_get_enum(Object *obj, Visitor *v, const char *name,
