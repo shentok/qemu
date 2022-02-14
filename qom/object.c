@@ -2264,12 +2264,6 @@ static void property_set_str(Object *obj, Visitor *v, const char *name,
     g_free(value);
 }
 
-static void property_release_data(Object *obj, const char *name,
-                                  void *opaque)
-{
-    g_free(opaque);
-}
-
 ObjectProperty *
 object_property_add_str(Object *obj, const char *name,
                         char *(*get)(Object *, Error **),
