@@ -2499,6 +2499,8 @@ object_class_property_add_enum(ObjectClass *klass, const char *name,
 }
 
 typedef struct TMProperty {
+    ObjectProperty prop;
+
     void (*get)(Object *, struct tm *, Error **);
 } TMProperty;
 
@@ -2545,27 +2547,48 @@ ObjectProperty *
 object_property_add_tm(Object *obj, const char *name,
                        void (*get)(Object *, struct tm *, Error **))
 {
-    TMProperty *prop = g_malloc0(sizeof(*prop));
+    ObjectProperty *prop;
 
-    prop->get = get;
+    prop = object_property_add_internal(obj, name, "struct tm",
+                                        sizeof(TMProperty),
+                                        get ? property_get_tm : NULL,
+                                        NULL);
 
-    return object_property_add(obj, name, "struct tm",
-                               get ? property_get_tm : NULL, NULL,
-                               property_release_data,
-                               prop);
+    if (prop)
+    {
+        TMProperty *tprop = (TMProperty*)prop;
+
+        prop->opaque = tprop;
+        prop->release = NULL;
+
+        tprop->get = get;
+    }
+
+    return prop;
 }
 
 ObjectProperty *
 object_class_property_add_tm(ObjectClass *klass, const char *name,
                              void (*get)(Object *, struct tm *, Error **))
 {
-    TMProperty *prop = g_malloc0(sizeof(*prop));
+    ObjectProperty *prop;
 
-    prop->get = get;
+    prop = object_class_property_add_internal(klass, name, "struct tm",
+                                              sizeof(TMProperty),
+                                              get ? property_get_tm : NULL,
+                                              NULL);
 
-    return object_class_property_add(klass, name, "struct tm",
-                                     get ? property_get_tm : NULL,
-                                     NULL, NULL, prop);
+    if (prop)
+    {
+        TMProperty *tprop = (TMProperty*)prop;
+
+        prop->opaque = tprop;
+        prop->release = NULL;
+
+        tprop->get = get;
+    }
+
+    return prop;
 }
 
 static char *object_get_type(Object *obj, Error **errp)
