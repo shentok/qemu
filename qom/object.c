@@ -2227,6 +2227,8 @@ Object *object_resolve_path_at(Object *parent, const char *path)
 
 typedef struct StringProperty
 {
+    ObjectProperty prop;
+
     char *(*get)(Object *, Error **);
     void (*set)(Object *, const char *, Error **);
 } StringProperty;
@@ -2273,16 +2275,25 @@ object_property_add_str(Object *obj, const char *name,
                         char *(*get)(Object *, Error **),
                         void (*set)(Object *, const char *, Error **))
 {
-    StringProperty *prop = g_malloc0(sizeof(*prop));
+    ObjectProperty *prop;
 
-    prop->get = get;
-    prop->set = set;
+    prop = object_property_add_internal(obj, name, "string",
+                                        sizeof(StringProperty),
+                                        get ? property_get_str : NULL,
+                                        set ? property_set_str : NULL);
 
-    return object_property_add(obj, name, "string",
-                               get ? property_get_str : NULL,
-                               set ? property_set_str : NULL,
-                               property_release_data,
-                               prop);
+    if (prop)
+    {
+        StringProperty *sprop = (StringProperty*)prop;
+
+        prop->opaque = sprop;
+        prop->release = NULL;
+
+        sprop->get = get;
+        sprop->set = set;
+    }
+
+    return prop;
 }
 
 ObjectProperty *
@@ -2291,16 +2302,25 @@ object_class_property_add_str(ObjectClass *klass, const char *name,
                                    void (*set)(Object *, const char *,
                                                Error **))
 {
-    StringProperty *prop = g_malloc0(sizeof(*prop));
+    ObjectProperty *prop;
 
-    prop->get = get;
-    prop->set = set;
+    prop = object_class_property_add_internal(klass, name, "string",
+                                              sizeof(StringProperty),
+                                              get ? property_get_str : NULL,
+                                              set ? property_set_str : NULL);
 
-    return object_class_property_add(klass, name, "string",
-                                     get ? property_get_str : NULL,
-                                     set ? property_set_str : NULL,
-                                     NULL,
-                                     prop);
+    if (prop)
+    {
+        StringProperty *sprop = (StringProperty*)prop;
+
+        prop->opaque = sprop;
+        prop->release = NULL;
+
+        sprop->get = get;
+        sprop->set = set;
+    }
+
+    return prop;
 }
 
 typedef struct BoolProperty
