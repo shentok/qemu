@@ -1666,6 +1666,8 @@ uint64_t object_property_get_uint(Object *obj, const char *name,
 }
 
 typedef struct EnumProperty {
+    ObjectProperty prop;
+
     const QEnumLookup *lookup;
     int (*get)(Object *, Error **);
     void (*set)(Object *, int, Error **);
@@ -1690,7 +1692,7 @@ int object_property_get_enum(Object *obj, const char *name,
         return -1;
     }
 
-    enumprop = prop->opaque;
+    enumprop = (EnumProperty*)prop;
 
     str = object_property_get_str(obj, name, errp);
     if (!str) {
@@ -2425,17 +2427,26 @@ object_property_add_enum(Object *obj, const char *name,
                          int (*get)(Object *, Error **),
                          void (*set)(Object *, int, Error **))
 {
-    EnumProperty *prop = g_malloc(sizeof(*prop));
+    ObjectProperty *prop;
 
-    prop->lookup = lookup;
-    prop->get = get;
-    prop->set = set;
+    prop = object_property_add_internal(obj, name, typename,
+                                        sizeof(EnumProperty),
+                                        get ? property_get_enum : NULL,
+                                        set ? property_set_enum : NULL);
 
-    return object_property_add(obj, name, typename,
-                               get ? property_get_enum : NULL,
-                               set ? property_set_enum : NULL,
-                               property_release_data,
-                               prop);
+    if (prop)
+    {
+        EnumProperty *eprop = (EnumProperty*)prop;
+
+        prop->opaque = eprop;
+        prop->release = NULL;
+
+        eprop->lookup = lookup;
+        eprop->get = get;
+        eprop->set = set;
+    }
+
+    return prop;
 }
 
 ObjectProperty *
@@ -2445,17 +2456,26 @@ object_class_property_add_enum(ObjectClass *klass, const char *name,
                                     int (*get)(Object *, Error **),
                                     void (*set)(Object *, int, Error **))
 {
-    EnumProperty *prop = g_malloc(sizeof(*prop));
+    ObjectProperty *prop;
 
-    prop->lookup = lookup;
-    prop->get = get;
-    prop->set = set;
+    prop = object_class_property_add_internal(klass, name, typename,
+                                              sizeof(EnumProperty),
+                                              get ? property_get_enum : NULL,
+                                              set ? property_set_enum : NULL);
 
-    return object_class_property_add(klass, name, typename,
-                                     get ? property_get_enum : NULL,
-                                     set ? property_set_enum : NULL,
-                                     NULL,
-                                     prop);
+    if (prop)
+    {
+        EnumProperty *eprop = (EnumProperty*)prop;
+
+        prop->opaque = eprop;
+        prop->release = NULL;
+
+        eprop->lookup = lookup;
+        eprop->get = get;
+        eprop->set = set;
+    }
+
+    return prop;
 }
 
 typedef struct TMProperty {
