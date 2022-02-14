@@ -281,13 +281,12 @@ static void thread_context_class_init(ObjectClass *oc, void *data)
 
     ucc->complete = thread_context_instance_complete;
     object_class_property_add(oc, "thread-id", "int",
-                              thread_context_get_thread_id, NULL, NULL,
-                              NULL);
+                              thread_context_get_thread_id, NULL);
     object_class_property_add(oc, "cpu-affinity", "int",
                               thread_context_get_cpu_affinity,
-                              thread_context_set_cpu_affinity, NULL, NULL);
+                              thread_context_set_cpu_affinity);
     object_class_property_add(oc, "node-affinity", "int", NULL,
-                              thread_context_set_node_affinity, NULL, NULL);
+                              thread_context_set_node_affinity);
 }
 
 static void thread_context_instance_init(Object *obj)

@@ -253,16 +253,16 @@ static void emc141x_initfn(Object *obj)
 {
     object_property_add(obj, "temperature0", "int",
                         emc141x_get_temperature,
-                        emc141x_set_temperature, NULL, NULL);
+                        emc141x_set_temperature);
     object_property_add(obj, "temperature1", "int",
                         emc141x_get_temperature,
-                        emc141x_set_temperature, NULL, NULL);
+                        emc141x_set_temperature);
     object_property_add(obj, "temperature2", "int",
                         emc141x_get_temperature,
-                        emc141x_set_temperature, NULL, NULL);
+                        emc141x_set_temperature);
     object_property_add(obj, "temperature3", "int",
                         emc141x_get_temperature,
-                        emc141x_set_temperature, NULL, NULL);
+                        emc141x_set_temperature);
 }
 
 static void emc141x_class_init(ObjectClass *klass, void *data)

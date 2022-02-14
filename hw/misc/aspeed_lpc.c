@@ -416,29 +416,29 @@ static void aspeed_lpc_realize(DeviceState *dev, Error **errp)
 static void aspeed_lpc_init(Object *obj)
 {
     object_property_add(obj, "idr1", "uint32", aspeed_kcs_get_register_property,
-                        aspeed_kcs_set_register_property, NULL, NULL);
+                        aspeed_kcs_set_register_property);
     object_property_add(obj, "odr1", "uint32", aspeed_kcs_get_register_property,
-                        aspeed_kcs_set_register_property, NULL, NULL);
+                        aspeed_kcs_set_register_property);
     object_property_add(obj, "str1", "uint32", aspeed_kcs_get_register_property,
-                        aspeed_kcs_set_register_property, NULL, NULL);
+                        aspeed_kcs_set_register_property);
     object_property_add(obj, "idr2", "uint32", aspeed_kcs_get_register_property,
-                        aspeed_kcs_set_register_property, NULL, NULL);
+                        aspeed_kcs_set_register_property);
     object_property_add(obj, "odr2", "uint32", aspeed_kcs_get_register_property,
-                        aspeed_kcs_set_register_property, NULL, NULL);
+                        aspeed_kcs_set_register_property);
     object_property_add(obj, "str2", "uint32", aspeed_kcs_get_register_property,
-                        aspeed_kcs_set_register_property, NULL, NULL);
+                        aspeed_kcs_set_register_property);
     object_property_add(obj, "idr3", "uint32", aspeed_kcs_get_register_property,
-                        aspeed_kcs_set_register_property, NULL, NULL);
+                        aspeed_kcs_set_register_property);
     object_property_add(obj, "odr3", "uint32", aspeed_kcs_get_register_property,
-                        aspeed_kcs_set_register_property, NULL, NULL);
+                        aspeed_kcs_set_register_property);
     object_property_add(obj, "str3", "uint32", aspeed_kcs_get_register_property,
-                        aspeed_kcs_set_register_property, NULL, NULL);
+                        aspeed_kcs_set_register_property);
     object_property_add(obj, "idr4", "uint32", aspeed_kcs_get_register_property,
-                        aspeed_kcs_set_register_property, NULL, NULL);
+                        aspeed_kcs_set_register_property);
     object_property_add(obj, "odr4", "uint32", aspeed_kcs_get_register_property,
-                        aspeed_kcs_set_register_property, NULL, NULL);
+                        aspeed_kcs_set_register_property);
     object_property_add(obj, "str4", "uint32", aspeed_kcs_get_register_property,
-                        aspeed_kcs_set_register_property, NULL, NULL);
+                        aspeed_kcs_set_register_property);
 }
 
 static const VMStateDescription vmstate_aspeed_lpc = {

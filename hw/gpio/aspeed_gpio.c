@@ -1057,7 +1057,7 @@ static void aspeed_gpio_init(Object *obj)
             const char *group = &props->group_label[group_idx][0];
             char *name = g_strdup_printf("gpio%s%d", group, pin_idx);
             object_property_add(obj, name, "bool", aspeed_gpio_get_pin,
-                                aspeed_gpio_set_pin, NULL, NULL);
+                                aspeed_gpio_set_pin);
             g_free(name);
         }
     }

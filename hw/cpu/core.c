@@ -84,9 +84,9 @@ static void cpu_core_class_init(ObjectClass *oc, void *data)
 
     set_bit(DEVICE_CATEGORY_CPU, dc->categories);
     object_class_property_add(oc, "core-id", "int", core_prop_get_core_id,
-                              core_prop_set_core_id, NULL, NULL);
+                              core_prop_set_core_id);
     object_class_property_add(oc, "nr-threads", "int", core_prop_get_nr_threads,
-                              core_prop_set_nr_threads, NULL, NULL);
+                              core_prop_set_nr_threads);
 }
 
 static const TypeInfo cpu_core_type_info = {

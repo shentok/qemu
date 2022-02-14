@@ -173,7 +173,7 @@ static void pc_dimm_get_size(ObjectProperty *oprop, Object *obj,
 static void pc_dimm_init(Object *obj)
 {
     object_property_add(obj, PC_DIMM_SIZE_PROP, "uint64", pc_dimm_get_size,
-                        NULL, NULL, NULL);
+                        NULL);
 }
 
 static void pc_dimm_realize(DeviceState *dev, Error **errp)

@@ -138,7 +138,7 @@ static void usb_msd_instance_init(Object *obj)
 {
     object_property_add(obj, "bootindex", "int32",
                         usb_msd_get_bootindex,
-                        usb_msd_set_bootindex, NULL, NULL);
+                        usb_msd_set_bootindex);
     object_property_set_int(obj, "bootindex", -1, NULL);
 }
 

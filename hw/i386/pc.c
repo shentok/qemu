@@ -1925,18 +1925,15 @@ static void pc_machine_class_init(ObjectClass *oc, void *data)
     mc->default_ram_id = "pc.ram";
 
     object_class_property_add(oc, PC_MACHINE_MAX_RAM_BELOW_4G, "size",
-        pc_machine_get_max_ram_below_4g, pc_machine_set_max_ram_below_4g,
-        NULL, NULL);
+        pc_machine_get_max_ram_below_4g, pc_machine_set_max_ram_below_4g);
     object_class_property_set_description(oc, PC_MACHINE_MAX_RAM_BELOW_4G,
         "Maximum ram below the 4G boundary (32bit boundary)");
 
     object_class_property_add(oc, PC_MACHINE_DEVMEM_REGION_SIZE, "int",
-        pc_machine_get_device_memory_region_size, NULL,
-        NULL, NULL);
+        pc_machine_get_device_memory_region_size, NULL);
 
     object_class_property_add(oc, PC_MACHINE_VMPORT, "OnOffAuto",
-        pc_machine_get_vmport, pc_machine_set_vmport,
-        NULL, NULL);
+        pc_machine_get_vmport, pc_machine_set_vmport);
     object_class_property_set_description(oc, PC_MACHINE_VMPORT,
         "Enable vmport (pc & q35)");
 
@@ -1963,14 +1960,12 @@ static void pc_machine_class_init(ObjectClass *oc, void *data)
         pc_machine_set_default_bus_bypass_iommu);
 
     object_class_property_add(oc, PC_MACHINE_MAX_FW_SIZE, "size",
-        pc_machine_get_max_fw_size, pc_machine_set_max_fw_size,
-        NULL, NULL);
+        pc_machine_get_max_fw_size, pc_machine_set_max_fw_size);
     object_class_property_set_description(oc, PC_MACHINE_MAX_FW_SIZE,
         "Maximum combined firmware size");
 
     object_class_property_add(oc, PC_MACHINE_SMBIOS_EP, "str",
-        pc_machine_get_smbios_ep, pc_machine_set_smbios_ep,
-        NULL, NULL);
+        pc_machine_get_smbios_ep, pc_machine_set_smbios_ep);
     object_class_property_set_description(oc, PC_MACHINE_SMBIOS_EP,
         "SMBIOS Entry Point type [32, 64]");
 }

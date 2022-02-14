@@ -1448,14 +1448,12 @@ static void x86_machine_class_init(ObjectClass *oc, void *data)
     nc->nmi_monitor_handler = x86_nmi;
 
     object_class_property_add(oc, X86_MACHINE_SMM, "OnOffAuto",
-        x86_machine_get_smm, x86_machine_set_smm,
-        NULL, NULL);
+        x86_machine_get_smm, x86_machine_set_smm);
     object_class_property_set_description(oc, X86_MACHINE_SMM,
         "Enable SMM");
 
     object_class_property_add(oc, X86_MACHINE_ACPI, "OnOffAuto",
-        x86_machine_get_acpi, x86_machine_set_acpi,
-        NULL, NULL);
+        x86_machine_get_acpi, x86_machine_set_acpi);
     object_class_property_set_description(oc, X86_MACHINE_ACPI,
         "Enable ACPI");
 
@@ -1492,13 +1490,12 @@ static void x86_machine_class_init(ObjectClass *oc, void *data)
 
     object_class_property_add(oc, X86_MACHINE_BUS_LOCK_RATELIMIT, "uint64_t",
                                 x86_machine_get_bus_lock_ratelimit,
-                                x86_machine_set_bus_lock_ratelimit, NULL, NULL);
+                                x86_machine_set_bus_lock_ratelimit);
     object_class_property_set_description(oc, X86_MACHINE_BUS_LOCK_RATELIMIT,
             "Set the ratelimit for the bus locks acquired in VMs");
 
     object_class_property_add(oc, "sgx-epc", "SgxEPC",
-        machine_get_sgx_epc, machine_set_sgx_epc,
-        NULL, NULL);
+        machine_get_sgx_epc, machine_set_sgx_epc);
     object_class_property_set_description(oc, "sgx-epc",
         "SGX EPC device");
 }

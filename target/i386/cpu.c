@@ -7144,13 +7144,13 @@ static void x86_cpu_common_class_init(ObjectClass *oc, void *data)
 
     object_class_property_add(oc, "family", "int",
                               x86_cpuid_version_get_family,
-                              x86_cpuid_version_set_family, NULL, NULL);
+                              x86_cpuid_version_set_family);
     object_class_property_add(oc, "model", "int",
                               x86_cpuid_version_get_model,
-                              x86_cpuid_version_set_model, NULL, NULL);
+                              x86_cpuid_version_set_model);
     object_class_property_add(oc, "stepping", "int",
                               x86_cpuid_version_get_stepping,
-                              x86_cpuid_version_set_stepping, NULL, NULL);
+                              x86_cpuid_version_set_stepping);
     object_class_property_add_str(oc, "vendor",
                                   x86_cpuid_get_vendor,
                                   x86_cpuid_set_vendor);
@@ -7159,7 +7159,7 @@ static void x86_cpu_common_class_init(ObjectClass *oc, void *data)
                                   x86_cpuid_set_model_id);
     object_class_property_add(oc, "tsc-frequency", "int",
                               x86_cpuid_get_tsc_freq,
-                              x86_cpuid_set_tsc_freq, NULL, NULL);
+                              x86_cpuid_set_tsc_freq);
     /*
      * The "unavailable-features" property has the same semantics as
      * CpuDefinitionInfo.unavailable-features on the "query-cpu-definitions"
@@ -7168,11 +7168,11 @@ static void x86_cpu_common_class_init(ObjectClass *oc, void *data)
      */
     object_class_property_add(oc, "unavailable-features", "strList",
                               x86_cpu_get_unavailable_features,
-                              NULL, NULL, NULL);
+                              NULL);
 
 #if !defined(CONFIG_USER_ONLY)
     object_class_property_add(oc, "crash-information", "GuestPanicInformation",
-                              x86_cpu_get_crash_info_qom, NULL, NULL, NULL);
+                              x86_cpu_get_crash_info_qom, NULL);
 #endif
 
     for (w = 0; w < FEATURE_WORDS; w++) {

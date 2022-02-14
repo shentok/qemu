@@ -352,16 +352,16 @@ static void tmp421_class_init(ObjectClass *klass, void *data)
 
     object_class_property_add(klass, "temperature0", "int",
                               tmp421_get_temperature,
-                              tmp421_set_temperature, NULL, NULL);
+                              tmp421_set_temperature);
     object_class_property_add(klass, "temperature1", "int",
                               tmp421_get_temperature,
-                              tmp421_set_temperature, NULL, NULL);
+                              tmp421_set_temperature);
     object_class_property_add(klass, "temperature2", "int",
                               tmp421_get_temperature,
-                              tmp421_set_temperature, NULL, NULL);
+                              tmp421_set_temperature);
     object_class_property_add(klass, "temperature3", "int",
                               tmp421_get_temperature,
-                              tmp421_set_temperature, NULL, NULL);
+                              tmp421_set_temperature);
 }
 
 static const TypeInfo tmp421_info = {

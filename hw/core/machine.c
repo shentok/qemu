@@ -954,14 +954,12 @@ static void machine_class_init(ObjectClass *oc, void *data)
         "Boot configuration");
 
     object_class_property_add(oc, "smp", "SMPConfiguration",
-        machine_get_smp, machine_set_smp,
-        NULL, NULL);
+        machine_get_smp, machine_set_smp);
     object_class_property_set_description(oc, "smp",
         "CPU topology");
 
     object_class_property_add(oc, "phandle-start", "int",
-        machine_get_phandle_start, machine_set_phandle_start,
-        NULL, NULL);
+        machine_get_phandle_start, machine_set_phandle_start);
     object_class_property_set_description(oc, "phandle-start",
         "The first phandle ID we may generate dynamically");
 

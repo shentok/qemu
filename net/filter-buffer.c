@@ -176,7 +176,7 @@ static void filter_buffer_class_init(ObjectClass *oc, void *data)
 
     object_class_property_add(oc, "interval", "uint32",
                               filter_buffer_get_interval,
-                              filter_buffer_set_interval, NULL, NULL);
+                              filter_buffer_set_interval);
 
     nfc->setup = filter_buffer_setup;
     nfc->cleanup = filter_buffer_cleanup;

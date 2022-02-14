@@ -1287,8 +1287,7 @@ ObjectProperty *
 object_property_try_add(Object *obj, const char *name, const char *type,
                         ObjectPropertyAccessor *get,
                         ObjectPropertyAccessor *set,
-                        ObjectPropertyRelease *release,
-                        void *opaque, Error **errp)
+                        Error **errp)
 {
     ObjectProperty *prop;
 
@@ -1298,8 +1297,7 @@ object_property_try_add(Object *obj, const char *name, const char *type,
 
     if (prop)
     {
-        prop->opaque = opaque;
-        prop->release = release;
+        prop->release = NULL;
     }
 
     return prop;
@@ -1308,12 +1306,10 @@ object_property_try_add(Object *obj, const char *name, const char *type,
 ObjectProperty *
 object_property_add(Object *obj, const char *name, const char *type,
                     ObjectPropertyAccessor *get,
-                    ObjectPropertyAccessor *set,
-                    ObjectPropertyRelease *release,
-                    void *opaque)
+                    ObjectPropertyAccessor *set)
 {
-    return object_property_try_add(obj, name, type, get, set, release,
-                                   opaque, &error_abort);
+    return object_property_try_add(obj, name, type, get, set,
+                                   &error_abort);
 }
 
 static ObjectProperty *
@@ -1346,9 +1342,7 @@ object_class_property_add(ObjectClass *klass,
                           const char *name,
                           const char *type,
                           ObjectPropertyAccessor *get,
-                          ObjectPropertyAccessor *set,
-                          ObjectPropertyRelease *release,
-                          void *opaque)
+                          ObjectPropertyAccessor *set)
 {
     ObjectProperty *prop;
 
@@ -1358,8 +1352,7 @@ object_class_property_add(ObjectClass *klass,
 
     if (prop)
     {
-        prop->opaque = opaque;
-        prop->release = release;
+        prop->release = NULL;
     }
 
     return prop;
@@ -1843,7 +1836,6 @@ object_property_try_add_child(Object *obj, const char *name,
     }
     ChildProperty *cprop = (ChildProperty *)op;
     cprop->child = child;
-    op->opaque = NULL;
     op->release = object_finalize_child_property;
     op->resolve = object_resolve_child_property;
     object_ref(child);
@@ -2018,7 +2010,6 @@ object_add_link_prop(Object *obj, const char *name,
                                       sizeof(LinkProperty),
                                       object_get_link_property,
                                       check ? object_set_link_property : NULL);
-    op->opaque = NULL;
     op->release = object_release_link_property;
     op->resolve = object_resolve_link_property;
 
@@ -2063,7 +2054,6 @@ object_class_property_add_link(ObjectClass *oc,
                                             object_get_link_property,
                                             check ? object_set_link_property : NULL);
 
-    op->opaque = NULL;
     op->release = object_release_link_property;
     op->resolve = object_resolve_link_property;
 
@@ -2312,7 +2302,6 @@ object_property_add_str(Object *obj, const char *name,
     {
         StringProperty *sprop = (StringProperty*)prop;
 
-        prop->opaque = NULL;
         prop->release = NULL;
 
         sprop->get = get;
@@ -2339,7 +2328,6 @@ object_class_property_add_str(ObjectClass *klass, const char *name,
     {
         StringProperty *sprop = (StringProperty*)prop;
 
-        prop->opaque = NULL;
         prop->release = NULL;
 
         sprop->get = get;
@@ -2402,7 +2390,6 @@ object_property_add_bool(Object *obj, const char *name,
     {
         BoolProperty *bprop = (BoolProperty*)prop;
 
-        prop->opaque = NULL;
         prop->release = NULL;
 
         bprop->get = get;
@@ -2428,7 +2415,6 @@ object_class_property_add_bool(ObjectClass *klass, const char *name,
     {
         BoolProperty *bprop = (BoolProperty*)prop;
 
-        prop->opaque = NULL;
         prop->release = NULL;
 
         bprop->get = get;
@@ -2484,7 +2470,6 @@ object_property_add_enum(Object *obj, const char *name,
     {
         EnumProperty *eprop = (EnumProperty*)prop;
 
-        prop->opaque = NULL;
         prop->release = NULL;
 
         eprop->lookup = lookup;
@@ -2513,7 +2498,6 @@ object_class_property_add_enum(ObjectClass *klass, const char *name,
     {
         EnumProperty *eprop = (EnumProperty*)prop;
 
-        prop->opaque = NULL;
         prop->release = NULL;
 
         eprop->lookup = lookup;
@@ -2584,7 +2568,6 @@ object_property_add_tm(Object *obj, const char *name,
     {
         TMProperty *tprop = (TMProperty*)prop;
 
-        prop->opaque = NULL;
         prop->release = NULL;
 
         tprop->get = get;
@@ -2608,7 +2591,6 @@ object_class_property_add_tm(ObjectClass *klass, const char *name,
     {
         TMProperty *tprop = (TMProperty*)prop;
 
-        prop->opaque = NULL;
         prop->release = NULL;
 
         tprop->get = get;
@@ -2925,7 +2907,6 @@ object_property_add_alias(Object *obj, const char *name,
     op = object_property_add_internal(obj, name, prop_type,
                                       sizeof(AliasProperty),
                                       property_get_alias, property_set_alias);
-    op->opaque = NULL;
     op->release = property_release_alias;
     op->resolve = property_resolve_alias;
     if (target_prop->defval) {

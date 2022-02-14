@@ -7796,7 +7796,7 @@ static void nvme_instance_init(Object *obj)
 
     object_property_add(obj, "smart_critical_warning", "uint8",
                         nvme_get_smart_warning,
-                        nvme_set_smart_warning, NULL, NULL);
+                        nvme_set_smart_warning);
 }
 
 static const TypeInfo nvme_info = {

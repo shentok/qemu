@@ -45,7 +45,7 @@ static void sgx_epc_get_size(ObjectProperty *oprop, Object *obj,
 static void sgx_epc_init(Object *obj)
 {
     object_property_add(obj, SGX_EPC_SIZE_PROP, "uint64", sgx_epc_get_size,
-                        NULL, NULL, NULL);
+                        NULL);
 }
 
 static void sgx_epc_realize(DeviceState *dev, Error **errp)

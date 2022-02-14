@@ -108,8 +108,7 @@ qcrypto_secret_keyring_class_init(ObjectClass *oc, void *data)
 
     object_class_property_add(oc, "serial", "int32_t",
                                   qcrypto_secret_prop_get_key,
-                                  qcrypto_secret_prop_set_key,
-                                  NULL, NULL);
+                                  qcrypto_secret_prop_set_key);
 }
 
 

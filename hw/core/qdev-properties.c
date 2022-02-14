@@ -562,7 +562,7 @@ typedef struct {
  */
 static void array_element_release(ObjectProperty *prop, Object *obj)
 {
-    ArrayElementProperty *p = prop->opaque;
+    ArrayElementProperty *p = (ArrayElementProperty *)prop;
     if (p->release) {
         p->release(prop, obj);
     }

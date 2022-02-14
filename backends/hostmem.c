@@ -490,8 +490,7 @@ host_memory_backend_class_init(ObjectClass *oc, void *data)
         "Preallocate memory");
     object_class_property_add(oc, "prealloc-threads", "int",
         host_memory_backend_get_prealloc_threads,
-        host_memory_backend_set_prealloc_threads,
-        NULL, NULL);
+        host_memory_backend_set_prealloc_threads);
     object_class_property_set_description(oc, "prealloc-threads",
         "Number of CPU threads to use for prealloc");
     object_class_property_add_link(oc, "prealloc-context",
@@ -501,14 +500,12 @@ host_memory_backend_class_init(ObjectClass *oc, void *data)
         "Context to use for creating CPU threads for preallocation");
     object_class_property_add(oc, "size", "int",
         host_memory_backend_get_size,
-        host_memory_backend_set_size,
-        NULL, NULL);
+        host_memory_backend_set_size);
     object_class_property_set_description(oc, "size",
         "Size of the memory region (ex: 500M)");
     object_class_property_add(oc, "host-nodes", "int",
         host_memory_backend_get_host_nodes,
-        host_memory_backend_set_host_nodes,
-        NULL, NULL);
+        host_memory_backend_set_host_nodes);
     object_class_property_set_description(oc, "host-nodes",
         "Binds memory to the list of NUMA host nodes");
     object_class_property_add_enum(oc, "policy", "HostMemPolicy",

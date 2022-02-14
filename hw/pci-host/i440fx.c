@@ -373,19 +373,19 @@ static void i440fx_pcihost_class_init(ObjectClass *klass, void *data)
 
     object_class_property_add(klass, PCI_HOST_PROP_PCI_HOLE_START, "uint32",
                               i440fx_pcihost_get_pci_hole_start,
-                              NULL, NULL, NULL);
+                              NULL);
 
     object_class_property_add(klass, PCI_HOST_PROP_PCI_HOLE_END, "uint32",
                               i440fx_pcihost_get_pci_hole_end,
-                              NULL, NULL, NULL);
+                              NULL);
 
     object_class_property_add(klass, PCI_HOST_PROP_PCI_HOLE64_START, "uint64",
                               i440fx_pcihost_get_pci_hole64_start,
-                              NULL, NULL, NULL);
+                              NULL);
 
     object_class_property_add(klass, PCI_HOST_PROP_PCI_HOLE64_END, "uint64",
                               i440fx_pcihost_get_pci_hole64_end,
-                              NULL, NULL, NULL);
+                              NULL);
 }
 
 static const TypeInfo i440fx_pcihost_info = {

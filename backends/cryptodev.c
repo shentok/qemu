@@ -230,8 +230,7 @@ cryptodev_backend_class_init(ObjectClass *oc, void *data)
     QTAILQ_INIT(&crypto_clients);
     object_class_property_add(oc, "queues", "uint32",
                               cryptodev_backend_get_queues,
-                              cryptodev_backend_set_queues,
-                              NULL, NULL);
+                              cryptodev_backend_set_queues);
 }
 
 static const TypeInfo cryptodev_backend_info = {

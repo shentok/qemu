@@ -142,8 +142,7 @@ memfd_backend_class_init(ObjectClass *oc, void *data)
                                               "Use huge pages");
         object_class_property_add(oc, "hugetlbsize", "int",
                                   memfd_backend_get_hugetlbsize,
-                                  memfd_backend_set_hugetlbsize,
-                                  NULL, NULL);
+                                  memfd_backend_set_hugetlbsize);
         object_class_property_set_description(oc, "hugetlbsize",
                                               "Huge pages size (ex: 2M, 1G)");
     }

@@ -87,7 +87,6 @@ struct ObjectProperty
     ObjectPropertyResolve *resolve;
     ObjectPropertyRelease *release;
     ObjectPropertyInit *init;
-    void *opaque;
     QObject *defval;
 };
 
@@ -1013,10 +1012,6 @@ void object_unref(void *obj);
  *   the property cannot be read.
  * @set: the setter to be called to write a property.  If this is NULL,
  *   then the property cannot be written.
- * @release: called when the property is removed from the object.  This is
- *   meant to allow a property to free its opaque upon object
- *   destruction.  This may be NULL.
- * @opaque: an opaque pointer to pass to the callbacks for the property
  * @errp: pointer to error object
  *
  * Returns: The #ObjectProperty; this can be used to set the @resolve
@@ -1026,8 +1021,7 @@ ObjectProperty *object_property_try_add(Object *obj, const char *name,
                                         const char *type,
                                         ObjectPropertyAccessor *get,
                                         ObjectPropertyAccessor *set,
-                                        ObjectPropertyRelease *release,
-                                        void *opaque, Error **errp);
+                                        Error **errp);
 
 /**
  * object_property_add:
@@ -1046,26 +1040,18 @@ ObjectProperty *object_property_try_add(Object *obj, const char *name,
  *   the property cannot be read.
  * @set: the setter to be called to write a property.  If this is NULL,
  *   then the property cannot be written.
- * @release: called when the property is removed from the object.  This is
- *   meant to allow a property to free its opaque upon object
- *   destruction.  This may be NULL.
- * @opaque: an opaque pointer to pass to the callbacks for the property
  */
 ObjectProperty *object_property_add(Object *obj, const char *name,
                                     const char *type,
                                     ObjectPropertyAccessor *get,
-                                    ObjectPropertyAccessor *set,
-                                    ObjectPropertyRelease *release,
-                                    void *opaque);
+                                    ObjectPropertyAccessor *set);
 
 void object_property_del(Object *obj, const char *name);
 
 ObjectProperty *object_class_property_add(ObjectClass *klass, const char *name,
                                           const char *type,
                                           ObjectPropertyAccessor *get,
-                                          ObjectPropertyAccessor *set,
-                                          ObjectPropertyRelease *release,
-                                          void *opaque);
+                                          ObjectPropertyAccessor *set);
 
 /**
  * object_property_set_default_bool:

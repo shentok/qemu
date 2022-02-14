@@ -951,8 +951,7 @@ static void throttle_group_obj_class_init(ObjectClass *klass, void *class_data)
     object_class_property_add(klass,
                               "limits", "ThrottleLimits",
                               throttle_group_get_limits,
-                              throttle_group_set_limits,
-                              NULL, NULL);
+                              throttle_group_set_limits);
 }
 
 static const TypeInfo throttle_group_info = {

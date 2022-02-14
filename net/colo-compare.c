@@ -1382,15 +1382,15 @@ static void colo_compare_init(Object *obj)
 
     object_property_add(obj, "compare_timeout", "uint64",
                         compare_get_timeout,
-                        compare_set_timeout, NULL, NULL);
+                        compare_set_timeout);
 
     object_property_add(obj, "expired_scan_cycle", "uint32",
                         compare_get_expired_scan_cycle,
-                        compare_set_expired_scan_cycle, NULL, NULL);
+                        compare_set_expired_scan_cycle);
 
     object_property_add(obj, "max_queue_size", "uint32",
                         get_max_queue_size,
-                        set_max_queue_size, NULL, NULL);
+                        set_max_queue_size);
 
     s->vnet_hdr = false;
     object_property_add_bool(obj, "vnet_hdr_support", compare_get_vnet_hdr,

@@ -1252,20 +1252,17 @@ static void memory_region_initfn(Object *obj)
     op = object_property_add(OBJECT(mr), "container",
                              "link<" TYPE_MEMORY_REGION ">",
                              memory_region_get_container,
-                             NULL, /* memory_region_set_container */
-                             NULL, NULL);
+                             NULL); /* memory_region_set_container */
     op->resolve = memory_region_resolve_container;
 
     object_property_add_uint64_ptr(OBJECT(mr), "addr",
                                    &mr->addr, OBJ_PROP_FLAG_READ);
     object_property_add(OBJECT(mr), "priority", "uint32",
                         memory_region_get_priority,
-                        NULL, /* memory_region_set_priority */
-                        NULL, NULL);
+                        NULL); /* memory_region_set_priority */
     object_property_add(OBJECT(mr), "size", "uint64",
                         memory_region_get_size,
-                        NULL, /* memory_region_set_size, */
-                        NULL, NULL);
+                        NULL); /* memory_region_set_size, */
 }
 
 static void iommu_memory_region_initfn(Object *obj)

@@ -1190,13 +1190,12 @@ static void virtio_mem_instance_init(Object *obj)
     QLIST_INIT(&vmem->rdl_list);
 
     object_property_add(obj, VIRTIO_MEM_SIZE_PROP, "size", virtio_mem_get_size,
-                        NULL, NULL, NULL);
+                        NULL);
     object_property_add(obj, VIRTIO_MEM_REQUESTED_SIZE_PROP, "size",
                         virtio_mem_get_requested_size,
-                        virtio_mem_set_requested_size, NULL, NULL);
+                        virtio_mem_set_requested_size);
     object_property_add(obj, VIRTIO_MEM_BLOCK_SIZE_PROP, "size",
-                        virtio_mem_get_block_size, virtio_mem_set_block_size,
-                        NULL, NULL);
+                        virtio_mem_get_block_size, virtio_mem_set_block_size);
 }
 
 static Property virtio_mem_properties[] = {

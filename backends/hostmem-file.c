@@ -193,8 +193,7 @@ file_backend_class_init(ObjectClass *oc, void *data)
         get_mem_path, set_mem_path);
     object_class_property_add(oc, "align", "int",
         file_memory_backend_get_align,
-        file_memory_backend_set_align,
-        NULL, NULL);
+        file_memory_backend_set_align);
 #ifdef CONFIG_LIBPMEM
     object_class_property_add_bool(oc, "pmem",
         file_memory_backend_get_pmem, file_memory_backend_set_pmem);

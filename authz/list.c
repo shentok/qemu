@@ -128,8 +128,7 @@ qauthz_list_class_init(ObjectClass *oc, void *data)
 
     object_class_property_add(oc, "rules", "QAuthZListRule",
                               qauthz_list_prop_get_rules,
-                              qauthz_list_prop_set_rules,
-                              NULL, NULL);
+                              qauthz_list_prop_set_rules);
 
     authz->is_allowed = qauthz_list_is_allowed;
 }
