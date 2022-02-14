@@ -1203,12 +1203,12 @@ void object_unref(void *objptr)
     }
 }
 
-ObjectProperty *
-object_property_try_add(Object *obj, const char *name, const char *type,
-                        ObjectPropertyAccessor *get,
-                        ObjectPropertyAccessor *set,
-                        ObjectPropertyRelease *release,
-                        void *opaque, Error **errp)
+static ObjectProperty *
+object_property_try_add_internal(Object *obj, const char *name, const char *type,
+                                 size_t size,
+                                 ObjectPropertyAccessor *get,
+                                 ObjectPropertyAccessor *set,
+                                 Error **errp)
 {
     ObjectProperty *prop;
     size_t name_len = strlen(name);
@@ -1222,8 +1222,8 @@ object_property_try_add(Object *obj, const char *name, const char *type,
         for (i = 0; i < INT16_MAX; ++i) {
             char *full_name = g_strdup_printf("%s[%d]", name_no_array, i);
 
-            ret = object_property_try_add(obj, full_name, type, get, set,
-                                          release, opaque, NULL);
+            ret = object_property_try_add_internal(obj, full_name, type, size,
+                                                   get, set, NULL);
             g_free(full_name);
             if (ret) {
                 break;
@@ -1240,17 +1240,47 @@ object_property_try_add(Object *obj, const char *name, const char *type,
         return NULL;
     }
 
-    prop = g_malloc0(sizeof(*prop));
+    prop = g_malloc0(size);
 
     prop->name = g_strdup(name);
     prop->type = g_strdup(type);
 
     prop->get = get;
     prop->set = set;
-    prop->release = release;
-    prop->opaque = opaque;
 
     g_hash_table_insert(obj->properties, prop->name, prop);
+    return prop;
+}
+
+static ObjectProperty *
+object_property_add_internal(Object *obj, const char *name, const char *type,
+                             size_t size,
+                             ObjectPropertyAccessor *get,
+                             ObjectPropertyAccessor *set)
+{
+    return object_property_try_add_internal(obj, name, type, size, get, set,
+                                            &error_abort);
+}
+
+ObjectProperty *
+object_property_try_add(Object *obj, const char *name, const char *type,
+                        ObjectPropertyAccessor *get,
+                        ObjectPropertyAccessor *set,
+                        ObjectPropertyRelease *release,
+                        void *opaque, Error **errp)
+{
+    ObjectProperty *prop;
+
+    prop = object_property_try_add_internal(obj, name, type,
+                                            sizeof(ObjectProperty), get, set,
+                                            errp);
+
+    if (prop)
+    {
+        prop->opaque = opaque;
+        prop->release = release;
+    }
+
     return prop;
 }
 
@@ -1265,6 +1295,31 @@ object_property_add(Object *obj, const char *name, const char *type,
                                    opaque, &error_abort);
 }
 
+static ObjectProperty *
+object_class_property_add_internal(ObjectClass *klass,
+                                   const char *name,
+                                   const char *type,
+                                   size_t size,
+                                   ObjectPropertyAccessor *get,
+                                   ObjectPropertyAccessor *set)
+{
+    ObjectProperty *prop;
+
+    assert(!object_class_property_find(klass, name));
+
+    prop = g_malloc0(size);
+
+    prop->name = g_strdup(name);
+    prop->type = g_strdup(type);
+
+    prop->get = get;
+    prop->set = set;
+
+    g_hash_table_insert(klass->properties, prop->name, prop);
+
+    return prop;
+}
+
 ObjectProperty *
 object_class_property_add(ObjectClass *klass,
                           const char *name,
@@ -1276,19 +1331,15 @@ object_class_property_add(ObjectClass *klass,
 {
     ObjectProperty *prop;
 
-    assert(!object_class_property_find(klass, name));
+    prop = object_class_property_add_internal(klass, name, type,
+                                              sizeof(ObjectProperty),
+                                              get, set);
 
-    prop = g_malloc0(sizeof(*prop));
-
-    prop->name = g_strdup(name);
-    prop->type = g_strdup(type);
-
-    prop->get = get;
-    prop->set = set;
-    prop->release = release;
-    prop->opaque = opaque;
-
-    g_hash_table_insert(klass->properties, prop->name, prop);
+    if (prop)
+    {
+        prop->opaque = opaque;
+        prop->release = release;
+    }
 
     return prop;
 }
