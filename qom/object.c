@@ -1770,6 +1770,10 @@ Object *object_get_internal_root(void)
     return internal_root;
 }
 
+typedef struct {
+    ObjectProperty prop;
+} ChildProperty;
+
 static void object_get_child_property(Object *obj, Visitor *v,
                                       const char *name, void *opaque,
                                       Error **errp)
@@ -1811,12 +1815,15 @@ object_property_try_add_child(Object *obj, const char *name,
 
     type = g_strdup_printf("child<%s>", object_get_typename(child));
 
-    op = object_property_try_add(obj, name, type, object_get_child_property,
-                                 NULL, object_finalize_child_property,
-                                 child, errp);
+    op = object_property_try_add_internal(obj, name, type,
+                                          sizeof(ChildProperty),
+                                          object_get_child_property, NULL,
+                                          errp);
     if (!op) {
         return NULL;
     }
+    op->opaque = child;
+    op->release = object_finalize_child_property;
     op->resolve = object_resolve_child_property;
     object_ref(child);
     child->parent = obj;
