@@ -1820,6 +1820,8 @@ void object_property_allow_set_link(const Object *obj, const char *name,
 }
 
 typedef struct {
+    ObjectProperty prop;
+
     union {
         Object **targetp;
         Object *target; /* if OBJ_PROP_LINK_DIRECT, when holding the pointer  */
@@ -1956,9 +1958,6 @@ static void object_release_link_property(Object *obj, const char *name,
     if ((prop->flags & OBJ_PROP_LINK_STRONG) && *targetp) {
         object_unref(*targetp);
     }
-    if (!(prop->flags & OBJ_PROP_LINK_CLASS)) {
-        g_free(prop);
-    }
 }
 
 static ObjectProperty *
@@ -1968,9 +1967,20 @@ object_add_link_prop(Object *obj, const char *name,
                                    Object *, Error **),
                      ObjectPropertyLinkFlags flags)
 {
-    LinkProperty *prop = g_malloc(sizeof(*prop));
     g_autofree char *full_type = NULL;
     ObjectProperty *op;
+
+    full_type = g_strdup_printf("link<%s>", type);
+
+    op = object_property_add_internal(obj, name, full_type,
+                                      sizeof(LinkProperty),
+                                      object_get_link_property,
+                                      check ? object_set_link_property : NULL);
+    op->opaque = op;
+    op->release = object_release_link_property;
+    op->resolve = object_resolve_link_property;
+
+    LinkProperty *prop = (LinkProperty *)op;
 
     if (flags & OBJ_PROP_LINK_DIRECT) {
         prop->target = ptr;
@@ -1980,14 +1990,6 @@ object_add_link_prop(Object *obj, const char *name,
     prop->check = check;
     prop->flags = flags;
 
-    full_type = g_strdup_printf("link<%s>", type);
-
-    op = object_property_add(obj, name, full_type,
-                             object_get_link_property,
-                             check ? object_set_link_property : NULL,
-                             object_release_link_property,
-                             prop);
-    op->resolve = object_resolve_link_property;
     return op;
 }
 
@@ -2009,23 +2011,25 @@ object_class_property_add_link(ObjectClass *oc,
                   Object *val, Error **errp),
     ObjectPropertyLinkFlags flags)
 {
-    LinkProperty *prop = g_new0(LinkProperty, 1);
     char *full_type;
     ObjectProperty *op;
+
+    full_type = g_strdup_printf("link<%s>", type);
+
+    op = object_class_property_add_internal(oc, name, full_type,
+                                            sizeof(LinkProperty),
+                                            object_get_link_property,
+                                            check ? object_set_link_property : NULL);
+
+    op->opaque = op;
+    op->release = object_release_link_property;
+    op->resolve = object_resolve_link_property;
+
+    LinkProperty *prop = (LinkProperty *)op;
 
     prop->offset = offset;
     prop->check = check;
     prop->flags = flags | OBJ_PROP_LINK_CLASS;
-
-    full_type = g_strdup_printf("link<%s>", type);
-
-    op = object_class_property_add(oc, name, full_type,
-                                   object_get_link_property,
-                                   check ? object_set_link_property : NULL,
-                                   object_release_link_property,
-                                   prop);
-
-    op->resolve = object_resolve_link_property;
 
     g_free(full_type);
     return op;
