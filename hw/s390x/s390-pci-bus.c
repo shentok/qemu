@@ -1422,7 +1422,7 @@ static void s390_pci_device_reset(DeviceState *dev)
 static void s390_pci_get_fid(ObjectProperty *oprop, Object *obj, Visitor *v,
                              Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint32_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_uint32(v, oprop->name, ptr, errp);
@@ -1432,7 +1432,7 @@ static void s390_pci_set_fid(ObjectProperty *oprop, Object *obj, Visitor *v,
                              Error **errp)
 {
     S390PCIBusDevice *zpci = S390_PCI_DEVICE(obj);
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint32_t *ptr = object_field_prop_ptr(obj, prop);
 
     if (!visit_type_uint32(v, oprop->name, ptr, errp)) {

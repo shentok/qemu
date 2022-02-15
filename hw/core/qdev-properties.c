@@ -60,7 +60,7 @@ void *object_field_prop_ptr(Object *obj, Property *prop)
 static void field_prop_get(ObjectProperty *oprop, Object *obj, Visitor *v,
                            Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     return prop->info->get(oprop, obj, v, errp);
 }
 
@@ -77,7 +77,7 @@ static ObjectPropertyAccessor *field_prop_getter(const PropertyInfo *info)
 static void field_prop_set(ObjectProperty *oprop, Object *obj, Visitor *v,
                            Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
 
     if (!qdev_prop_allow_set(obj, oprop->name, prop->info, errp)) {
         return;
@@ -99,7 +99,7 @@ static ObjectPropertyAccessor *field_prop_setter(const PropertyInfo *info)
 void qdev_propinfo_get_enum(ObjectProperty *oprop, Object *obj,
                             Visitor *v, Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     int *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_enum(v, oprop->name, ptr, prop->info->enum_table, errp);
@@ -108,7 +108,7 @@ void qdev_propinfo_get_enum(ObjectProperty *oprop, Object *obj,
 void qdev_propinfo_set_enum(ObjectProperty *oprop, Object *obj,
                             Visitor *v, Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     int *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_enum(v, oprop->name, ptr, prop->info->enum_table, errp);
@@ -150,7 +150,7 @@ static void bit_prop_set(Object *obj, Property *props, bool val)
 static void prop_get_bit(ObjectProperty *oprop, Object *obj, Visitor *v,
                          Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint32_t *p = object_field_prop_ptr(obj, prop);
     bool value = (*p & qdev_get_prop_mask(prop)) != 0;
 
@@ -160,7 +160,7 @@ static void prop_get_bit(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void prop_set_bit(ObjectProperty *oprop, Object *obj, Visitor *v,
                          Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     bool value;
 
     if (!visit_type_bool(v, oprop->name, &value, errp)) {
@@ -204,7 +204,7 @@ static void bit64_prop_set(Object *obj, Property *props, bool val)
 static void prop_get_bit64(ObjectProperty *oprop, Object *obj, Visitor *v,
                            Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint64_t *p = object_field_prop_ptr(obj, prop);
     bool value = (*p & qdev_get_prop_mask64(prop)) != 0;
 
@@ -214,7 +214,7 @@ static void prop_get_bit64(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void prop_set_bit64(ObjectProperty *oprop, Object *obj, Visitor *v,
                            Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     bool value;
 
     if (!visit_type_bool(v, oprop->name, &value, errp)) {
@@ -236,7 +236,7 @@ const PropertyInfo qdev_prop_bit64 = {
 static void get_bool(ObjectProperty *oprop, Object *obj, Visitor *v,
                      Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     bool *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_bool(v, oprop->name, ptr, errp);
@@ -245,7 +245,7 @@ static void get_bool(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void set_bool(ObjectProperty *oprop, Object *obj, Visitor *v,
                      Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     bool *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_bool(v, oprop->name, ptr, errp);
@@ -263,7 +263,7 @@ const PropertyInfo qdev_prop_bool = {
 static void get_uint8(ObjectProperty *oprop, Object *obj, Visitor *v,
                       Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint8_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_uint8(v, oprop->name, ptr, errp);
@@ -272,7 +272,7 @@ static void get_uint8(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void set_uint8(ObjectProperty *oprop, Object *obj, Visitor *v,
                       Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint8_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_uint8(v, oprop->name, ptr, errp);
@@ -302,7 +302,7 @@ const PropertyInfo qdev_prop_uint8 = {
 static void get_uint16(ObjectProperty *oprop, Object *obj, Visitor *v,
                        Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint16_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_uint16(v, oprop->name, ptr, errp);
@@ -311,7 +311,7 @@ static void get_uint16(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void set_uint16(ObjectProperty *oprop, Object *obj, Visitor *v,
                        Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint16_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_uint16(v, oprop->name, ptr, errp);
@@ -329,7 +329,7 @@ const PropertyInfo qdev_prop_uint16 = {
 static void get_uint32(ObjectProperty *oprop, Object *obj, Visitor *v,
                        Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint32_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_uint32(v, oprop->name, ptr, errp);
@@ -338,7 +338,7 @@ static void get_uint32(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void set_uint32(ObjectProperty *oprop, Object *obj, Visitor *v,
                        Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint32_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_uint32(v, oprop->name, ptr, errp);
@@ -347,7 +347,7 @@ static void set_uint32(ObjectProperty *oprop, Object *obj, Visitor *v,
 void qdev_propinfo_get_int32(ObjectProperty *oprop, Object *obj, Visitor *v,
                              Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     int32_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_int32(v, oprop->name, ptr, errp);
@@ -356,7 +356,7 @@ void qdev_propinfo_get_int32(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void set_int32(ObjectProperty *oprop, Object *obj, Visitor *v,
                       Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     int32_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_int32(v, oprop->name, ptr, errp);
@@ -381,7 +381,7 @@ const PropertyInfo qdev_prop_int32 = {
 static void get_uint64(ObjectProperty *oprop, Object *obj, Visitor *v,
                        Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint64_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_uint64(v, oprop->name, ptr, errp);
@@ -390,7 +390,7 @@ static void get_uint64(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void set_uint64(ObjectProperty *oprop, Object *obj, Visitor *v,
                        Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint64_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_uint64(v, oprop->name, ptr, errp);
@@ -399,7 +399,7 @@ static void set_uint64(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void get_int64(ObjectProperty *oprop, Object *obj, Visitor *v,
                       Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     int64_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_int64(v, oprop->name, ptr, errp);
@@ -408,7 +408,7 @@ static void get_int64(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void set_int64(ObjectProperty *oprop, Object *obj, Visitor *v,
                       Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     int64_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_int64(v, oprop->name, ptr, errp);
@@ -451,14 +451,14 @@ const PropertyInfo qdev_prop_uint64_checkmask = {
 
 static void release_string(ObjectProperty *oprop, Object *obj)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     g_free(*(char **)object_field_prop_ptr(obj, prop));
 }
 
 static void get_string(ObjectProperty *oprop, Object *obj, Visitor *v,
                        Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     char **ptr = object_field_prop_ptr(obj, prop);
 
     if (!*ptr) {
@@ -472,7 +472,7 @@ static void get_string(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void set_string(ObjectProperty *oprop, Object *obj, Visitor *v,
                        Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     char **ptr = object_field_prop_ptr(obj, prop);
     char *str;
 
@@ -506,7 +506,7 @@ const PropertyInfo qdev_prop_on_off_auto = {
 void qdev_propinfo_get_size32(ObjectProperty *oprop, Object *obj, Visitor *v,
                               Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint32_t *ptr = object_field_prop_ptr(obj, prop);
     uint64_t value = *ptr;
 
@@ -516,7 +516,7 @@ void qdev_propinfo_get_size32(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void set_size32(ObjectProperty *oprop, Object *obj, Visitor *v,
                        Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint32_t *ptr = object_field_prop_ptr(obj, prop);
     uint64_t value;
 
@@ -578,7 +578,7 @@ static void set_prop_arraylen(ObjectProperty *oprop, Object *obj, Visitor *v,
      * array-length field in the device struct, we have to create the
      * array itself and dynamically add the corresponding properties.
      */
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint32_t *alenptr = object_field_prop_ptr(obj, prop);
     void **arrayptr = (void *)obj + prop->arrayoffset;
     void *eltptr;
@@ -815,7 +815,7 @@ void qdev_prop_set_globals(DeviceState *dev)
 static void get_size(ObjectProperty *oprop, Object *obj, Visitor *v,
                      Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint64_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_size(v, oprop->name, ptr, errp);
@@ -824,7 +824,7 @@ static void get_size(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void set_size(ObjectProperty *oprop, Object *obj, Visitor *v,
                      Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint64_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_size(v, oprop->name, ptr, errp);
@@ -906,7 +906,7 @@ static void qdev_class_add_property(DeviceClass *klass, const char *name,
 static void qdev_get_legacy_property(ObjectProperty *oprop, Object *obj, Visitor *v,
                                      Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
 
     char buffer[1024];
     char *ptr = buffer;

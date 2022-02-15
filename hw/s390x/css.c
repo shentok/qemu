@@ -2458,7 +2458,7 @@ void css_reset(void)
 static void get_css_devid(ObjectProperty *oprop, Object *obj, Visitor *v,
                           Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     CssDevId *dev_id = object_field_prop_ptr(obj, prop);
     char buffer[] = "xx.x.xxxx";
     char *p = buffer;
@@ -2487,7 +2487,7 @@ static void get_css_devid(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void set_css_devid(ObjectProperty *oprop, Object *obj, Visitor *v,
                           Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     CssDevId *dev_id = object_field_prop_ptr(obj, prop);
     char *str;
     int num, n1, n2;

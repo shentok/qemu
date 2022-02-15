@@ -335,7 +335,7 @@ static char *disk_to_vbd_name(unsigned int disk)
 static void xen_block_get_vdev(ObjectProperty *oprop, Object *obj, Visitor *v,
                                Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     XenBlockVdev *vdev = object_field_prop_ptr(obj, prop);
     char *str;
 
@@ -395,7 +395,7 @@ static int vbd_name_to_disk(const char *name, const char **endp,
 static void xen_block_set_vdev(ObjectProperty *oprop, Object *obj, Visitor *v,
                                Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     XenBlockVdev *vdev = object_field_prop_ptr(obj, prop);
     char *str, *p;
     const char *end;

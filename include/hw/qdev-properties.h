@@ -13,6 +13,8 @@
  *     is true.
  */
 struct Property {
+    ObjectProperty prop;
+
     const char   *name;
     const PropertyInfo *info;
     ptrdiff_t    offset;

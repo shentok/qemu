@@ -46,7 +46,7 @@ static void get_tpm(ObjectProperty *prop, Object *obj, Visitor *v,
 static void set_tpm(ObjectProperty *oprop, Object *obj, Visitor *v,
                     Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     TPMBackend *s, **be = object_field_prop_ptr(obj, prop);
     char *str;
 
@@ -66,7 +66,7 @@ static void set_tpm(ObjectProperty *oprop, Object *obj, Visitor *v,
 
 static void release_tpm(ObjectProperty *oprop, Object *obj)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     TPMBackend **be = object_field_prop_ptr(obj, prop);
 
     if (*be) {

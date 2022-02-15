@@ -1494,7 +1494,7 @@ void vfio_setup_resetfn_quirk(VFIOPCIDevice *vdev)
 static void get_nv_gpudirect_clique_id(ObjectProperty *oprop, Object *obj,
                                        Visitor *v, Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint8_t *ptr = object_field_prop_ptr(obj, prop);
 
     visit_type_uint8(v, oprop->name, ptr, errp);
@@ -1503,7 +1503,7 @@ static void get_nv_gpudirect_clique_id(ObjectProperty *oprop, Object *obj,
 static void set_nv_gpudirect_clique_id(ObjectProperty *oprop, Object *obj,
                                        Visitor *v, Error **errp)
 {
-    Property *prop = oprop->opaque;
+    Property *prop = (Property *)oprop;
     uint8_t value, *ptr = object_field_prop_ptr(obj, prop);
 
     if (!visit_type_uint8(v, oprop->name, &value, errp)) {
