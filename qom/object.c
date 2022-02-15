@@ -2842,6 +2842,8 @@ object_class_property_add_uint64_ptr(ObjectClass *klass, const char *name,
 }
 
 typedef struct {
+    ObjectProperty prop;
+
     Object *target_obj;
     char *target_name;
 } AliasProperty;
@@ -2879,7 +2881,6 @@ static void property_release_alias(Object *obj, const char *name, void *opaque)
     AliasProperty *prop = opaque;
 
     g_free(prop->target_name);
-    g_free(prop);
 }
 
 ObjectProperty *
@@ -2901,19 +2902,19 @@ object_property_add_alias(Object *obj, const char *name,
         prop_type = g_strdup(target_prop->type);
     }
 
-    prop = g_malloc(sizeof(*prop));
-    prop->target_obj = target_obj;
-    prop->target_name = g_strdup(target_name);
-
-    op = object_property_add(obj, name, prop_type,
-                             property_get_alias,
-                             property_set_alias,
-                             property_release_alias,
-                             prop);
+    op = object_property_add_internal(obj, name, prop_type,
+                                      sizeof(AliasProperty),
+                                      property_get_alias, property_set_alias);
+    op->opaque = op;
+    op->release = property_release_alias;
     op->resolve = property_resolve_alias;
     if (target_prop->defval) {
         op->defval = qobject_ref(target_prop->defval);
     }
+
+    prop = (AliasProperty *)op;
+    prop->target_obj = target_obj;
+    prop->target_name = g_strdup(target_name);
 
     object_property_set_description(obj, op->name,
                                     target_prop->description);
