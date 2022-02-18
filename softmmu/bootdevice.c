@@ -287,14 +287,14 @@ typedef struct {
 static void device_get_bootindex(ObjectProperty *oprop, Object *obj,
                                  Visitor *v, Error **errp)
 {
-    BootIndexProperty *prop = oprop->opaque;
+    BootIndexProperty *prop = oprop;
     visit_type_int32(v, oprop->name, prop->bootindex, errp);
 }
 
 static void device_set_bootindex(ObjectProperty *oprop, Object *obj,
                                  Visitor *v, Error **errp)
 {
-    BootIndexProperty *prop = oprop->opaque;
+    BootIndexProperty *prop = oprop;
     int32_t boot_index;
     Error *local_err = NULL;
 
@@ -316,7 +316,7 @@ static void device_set_bootindex(ObjectProperty *oprop, Object *obj,
 static void property_release_bootindex(ObjectProperty *oprop, Object *obj)
 
 {
-    BootIndexProperty *prop = oprop->opaque;
+    BootIndexProperty *prop = oprop;
 
     del_boot_device_path(prop->dev, prop->suffix);
     g_free(prop);

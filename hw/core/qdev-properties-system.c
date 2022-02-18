@@ -233,7 +233,7 @@ const PropertyInfo qdev_prop_drive_iothread = {
 static void get_chr(ObjectProperty *oprop, Object *obj, Visitor *v,
                     Error **errp)
 {
-    CharBackend *be = object_field_prop_ptr(obj, oprop->opaque);
+    CharBackend *be = object_field_prop_ptr(obj, oprop);
     char *p;
 
     p = g_strdup(be->chr && be->chr->label ? be->chr->label : "");

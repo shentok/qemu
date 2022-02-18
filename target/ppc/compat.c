@@ -245,7 +245,7 @@ int ppc_compat_max_vthreads(PowerPCCPU *cpu)
 static void ppc_compat_prop_get(ObjectProperty *oprop, Object *obj, Visitor *v,
                                 Error **errp)
 {
-    uint32_t compat_pvr = *((uint32_t *)oprop->opaque);
+    uint32_t compat_pvr = *((uint32_t *)oprop);
     const char *value;
 
     if (!compat_pvr) {
@@ -292,7 +292,7 @@ static void ppc_compat_prop_set(ObjectProperty *oprop, Object *obj, Visitor *v,
         compat_pvr = compat->pvr;
     }
 
-    *((uint32_t *)oprop->opaque) = compat_pvr;
+    *((uint32_t *)oprop) = compat_pvr;
 
 out:
     g_free(value);

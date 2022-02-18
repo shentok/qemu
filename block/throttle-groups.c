@@ -811,7 +811,7 @@ static void throttle_group_set(ObjectProperty *oprop, Object *obj,
 {
     ThrottleGroup *tg = THROTTLE_GROUP(obj);
     ThrottleConfig *cfg;
-    ThrottleParamInfo *info = oprop->opaque;
+    ThrottleParamInfo *info = oprop;
     int64_t value;
 
     /* If we have finished initialization, don't accept individual property
@@ -858,7 +858,7 @@ static void throttle_group_get(ObjectProperty *oprop, Object *obj,
 {
     ThrottleGroup *tg = THROTTLE_GROUP(obj);
     ThrottleConfig cfg;
-    ThrottleParamInfo *info = oprop->opaque;
+    ThrottleParamInfo *info = oprop;
     int64_t value;
 
     throttle_get_config(&tg->ts, &cfg);

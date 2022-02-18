@@ -4508,7 +4508,7 @@ static void x86_cpuid_set_tsc_freq(ObjectProperty *oprop, Object *obj,
 static void x86_cpu_get_feature_words(ObjectProperty *oprop, Object *obj,
                                       Visitor *v, Error **errp)
 {
-    uint64_t *array = (uint64_t *)oprop->opaque;
+    uint64_t *array = (uint64_t *)oprop;
     FeatureWord w;
     X86CPUFeatureWordInfo word_infos[FEATURE_WORDS] = { };
     X86CPUFeatureWordInfoList list_entries[FEATURE_WORDS] = { };
@@ -6661,7 +6661,7 @@ static void x86_cpu_get_bit_prop(ObjectProperty *oprop, Object *obj,
                                  Visitor *v, Error **errp)
 {
     X86CPU *cpu = X86_CPU(obj);
-    BitProperty *fp = oprop->opaque;
+    BitProperty *fp = oprop;
     uint64_t f = cpu->env.features[fp->w];
     bool value = (f & fp->mask) == fp->mask;
     visit_type_bool(v, oprop->name, &value, errp);
@@ -6672,7 +6672,7 @@ static void x86_cpu_set_bit_prop(ObjectProperty *oprop, Object *obj,
 {
     DeviceState *dev = DEVICE(obj);
     X86CPU *cpu = X86_CPU(obj);
-    BitProperty *fp = oprop->opaque;
+    BitProperty *fp = oprop;
     bool value;
 
     if (dev->realized) {

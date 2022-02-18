@@ -72,7 +72,7 @@ typedef struct SpaprCapabilityInfo {
 static void spapr_cap_get_bool(ObjectProperty *oprop, Object *obj, Visitor *v,
                                Error **errp)
 {
-    SpaprCapabilityInfo *cap = oprop->opaque;
+    SpaprCapabilityInfo *cap = oprop;
     SpaprMachineState *spapr = SPAPR_MACHINE(obj);
     bool value = spapr_get_cap(spapr, cap->index) == SPAPR_CAP_ON;
 
@@ -82,7 +82,7 @@ static void spapr_cap_get_bool(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void spapr_cap_set_bool(ObjectProperty *oprop, Object *obj, Visitor *v,
                                Error **errp)
 {
-    SpaprCapabilityInfo *cap = oprop->opaque;
+    SpaprCapabilityInfo *cap = oprop;
     SpaprMachineState *spapr = SPAPR_MACHINE(obj);
     bool value;
 
@@ -98,7 +98,7 @@ static void spapr_cap_set_bool(ObjectProperty *oprop, Object *obj, Visitor *v,
 static void spapr_cap_get_string(ObjectProperty *oprop, Object *obj,
                                  Visitor *v, Error **errp)
 {
-    SpaprCapabilityInfo *cap = oprop->opaque;
+    SpaprCapabilityInfo *cap = oprop;
     SpaprMachineState *spapr = SPAPR_MACHINE(obj);
     g_autofree char *val = NULL;
     uint8_t value = spapr_get_cap(spapr, cap->index);
@@ -117,7 +117,7 @@ static void spapr_cap_get_string(ObjectProperty *oprop, Object *obj,
 static void spapr_cap_set_string(ObjectProperty *oprop, Object *obj,
                                  Visitor *v, Error **errp)
 {
-    SpaprCapabilityInfo *cap = oprop->opaque;
+    SpaprCapabilityInfo *cap = oprop;
     SpaprMachineState *spapr = SPAPR_MACHINE(obj);
     uint8_t i;
     g_autofree char *val = NULL;
@@ -145,7 +145,7 @@ static void spapr_cap_set_string(ObjectProperty *oprop, Object *obj,
 static void spapr_cap_get_pagesize(ObjectProperty *oprop, Object *obj,
                                    Visitor *v, Error **errp)
 {
-    SpaprCapabilityInfo *cap = oprop->opaque;
+    SpaprCapabilityInfo *cap = oprop;
     SpaprMachineState *spapr = SPAPR_MACHINE(obj);
     uint8_t val = spapr_get_cap(spapr, cap->index);
     uint64_t pagesize = (1ULL << val);
@@ -156,7 +156,7 @@ static void spapr_cap_get_pagesize(ObjectProperty *oprop, Object *obj,
 static void spapr_cap_set_pagesize(ObjectProperty *oprop, Object *obj,
                                    Visitor *v, Error **errp)
 {
-    SpaprCapabilityInfo *cap = oprop->opaque;
+    SpaprCapabilityInfo *cap = oprop;
     SpaprMachineState *spapr = SPAPR_MACHINE(obj);
     uint64_t pagesize;
     uint8_t val;

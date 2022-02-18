@@ -349,7 +349,7 @@ void ich9_pm_init(PCIDevice *lpc_pci, ICH9LPCPMRegs *pm,
 static void ich9_pm_get_gpe0_blk(ObjectProperty *oprop, Object *obj,
                                  Visitor *v, Error **errp)
 {
-    ICH9LPCPMRegs *pm = oprop->opaque;
+    ICH9LPCPMRegs *pm = oprop;
     uint32_t value = pm->pm_io_base + ICH9_PMIO_GPE0_STS;
 
     visit_type_uint32(v, oprop->name, &value, errp);

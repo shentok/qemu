@@ -418,13 +418,13 @@ static void adm1272_get(ObjectProperty *oprop, Object *obj, Visitor *v,
     uint16_t value;
 
     if (strcmp(oprop->name, "vin") == 0 || strcmp(oprop->name, "vout") == 0) {
-        value = adm1272_direct_to_millivolts(*(uint16_t *)oprop->opaque);
+        value = adm1272_direct_to_millivolts(*(uint16_t *)oprop);
     } else if (strcmp(oprop->name, "iout") == 0) {
-        value = adm1272_direct_to_milliamps(*(uint16_t *)oprop->opaque);
+        value = adm1272_direct_to_milliamps(*(uint16_t *)oprop);
     } else if (strcmp(oprop->name, "pin") == 0) {
-        value = adm1272_direct_to_watts(*(uint16_t *)oprop->opaque);
+        value = adm1272_direct_to_watts(*(uint16_t *)oprop);
     } else {
-        value = *(uint16_t *)oprop->opaque;
+        value = *(uint16_t *)oprop;
     }
 
     visit_type_uint16(v, oprop->name, &value, errp);
@@ -434,7 +434,7 @@ static void adm1272_set(ObjectProperty *oprop, Object *obj,
                         Visitor *v, Error **errp)
 {
     ADM1272State *s = ADM1272(obj);
-    uint16_t *internal = oprop->opaque;
+    uint16_t *internal = oprop;
     uint16_t value;
 
     if (!visit_type_uint16(v, oprop->name, &value, errp)) {

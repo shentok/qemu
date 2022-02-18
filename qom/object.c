@@ -2607,14 +2607,14 @@ static char *object_get_type(Object *obj, Error **errp)
 static void property_get_uint8_ptr(ObjectProperty *oprop, Object *obj,
                                    Visitor *v, Error **errp)
 {
-    uint8_t value = *(uint8_t *)oprop->opaque;
+    uint8_t value = *(uint8_t *)oprop;
     visit_type_uint8(v, oprop->name, &value, errp);
 }
 
 static void property_set_uint8_ptr(ObjectProperty *oprop, Object *obj,
                                    Visitor *v, Error **errp)
 {
-    uint8_t *field = oprop->opaque;
+    uint8_t *field = oprop;
     uint8_t value;
 
     if (!visit_type_uint8(v, oprop->name, &value, errp)) {
@@ -2627,14 +2627,14 @@ static void property_set_uint8_ptr(ObjectProperty *oprop, Object *obj,
 static void property_get_uint16_ptr(ObjectProperty *oprop, Object *obj, Visitor *v,
                                     Error **errp)
 {
-    uint16_t value = *(uint16_t *)oprop->opaque;
+    uint16_t value = *(uint16_t *)oprop;
     visit_type_uint16(v, oprop->name, &value, errp);
 }
 
 static void property_set_uint16_ptr(ObjectProperty *oprop, Object *obj, Visitor *v,
                                     Error **errp)
 {
-    uint16_t *field = oprop->opaque;
+    uint16_t *field = oprop;
     uint16_t value;
 
     if (!visit_type_uint16(v, oprop->name, &value, errp)) {
@@ -2647,14 +2647,14 @@ static void property_set_uint16_ptr(ObjectProperty *oprop, Object *obj, Visitor 
 static void property_get_uint32_ptr(ObjectProperty *oprop, Object *obj, Visitor *v,
                                     Error **errp)
 {
-    uint32_t value = *(uint32_t *)oprop->opaque;
+    uint32_t value = *(uint32_t *)oprop;
     visit_type_uint32(v, oprop->name, &value, errp);
 }
 
 static void property_set_uint32_ptr(ObjectProperty *oprop, Object *obj, Visitor *v,
                                     Error **errp)
 {
-    uint32_t *field = oprop->opaque;
+    uint32_t *field = oprop;
     uint32_t value;
 
     if (!visit_type_uint32(v, oprop->name, &value, errp)) {
@@ -2667,14 +2667,14 @@ static void property_set_uint32_ptr(ObjectProperty *oprop, Object *obj, Visitor 
 static void property_get_uint64_ptr(ObjectProperty *oprop, Object *obj, Visitor *v,
                                     Error **errp)
 {
-    uint64_t value = *(uint64_t *)oprop->opaque;
+    uint64_t value = *(uint64_t *)oprop;
     visit_type_uint64(v, oprop->name, &value, errp);
 }
 
 static void property_set_uint64_ptr(ObjectProperty *oprop, Object *obj, Visitor *v,
                                     Error **errp)
 {
-    uint64_t *field = oprop->opaque;
+    uint64_t *field = oprop;
     uint64_t value;
 
     if (!visit_type_uint64(v, oprop->name, &value, errp)) {

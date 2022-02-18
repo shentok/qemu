@@ -421,14 +421,14 @@ static bool npcm7xx_mft_check_mem_op(void *opaque, hwaddr offset,
 static void npcm7xx_mft_get_max_rpm(ObjectProperty *oprop, Object *obj,
                                     Visitor *v, Error **errp)
 {
-    visit_type_uint32(v, oprop->name, (uint32_t *)oprop->opaque, errp);
+    visit_type_uint32(v, oprop->name, (uint32_t *)oprop, errp);
 }
 
 static void npcm7xx_mft_set_max_rpm(ObjectProperty *oprop, Object *obj,
                                     Visitor *v, Error **errp)
 {
     NPCM7xxMFTState *s = NPCM7XX_MFT(obj);
-    uint32_t *max_rpm = oprop->opaque;
+    uint32_t *max_rpm = oprop;
     uint32_t value;
 
     if (!visit_type_uint32(v, oprop->name, &value, errp)) {
