@@ -210,9 +210,13 @@ static void dt_spi_flash_create(SysBusDevice *sbdev, void *fdt, const char *pare
 
     name = g_strdup_printf("%s/flash@0", parent);
     qemu_fdt_add_subnode(fdt, name);
-    qemu_fdt_setprop_cell(fdt, name, "spi-max-frequency", 50000000);
+    qemu_fdt_setprop(fdt, name, "spi-microwire", NULL, 0);
+    qemu_fdt_setprop_cell(fdt, name, "address-width", 0x10);
+    qemu_fdt_setprop_cell(fdt, name, "size", 0x8000);
+    qemu_fdt_setprop_cell(fdt, name, "pagesize", 0x40);
+    qemu_fdt_setprop_cell(fdt, name, "spi-max-frequency", 5000000);
     qemu_fdt_setprop_cell(fdt, name, "reg", 0);
-    qemu_fdt_setprop_string(fdt, name, "compatible", "jedec,spi-nor");
+    qemu_fdt_setprop_string(fdt, name, "compatible", "bt,mobadSpi");
 }
 
 static void dt_spi_create(void *fdt, const char *parent, const char *mpic)
@@ -312,6 +316,20 @@ static int create_devtree_etsec(SysBusDevice *sbdev, PlatformDevtreeData *data)
     return 0;
 }
 
+static void create_fdt_partition(void *fdt, const char *parent,
+                                 const char *foo, const char *label,
+                                 hwaddr start, hwaddr end)
+{
+    char *name;
+
+    name = g_strdup_printf("%s/%s", parent, foo);
+    qemu_fdt_add_subnode(fdt, name);
+    qemu_fdt_setprop_string(fdt, name, "label", label);
+    qemu_fdt_setprop_sized_cells(fdt, name, "reg", 1, start, 1, end);
+    /* qemu_fdt_setprop_cell(fdt, name, "read-only"); */
+    g_free(name);
+}
+
 static void sysbus_device_create_devtree(SysBusDevice *sbdev, void *opaque)
 {
     PlatformDevtreeData *data = opaque;
@@ -352,6 +370,17 @@ static void create_devtree_flash(SysBusDevice *sbdev,
     qemu_fdt_setprop_sized_cells(fdt, name, "reg",
                                  1, flashbase, 1, flashsize);
     qemu_fdt_setprop_cell(fdt, name, "bank-width", bank_width);
+
+    create_fdt_partition(fdt, name, "uboot@4",
+                         "u-boot", 0x3f40000, 0xc0000);
+    create_fdt_partition(fdt, name, "config@3",
+                         "u-boot config", 0x3f20000, 0x20000);
+    create_fdt_partition(fdt, name, "userflash@2",
+                         "userFlash (31MB)", 0x2000000, 0x1f00000);
+    create_fdt_partition(fdt, name, "rootfs@1",
+                         "rootfs (24MB)", 0x800000, 0x1800000);
+    create_fdt_partition(fdt, name, "kernelimg@0",
+                         "PowerPC Linux Kernel (8MB)", 0, 0x800000);
 }
 
 static void platform_bus_create_devtree(PPCE500MachineState *pms,
@@ -1071,7 +1100,7 @@ void ppce500_init(MachineState *machine)
         DeviceState *flash_dev;
         qemu_irq flash_cs;
 
-        flash_dev = qdev_new("is25wp256");
+        flash_dev = qdev_new("is25lq040b");
         qdev_prop_set_drive_err(flash_dev, "drive",
                                 blk_by_legacy_dinfo(dinfo),
                                 &error_fatal);
