@@ -23,7 +23,7 @@
 static void e500plat_fixup_devtree(void *fdt)
 {
     const char model[] = "QEMU ppce500";
-    const char compatible[] = "fsl,qemu-e500";
+    const char compatible[] = "men,cb30\0fsl,qemu-e500";
 
     qemu_fdt_setprop(fdt, "/", "model", model, sizeof(model));
     qemu_fdt_setprop(fdt, "/", "compatible", compatible,
@@ -84,15 +84,15 @@ static void e500plat_machine_class_init(ObjectClass *oc, void *data)
     pmc->mpic_version = OPENPIC_MODEL_FSL_MPIC_42;
     pmc->has_mpc8xxx_gpio = true;
     pmc->has_esdhc = true;
-    pmc->platform_bus_base = 0xf00000000ULL;
+    pmc->platform_bus_base = 0xEC000000ULL;
     pmc->platform_bus_size = 128 * MiB;
     pmc->platform_bus_first_irq = 5;
     pmc->platform_bus_num_irqs = 10;
-    pmc->ccsrbar_base = 0xFE0000000ULL;
-    pmc->pci_pio_base = 0xFE1000000ULL;
-    pmc->pci_mmio_base = 0xC00000000ULL;
-    pmc->pci_mmio_bus_base = 0xE0000000ULL;
-    pmc->spin_base = 0xFEF000000ULL;
+    pmc->ccsrbar_base = 0xE0000000ULL;
+    pmc->pci_pio_base = 0xE1000000ULL;
+    pmc->pci_mmio_base = 0xC0000000ULL;
+    pmc->pci_mmio_bus_base = 0xC0000000ULL;
+    pmc->spin_base = 0xEF000000ULL;
 
     mc->desc = "generic paravirt e500 platform";
     mc->init = e500plat_init;
