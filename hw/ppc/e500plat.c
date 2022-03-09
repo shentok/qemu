@@ -88,7 +88,7 @@ static void e500plat_machine_class_init(ObjectClass *oc, void *data)
     pmc->platform_bus_size = 128 * MiB;
     pmc->platform_bus_first_irq = 5;
     pmc->platform_bus_num_irqs = 10;
-    pmc->ccsrbar_base = 0xFE0000000ULL;
+    pmc->ccsrbar_base = 0xFF700000ULL;
     pmc->pci_pio_base = 0xFE1000000ULL;
     pmc->pci_mmio_base = 0xC00000000ULL;
     pmc->pci_mmio_bus_base = 0xE0000000ULL;
