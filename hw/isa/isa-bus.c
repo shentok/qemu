@@ -63,24 +63,6 @@ ISABus *isa_bus_new(DeviceState *dev, MemoryRegion* address_space,
     return isabus;
 }
 
-void isa_bus_irqs(ISABus *bus, qemu_irq *irqs)
-{
-    bus->irqs = irqs;
-}
-
-/*
- * isa_bus_get_irq() returns the corresponding qemu_irq entry for the i8259.
- *
- * This function is only for special cases such as the 'ferr', and
- * temporary use for normal devices until they are converted to qdev.
- */
-qemu_irq isa_bus_get_irq(ISABus *bus, unsigned isairq)
-{
-    assert(bus);
-    assert(isairq < ISA_NUM_IRQS);
-    return bus->irqs[isairq];
-}
-
 void isa_bus_dma(ISABus *bus, IsaDma *dma8, IsaDma *dma16)
 {
     assert(bus && dma8 && dma16);
