@@ -108,7 +108,7 @@ struct DeviceClass {
      * The underscore at the end ensures a compile-time error if someone
      * assigns to dc->props instead of using device_class_set_props.
      */
-    Property *props_;
+    const Property *props_;
 
     /*
      * Can this device be instantiated with -device / device_add?
@@ -811,7 +811,7 @@ char *qdev_get_own_fw_dev_path_from_handler(BusState *bus, DeviceState *dev);
  */
 void device_legacy_reset(DeviceState *dev);
 
-void device_class_set_props(DeviceClass *dc, Property *props);
+void device_class_set_props(DeviceClass *dc, const Property *props);
 
 /**
  * device_class_set_parent_reset:

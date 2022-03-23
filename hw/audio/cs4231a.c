@@ -686,7 +686,7 @@ static void cs4231a_realizefn (DeviceState *dev, Error **errp)
     AUD_register_card ("cs4231a", &s->card);
 }
 
-static Property cs4231a_properties[] = {
+static const Property cs4231a_properties[] = {
     DEFINE_AUDIO_PROPERTIES(CSState, card),
     DEFINE_PROP_UINT32 ("iobase",  CSState, port, 0x534),
     DEFINE_PROP_UINT32 ("irq",     CSState, irq,  9),
