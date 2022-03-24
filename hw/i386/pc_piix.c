@@ -252,6 +252,8 @@ static void pc_init1(MachineState *machine,
         dev = pci_create_simple(pci_bus, piix3_devfn + 1,
                                 xen_enabled() ? "piix3-ide-xen" : "piix3-ide");
         pci_ide_create_devs(dev);
+        qdev_connect_gpio_out(DEVICE(dev), 0, x86ms->gsi[14]);
+        qdev_connect_gpio_out(DEVICE(dev), 1, x86ms->gsi[15]);
         idebus[0] = qdev_get_child_bus(&dev->qdev, "ide.0");
         idebus[1] = qdev_get_child_bus(&dev->qdev, "ide.1");
         pc_cmos_init(pcms, idebus[0], idebus[1], rtc_state);

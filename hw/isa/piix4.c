@@ -248,6 +248,8 @@ static void piix4_realize(PCIDevice *dev, Error **errp)
     /* IDE */
     pci = pci_create_simple(pci_bus, dev->devfn + 1, "piix4-ide");
     pci_ide_create_devs(pci);
+    qdev_connect_gpio_out(DEVICE(pci), 0, s->isa[14]);
+    qdev_connect_gpio_out(DEVICE(pci), 1, s->isa[15]);
 
     /* USB */
     pci_create_simple(pci_bus, dev->devfn + 2, "piix4-usb-uhci");

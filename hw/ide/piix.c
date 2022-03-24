@@ -129,23 +129,24 @@ static int pci_piix_init_ports(PCIIDEState *d)
     static const struct {
         int iobase;
         int iobase2;
-        int isairq;
     } port_info[] = {
-        {0x1f0, 0x3f6, 14},
-        {0x170, 0x376, 15},
+        {0x1f0, 0x3f6},
+        {0x170, 0x376},
     };
+    DeviceState *dev = DEVICE(d);
     int i, ret;
 
     for (i = 0; i < 2; i++) {
-        ide_bus_init(&d->bus[i], sizeof(d->bus[i]), DEVICE(d), i, 2);
+        ide_bus_init(&d->bus[i], sizeof(d->bus[i]), dev, i, 2);
         ret = ide_init_ioport(&d->bus[i], NULL, port_info[i].iobase,
                               port_info[i].iobase2);
         if (ret) {
             return ret;
         }
-        ide_init2(&d->bus[i], isa_get_irq(NULL, port_info[i].isairq));
+        ide_init2(&d->bus[i], NULL);
 
         bmdma_init(&d->bus[i], &d->bmdma[i], d);
+        qdev_init_gpio_out(dev, &d->bmdma[i].irq, 1);
         d->bmdma[i].bus = &d->bus[i];
         ide_register_restart_cb(&d->bus[i]);
     }
