@@ -46,6 +46,7 @@
 #include "hw/net/fsl_etsec/etsec.h"
 #include "hw/i2c/i2c.h"
 #include "hw/irq.h"
+#include "hw/ssi/ssi.h"
 
 #define EPAPR_MAGIC                (0x45504150)
 #define BINARY_DEVICE_TREE_FILE    "mpc8544ds.dtb"
@@ -210,8 +211,9 @@ static void dt_spi_create(void *fdt, const char *parent, const char *mpic)
     hwaddr mmio = MPC8544_ESPI_REGS_OFFSET;
     hwaddr size = MPC8544_ESPI_SIZE;
     int irq = MPC8544_ESPI_IRQ;
+    char *name;
 
-    gchar *name = g_strdup_printf("%s/spi@%" PRIx64, parent, mmio);
+    name = g_strdup_printf("%s/spi@%" PRIx64, parent, mmio);
     qemu_fdt_add_subnode(fdt, name);
     qemu_fdt_setprop_cells(fdt, name, "fsl,espi-num-chipselects", 3);
     qemu_fdt_setprop_cells(fdt, name, "interrupts", irq, 0x2);
@@ -220,7 +222,15 @@ static void dt_spi_create(void *fdt, const char *parent, const char *mpic)
     qemu_fdt_setprop_cell(fdt, name, "#address-cells", 1);
     qemu_fdt_setprop_cells(fdt, name, "reg", mmio, size);
     qemu_fdt_setprop_string(fdt, name, "compatible", "fsl,mpc8536-espi");
+    g_free(name);
 
+    name = g_strdup_printf("%s/spi@%" PRIx64 "/mmc@0", parent, mmio);
+    qemu_fdt_add_subnode(fdt, name);
+    qemu_fdt_setprop(fdt, name, "disable-wp", NULL, 0);
+    qemu_fdt_setprop_cells(fdt, name, "voltage-ranges", 3300, 3300);
+    qemu_fdt_setprop_cell(fdt, name, "spi-max-frequency", 20000000);
+    qemu_fdt_setprop_cell(fdt, name, "reg", 0);
+    qemu_fdt_setprop_string(fdt, name, "compatible", "mmc-spi-slot");
     g_free(name);
 }
 
@@ -878,6 +888,7 @@ void ppce500_init(MachineState *machine)
     unsigned int pci_irq_nrs[PCI_NUM_PINS] = {1, 2, 3, 4};
     IrqLines *irqs;
     DeviceState *dev, *mpicdev;
+    DriveInfo *dinfo;
     CPUPPCState *firstenv = NULL;
     MemoryRegion *ccsr_addr_space;
     SysBusDevice *s;
@@ -985,6 +996,21 @@ void ppce500_init(MachineState *machine)
     sysbus_connect_irq(s, 0, qdev_get_gpio_in(mpicdev, MPC8544_ESPI_IRQ));
     memory_region_add_subregion(ccsr_addr_space, MPC8544_ESPI_REGS_OFFSET,
                                 sysbus_mmio_get_region(s, 0));
+
+    /* Connect an SPI flash to SPI0 */
+    dinfo = drive_get(IF_MTD, 0, 0);
+    if (dinfo) {
+        DeviceState *flash_dev = qdev_new("is25wp256");
+
+        qdev_prop_set_drive_err(flash_dev, "drive",
+                                blk_by_legacy_dinfo(dinfo),
+                                &error_fatal);
+        qdev_realize_and_unref(flash_dev,
+                               qdev_get_child_bus(dev, "spi"),
+                               &error_fatal);
+        sysbus_connect_irq(s, 1,
+                           qdev_get_gpio_in_named(flash_dev, SSI_GPIO_CS, 0));
+    }
 
     /* General Utility device */
     dev = qdev_new("mpc8544-guts");
