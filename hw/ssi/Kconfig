@@ -1,3 +1,8 @@
+config FSL_ESPI
+    bool
+    select SSI
+    select SSI_FDT
+
 config PL022
     bool
     select SSI

@@ -1465,6 +1465,7 @@ F: hw/gpio/mpc8xxx.c
 F: hw/i2c/mpc_i2c.c
 F: hw/net/fsl_etsec/
 F: hw/pci-host/ppce500.c
+F: hw/ssi/fsl_espi.c
 F: include/hw/ppc/ppc_e500.h
 F: include/hw/pci-host/ppce500.h
 F: pc-bios/ppce500.dts
