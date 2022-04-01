@@ -1,4 +1,5 @@
 system_ss.add(when: 'CONFIG_ASPEED_SOC', if_true: files('aspeed_smc.c'))
+system_ss.add(when: 'CONFIG_MPC_ESPI', if_true: files('mpc_espi.c'))
 system_ss.add(when: 'CONFIG_MSF2', if_true: files('mss-spi.c'))
 system_ss.add(when: 'CONFIG_NPCM7XX', if_true: files('npcm7xx_fiu.c', 'npcm_pspi.c'))
 system_ss.add(when: 'CONFIG_PL022', if_true: files('pl022.c'))
