@@ -32,3 +32,10 @@ ibex_spi_host_reset(const char *msg) "%s"
 ibex_spi_host_transfer(uint32_t tx_data, uint32_t rx_data) "tx_data: 0x%" PRIx32 " rx_data: @0x%" PRIx32
 ibex_spi_host_write(uint64_t addr, uint32_t size, uint64_t data) "@0x%" PRIx64 " size %u: 0x%" PRIx64
 ibex_spi_host_read(uint64_t addr, uint32_t size) "@0x%" PRIx64 " size %u:"
+
+# mpc_espi.c
+
+mpc_espi_read(const char *id, const char *reg, unsigned int size, uint32_t value) "%s %s size: %u value: 0x%08" PRIx32
+mpc_espi_write(const char *id, const char *reg, unsigned int size, uint32_t value) "%s %s size: %u value: 0x%08" PRIx32
+mpc_espi_spcom(const char *id, int cs, bool dual, bool to, int tranlen, int rxskip) "%s cs: %d, do: %d, to: %d, len: %d, skip: %d"
+mpc_espi_spmode(const char *id, int cs, bool rev, bool odd, bool pol, int len) "%s cs: %d, rev: %d, odd: %d, pol: %d, len: %d"
