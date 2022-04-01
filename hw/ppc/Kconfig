@@ -129,6 +129,7 @@ config E500
     select PLATFORM_BUS
     select PPCE500_PCI
     select SERIAL
+    select MPC_ESPI
     select MPC_I2C
     select FDT_PPC
     select DS1338

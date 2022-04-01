@@ -1,3 +1,7 @@
+config MPC_ESPI
+    bool
+    select SSI
+
 config PL022
     bool
     select SSI
