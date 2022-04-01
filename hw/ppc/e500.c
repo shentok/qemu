@@ -49,6 +49,7 @@
 #include "hw/i2c/i2c.h"
 #include "hw/irq.h"
 #include "hw/sd/sdhci.h"
+#include "hw/ssi/ssi.h"
 #include "hw/misc/unimp.h"
 
 #define EPAPR_MAGIC                (0x45504150)
@@ -203,12 +204,27 @@ static void dt_i2c_create(void *fdt, const char *soc, const char *mpic,
     g_free(i2c);
 }
 
+static void dt_spi_flash_create(SysBusDevice *sbdev, void *fdt, const char *parent)
+{
+    g_autofree char *name = NULL;
+
+    name = g_strdup_printf("%s/flash@0", parent);
+    qemu_fdt_add_subnode(fdt, name);
+    qemu_fdt_setprop_cell(fdt, name, "spi-max-frequency", 50000000);
+    qemu_fdt_setprop_cell(fdt, name, "reg", 0);
+    qemu_fdt_setprop_string(fdt, name, "compatible", "jedec,spi-nor");
+}
+
 static void dt_spi_create(void *fdt, const char *parent, const char *mpic)
 {
     hwaddr mmio = MPC85XX_ESPI_REGS_OFFSET;
     hwaddr size = MPC85XX_ESPI_SIZE;
     int irq = MPC85XX_ESPI_IRQ;
     g_autofree char *name = NULL;
+    DeviceState *dev;
+    bool ambiguous;
+    BusChild *kid;
+    BusState *bus;
 
     name = g_strdup_printf("%s/spi@%" PRIx64, parent, mmio);
     qemu_fdt_add_subnode(fdt, name);
@@ -219,6 +235,16 @@ static void dt_spi_create(void *fdt, const char *parent, const char *mpic)
     qemu_fdt_setprop_cell(fdt, name, "#address-cells", 1);
     qemu_fdt_setprop_cells(fdt, name, "reg", mmio, size);
     qemu_fdt_setprop_string(fdt, name, "compatible", "fsl,mpc8536-espi");
+
+    dev = DEVICE(object_resolve_path_type("", "mpc-espi", &ambiguous));
+    assert(dev);
+    assert(!ambiguous);
+    bus = qdev_get_child_bus(dev, "spi");
+    assert(bus);
+
+    QTAILQ_FOREACH(kid, &bus->children, sibling) {
+        dt_spi_flash_create(SYS_BUS_DEVICE(kid->child), fdt, name);
+    }
 }
 
 static void dt_sdhc_create(void *fdt, const char *parent, const char *mpic)
@@ -1037,6 +1063,23 @@ void ppce500_init(MachineState *machine)
     sysbus_connect_irq(s, 0, qdev_get_gpio_in(mpicdev, MPC85XX_ESPI_IRQ));
     memory_region_add_subregion(ccsr_addr_space, MPC85XX_ESPI_REGS_OFFSET,
                                 sysbus_mmio_get_region(s, 0));
+
+    /* Connect an SPI flash to SPI0 */
+    dinfo = drive_get(IF_MTD, 0, 0);
+    if (dinfo) {
+        BusState *spi_bus = qdev_get_child_bus(dev, "spi");
+        DeviceState *flash_dev;
+        qemu_irq flash_cs;
+
+        flash_dev = qdev_new("is25wp256");
+        qdev_prop_set_drive_err(flash_dev, "drive",
+                                blk_by_legacy_dinfo(dinfo),
+                                &error_fatal);
+        qdev_realize_and_unref(flash_dev, spi_bus, &error_fatal);
+
+        flash_cs = qdev_get_gpio_in_named(flash_dev, SSI_GPIO_CS, 0);
+        sysbus_connect_irq(s, 1, flash_cs);
+    }
 
     /* eSDHC */
     if (pmc->has_esdhc) {
