@@ -10,6 +10,13 @@ aspeed_smc_dma_rw(const char *dir, uint32_t flash_addr, uint64_t dram_addr, uint
 aspeed_smc_write(uint64_t addr,  uint32_t size, uint64_t data) "@0x%" PRIx64 " size %u: 0x%" PRIx64
 aspeed_smc_flash_select(int cs, const char *prefix) "CS%d %sselect"
 
+# fsl_espi.c
+
+fsl_espi_read(const char *reg, unsigned int size, uint32_t value) "%s size: %u value: 0x%08" PRIx32
+fsl_espi_write(const char *reg, unsigned int size, uint32_t value) "%s size: %u value: 0x%08" PRIx32
+fsl_espi_spcom(int cs, bool dual, bool to, int tranlen, int rxskip) "cs: %d, do: %d, to: %d, len: %d, skip: %d"
+fsl_espi_spmode(int cs, bool rev, bool pol, int len) "cs: %d, rev: %d, pol: %d, len: %d"
+
 # npcm7xx_fiu.c
 
 npcm7xx_fiu_enter_reset(const char *id, int reset_type) "%s reset type: %d"
