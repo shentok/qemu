@@ -20,6 +20,7 @@ The ``ppce500`` machine supports the following devices:
 * 1 Freescale MPC8xxx PCI host controller
 * VirtIO devices via PCI bus
 * 1 Freescale Enhanced Secure Digital Host controller (eSDHC)
+* 1 Freescale Enhanced Serial Peripheral Interface controller (eSPI)
 * 1 Freescale Enhanced Triple Speed Ethernet controller (eTSEC)
 
 Hardware configuration information
