@@ -164,6 +164,7 @@ config E500
     select PPCE500_PCI
     select SDHCI
     select SERIAL_MM
+    select MPC_ESPI
     select MPC_I2C
     select FDT_PPC
     select DS1338

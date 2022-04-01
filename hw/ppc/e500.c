@@ -65,6 +65,8 @@
 #define MPC8544_MSI_REGS_OFFSET   0x41600ULL
 #define MPC8544_SERIAL0_REGS_OFFSET 0x4500ULL
 #define MPC8544_SERIAL1_REGS_OFFSET 0x4600ULL
+#define MPC85XX_ESPI_REGS_OFFSET   0x7000ULL
+#define MPC85XX_ESPI_SIZE          0x1000ULL
 #define MPC8544_PCI_REGS_OFFSET    0x8000ULL
 #define MPC8544_PCI_REGS_SIZE      0x1000ULL
 #define MPC85XX_ESDHC_REGS_OFFSET  0x2e000ULL
@@ -75,6 +77,7 @@
 #define MPC8XXX_GPIO_IRQ           47
 #define MPC8544_I2C_IRQ            43
 #define MPC85XX_ESDHC_IRQ          72
+#define MPC85XX_ESPI_IRQ           59
 #define RTC_REGS_OFFSET            0x68
 
 #define PLATFORM_CLK_FREQ_HZ       (400 * 1000 * 1000)
@@ -198,6 +201,24 @@ static void dt_i2c_create(void *fdt, const char *soc, const char *mpic,
     qemu_fdt_setprop_string(fdt, "/aliases", alias, i2c);
 
     g_free(i2c);
+}
+
+static void dt_spi_create(void *fdt, const char *parent, const char *mpic)
+{
+    hwaddr mmio = MPC85XX_ESPI_REGS_OFFSET;
+    hwaddr size = MPC85XX_ESPI_SIZE;
+    int irq = MPC85XX_ESPI_IRQ;
+    g_autofree char *name = NULL;
+
+    name = g_strdup_printf("%s/spi@%" PRIx64, parent, mmio);
+    qemu_fdt_add_subnode(fdt, name);
+    qemu_fdt_setprop_cells(fdt, name, "fsl,espi-num-chipselects", 3);
+    qemu_fdt_setprop_cells(fdt, name, "interrupts", irq, 0x2);
+    qemu_fdt_setprop_phandle(fdt, name, "interrupt-parent", mpic);
+    qemu_fdt_setprop_cell(fdt, name, "#size-cells", 0);
+    qemu_fdt_setprop_cell(fdt, name, "#address-cells", 1);
+    qemu_fdt_setprop_cells(fdt, name, "reg", mmio, size);
+    qemu_fdt_setprop_string(fdt, name, "compatible", "fsl,mpc8536-espi");
 }
 
 static void dt_sdhc_create(void *fdt, const char *parent, const char *mpic)
@@ -565,6 +586,9 @@ static int ppce500_load_device_tree(PPCE500MachineState *pms,
     dt_i2c_create(fdt, soc, mpic, "i2c");
 
     dt_rtc_create(fdt, "i2c", "rtc");
+
+    /* spi */
+    dt_spi_create(fdt, soc, mpic);
 
     /* sdhc */
     if (pmc->has_esdhc) {
@@ -1005,6 +1029,14 @@ void ppce500_init(MachineState *machine)
                                 sysbus_mmio_get_region(s, 0));
     i2c = I2C_BUS(qdev_get_child_bus(dev, "i2c"));
     i2c_slave_create_simple(i2c, "ds1338", RTC_REGS_OFFSET);
+
+    /* eSPI */
+    dev = qdev_new("mpc-espi");
+    s = SYS_BUS_DEVICE(dev);
+    sysbus_realize_and_unref(s, &error_fatal);
+    sysbus_connect_irq(s, 0, qdev_get_gpio_in(mpicdev, MPC85XX_ESPI_IRQ));
+    memory_region_add_subregion(ccsr_addr_space, MPC85XX_ESPI_REGS_OFFSET,
+                                sysbus_mmio_get_region(s, 0));
 
     /* eSDHC */
     if (pmc->has_esdhc) {
