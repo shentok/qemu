@@ -27,3 +27,7 @@ config CADENCE_SDHCI
 config IMX_USDHC
     bool
     select SDHCI
+
+config S3C_SDHCI
+    bool
+    select SDHCI

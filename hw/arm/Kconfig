@@ -52,7 +52,7 @@ config EXYNOS4
     select LAN9118
     select PL310 # cache controller
     select PTIMER
-    select SDHCI
+    select S3C_SDHCI
     select USB_EHCI_SYSBUS
     select OR_IRQ
 
