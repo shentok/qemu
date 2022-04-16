@@ -414,8 +414,8 @@ config FSL_IMX25
     select IMX
     select IMX_FEC
     select IMX_I2C
+    select IMX_USDHC
     select WDT_IMX2
-    select SDHCI
 
 config FSL_IMX31
     bool
@@ -434,8 +434,8 @@ config FSL_IMX6
     select IMX_FEC
     select IMX_I2C
     select IMX_USBPHY
+    select IMX_USDHC
     select WDT_IMX2
-    select SDHCI
 
 config ASPEED_SOC
     bool
@@ -480,9 +480,9 @@ config FSL_IMX7
     select IMX
     select IMX_FEC
     select IMX_I2C
+    select IMX_USDHC
     select WDT_IMX2
     select PCI_EXPRESS_DESIGNWARE
-    select SDHCI
     select UNIMP
 
 config ARM_SMMUV3
@@ -495,8 +495,8 @@ config FSL_IMX6UL
     select IMX
     select IMX_FEC
     select IMX_I2C
+    select IMX_USDHC
     select WDT_IMX2
-    select SDHCI
     select UNIMP
 
 config MICROBIT
