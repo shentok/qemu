@@ -35,6 +35,13 @@
 #include "hw/ide/pci.h"
 #include "trace.h"
 
+#define TYPE_PIIX_IDE "piix-ide"
+OBJECT_DECLARE_SIMPLE_TYPE(PIIXIDEState, PIIX_IDE)
+
+struct PIIXIDEState {
+    PCIIDEState i;
+};
+
 static uint64_t bmdma_read(void *opaque, hwaddr addr, unsigned size)
 {
     BMDMAState *bm = opaque;
@@ -201,58 +208,65 @@ static void pci_piix_ide_exitfn(PCIDevice *dev)
     }
 }
 
-/* NOTE: for the PIIX3, the IRQs and IOports are hardcoded */
-static void piix3_ide_class_init(ObjectClass *klass, void *data)
+static void piix_ide_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
-    PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
+    PCIDeviceClass *pd = PCI_DEVICE_CLASS(klass);
 
+    pd->realize = pci_piix_ide_realize;
+    pd->exit = pci_piix_ide_exitfn;
+    pd->vendor_id = PCI_VENDOR_ID_INTEL;
+    pd->class_id = PCI_CLASS_STORAGE_IDE;
     dc->reset = piix_ide_reset;
-    k->realize = pci_piix_ide_realize;
-    k->exit = pci_piix_ide_exitfn;
-    k->vendor_id = PCI_VENDOR_ID_INTEL;
-    k->device_id = PCI_DEVICE_ID_INTEL_82371SB_1;
-    k->class_id = PCI_CLASS_STORAGE_IDE;
     set_bit(DEVICE_CATEGORY_STORAGE, dc->categories);
     dc->hotpluggable = false;
 }
 
+static const TypeInfo piix_ide_info = {
+    .name = TYPE_PIIX_IDE,
+    .parent = TYPE_PCI_IDE,
+    .instance_size = sizeof(PIIXIDEState),
+    .class_init = piix_ide_class_init,
+    .abstract = true,
+};
+
+/* NOTE: for the PIIX3, the IRQs and IOports are hardcoded */
+static void piix3_ide_class_init(ObjectClass *klass, void *data)
+{
+    PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
+
+    k->device_id = PCI_DEVICE_ID_INTEL_82371SB_1;
+}
+
 static const TypeInfo piix3_ide_info = {
     .name          = "piix3-ide",
-    .parent        = TYPE_PCI_IDE,
+    .parent        = TYPE_PIIX_IDE,
     .class_init    = piix3_ide_class_init,
 };
 
 static const TypeInfo piix3_ide_xen_info = {
     .name          = "piix3-ide-xen",
-    .parent        = TYPE_PCI_IDE,
+    .parent        = TYPE_PIIX_IDE,
     .class_init    = piix3_ide_class_init,
 };
 
 /* NOTE: for the PIIX4, the IRQs and IOports are hardcoded */
 static void piix4_ide_class_init(ObjectClass *klass, void *data)
 {
-    DeviceClass *dc = DEVICE_CLASS(klass);
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
 
-    dc->reset = piix_ide_reset;
-    k->realize = pci_piix_ide_realize;
-    k->exit = pci_piix_ide_exitfn;
-    k->vendor_id = PCI_VENDOR_ID_INTEL;
     k->device_id = PCI_DEVICE_ID_INTEL_82371AB;
-    k->class_id = PCI_CLASS_STORAGE_IDE;
-    set_bit(DEVICE_CATEGORY_STORAGE, dc->categories);
-    dc->hotpluggable = false;
 }
 
 static const TypeInfo piix4_ide_info = {
     .name          = "piix4-ide",
-    .parent        = TYPE_PCI_IDE,
+    .parent        = TYPE_PIIX_IDE,
     .class_init    = piix4_ide_class_init,
 };
 
 static void piix_ide_register_types(void)
 {
+    type_register_static(&piix_ide_info);
     type_register_static(&piix3_ide_info);
     type_register_static(&piix3_ide_xen_info);
     type_register_static(&piix4_ide_info);
