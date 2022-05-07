@@ -243,7 +243,7 @@ static void piix4_realize(PCIDevice *dev, Error **errp)
     if (!qdev_realize(DEVICE(&s->rtc), BUS(isa_bus), errp)) {
         return;
     }
-    s->rtc.irq = isa_get_irq(ISA_DEVICE(&s->rtc), s->rtc.isairq);
+    s->rtc.irq = s->isa[s->rtc.isairq];
 
     /* IDE */
     pci = pci_create_simple(pci_bus, dev->devfn + 1, "piix4-ide");
