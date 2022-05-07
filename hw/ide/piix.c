@@ -144,11 +144,11 @@ static int pci_piix_init_ports(PCIIDEState *d)
             return ret;
         }
         ide_init2(&d->bus[i], NULL);
+        ide_register_restart_cb(&d->bus[i]);
 
         bmdma_init(&d->bus[i], &d->bmdma[i], d);
         qdev_init_gpio_out(dev, &d->bmdma[i].irq, 1);
         d->bmdma[i].bus = &d->bus[i];
-        ide_register_restart_cb(&d->bus[i]);
     }
 
     return 0;
