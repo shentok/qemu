@@ -256,6 +256,8 @@ static void pc_init1(MachineState *machine,
         qdev_connect_gpio_out(DEVICE(dev), 1, x86ms->gsi[15]);
         idebus[0] = qdev_get_child_bus(&dev->qdev, "ide.0");
         idebus[1] = qdev_get_child_bus(&dev->qdev, "ide.1");
+        ide_init_bus_ioport(IDE_BUS(idebus[0]), isa_bus, 0x1f0, 0x3f6);
+        ide_init_bus_ioport(IDE_BUS(idebus[1]), isa_bus, 0x170, 0x376);
         pc_cmos_init(pcms, idebus[0], idebus[1], rtc_state);
     }
 #ifdef CONFIG_IDE_ISA

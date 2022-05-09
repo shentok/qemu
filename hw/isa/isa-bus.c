@@ -140,6 +140,18 @@ int isa_register_portio_list(ISADevice *dev,
     return 0;
 }
 
+void isa_bus_register_portio_list(ISABus *isabus,
+                                  PortioList *piolist, uint16_t start,
+                                  const MemoryRegionPortio *pio_start,
+                                  void *opaque, const char *name)
+{
+    assert(isabus);
+    assert(piolist && !piolist->owner);
+
+    portio_list_init(piolist, NULL, pio_start, opaque, name);
+    portio_list_add(piolist, isabus->address_space_io, start);
+}
+
 ISADevice *isa_new(const char *name)
 {
     return ISA_DEVICE(qdev_new(name));

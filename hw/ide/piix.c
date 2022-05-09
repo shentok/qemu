@@ -124,25 +124,13 @@ static void piix_ide_reset(DeviceState *dev)
     pci_conf[0x20] = 0x01; /* BMIBA: 20-23h */
 }
 
-static int pci_piix_init_ports(PCIIDEState *d)
+static void pci_piix_init_ports(PCIIDEState *d)
 {
-    static const struct {
-        int iobase;
-        int iobase2;
-    } port_info[] = {
-        {0x1f0, 0x3f6},
-        {0x170, 0x376},
-    };
     DeviceState *dev = DEVICE(d);
-    int i, ret;
+    int i;
 
     for (i = 0; i < 2; i++) {
         ide_bus_init(&d->bus[i], sizeof(d->bus[i]), dev, i, 2);
-        ret = ide_init_ioport(&d->bus[i], NULL, port_info[i].iobase,
-                              port_info[i].iobase2);
-        if (ret) {
-            return ret;
-        }
         ide_init2(&d->bus[i], NULL);
         ide_register_restart_cb(&d->bus[i]);
 
@@ -150,15 +138,12 @@ static int pci_piix_init_ports(PCIIDEState *d)
         qdev_init_gpio_out(dev, &d->bmdma[i].irq, 1);
         d->bmdma[i].bus = &d->bus[i];
     }
-
-    return 0;
 }
 
 static void pci_piix_ide_realize(PCIDevice *dev, Error **errp)
 {
     PCIIDEState *d = PCI_IDE(dev);
     uint8_t *pci_conf = dev->config;
-    int rc;
 
     pci_conf[PCI_CLASS_PROG] = 0x80; // legacy ATA mode
 
@@ -167,11 +152,7 @@ static void pci_piix_ide_realize(PCIDevice *dev, Error **errp)
 
     vmstate_register(VMSTATE_IF(dev), 0, &vmstate_ide_pci, d);
 
-    rc = pci_piix_init_ports(d);
-    if (rc) {
-        error_setg_errno(errp, -rc, "Failed to realize %s",
-                         object_get_typename(OBJECT(dev)));
-    }
+    pci_piix_init_ports(d);
 }
 
 int pci_piix3_xen_ide_unplug(DeviceState *dev, bool aux)
