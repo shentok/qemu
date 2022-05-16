@@ -494,7 +494,7 @@ static void piix4_pm_realize(PCIDevice *dev, Error **errp)
     qemu_add_machine_init_done_notifier(&s->machine_ready);
 
     if (xen_enabled()) {
-        s->acpi_pci_hotplug.use_acpi_hotplug_bridge = false;
+        qdev_prop_set_bit(DEVICE(dev), ACPI_PM_PROP_ACPI_PCIHP_BRIDGE, false);
     }
 
     piix4_acpi_system_hot_add_init(pci_address_space_io(dev),
