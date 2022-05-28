@@ -39,7 +39,7 @@
 
 static void piix3_set_irq_pic(PIIX3State *piix3, int pic_irq)
 {
-    qemu_set_irq(piix3->pic[pic_irq],
+    qemu_set_irq(piix3->pic.int_out[pic_irq],
                  !!(piix3->pic_levels &
                     (((1ULL << PIIX_NUM_PIRQS) - 1) <<
                      (pic_irq * PIIX_NUM_PIRQS))));
@@ -295,11 +295,20 @@ static const MemoryRegionOps rcr_ops = {
 static void pci_piix3_realize(PCIDevice *dev, Error **errp)
 {
     PIIX3State *d = PIIX3_PCI_DEVICE(dev);
+    ISABus *isa_bus;
 
-    if (!isa_bus_new(DEVICE(d), get_system_memory(),
-                     pci_address_space_io(dev), errp)) {
+    isa_bus = isa_bus_new(DEVICE(d), get_system_memory(),
+                          pci_address_space_io(dev), errp);
+    if (!isa_bus) {
         return;
     }
+
+    /* PIC */
+    if (!qdev_realize(DEVICE(&d->pic), BUS(isa_bus), errp)) {
+        return;
+    }
+
+    isa_bus_irqs(isa_bus, d->pic.int_in);
 
     memory_region_init_io(&d->rcr_mem, OBJECT(dev), &rcr_ops, d,
                           "piix3-reset-control", 1);
@@ -320,6 +329,13 @@ static void build_pci_isa_aml(AcpiDevAmlIf *adev, Aml *scope)
     QTAILQ_FOREACH(kid, &bus->children, sibling) {
         call_dev_aml_func(DEVICE(kid->child), scope);
     }
+}
+
+static void pci_piix3_init(Object *obj)
+{
+    PIIX3State *d = PIIX3_PCI_DEVICE(obj);
+
+    object_initialize_child(obj, "pic", &d->pic, TYPE_ISA_PIC);
 }
 
 static void pci_piix3_class_init(ObjectClass *klass, void *data)
@@ -346,6 +362,7 @@ static void pci_piix3_class_init(ObjectClass *klass, void *data)
 static const TypeInfo piix3_pci_type_info = {
     .name = TYPE_PIIX3_PCI_DEVICE,
     .parent = TYPE_PCI_DEVICE,
+    .instance_init  = pci_piix3_init,
     .instance_size = sizeof(PIIX3State),
     .abstract = true,
     .class_init = pci_piix3_class_init,
