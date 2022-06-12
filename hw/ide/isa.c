@@ -47,7 +47,6 @@ struct ISAIDEState {
     uint32_t  iobase;
     uint32_t  iobase2;
     uint32_t  isairq;
-    qemu_irq  irq;
 };
 
 static void isa_ide_reset(DeviceState *d)
@@ -75,8 +74,7 @@ static void isa_ide_realizefn(DeviceState *dev, Error **errp)
 
     ide_bus_init(&s->bus, sizeof(s->bus), dev, 0, 2);
     ide_init_ioport(&s->bus, isadev, s->iobase, s->iobase2);
-    s->irq = isa_get_irq(isadev, s->isairq);
-    ide_init2(&s->bus, s->irq);
+    ide_init2(&s->bus, isa_get_irq(isadev, s->isairq));
     vmstate_register(VMSTATE_IF(dev), 0, &vmstate_ide_isa, s);
     ide_register_restart_cb(&s->bus);
 }
