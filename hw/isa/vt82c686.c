@@ -405,6 +405,7 @@ static const TypeInfo via_pm_info = {
     .instance_size = sizeof(ViaPMState),
     .abstract      = true,
     .interfaces = (const InterfaceInfo[]) {
+        { TYPE_HOTPLUG_HANDLER },
         { INTERFACE_CONVENTIONAL_PCI_DEVICE },
         { },
     },
