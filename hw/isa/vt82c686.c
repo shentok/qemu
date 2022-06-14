@@ -1048,6 +1048,7 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
         return;
     }
 
+    pci_bus_irqs(pci_bus, via_isa_pirq, s, PCI_NUM_PINS);
     pci_bus_set_route_irq_fn(pci_bus, via_isa_get_pci_irq);
 }
 
