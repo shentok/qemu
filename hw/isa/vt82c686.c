@@ -24,6 +24,7 @@
 #include "hw/intc/i8259.h"
 #include "hw/irq.h"
 #include "hw/dma/i8257.h"
+#include "hw/i386/pc.h"
 #include "hw/usb/hcd-uhci.h"
 #include "hw/timer/i8254.h"
 #include "hw/rtc/mc146818rtc.h"
@@ -51,6 +52,7 @@ OBJECT_DECLARE_SIMPLE_TYPE(ViaPMState, VIA_PM)
 struct ViaPMState {
     PCIDevice dev;
     MemoryRegion io;
+    uint32_t io_base;
     ACPIREGS ar;
     APMState apm;
     PMSMBus smb;
@@ -82,10 +84,10 @@ static void apm_ctrl_changed(uint32_t val, void *arg)
 
 static void pm_io_space_update(ViaPMState *s)
 {
-    uint32_t pmbase = pci_get_long(s->dev.config + 0x48) & 0xff80UL;
+    s->io_base = pci_get_long(s->dev.config + 0x48) & 0xff80UL;
 
     memory_region_transaction_begin();
-    memory_region_set_address(&s->io, pmbase);
+    memory_region_set_address(&s->io, s->io_base);
     memory_region_set_enabled(&s->io, s->dev.config[0x41] & BIT(7));
     memory_region_transaction_commit();
 }
@@ -135,6 +137,7 @@ static void pm_write_config(PCIDevice *d, uint32_t addr, uint32_t val, int len)
     if (ranges_overlap(addr, len, 0x48, 4)) {
         uint32_t v = pci_get_long(s->dev.config + 0x48);
         pci_set_long(s->dev.config + 0x48, (v & 0xff80UL) | 0x1b);
+        pm_io_space_update(s);
     }
     if (range_covers_byte(addr, len, 0x41)) {
         pm_io_space_update(s);
@@ -215,6 +218,8 @@ static void via_pm_add_properties(ViaPMState *s)
                                   &acpi_disable_cmd, OBJ_PROP_FLAG_READ);
     object_property_add_uint16_ptr(OBJECT(s), ACPI_PM_PROP_SCI_INT,
                                    &sci_int, OBJ_PROP_FLAG_READ);
+    object_property_add_uint32_ptr(OBJECT(s), ACPI_PM_PROP_PM_IO_BASE,
+                                   &s->io_base, OBJ_PROP_FLAG_READ);
 }
 
 static void via_pm_realize(PCIDevice *dev, Error **errp)
@@ -250,6 +255,13 @@ static void via_pm_init(Object *obj)
     qdev_init_gpio_out_named(DEVICE(obj), &s->smi_irq, "smi-irq", 1);
 }
 
+static void via_pm_send_gpe(AcpiDeviceIf *adev, AcpiEventStatusBits ev)
+{
+    ViaPMState *s = VIA_PM(adev);
+
+    acpi_send_gpe_event(&s->ar, s->irq, ev);
+}
+
 typedef struct via_pm_init_info {
     uint16_t device_id;
 } ViaPMInitInfo;
@@ -263,6 +275,7 @@ static void via_pm_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
+    AcpiDeviceIfClass *adevc = ACPI_DEVICE_IF_CLASS(klass);
     ViaPMInitInfo *info = data;
 
     k->realize = via_pm_realize;
@@ -276,6 +289,11 @@ static void via_pm_class_init(ObjectClass *klass, void *data)
     dc->user_creatable = false;
     dc->vmsd = &vmstate_acpi;
     device_class_set_props(dc, via_pm_properties);
+/*
+    adevc->ospm_status = piix4_ospm_status;
+*/
+    adevc->send_event = via_pm_send_gpe;
+    adevc->madt_cpu = pc_madt_cpu_entry;
 }
 
 static const TypeInfo via_pm_info = {
@@ -285,6 +303,8 @@ static const TypeInfo via_pm_info = {
     .instance_size = sizeof(ViaPMState),
     .abstract      = true,
     .interfaces = (InterfaceInfo[]) {
+        { TYPE_HOTPLUG_HANDLER },
+        { TYPE_ACPI_DEVICE_IF },
         { INTERFACE_CONVENTIONAL_PCI_DEVICE },
         { },
     },
