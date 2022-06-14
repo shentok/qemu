@@ -34,6 +34,7 @@
 #include "hw/acpi/acpi_aml_interface.h"
 #include "hw/i2c/pm_smbus.h"
 #include "qapi/error.h"
+#include "qapi/visitor.h"
 #include "qemu/log.h"
 #include "qemu/module.h"
 #include "qemu/notify.h"
@@ -308,6 +309,70 @@ static void via_pm_powerdown_req(Notifier *n, void *opaque)
     acpi_pm1_evt_power_down(&s->ar);
 }
 
+static void via_pm_get_prop_smi_cmd_port(Object *obj, Visitor *v,
+                                         const char *name, void *opaque,
+                                         Error **errp)
+{
+    ViaPMState *s = VIA_PM(obj);
+    uint64_t value = s->io.addr + VIA_PM_IO_SMI_CMD;
+
+    visit_type_uint64(v, name, &value, errp);
+}
+
+static void via_pm_get_prop_io_base(Object *obj, Visitor *v,
+    const char *name, void *opaque,
+    Error **errp)
+{
+    ViaPMState *s = VIA_PM(obj);
+    uint64_t value = s->io.addr;
+
+    visit_type_uint64(v, name, &value, errp);
+}
+
+static void via_pm_add_class_properties(ObjectClass *oc)
+{
+    static const uint8_t acpi_enable_cmd = ACPI_ENABLE;
+    static const uint8_t acpi_disable_cmd = ACPI_DISABLE;
+    static const uint16_t sci_int = 9;
+    static const uint32_t gpe0_blk; /* = 0 */
+    static const uint32_t gpe0_blk_len; /* = 0 */
+
+    object_class_static_property_add_uint8_ptr(oc,
+                                               ACPI_PM_PROP_ACPI_ENABLE_CMD,
+                                               &acpi_enable_cmd,
+                                               OBJ_PROP_FLAG_READ);
+    object_class_static_property_add_uint8_ptr(oc,
+                                               ACPI_PM_PROP_ACPI_DISABLE_CMD,
+                                               &acpi_disable_cmd,
+                                               OBJ_PROP_FLAG_READ);
+    object_class_static_property_add_uint32_ptr(oc,
+                                                ACPI_PM_PROP_GPE0_BLK,
+                                                &gpe0_blk,
+                                                OBJ_PROP_FLAG_READ);
+    object_class_static_property_add_uint32_ptr(oc,
+                                                ACPI_PM_PROP_GPE0_BLK_LEN,
+                                                &gpe0_blk_len,
+                                                OBJ_PROP_FLAG_READ);
+    object_class_property_add(oc,
+                              ACPI_PM_PROP_SMI_CMD_PORT,
+                              "uint64",
+                              via_pm_get_prop_smi_cmd_port,
+                              NULL,
+                              NULL,
+                              NULL);
+    object_class_static_property_add_uint16_ptr(oc,
+                                                ACPI_PM_PROP_SCI_INT,
+                                                &sci_int,
+                                                OBJ_PROP_FLAG_READ);
+    object_class_property_add(oc,
+                              ACPI_PM_PROP_PM_IO_BASE,
+                              "uint64",
+                              via_pm_get_prop_io_base,
+                              NULL,
+                              NULL,
+                              NULL);
+}
+
 static void via_pm_realize(PCIDevice *dev, Error **errp)
 {
     ViaPMState *s = VIA_PM(dev);
@@ -360,6 +425,8 @@ static void via_pm_class_init(ObjectClass *klass, const void *data)
     dc->user_creatable = false;
     dc->vmsd = &vmstate_acpi;
     device_class_set_props(dc, via_pm_properties);
+
+    via_pm_add_class_properties(klass);
 }
 
 static const TypeInfo via_pm_info = {
