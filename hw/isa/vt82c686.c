@@ -27,7 +27,6 @@
 #include "hw/dma/i8257.h"
 #include "hw/i386/pc.h"
 #include "hw/usb/hcd-uhci.h"
-#include "hw/timer/i8254.h"
 #include "hw/rtc/mc146818rtc.h"
 #include "migration/vmstate.h"
 #include "hw/isa/apm.h"
@@ -761,7 +760,7 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
     }
 
     isa_bus_irqs(isa_bus, s->pic.in_irqs);
-    i8254_pit_init(isa_bus, 0x40, 0, NULL);
+
     i8257_dma_init(isa_bus, 0);
 
     /* RTC */
@@ -769,7 +768,6 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
     if (!qdev_realize(DEVICE(&s->rtc), BUS(isa_bus), errp)) {
         return;
     }
-    isa_connect_gpio_out(ISA_DEVICE(&s->rtc), 0, s->rtc.isairq);
 
     for (i = 0; i < PCI_CONFIG_HEADER_SIZE; i++) {
         if (i < PCI_COMMAND || i >= PCI_REVISION_ID) {

@@ -33,6 +33,7 @@
 #include "hw/i386/apic.h"
 #include "hw/pci-host/i440fx.h"
 #include "hw/rtc/mc146818rtc.h"
+#include "hw/isa/vt82c686.h"
 #include "hw/southbridge/piix.h"
 #include "hw/display/ramfb.h"
 #include "hw/firmware/smbios.h"
@@ -219,7 +220,7 @@ static void pc_init1(MachineState *machine,
         DeviceState *dev;
         PCIDevice *pci_dev;
         const char *type = xen_enabled() ? TYPE_PIIX3_XEN_DEVICE
-                                         : TYPE_PIIX3_DEVICE;
+                                         : TYPE_VT82C686B_ISA;
         int i;
 
         pci_bus = i440fx_init(pci_type,
@@ -231,11 +232,6 @@ static void pc_init1(MachineState *machine,
         pcms->bus = pci_bus;
 
         pci_dev = pci_new_multifunction(-1, true, type);
-        object_property_set_bool(OBJECT(pci_dev), "has-usb",
-                                 machine_usb(machine), &error_abort);
-        object_property_set_bool(OBJECT(pci_dev), "has-acpi",
-                                 x86_machine_is_acpi_enabled(x86ms),
-                                 &error_abort);
         object_property_set_bool(OBJECT(pci_dev), "smm-enabled",
                                  x86_machine_is_smm_enabled(x86ms),
                                  &error_abort);
