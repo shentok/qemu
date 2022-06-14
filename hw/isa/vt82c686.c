@@ -34,6 +34,7 @@
 #include "hw/acpi/acpi_aml_interface.h"
 #include "hw/i2c/pm_smbus.h"
 #include "qapi/error.h"
+#include "qapi/visitor.h"
 #include "qemu/log.h"
 #include "qemu/module.h"
 #include "qemu/notify.h"
@@ -308,6 +309,40 @@ static void via_pm_powerdown_req(Notifier *n, void *opaque)
     acpi_pm1_evt_power_down(&s->ar);
 }
 
+static void via_pm_get_prop_smi_cmd_port(Object *obj, Visitor *v,
+                                         const char *name, void *opaque,
+                                         Error **errp)
+{
+    ViaPMState *s = opaque;
+    uint64_t value = s->io.addr + VIA_PM_IO_SMI_CMD;
+
+    visit_type_uint64(v, name, &value, errp);
+}
+
+static void via_pm_add_properties(ViaPMState *s)
+{
+    static const uint8_t acpi_enable_cmd = ACPI_ENABLE;
+    static const uint8_t acpi_disable_cmd = ACPI_DISABLE;
+    static const uint16_t sci_int = 9;
+    static const uint16_t gpe0_blk; /* = 0 */
+    static const uint8_t gpe0_len; /* = 0 */
+
+    object_property_add_uint8_ptr(OBJECT(s), ACPI_PM_PROP_ACPI_ENABLE_CMD,
+                                  &acpi_enable_cmd, OBJ_PROP_FLAG_READ);
+    object_property_add_uint8_ptr(OBJECT(s), ACPI_PM_PROP_ACPI_DISABLE_CMD,
+                                  &acpi_disable_cmd, OBJ_PROP_FLAG_READ);
+    object_property_add_uint16_ptr(OBJECT(s), ACPI_PM_PROP_GPE0_BLK,
+                                   &gpe0_blk, OBJ_PROP_FLAG_READ);
+    object_property_add_uint8_ptr(OBJECT(s), ACPI_PM_PROP_GPE0_BLK_LEN,
+                                  &gpe0_len, OBJ_PROP_FLAG_READ);
+    object_property_add(OBJECT(s), ACPI_PM_PROP_SMI_CMD_PORT, "uint64",
+                        via_pm_get_prop_smi_cmd_port, NULL, NULL, s);
+    object_property_add_uint16_ptr(OBJECT(s), ACPI_PM_PROP_SCI_INT,
+                                   &sci_int, OBJ_PROP_FLAG_READ);
+    object_property_add_alias(OBJECT(s), ACPI_PM_PROP_PM_IO_BASE,
+                              OBJECT(&s->io), "addr");
+}
+
 static void via_pm_realize(PCIDevice *dev, Error **errp)
 {
     ViaPMState *s = VIA_PM(dev);
@@ -333,6 +368,8 @@ static void via_pm_realize(PCIDevice *dev, Error **errp)
 
     s->powerdown_notifier.notify = via_pm_powerdown_req;
     qemu_register_powerdown_notifier(&s->powerdown_notifier);
+
+    via_pm_add_properties(s);
 }
 
 typedef struct via_pm_init_info {
