@@ -424,10 +424,14 @@
 #
 # @piix4: Intel PIIX4
 #
+# @vt82c686b: VIA 82C686B
+#
+# @vt8231: VIA VT8231
+#
 # Since: 11.2
 ##
 { 'enum': 'PCSouthBridgeOption',
-  'data': ['piix3', 'piix4'] }
+  'data': ['piix3', 'piix4', 'vt82c686b', 'vt8231'] }
 
 ##
 # @inject-nmi:
