@@ -34,6 +34,7 @@
 #include "hw/i386/apic.h"
 #include "hw/pci-host/i440fx.h"
 #include "hw/rtc/mc146818rtc.h"
+#include "hw/isa/vt82c686.h"
 #include "hw/southbridge/piix.h"
 #include "hw/display/ramfb.h"
 #include "hw/pci/pci.h"
@@ -255,6 +256,10 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         object_property_set_bool(OBJECT(pci_dev), "smm-enabled",
                                  x86_machine_is_smm_enabled(x86ms),
                                  &error_abort);
+        dev = DEVICE(object_resolve_path_component(OBJECT(pci_dev), "ac97"));
+        if (dev && machine->audiodev) {
+            qdev_prop_set_string(dev, "audiodev", machine->audiodev);
+        }
         dev = DEVICE(pci_dev);
         for (i = 0; i < ISA_NUM_IRQS; i++) {
             qdev_connect_gpio_out_named(dev, "isa-irqs", i, x86ms->gsi[i]);
@@ -365,6 +370,8 @@ static void pc_init1(MachineState *machine, const char *pci_type)
 typedef enum PCSouthBridgeOption {
     PC_SOUTH_BRIDGE_OPTION_PIIX3,
     PC_SOUTH_BRIDGE_OPTION_PIIX4,
+    PC_SOUTH_BRIDGE_OPTION_VT82C686B,
+    PC_SOUTH_BRIDGE_OPTION_VT8231,
     PC_SOUTH_BRIDGE_OPTION_MAX,
 } PCSouthBridgeOption;
 
@@ -372,6 +379,8 @@ static const QEnumLookup PCSouthBridgeOption_lookup = {
     .array = (const char *const[]) {
         [PC_SOUTH_BRIDGE_OPTION_PIIX3] = TYPE_PIIX3_DEVICE,
         [PC_SOUTH_BRIDGE_OPTION_PIIX4] = TYPE_PIIX4_PCI_DEVICE,
+        [PC_SOUTH_BRIDGE_OPTION_VT82C686B] = TYPE_VT82C686B_ISA,
+        [PC_SOUTH_BRIDGE_OPTION_VT8231] = TYPE_VT8231_ISA,
     },
     .size = PC_SOUTH_BRIDGE_OPTION_MAX
 };
@@ -469,6 +478,7 @@ static void pc_i440fx_machine_options(MachineClass *m)
     machine_class_allow_dynamic_sysbus_dev(m, TYPE_RAMFB_DEVICE);
     machine_class_allow_dynamic_sysbus_dev(m, TYPE_VMBUS_BRIDGE);
     machine_class_allow_dynamic_sysbus_dev(m, TYPE_UEFI_VARS_X64);
+    machine_add_audiodev_property(m);
 
     object_class_property_add_enum(oc, "x-south-bridge", "PCSouthBridgeOption",
                                    &PCSouthBridgeOption_lookup,

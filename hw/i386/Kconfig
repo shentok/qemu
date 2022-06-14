@@ -72,6 +72,7 @@ config I440FX
     imply E1000_PCI
     imply VMPORT
     imply VMMOUSE
+    imply VT82C686
     select ACPI_PIIX4
     select PC_PCI
     select PC_ACPI
