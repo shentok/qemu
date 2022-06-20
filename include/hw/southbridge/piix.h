@@ -70,6 +70,7 @@ struct PIIXState {
 
     bool has_acpi;
     bool create_pic;
+    bool create_pit;
     bool has_usb;
     bool smm_enabled;
 };

@@ -409,6 +409,7 @@ static Property pci_piix_props[] = {
     DEFINE_PROP_UINT32("smb_io_base", PIIXState, smb_io_base, 0),
     DEFINE_PROP_BOOL("has-acpi", PIIXState, has_acpi, true),
     DEFINE_PROP_BOOL("create-pic", PIIXState, create_pic, true),
+    DEFINE_PROP_BOOL("create-pit", PIIXState, create_pit, true),
     DEFINE_PROP_BOOL("has-usb", PIIXState, has_usb, true),
     DEFINE_PROP_BOOL("smm-enabled", PIIXState, smm_enabled, false),
     DEFINE_PROP_END_OF_LIST(),
@@ -526,7 +527,9 @@ static void piix4_realize(PCIDevice *dev, Error **errp)
     isa_bus_register_input_irqs(isa_bus, s->isa_irqs_in);
 
     /* initialize pit */
-    i8254_pit_init(isa_bus, 0x40, 0, NULL);
+    if (s->create_pit) {
+        i8254_pit_init(isa_bus, 0x40, 0, NULL);
+    }
 
     /* DMA */
     i8257_dma_init(isa_bus, 0);
