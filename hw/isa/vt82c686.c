@@ -14,6 +14,7 @@
  */
 
 #include "qemu/osdep.h"
+#include "hw/acpi/acpi_aml_interface.h"
 #include "hw/isa/vt82c686.h"
 #include "hw/pci/pci.h"
 #include "hw/qdev-properties.h"
@@ -37,7 +38,6 @@
 #include "qemu/timer.h"
 #include "trace.h"
 
-#define TYPE_VIA_PM "via-pm"
 OBJECT_DECLARE_SIMPLE_TYPE(ViaPMState, VIA_PM)
 
 #define GPE_LEN 4
@@ -624,6 +624,36 @@ static void via_pm_isa_set_irq(void *opaque, int n, int level)
     }
 }
 
+static void build_pci_isa_aml(AcpiDevAmlIf *adev, Aml *scope)
+{
+    Aml *field;
+    BusChild *kid;
+    BusState *bus = qdev_get_child_bus(DEVICE(adev), "isa.0");
+
+    /* PCI to ISA irq remapping */
+    aml_append(scope, aml_operation_region("P40C", AML_PCI_CONFIG,
+                                           aml_int(0x55), 0x03));
+
+    field = aml_field("P40C", AML_BYTE_ACC, AML_NOLOCK, AML_PRESERVE);
+    aml_append(field, aml_reserved_field(4));
+    aml_append(field, aml_named_field("PRQ0", 4));
+    aml_append(field, aml_named_field("PRQ1", 4));
+    aml_append(field, aml_named_field("PRQ2", 4));
+    aml_append(field, aml_reserved_field(4));
+    aml_append(field, aml_named_field("PRQ3", 4));
+    aml_append(scope, field);
+
+    /* hack: put fields into _SB scope for LNKx to find them */
+    aml_append(scope, aml_alias("PRQ0", "\\_SB.PRQ0"));
+    aml_append(scope, aml_alias("PRQ1", "\\_SB.PRQ1"));
+    aml_append(scope, aml_alias("PRQ2", "\\_SB.PRQ2"));
+    aml_append(scope, aml_alias("PRQ3", "\\_SB.PRQ3"));
+
+    QTAILQ_FOREACH(kid, &bus->children, sibling) {
+        call_dev_aml_func(DEVICE(kid->child), scope);
+    }
+}
+
 static void via_isa_init(Object *obj)
 {
     ViaISAState *s = VIA_ISA(obj);
@@ -638,14 +668,23 @@ static void via_isa_init(Object *obj)
     qdev_init_gpio_in_named(DEVICE(obj), via_pm_isa_set_irq, "sci", 1);
 }
 
+static void via_isa_class_init(ObjectClass *klass, void *data)
+{
+    AcpiDevAmlIfClass *adevc = ACPI_DEV_AML_IF_CLASS(klass);
+
+    adevc->build_dev_aml = build_pci_isa_aml;
+}
+
 static const TypeInfo via_isa_info = {
     .name          = TYPE_VIA_ISA,
     .parent        = TYPE_PCI_DEVICE,
     .instance_size = sizeof(ViaISAState),
     .instance_init = via_isa_init,
+    .class_init    = via_isa_class_init,
     .abstract      = true,
     .interfaces    = (InterfaceInfo[]) {
         { INTERFACE_CONVENTIONAL_PCI_DEVICE },
+        { TYPE_ACPI_DEV_AML_IF },
         { },
     },
 };
