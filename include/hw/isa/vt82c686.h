@@ -10,6 +10,7 @@
 #define TYPE_VIA_AC97 "via-ac97"
 #define TYPE_VIA_IDE "via-ide"
 #define TYPE_VIA_MC97 "via-mc97"
+#define TYPE_VIA_PM "via-pm"
 
 typedef struct {
     uint8_t stat;
