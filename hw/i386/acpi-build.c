@@ -59,6 +59,7 @@
 #include "hw/acpi/pcihp.h"
 #include "hw/i386/fw_cfg.h"
 #include "hw/i386/ich9.h"
+#include "hw/isa/vt82c686.h"
 #include "hw/pci/pci_bus.h"
 #include "hw/pci-host/i440fx.h"
 #include "hw/pci-host/q35.h"
@@ -217,7 +218,8 @@ static void acpi_get_pm_info(MachineState *machine, AcpiPmInfo *pm)
 {
     Object *piix = object_resolve_type_unambiguous(TYPE_PIIX4_PM);
     Object *lpc = object_resolve_type_unambiguous(TYPE_ICH9_LPC_DEVICE);
-    Object *obj = piix ? piix : lpc;
+    Object *via = object_resolve_type_unambiguous(TYPE_VIA_PM);
+    Object *obj = piix ? piix : lpc ? lpc : via;
     QObject *o;
     pm->cpu_hp_io_base = 0;
     pm->pcihp_io_base = 0;
@@ -1056,6 +1058,71 @@ static void build_piix4_pci0_int(Aml *table)
     aml_append(table, sb_scope);
 }
 
+static void build_via_pci0_int(Aml *table)
+{
+    Aml *dev;
+    Aml *crs;
+    Aml *field;
+    Aml *method;
+    uint32_t irqs;
+    Aml *sb_scope = aml_scope("_SB");
+    Aml *pci0_scope = aml_scope("PCI0");
+
+    aml_append(pci0_scope, build_prt(true));
+    aml_append(sb_scope, pci0_scope);
+
+    field = aml_field("PCI0.ISA.P40C", AML_BYTE_ACC, AML_NOLOCK, AML_PRESERVE);
+    aml_append(field, aml_reserved_field(4));
+    aml_append(field, aml_named_field("PRQ0", 4));
+    aml_append(field, aml_named_field("PRQ1", 4));
+    aml_append(field, aml_named_field("PRQ2", 4));
+    aml_append(field, aml_reserved_field(4));
+    aml_append(field, aml_named_field("PRQ3", 4));
+    aml_append(sb_scope, field);
+
+    aml_append(sb_scope, build_irq_status_method());
+    aml_append(sb_scope, build_iqcr_method(true));
+
+    aml_append(sb_scope, build_link_dev("LNKA", 0, aml_name("PRQ0")));
+    aml_append(sb_scope, build_link_dev("LNKB", 1, aml_name("PRQ1")));
+    aml_append(sb_scope, build_link_dev("LNKC", 2, aml_name("PRQ2")));
+    aml_append(sb_scope, build_link_dev("LNKD", 3, aml_name("PRQ3")));
+
+    dev = aml_device("LNKS");
+    {
+        aml_append(dev, aml_name_decl("_HID", aml_eisaid("PNP0C0F")));
+        aml_append(dev, aml_name_decl("_UID", aml_int(4)));
+
+        crs = aml_resource_template();
+        irqs = 9;
+        aml_append(crs, aml_interrupt(AML_CONSUMER, AML_LEVEL,
+                                      AML_ACTIVE_HIGH, AML_SHARED,
+                                      &irqs, 1));
+        aml_append(dev, aml_name_decl("_PRS", crs));
+
+        /* The SCI cannot be disabled and is always attached to GSI 9,
+         * so these are no-ops.  We only need this link to override the
+         * polarity to active high and match the content of the MADT.
+         */
+        method = aml_method("_STA", 0, AML_NOTSERIALIZED);
+        aml_append(method, aml_return(aml_int(0x0b)));
+        aml_append(dev, method);
+
+        method = aml_method("_DIS", 0, AML_NOTSERIALIZED);
+        aml_append(dev, method);
+
+        method = aml_method("_CRS", 0, AML_NOTSERIALIZED);
+        aml_append(method, aml_return(aml_name("_PRS")));
+        aml_append(dev, method);
+
+        method = aml_method("_SRS", 1, AML_NOTSERIALIZED);
+        aml_append(dev, method);
+    }
+    aml_append(sb_scope, dev);
+
+    aml_append(table, sb_scope);
+}
+
 static void append_q35_prt_entry(Aml *ctx, uint32_t nr, const char *name)
 {
     int i;
@@ -1277,6 +1344,30 @@ static void build_piix4_isa_bridge(Aml *table)
     aml_append(table, scope);
 }
 
+static void build_via_isa_bridge(Aml *table)
+{
+    Aml *dev;
+    Aml *scope;
+    Object *obj;
+    bool ambiguous;
+
+    /*
+     * temporarily fish out isa bridge, build_via_isa_bridge() will be dropped
+     * once PCI is converted to AcpiDevAmlIf and would be ble to generate
+     * AML for bridge itself
+     */
+    obj = object_resolve_path_type("", "via-isa", &ambiguous);
+    assert(obj && !ambiguous);
+
+    scope =  aml_scope("_SB.PCI0");
+    dev = aml_device("ISA");
+    aml_append(dev, aml_name_decl("_ADR", aml_int(0x00010000)));
+
+    call_dev_aml_func(DEVICE(obj), dev);
+    aml_append(scope, dev);
+    aml_append(table, scope);
+}
+
 static void build_x86_acpi_pci_hotplug(Aml *table, uint64_t pcihp_addr)
 {
     Aml *scope;
@@ -1431,7 +1522,8 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
     X86MachineState *x86ms = X86_MACHINE(machine);
     Object *piix = object_resolve_type_unambiguous(TYPE_PIIX_PCI_DEVICE);
     Object *lpc = object_resolve_type_unambiguous(TYPE_ICH9_LPC_DEVICE);
-    assert(!!piix != !!lpc);
+    Object *via = object_resolve_type_unambiguous("via-isa");
+    assert(!!piix + !!lpc + !!via == 1);
     Object *i440fx = object_resolve_type_unambiguous(TYPE_I440FX_PCI_HOST_BRIDGE);
     Object *q35 = object_resolve_type_unambiguous(TYPE_Q35_HOST_DEVICE);
     assert(!!i440fx != !!q35);
@@ -1516,6 +1608,12 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
             build_x86_acpi_pci_hotplug(dsdt, pm->pcihp_io_base);
         }
         build_piix4_pci0_int(dsdt);
+    } else if (via) {
+        build_via_isa_bridge(dsdt);
+        if (pm->pcihp_bridge_en || pm->pcihp_root_en) {
+            build_x86_acpi_pci_hotplug(dsdt, pm->pcihp_io_base);
+        }
+        build_via_pci0_int(dsdt);
     } else {
         build_q35_isa_bridge(dsdt);
         if (pcms->smbus) {
