@@ -60,6 +60,7 @@
 #include "hw/acpi/pcihp.h"
 #include "hw/i386/fw_cfg.h"
 #include "hw/i386/pc.h"
+#include "hw/isa/vt82c686.h"
 #include "hw/pci/pci_bus.h"
 #include "hw/pci-host/i440fx.h"
 #include "hw/pci-host/q35.h"
@@ -199,7 +200,8 @@ static void acpi_get_pm_info(MachineState *machine, AcpiPmInfo *pm)
 {
     Object *piix = object_resolve_type_unambiguous(TYPE_PIIX4_PM, NULL);
     Object *lpc = object_resolve_type_unambiguous(TYPE_ICH9_LPC_DEVICE, NULL);
-    Object *obj = piix ? piix : lpc;
+    Object *via = object_resolve_type_unambiguous(TYPE_VIA_PM, NULL);
+    Object *obj = piix ? piix : lpc ? lpc : via;
     QObject *o;
     pm->cpu_hp_io_base = 0;
     pm->pcihp_io_base = 0;
