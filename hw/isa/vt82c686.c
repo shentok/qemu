@@ -31,6 +31,7 @@
 #include "hw/rtc/mc146818rtc.h"
 #include "migration/vmstate.h"
 #include "hw/acpi/acpi.h"
+#include "hw/acpi/acpi_aml_interface.h"
 #include "hw/i2c/pm_smbus.h"
 #include "qapi/error.h"
 #include "qemu/log.h"
@@ -41,7 +42,6 @@
 #include "system/runstate.h"
 #include "trace.h"
 
-#define TYPE_VIA_PM "via-pm"
 OBJECT_DECLARE_SIMPLE_TYPE(ViaPMState, VIA_PM)
 
 #define VIA_PM_IO_GBLSTS 0x28
@@ -754,6 +754,33 @@ static void via_isa_init(Object *obj)
     object_initialize_child(obj, "mc97", &s->mc97, TYPE_VIA_MC97);
 }
 
+static void build_pci_isa_aml(AcpiDevAmlIf *adev, Aml *scope)
+{
+    Aml *field;
+    BusState *bus = qdev_get_child_bus(DEVICE(adev), "isa.0");
+
+    /* PCI to ISA irq remapping */
+    aml_append(scope, aml_operation_region("P40C", AML_PCI_CONFIG,
+                                           aml_int(0x55), 0x03));
+
+    field = aml_field("P40C", AML_BYTE_ACC, AML_NOLOCK, AML_PRESERVE);
+    aml_append(field, aml_reserved_field(4));
+    aml_append(field, aml_named_field("PRQ0", 4));
+    aml_append(field, aml_named_field("PRQ1", 4));
+    aml_append(field, aml_named_field("PRQ2", 4));
+    aml_append(field, aml_reserved_field(4));
+    aml_append(field, aml_named_field("PRQ3", 4));
+    aml_append(scope, field);
+
+    /* hack: put fields into _SB scope for LNKx to find them */
+    aml_append(scope, aml_alias("PRQ0", "\\_SB.PRQ0"));
+    aml_append(scope, aml_alias("PRQ1", "\\_SB.PRQ1"));
+    aml_append(scope, aml_alias("PRQ2", "\\_SB.PRQ2"));
+    aml_append(scope, aml_alias("PRQ3", "\\_SB.PRQ3"));
+
+    qbus_build_aml(bus, scope);
+}
+
 static const Property via_isa_props[] = {
     DEFINE_PROP_BOOL("smm-enabled", ViaISAState, smm_enabled, false),
 };
@@ -761,8 +788,10 @@ static const Property via_isa_props[] = {
 static void via_isa_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
+    AcpiDevAmlIfClass *adevc = ACPI_DEV_AML_IF_CLASS(klass);
 
     device_class_set_props(dc, via_isa_props);
+    adevc->build_dev_aml = build_pci_isa_aml;
 }
 
 static const TypeInfo via_isa_info = {
@@ -774,6 +803,7 @@ static const TypeInfo via_isa_info = {
     .abstract      = true,
     .interfaces    = (const InterfaceInfo[]) {
         { INTERFACE_CONVENTIONAL_PCI_DEVICE },
+        { TYPE_ACPI_DEV_AML_IF },
         { },
     },
 };
