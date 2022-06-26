@@ -120,8 +120,7 @@ static void piix_ide_reset(DeviceState *dev)
     pci_set_byte(pci_conf + 0x20, 0x01);  /* BMIBA: 20-23h */
 }
 
-static bool pci_piix_init_bus(PCIIDEState *d, unsigned i, ISABus *isa_bus,
-                              Error **errp)
+static void pci_piix_init_bus(PCIIDEState *d, unsigned i, ISABus *isa_bus)
 {
     static const struct {
         int iobase;
@@ -131,24 +130,16 @@ static bool pci_piix_init_bus(PCIIDEState *d, unsigned i, ISABus *isa_bus,
         {0x1f0, 0x3f6, 14},
         {0x170, 0x376, 15},
     };
-    int ret;
 
     ide_bus_init(&d->bus[i], sizeof(d->bus[i]), DEVICE(d), i, 2);
-    ret = ide_init_ioport(&d->bus[i], NULL, port_info[i].iobase,
-                          port_info[i].iobase2);
-    if (ret) {
-        error_setg_errno(errp, -ret, "Failed to realize %s port %u",
-                         object_get_typename(OBJECT(d)), i);
-        return false;
-    }
+    ide_init_ioport(&d->bus[i], NULL,
+                    port_info[i].iobase, port_info[i].iobase2);
     ide_bus_init_output_irq(&d->bus[i],
                             isa_bus_get_irq(isa_bus, port_info[i].isairq));
 
     bmdma_init(&d->bus[i], &d->bmdma[i], d);
     d->bmdma[i].bus = &d->bus[i];
     ide_bus_register_restart_cb(&d->bus[i]);
-
-    return true;
 }
 
 static void pci_piix_ide_realize(PCIDevice *dev, Error **errp)
@@ -177,9 +168,7 @@ static void pci_piix_ide_realize(PCIDevice *dev, Error **errp)
     }
 
     for (unsigned i = 0; i < 2; i++) {
-        if (!pci_piix_init_bus(d, i, isa_bus, errp)) {
-            return;
-        }
+        pci_piix_init_bus(d, i, isa_bus);
     }
 }
 
