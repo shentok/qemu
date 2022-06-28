@@ -287,6 +287,18 @@ void portio_list_add(PortioList *piolist,
     portio_list_add_1(piolist, pio_start, count, start, off_low, off_high);
 }
 
+void portio_list_register(PortioList *piolist,
+                          struct MemoryRegion *address_space_io, uint16_t start,
+                          Object *owner,
+                          const MemoryRegionPortio *portio,
+                          void *opaque, const char *name)
+{
+    assert(piolist && !piolist->owner);
+
+    portio_list_init(piolist, owner, portio, opaque, name);
+    portio_list_add(piolist, address_space_io, start);
+}
+
 void portio_list_del(PortioList *piolist)
 {
     MemoryRegionPortioList *mrpio;
