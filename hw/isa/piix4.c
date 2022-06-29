@@ -29,6 +29,7 @@
 #include "hw/southbridge/piix.h"
 #include "hw/pci/pci.h"
 #include "hw/isa/isa.h"
+#include "hw/isa/i8259_internal.h"
 #include "hw/intc/i8259.h"
 #include "hw/dma/i8257.h"
 #include "hw/timer/i8254.h"
@@ -46,6 +47,8 @@ struct PIIX4State {
     qemu_irq cpu_intr;
     qemu_irq *isa;
 
+    PICCommonState pic1;
+    PICCommonState pic2;
     RTCState rtc;
     PCIIDEState ide;
     UHCIState uhci;
@@ -276,6 +279,8 @@ static void piix4_init(Object *obj)
 {
     PIIX4State *s = PIIX4_PCI_DEVICE(obj);
 
+    object_initialize_child(obj, "pic1", &s->pic1, "isa-i8259");
+    object_initialize_child(obj, "pic2", &s->pic2, "isa-i8259");
     object_initialize_child(obj, "rtc", &s->rtc, TYPE_MC146818_RTC);
     object_initialize_child(obj, "ide", &s->ide, "piix4-ide");
     object_initialize_child(obj, "uhci", &s->uhci, "piix4-usb-uhci");

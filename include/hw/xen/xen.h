@@ -26,7 +26,7 @@ void xen_piix_pci_write_config_client(uint32_t address, uint32_t val, int len);
 void xen_hvm_inject_msi(uint64_t addr, uint32_t data);
 int xen_is_pirq_msi(uint32_t msi_data);
 
-qemu_irq *xen_interrupt_controller_init(void);
+qemu_irq *xen_i8259_init(ISABus *bus);
 
 void xenstore_store_pv_console_info(int i, Chardev *chr);
 
