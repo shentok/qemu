@@ -18,6 +18,7 @@
 #include "hw/irq.h"
 #include "sysemu/kvm.h"
 #include "qom/object.h"
+#include "qapi/error.h"
 
 #define TYPE_KVM_I8259 "kvm-i8259"
 typedef struct KVMPICClass KVMPICClass;
@@ -139,12 +140,16 @@ qemu_irq *kvm_i8259_init(ISABus *bus)
     DeviceState *dev;
     ISADevice *isadev;
 
-    isadev = i8259_init_chip(TYPE_KVM_I8259, bus, true);
+    isadev = isa_new(TYPE_KVM_I8259);
     dev = DEVICE(isadev);
+    i8259_init_chip(dev, true);
+    isa_realize_and_unref(isadev, bus, &error_fatal);
     irq_set = qemu_allocate_irqs(kvm_pic_set_irq, dev, 8);
 
-    isadev = i8259_init_chip(TYPE_KVM_I8259, bus, false);
+    isadev = isa_new(TYPE_KVM_I8259);
     dev = DEVICE(isadev);
+    i8259_init_chip(dev, false);
+    isa_realize_and_unref(isadev, bus, &error_fatal);
     irq_set = qemu_extend_irqs(irq_set, 8, kvm_pic_set_irq, dev, 8);
 
     return irq_set;

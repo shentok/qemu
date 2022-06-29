@@ -31,6 +31,7 @@
 #include "hw/isa/i8259_internal.h"
 #include "trace.h"
 #include "qom/object.h"
+#include "qapi/error.h"
 
 /* debug PIC */
 //#define DEBUG_PIC
@@ -418,8 +419,10 @@ qemu_irq *i8259_init(ISABus *bus, qemu_irq parent_irq)
 
     irq_set = g_new0(qemu_irq, ISA_NUM_IRQS);
 
-    isadev = i8259_init_chip(TYPE_I8259, bus, true);
+    isadev = isa_new(TYPE_I8259);
     dev = DEVICE(isadev);
+    i8259_init_chip(dev, true);
+    isa_realize_and_unref(isadev, bus, &error_fatal);
 
     qdev_connect_gpio_out(dev, 0, parent_irq);
     for (i = 0 ; i < 8; i++) {
@@ -428,8 +431,10 @@ qemu_irq *i8259_init(ISABus *bus, qemu_irq parent_irq)
 
     isa_pic = dev;
 
-    isadev = i8259_init_chip(TYPE_I8259, bus, false);
+    isadev = isa_new(TYPE_I8259);
     dev = DEVICE(isadev);
+    i8259_init_chip(dev, false);
+    isa_realize_and_unref(isadev, bus, &error_fatal);
 
     qdev_connect_gpio_out(dev, 0, irq_set[2]);
     for (i = 0 ; i < 8; i++) {
