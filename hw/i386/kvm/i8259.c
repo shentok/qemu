@@ -139,11 +139,13 @@ qemu_irq *kvm_i8259_init(ISABus *bus)
     DeviceState *dev;
     ISADevice *isadev;
 
-    isadev = i8259_init_chip(TYPE_KVM_I8259, bus, true);
+    isadev = isa_new(TYPE_KVM_I8259);
+    i8259_init_chip(isadev, bus, true);
     dev = DEVICE(isadev);
     irq_set = qemu_allocate_irqs(kvm_pic_set_irq, dev, 8);
 
-    isadev = i8259_init_chip(TYPE_KVM_I8259, bus, false);
+    isadev = isa_new(TYPE_KVM_I8259);
+    i8259_init_chip(isadev, bus, false);
     dev = DEVICE(isadev);
     irq_set = qemu_extend_irqs(irq_set, 8, kvm_pic_set_irq, dev, 8);
 
