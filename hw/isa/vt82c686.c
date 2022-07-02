@@ -607,8 +607,8 @@ OBJECT_DECLARE_SIMPLE_TYPE(ViaISAState, VIA_ISA)
 
 struct ViaISAState {
     PCIDevice dev;
-    qemu_irq cpu_intr;
-    qemu_irq *isa_irqs;
+
+    ISAPICState pic;
     ViaSuperIOState via_sio;
     RTCState rtc;
     PCIIDEState ide;
@@ -660,6 +660,7 @@ static void via_isa_init(Object *obj)
 {
     ViaISAState *s = VIA_ISA(obj);
 
+    object_initialize_child(obj, "pic", &s->pic, TYPE_ISA_PIC);
     object_initialize_child(obj, "rtc", &s->rtc, TYPE_MC146818_RTC);
     object_initialize_child(obj, "ide", &s->ide, "via-ide");
     object_initialize_child(obj, "uhci1", &s->uhci[0], "vt82c686b-usb-uhci");
@@ -694,13 +695,7 @@ static const TypeInfo via_isa_info = {
 void via_isa_set_irq(PCIDevice *d, int n, int level)
 {
     ViaISAState *s = VIA_ISA(d);
-    qemu_set_irq(s->isa_irqs[n], level);
-}
-
-static void via_isa_request_i8259_irq(void *opaque, int irq, int level)
-{
-    ViaISAState *s = opaque;
-    qemu_set_irq(s->cpu_intr, level);
+    qemu_set_irq(s->pic.in_irqs[n], level);
 }
 
 static void via_isa_realize(PCIDevice *d, Error **errp)
@@ -708,21 +703,21 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
     ViaISAState *s = VIA_ISA(d);
     DeviceState *dev = DEVICE(d);
     PCIBus *pci_bus = pci_get_bus(d);
-    qemu_irq *isa_irq;
     ISABus *isa_bus;
     int i;
 
-    qdev_init_gpio_out(dev, &s->cpu_intr, 1);
-    isa_irq = qemu_allocate_irqs(via_isa_request_i8259_irq, s, 1);
     isa_bus = isa_bus_new(dev, pci_address_space(d), pci_address_space_io(d),
                           errp);
-
     if (!isa_bus) {
         return;
     }
 
-    s->isa_irqs = i8259_init(isa_bus, *isa_irq);
-    isa_bus_irqs(isa_bus, s->isa_irqs);
+    /* PIC */
+    if (!qdev_realize(DEVICE(&s->pic), BUS(isa_bus), errp)) {
+        return;
+    }
+
+    isa_bus_irqs(isa_bus, s->pic.in_irqs);
     i8254_pit_init(isa_bus, 0x40, 0, NULL);
     i8257_dma_init(isa_bus, 0);
 

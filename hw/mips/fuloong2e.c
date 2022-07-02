@@ -34,6 +34,7 @@
 #include "hw/pci/pci.h"
 #include "hw/loader.h"
 #include "hw/ide/pci.h"
+#include "hw/intc/i8259.h"
 #include "hw/qdev-properties.h"
 #include "elf.h"
 #include "hw/isa/vt82c686.h"
@@ -200,10 +201,20 @@ static void vt82c686b_southbridge_init(PCIBus *pci_bus, int slot, qemu_irq intc,
                                        I2CBus **i2c_bus)
 {
     PCIDevice *dev;
+    DeviceState *pic;
+    ISABus *isa_bus;
+    qemu_irq *i8259;
+    int i;
 
     dev = pci_create_simple_multifunction(pci_bus, PCI_DEVFN(slot, 0), true,
                                           TYPE_VT82C686B_ISA);
-    qdev_connect_gpio_out(DEVICE(dev), 0, intc);
+    isa_bus = ISA_BUS(qdev_get_child_bus(DEVICE(dev), "isa.0"));
+    pic = DEVICE(object_resolve_path_component(OBJECT(dev), "pic"));
+    i8259 = i8259_init(isa_bus, intc);
+    for (i = 0; i < ISA_NUM_IRQS; ++i) {
+        qdev_connect_gpio_out(pic, i, i8259[i]);
+    }
+    g_free(i8259);
 
     dev = PCI_DEVICE(object_resolve_path_component(OBJECT(dev), "pm"));
     *i2c_bus = I2C_BUS(qdev_get_child_bus(DEVICE(dev), "i2c"));

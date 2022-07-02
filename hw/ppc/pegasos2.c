@@ -18,6 +18,7 @@
 #include "hw/pci-host/mv64361.h"
 #include "hw/isa/vt82c686.h"
 #include "hw/ide/pci.h"
+#include "hw/intc/i8259.h"
 #include "hw/i2c/smbus_eeprom.h"
 #include "hw/qdev-properties.h"
 #include "sysemu/reset.h"
@@ -100,13 +101,16 @@ static void pegasos2_init(MachineState *machine)
 {
     Pegasos2MachineState *pm = PEGASOS2_MACHINE(machine);
     CPUPPCState *env;
+    DeviceState *pic;
     MemoryRegion *rom = g_new(MemoryRegion, 1);
     PCIBus *pci_bus;
     PCIDevice *dev;
     I2CBus *i2c_bus;
+    ISABus *isa_bus;
+    qemu_irq *i8259;
     const char *fwname = machine->firmware ?: PROM_FILENAME;
     char *filename;
-    int sz;
+    int i, sz;
     uint8_t *spd_data;
 
     /* init CPU */
@@ -165,8 +169,14 @@ static void pegasos2_init(MachineState *machine)
                               object_resolve_path_component(OBJECT(dev),
                                                             "rtc"),
                               "date");
-    qdev_connect_gpio_out(DEVICE(dev), 0,
-                          qdev_get_gpio_in_named(pm->mv, "gpp", 31));
+
+    isa_bus = ISA_BUS(qdev_get_child_bus(DEVICE(dev), "isa.0"));
+    pic = DEVICE(object_resolve_path_component(OBJECT(dev), "pic"));
+    i8259 = i8259_init(isa_bus, qdev_get_gpio_in_named(pm->mv, "gpp", 31));
+    for (i = 0; i < ISA_NUM_IRQS; ++i) {
+        qdev_connect_gpio_out(pic, i, i8259[i]);
+    }
+    g_free(i8259);
 
     dev = PCI_DEVICE(object_resolve_path_component(OBJECT(dev), "pm"));
     i2c_bus = I2C_BUS(qdev_get_child_bus(DEVICE(dev), "i2c"));
