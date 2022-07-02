@@ -25,6 +25,7 @@
 
 #include "qemu/osdep.h"
 #include "hw/pci/pci.h"
+#include "hw/pci/pci_bus.h"
 #include "migration/vmstate.h"
 #include "qapi/error.h"
 #include "qemu/module.h"
@@ -161,8 +162,9 @@ static int pci_piix_init_ports(PCIIDEState *d)
 
     for (i = 0; i < 2; i++) {
         ide_bus_init(&d->bus[i], sizeof(d->bus[i]), dev, i, 2);
-        ide_init_ioport(&d->bus[i], NULL, port_info[i].iobase,
-                        port_info[i].iobase2);
+        ide_init_ioport(&d->bus[i],
+                        pci_get_bus(&d->parent_obj)->address_space_io,
+                        OBJECT(d), port_info[i].iobase, port_info[i].iobase2);
         ide_init2(&d->bus[i], qdev_get_gpio_in(dev, i));
 
         bmdma_init(&d->bus[i], &d->bmdma[i], d);
