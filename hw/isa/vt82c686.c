@@ -757,7 +757,7 @@ struct ViaISAState {
 
     IRQState i8259_irq;
     qemu_irq cpu_intr;
-    qemu_irq *isa_irqs_in;
+    qemu_irq isa_irqs_in[ISA_NUM_IRQS];
     uint16_t irq_state[ISA_NUM_IRQS];
     ViaSuperIOState via_sio;
     MC146818RtcState rtc;
@@ -783,6 +783,7 @@ static const VMStateDescription vmstate_via = {
 static void via_isa_init(Object *obj)
 {
     ViaISAState *s = VIA_ISA(obj);
+    DeviceState *dev = DEVICE(s);
 
     object_initialize_child(obj, "rtc", &s->rtc, TYPE_MC146818_RTC);
     object_initialize_child(obj, "ide", &s->ide, TYPE_VIA_IDE);
@@ -790,6 +791,8 @@ static void via_isa_init(Object *obj)
     object_initialize_child(obj, "uhci2", &s->uhci[1], TYPE_VT82C686B_USB_UHCI);
     object_initialize_child(obj, "ac97", &s->ac97, TYPE_VIA_AC97);
     object_initialize_child(obj, "mc97", &s->mc97, TYPE_VIA_MC97);
+
+    qdev_init_gpio_out_named(dev, s->isa_irqs_in, "isa-irqs", ISA_NUM_IRQS);
 }
 
 static void build_pci_isa_aml(AcpiDevAmlIf *adev, Aml *scope)
@@ -927,6 +930,7 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
     ViaISAState *s = VIA_ISA(d);
     DeviceState *dev = DEVICE(d);
     PCIBus *pci_bus = pci_get_bus(d);
+    qemu_irq *isa_irqs_in;
     ISABus *isa_bus;
     int i;
 
@@ -940,7 +944,13 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
         return;
     }
 
-    s->isa_irqs_in = i8259_init(isa_bus, &s->i8259_irq);
+    /* PIC */
+    isa_irqs_in = i8259_init(isa_bus, &s->i8259_irq);
+    for (i = 0; i < ISA_NUM_IRQS; i++) {
+        s->isa_irqs_in[i] = isa_irqs_in[i];
+    }
+    g_free(isa_irqs_in);
+
     isa_bus_register_input_irqs(isa_bus, s->isa_irqs_in);
     i8254_pit_init(isa_bus, 0x40, 0, NULL);
     i8257_dma_init(OBJECT(d), isa_bus, 0);
