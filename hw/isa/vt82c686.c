@@ -17,6 +17,7 @@
 #include "hw/acpi/acpi_aml_interface.h"
 #include "hw/isa/vt82c686.h"
 #include "hw/pci/pci.h"
+#include "hw/pci/pci_bus.h"
 #include "hw/qdev-properties.h"
 #include "hw/ide/pci.h"
 #include "hw/isa/isa.h"
@@ -698,6 +699,48 @@ void via_isa_set_irq(PCIDevice *d, int n, int level)
     qemu_set_irq(s->pic.in_irqs[n], level);
 }
 
+static int via_isa_get_pic_irq(const ViaISAState *s, int irq_num)
+{
+    switch (irq_num) {
+    case 0:
+        return s->dev.config[0x55] >> 4;
+
+    case 1:
+        return s->dev.config[0x56] & 0xf;
+
+    case 2:
+        return s->dev.config[0x56] >> 4;
+
+    case 3:
+        return s->dev.config[0x57] >> 4;
+    }
+
+    return 0;
+}
+
+static void via_isa_set_pic_irq(void *opaque, int irq_num, int level)
+{
+    ViaISAState *s = opaque;
+    PCIBus *bus = pci_get_bus(&s->dev);
+    int pic_irq;
+
+    /* now we change the pic irq level according to the via irq mappings */
+    /* XXX: optimize */
+    pic_irq = via_isa_get_pic_irq(s, irq_num);
+    if (pic_irq < ISA_NUM_IRQS) {
+        int i, pic_level;
+
+        /* The pic level is the logical OR of all the PCI irqs mapped to it. */
+        pic_level = 0;
+        for (i = 0; i < PCI_NUM_PINS; i++) {
+            if (pic_irq == via_isa_get_pic_irq(s, i)) {
+                pic_level |= pci_bus_get_irq_level(bus, i);
+            }
+        }
+        qemu_set_irq(s->pic.in_irqs[pic_irq], pic_level);
+    }
+}
+
 static void via_isa_realize(PCIDevice *d, Error **errp)
 {
     ViaISAState *s = VIA_ISA(d);
@@ -773,6 +816,9 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
     if (!qdev_realize(DEVICE(&s->mc97), BUS(pci_bus), errp)) {
         return;
     }
+
+    pci_bus_irqs(pci_bus, via_isa_set_pic_irq, pci_bus->map_irq,
+                 s, ISA_NUM_IRQS);
 }
 
 /* TYPE_VT82C686B_ISA */
