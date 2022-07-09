@@ -36,6 +36,7 @@
 #include "hw/irq.h"
 #include "hw/qdev-properties.h"
 #include "hw/isa/isa.h"
+#include "hw/isa/superio.h"
 #include "hw/pci/pci.h"
 #include "hw/pci/pci_bus.h"
 #include "hw/qdev-properties.h"
@@ -48,6 +49,13 @@
 
 #define PIIX_NUM_PIRQS          4ULL    /* PIRQ[A-D] */
 #define XEN_PIIX_NUM_PIRQS      128ULL
+
+struct ViaSuperIOState {
+    ISASuperIODevice superio;
+    uint8_t regs[0x100];
+    const MemoryRegionOps *io_ops;
+    MemoryRegion io;
+};
 
 struct PIIXState {
     PCIDevice dev;
@@ -71,6 +79,7 @@ struct PIIXState {
 
     ISAPICState pic;
     RTCState rtc;
+    struct ViaSuperIOState via_sio;
     PCIIDEState ide;
     UHCIState uhci;
     PIIX4PMState pm;
@@ -393,6 +402,10 @@ static void pci_piix_realize(PCIDevice *dev, const char *uhci_type,
         return;
     }
 
+    if (!qdev_realize(DEVICE(&d->via_sio), BUS(isa_bus), errp)) {
+        return;
+    }
+
     /* IDE */
     qdev_prop_set_int32(DEVICE(&d->ide), "addr", dev->devfn + 1);
     if (!qdev_realize(DEVICE(&d->ide), BUS(pci_bus), errp)) {
@@ -442,6 +455,7 @@ static void pci_piix_init(Object *obj)
 
     object_initialize_child(obj, "pic", &d->pic, TYPE_ISA_PIC);
     object_initialize_child(obj, "rtc", &d->rtc, TYPE_MC146818_RTC);
+    object_initialize_child(obj, "sio", &d->via_sio, "vt82c686b-superio");
 }
 
 static Property pci_piix_props[] = {
