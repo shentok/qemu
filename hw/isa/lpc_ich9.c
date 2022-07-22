@@ -502,10 +502,10 @@ static void ich9_lpc_rcba_update(ICH9LPCState *lpc, uint32_t rcba_old)
     uint32_t rcba = pci_get_long(lpc->d.config + ICH9_LPC_RCBA);
 
     if (rcba_old & ICH9_LPC_RCBA_EN) {
-        memory_region_del_subregion(get_system_memory(), &lpc->rcrb_mem);
+        memory_region_del_subregion(pci_address_space(&lpc->d), &lpc->rcrb_mem);
     }
     if (rcba & ICH9_LPC_RCBA_EN) {
-        memory_region_add_subregion_overlap(get_system_memory(),
+        memory_region_add_subregion_overlap(pci_address_space(&lpc->d),
                                             rcba & ICH9_LPC_RCBA_BA_MASK,
                                             &lpc->rcrb_mem, 1);
     }
@@ -690,8 +690,8 @@ static void ich9_lpc_realize(PCIDevice *d, Error **errp)
         return;
     }
 
-    isa_bus = isa_bus_new(DEVICE(d), get_system_memory(), get_system_io(),
-                          errp);
+    isa_bus = isa_bus_new(DEVICE(d), pci_address_space(d),
+                          pci_address_space_io(d), errp);
     if (!isa_bus) {
         return;
     }
