@@ -1426,6 +1426,22 @@ void mips_malta_init(MachineState *machine)
     pci_vga_init(pci_bus);
 }
 
+static void mips_malta_reset(MachineState *machine)
+{
+    bool ambig;
+    PCIDevice *piix4 = PCI_DEVICE(
+                object_resolve_path_type("", TYPE_PIIX4_PCI_DEVICE, &ambig));
+
+    assert(!ambig);
+
+    qemu_devices_reset();
+
+    piix4->config[PIIX_PIRQCA] = 0x0a; /* PCI A -> IRQ 10 */
+    piix4->config[PIIX_PIRQCB] = 0x0a; /* PCI B -> IRQ 10 */
+    piix4->config[PIIX_PIRQCC] = 0x0b; /* PCI C -> IRQ 11 */
+    piix4->config[PIIX_PIRQCD] = 0x0b; /* PCI D -> IRQ 11 */
+}
+
 static void mips_malta_instance_init(Object *obj)
 {
     MaltaState *s = MIPS_MALTA(obj);
@@ -1453,6 +1469,7 @@ static void mips_malta_machine_init(MachineClass *mc)
 {
     mc->desc = "MIPS Malta Core LV";
     mc->init = mips_malta_init;
+    mc->reset = mips_malta_reset;
     mc->block_default_type = IF_IDE;
     mc->max_cpus = 16;
     mc->is_default = true;
