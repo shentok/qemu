@@ -29,7 +29,6 @@
 
 #include "qemu/osdep.h"
 #include "hw/pci/pci.h"
-#include "migration/vmstate.h"
 #include "qapi/error.h"
 #include "qemu/module.h"
 #include "sysemu/block-backend.h"
@@ -166,8 +165,6 @@ static void pci_piix_ide_realize(PCIDevice *dev, Error **errp)
     bmdma_setup_bar(d);
     pci_register_bar(dev, 4, PCI_BASE_ADDRESS_SPACE_IO, &d->bmdma_bar);
 
-    vmstate_register(VMSTATE_IF(dev), 0, &vmstate_ide_pci, d);
-
     rc = pci_piix_init_ports(d);
     if (rc) {
         error_setg_errno(errp, -rc, "Failed to realize %s",
@@ -197,8 +194,6 @@ static void piix3_ide_class_init(ObjectClass *klass, void *data)
     k->exit = pci_piix_ide_exitfn;
     k->vendor_id = PCI_VENDOR_ID_INTEL;
     k->device_id = PCI_DEVICE_ID_INTEL_82371SB_1;
-    k->class_id = PCI_CLASS_STORAGE_IDE;
-    set_bit(DEVICE_CATEGORY_STORAGE, dc->categories);
     dc->hotpluggable = false;
 }
 
@@ -219,8 +214,6 @@ static void piix4_ide_class_init(ObjectClass *klass, void *data)
     k->exit = pci_piix_ide_exitfn;
     k->vendor_id = PCI_VENDOR_ID_INTEL;
     k->device_id = PCI_DEVICE_ID_INTEL_82371AB;
-    k->class_id = PCI_CLASS_STORAGE_IDE;
-    set_bit(DEVICE_CATEGORY_STORAGE, dc->categories);
     dc->hotpluggable = false;
 }
 
