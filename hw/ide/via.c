@@ -138,7 +138,7 @@ static void via_ide_reset(DeviceState *dev)
     pci_set_long(pci_conf + PCI_INTERRUPT_LINE, 0x0000010e);
 
     /* IDE chip enable, IDE configuration 1/2, IDE FIFO Configuration*/
-    pci_set_long(pci_conf + 0x40, 0x0a090600);
+    pci_set_long(pci_conf + 0x40, 0x0a090603);
     /* IDE misc configuration 1/2/3 */
     pci_set_long(pci_conf + 0x44, 0x00c00068);
     /* IDE Timing control */
