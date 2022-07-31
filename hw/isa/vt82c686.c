@@ -43,6 +43,8 @@ OBJECT_DECLARE_SIMPLE_TYPE(ViaPMState, VIA_PM)
 #define TYPE_VT82C686B_PM "vt82c686b-pm"
 #define TYPE_VT8231_PM "vt8231-pm"
 
+#define GPE_LEN 4
+
 struct ViaPMState {
     PCIDevice dev;
     MemoryRegion io;
@@ -194,6 +196,7 @@ static void via_pm_reset(DeviceState *d)
     acpi_pm1_evt_reset(&s->ar);
     acpi_pm1_cnt_reset(&s->ar);
     acpi_pm_tmr_reset(&s->ar);
+    acpi_gpe_reset(&s->ar);
     pm_update_sci(s);
 
     pm_io_space_update(s);
@@ -220,6 +223,7 @@ static void via_pm_realize(PCIDevice *dev, Error **errp)
     acpi_pm_tmr_init(&s->ar, pm_tmr_timer, &s->io);
     acpi_pm1_evt_init(&s->ar, pm_tmr_timer, &s->io);
     acpi_pm1_cnt_init(&s->ar, &s->io, false, false, 2, false);
+    acpi_gpe_init(&s->ar, GPE_LEN);
 }
 
 typedef struct via_pm_init_info {
