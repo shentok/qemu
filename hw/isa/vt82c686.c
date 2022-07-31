@@ -48,6 +48,8 @@ struct ViaPMState {
     ACPIREGS ar;
     APMState apm;
     PMSMBus smb;
+
+    qemu_irq sci_irq;
 };
 
 static void pm_io_space_update(ViaPMState *s)
@@ -140,37 +142,15 @@ static const MemoryRegionOps pm_io_ops = {
     },
 };
 
-static void pm_update_sci(ViaPMState *s)
+static void via_pm_set_sci_irq(void *opaque, int n, int level)
 {
-    int sci_level, pmsts;
-
-    pmsts = acpi_pm1_evt_get_sts(&s->ar);
-    sci_level = (((pmsts & s->ar.pm1.evt.en) &
-                  (ACPI_BITMASK_RT_CLOCK_ENABLE |
-                   ACPI_BITMASK_POWER_BUTTON_ENABLE |
-                   ACPI_BITMASK_GLOBAL_LOCK_ENABLE |
-                   ACPI_BITMASK_TIMER_ENABLE)) != 0);
-    if (pci_get_byte(s->dev.config + PCI_INTERRUPT_PIN)) {
-        /*
-         * FIXME:
-         * Fix device model that realizes this PM device and remove
-         * this work around.
-         * The device model should wire SCI and setup
-         * PCI_INTERRUPT_PIN properly.
-         * If PIN# = 0(interrupt pin isn't used), don't raise SCI as
-         * work around.
-         */
-        pci_set_irq(&s->dev, sci_level);
-    }
-    /* schedule a timer interruption if needed */
-    acpi_pm_tmr_update(&s->ar, (s->ar.pm1.evt.en & ACPI_BITMASK_TIMER_ENABLE) &&
-                       !(pmsts & ACPI_BITMASK_TIMER_STATUS));
+    via_isa_set_irq(opaque, 0, level);
 }
 
 static void pm_tmr_timer(ACPIREGS *ar)
 {
     ViaPMState *s = container_of(ar, ViaPMState, ar);
-    pm_update_sci(s);
+    acpi_update_sci(&s->ar, s->sci_irq);
 }
 
 static void via_pm_reset(DeviceState *d)
@@ -188,7 +168,7 @@ static void via_pm_reset(DeviceState *d)
     acpi_pm1_cnt_reset(&s->ar);
     acpi_pm_tmr_reset(&s->ar);
     acpi_gpe_reset(&s->ar);
-    pm_update_sci(s);
+    acpi_update_sci(&s->ar, s->sci_irq);
 
     pm_io_space_update(s);
     smb_io_space_update(s);
@@ -215,6 +195,8 @@ static void via_pm_realize(PCIDevice *dev, Error **errp)
     acpi_pm1_evt_init(&s->ar, pm_tmr_timer, &s->io);
     acpi_pm1_cnt_init(&s->ar, &s->io, false, false, 2, false);
     acpi_gpe_init(&s->ar, VIA_PM_GPE_LEN);
+
+    s->sci_irq = qemu_allocate_irq(via_pm_set_sci_irq, dev, 1);
 }
 
 typedef struct via_pm_init_info {
