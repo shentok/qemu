@@ -42,6 +42,9 @@ OBJECT_DECLARE_SIMPLE_TYPE(ViaPMState, VIA_PM)
 
 #define VIA_PM_GPE_LEN 4
 
+#define VIA_PM_SCI_SELECT_OFS 0x42
+#define VIA_PM_SCI_SELECT_MASK 0xf
+
 struct ViaPMState {
     PCIDevice dev;
     MemoryRegion io;
@@ -605,6 +608,10 @@ void via_isa_set_irq(PCIDevice *d, int pin, int level)
     case 0: /* PIRQ/PINT inputs */
         irq = via_isa_get_pci_irq(s, pin);
         f = 8 + pin; /* Use function 8-11 for PCI interrupt inputs */
+        break;
+    case 4: /* PM */
+        irq = pci_get_byte(d->config + VIA_PM_SCI_SELECT_OFS)
+              & VIA_PM_SCI_SELECT_MASK;
         break;
     case 2: /* USB ports 0-1 */
     case 3: /* USB ports 2-3 */
