@@ -51,6 +51,8 @@ struct ViaPMState {
     ACPIREGS ar;
     APMState apm;
     PMSMBus smb;
+
+    qemu_irq irq;
 };
 
 static void pm_io_space_update(ViaPMState *s)
@@ -143,37 +145,10 @@ static const MemoryRegionOps pm_io_ops = {
     },
 };
 
-static void pm_update_sci(ViaPMState *s)
-{
-    int sci_level, pmsts;
-
-    pmsts = acpi_pm1_evt_get_sts(&s->ar);
-    sci_level = (((pmsts & s->ar.pm1.evt.en) &
-                  (ACPI_BITMASK_RT_CLOCK_ENABLE |
-                   ACPI_BITMASK_POWER_BUTTON_ENABLE |
-                   ACPI_BITMASK_GLOBAL_LOCK_ENABLE |
-                   ACPI_BITMASK_TIMER_ENABLE)) != 0);
-    if (pci_get_byte(s->dev.config + PCI_INTERRUPT_PIN)) {
-        /*
-         * FIXME:
-         * Fix device model that realizes this PM device and remove
-         * this work around.
-         * The device model should wire SCI and setup
-         * PCI_INTERRUPT_PIN properly.
-         * If PIN# = 0(interrupt pin isn't used), don't raise SCI as
-         * work around.
-         */
-        pci_set_irq(&s->dev, sci_level);
-    }
-    /* schedule a timer interruption if needed */
-    acpi_pm_tmr_update(&s->ar, (s->ar.pm1.evt.en & ACPI_BITMASK_TIMER_ENABLE) &&
-                       !(pmsts & ACPI_BITMASK_TIMER_STATUS));
-}
-
 static void pm_tmr_timer(ACPIREGS *ar)
 {
     ViaPMState *s = container_of(ar, ViaPMState, ar);
-    pm_update_sci(s);
+    acpi_update_sci(&s->ar, s->irq);
 }
 
 static void via_pm_reset(DeviceState *d)
@@ -197,10 +172,18 @@ static void via_pm_reset(DeviceState *d)
     acpi_pm1_cnt_reset(&s->ar);
     acpi_pm_tmr_reset(&s->ar);
     acpi_gpe_reset(&s->ar);
-    pm_update_sci(s);
+    acpi_update_sci(&s->ar, s->irq);
 
     pm_io_space_update(s);
     smb_io_space_update(s);
+}
+
+static void via_pm_add_properties(ViaPMState *s)
+{
+    static const uint16_t sci_int = 9;
+
+    object_property_add_uint16_ptr(OBJECT(s), ACPI_PM_PROP_SCI_INT,
+                                   &sci_int, OBJ_PROP_FLAG_READ);
 }
 
 static void via_pm_realize(PCIDevice *dev, Error **errp)
@@ -224,6 +207,15 @@ static void via_pm_realize(PCIDevice *dev, Error **errp)
     acpi_pm1_evt_init(&s->ar, pm_tmr_timer, &s->io);
     acpi_pm1_cnt_init(&s->ar, &s->io, false, false, 2, false);
     acpi_gpe_init(&s->ar, GPE_LEN);
+
+    via_pm_add_properties(s);
+}
+
+static void via_pm_init(Object *obj)
+{
+    ViaPMState *s = VIA_PM(obj);
+
+    qdev_init_gpio_out(DEVICE(obj), &s->irq, 1);
 }
 
 typedef struct via_pm_init_info {
@@ -251,6 +243,7 @@ static void via_pm_class_init(ObjectClass *klass, void *data)
 static const TypeInfo via_pm_info = {
     .name          = TYPE_VIA_PM,
     .parent        = TYPE_PCI_DEVICE,
+    .instance_init = via_pm_init,
     .instance_size = sizeof(ViaPMState),
     .abstract      = true,
     .interfaces = (InterfaceInfo[]) {
@@ -577,6 +570,21 @@ static const VMStateDescription vmstate_via = {
     }
 };
 
+static void via_pm_isa_set_irq(void *opaque, int n, int level)
+{
+    ViaISAState *s = VIA_ISA(opaque);
+    uint8_t irq = pci_get_byte(s->uhci[n].dev.config + 0x42) & 0xf;
+
+    if (irq == 2) {
+        /* log guest error */
+        return;
+    }
+
+    if (irq != 0) {
+        qemu_set_irq(s->pic.in_irqs[irq], level);
+    }
+}
+
 static void via_isa_init(Object *obj)
 {
     ViaISAState *s = VIA_ISA(obj);
@@ -587,6 +595,8 @@ static void via_isa_init(Object *obj)
     object_initialize_child(obj, "uhci2", &s->uhci[1], "vt82c686b-usb-uhci");
     object_initialize_child(obj, "ac97", &s->ac97, TYPE_VIA_AC97);
     object_initialize_child(obj, "mc97", &s->mc97, TYPE_VIA_MC97);
+
+    qdev_init_gpio_in_named(DEVICE(obj), via_pm_isa_set_irq, "sci", 1);
 }
 
 static const TypeInfo via_isa_info = {
@@ -674,6 +684,8 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
     if (!qdev_realize(DEVICE(&s->pm), BUS(pci_bus), errp)) {
         return;
     }
+    qdev_connect_gpio_out(DEVICE(&s->pm), 0,
+                          qdev_get_gpio_in_named(DEVICE(d), "sci", 0));
 
     /* Function 5: AC97 Audio */
     qdev_prop_set_int32(DEVICE(&s->ac97), "addr", d->devfn + 5);
