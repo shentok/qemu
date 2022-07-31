@@ -56,6 +56,8 @@ OBJECT_DECLARE_SIMPLE_TYPE(ViaPMState, VIA_PM)
 #define VIA_PM_IO_GBLCTL_INSMI BIT(8)
 
 #define VIA_PM_IO_SMI_CMD 0x2f
+#define ACPI_ENABLE 0xf1
+#define ACPI_DISABLE 0xf0
 
 #define VIA_PM_GPE_LEN 4
 
@@ -158,6 +160,12 @@ static void via_pm_trigger_sw_smi(ViaPMState *s, uint8_t val)
     s->smi_cmd = val;
 
     trace_via_pm_trigger_sw_smi(val);
+
+    /* ACPI specs 3.0, 4.7.2.5 */
+    acpi_pm1_cnt_update(&s->ar, val == ACPI_ENABLE, val == ACPI_DISABLE);
+    if (val == ACPI_ENABLE || val == ACPI_DISABLE) {
+        return;
+    }
 
     if (s->gbl_en & VIA_PM_IO_GBLEN_SW_SMI
         && s->gbl_ctl & VIA_PM_IO_GBLCTL_SMI_EN
