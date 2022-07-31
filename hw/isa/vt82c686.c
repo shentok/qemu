@@ -45,6 +45,9 @@ OBJECT_DECLARE_SIMPLE_TYPE(ViaPMState, VIA_PM)
 
 #define GPE_LEN 4
 
+#define ACPI_ENABLE 0xf1
+#define ACPI_DISABLE 0xf0
+
 struct ViaPMState {
     PCIDevice dev;
     MemoryRegion io;
@@ -53,7 +56,29 @@ struct ViaPMState {
     PMSMBus smb;
 
     qemu_irq irq;
+    qemu_irq smi_irq;
+    bool smm_enabled;
 };
+
+static void apm_ctrl_changed(uint32_t val, void *arg)
+{
+    ViaPMState *s = arg;
+/*    PCIDevice *d = PCI_DEVICE(s); */
+
+    /* ACPI specs 3.0, 4.7.2.5 */
+    acpi_pm1_cnt_update(&s->ar, val == ACPI_ENABLE, val == ACPI_DISABLE);
+    if (val == ACPI_ENABLE || val == ACPI_DISABLE) {
+        return;
+    }
+
+    /*
+    if (d->config[0x5b] & (1 << 1)) {
+        if (s->smi_irq) {
+            qemu_irq_raise(s->smi_irq);
+        }
+    }
+    */
+}
 
 static void pm_io_space_update(ViaPMState *s)
 {
@@ -180,8 +205,14 @@ static void via_pm_reset(DeviceState *d)
 
 static void via_pm_add_properties(ViaPMState *s)
 {
+    static const uint8_t acpi_enable_cmd = ACPI_ENABLE;
+    static const uint8_t acpi_disable_cmd = ACPI_DISABLE;
     static const uint16_t sci_int = 9;
 
+    object_property_add_uint8_ptr(OBJECT(s), ACPI_PM_PROP_ACPI_ENABLE_CMD,
+                                  &acpi_enable_cmd, OBJ_PROP_FLAG_READ);
+    object_property_add_uint8_ptr(OBJECT(s), ACPI_PM_PROP_ACPI_DISABLE_CMD,
+                                  &acpi_disable_cmd, OBJ_PROP_FLAG_READ);
     object_property_add_uint16_ptr(OBJECT(s), ACPI_PM_PROP_SCI_INT,
                                    &sci_int, OBJ_PROP_FLAG_READ);
 }
@@ -197,7 +228,7 @@ static void via_pm_realize(PCIDevice *dev, Error **errp)
     memory_region_add_subregion(pci_address_space_io(dev), 0, &s->smb.io);
     memory_region_set_enabled(&s->smb.io, false);
 
-    apm_init(dev, &s->apm, NULL, s);
+    apm_init(dev, &s->apm, apm_ctrl_changed, s);
 
     memory_region_init_io(&s->io, OBJECT(dev), &pm_io_ops, s, "via-pm", 128);
     memory_region_add_subregion(pci_address_space_io(dev), 0, &s->io);
@@ -205,7 +236,7 @@ static void via_pm_realize(PCIDevice *dev, Error **errp)
 
     acpi_pm_tmr_init(&s->ar, pm_tmr_timer, &s->io);
     acpi_pm1_evt_init(&s->ar, pm_tmr_timer, &s->io);
-    acpi_pm1_cnt_init(&s->ar, &s->io, false, false, 2, false);
+    acpi_pm1_cnt_init(&s->ar, &s->io, false, false, 2, !s->smm_enabled);
     acpi_gpe_init(&s->ar, GPE_LEN);
 
     via_pm_add_properties(s);
@@ -216,11 +247,17 @@ static void via_pm_init(Object *obj)
     ViaPMState *s = VIA_PM(obj);
 
     qdev_init_gpio_out(DEVICE(obj), &s->irq, 1);
+    qdev_init_gpio_out_named(DEVICE(obj), &s->smi_irq, "smi-irq", 1);
 }
 
 typedef struct via_pm_init_info {
     uint16_t device_id;
 } ViaPMInitInfo;
+
+static Property via_pm_properties[] = {
+    DEFINE_PROP_BOOL("smm-enabled", ViaPMState, smm_enabled, false),
+    DEFINE_PROP_END_OF_LIST(),
+};
 
 static void via_pm_class_init(ObjectClass *klass, void *data)
 {
@@ -238,6 +275,7 @@ static void via_pm_class_init(ObjectClass *klass, void *data)
     /* Reason: part of VIA south bridge, does not exist stand alone */
     dc->user_creatable = false;
     dc->vmsd = &vmstate_acpi;
+    device_class_set_props(dc, via_pm_properties);
 }
 
 static const TypeInfo via_pm_info = {
@@ -744,6 +782,8 @@ static void vt82c686b_init(Object *obj)
 
     object_initialize_child(obj, "sio", &s->via_sio, TYPE_VT82C686B_SUPERIO);
     object_initialize_child(obj, "pm", &s->pm, TYPE_VT82C686B_PM);
+    object_property_add_alias(OBJECT(s), "smm-enabled",
+                              OBJECT(&s->pm), "smm-enabled");
 }
 
 static void vt82c686b_class_init(ObjectClass *klass, void *data)
@@ -808,6 +848,8 @@ static void vt8231_init(Object *obj)
 
     object_initialize_child(obj, "sio", &s->via_sio, TYPE_VT8231_SUPERIO);
     object_initialize_child(obj, "pm", &s->pm, TYPE_VT8231_PM);
+    object_property_add_alias(OBJECT(s), "smm-enabled",
+                              OBJECT(&s->pm), "smm-enabled");
 }
 
 static void vt8231_class_init(ObjectClass *klass, void *data)
