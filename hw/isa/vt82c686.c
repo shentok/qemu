@@ -78,6 +78,7 @@ struct ViaPMState {
 
     qemu_irq sci_irq;
     qemu_irq smi_irq;
+    bool smm_enabled;
 };
 
 static void pm_io_space_update(ViaPMState *s)
@@ -274,6 +275,14 @@ static void via_pm_reset(DeviceState *d)
     s->gbl_ctl = VIA_PM_IO_GBLCTL_SMIIG;
     s->smi_cmd = 0;
 
+    if (!s->smm_enabled) {
+        /*
+         * Mark SMM as already inited to prevent SMM from running. Some
+         * virtualization technologies such as WHPX don't support SMM mode.
+         */
+        s->gbl_en |= VIA_PM_IO_GBLEN_SW_SMI;
+    }
+
     acpi_pm1_evt_reset(&s->ar);
     acpi_pm1_cnt_reset(&s->ar);
     acpi_pm_tmr_reset(&s->ar);
@@ -308,7 +317,7 @@ static void via_pm_realize(PCIDevice *dev, Error **errp)
 
     acpi_pm_tmr_init(&s->ar, pm_tmr_timer, &s->io);
     acpi_pm1_evt_init(&s->ar, pm_tmr_timer, &s->io);
-    acpi_pm1_cnt_init(&s->ar, &s->io, false, false, 2, false);
+    acpi_pm1_cnt_init(&s->ar, &s->io, false, false, 2, !s->smm_enabled);
     acpi_gpe_init(&s->ar, VIA_PM_GPE_LEN);
 
     s->sci_irq = qemu_allocate_irq(via_pm_set_sci_irq, dev, 1);
@@ -321,6 +330,10 @@ static void via_pm_realize(PCIDevice *dev, Error **errp)
 typedef struct via_pm_init_info {
     uint16_t device_id;
 } ViaPMInitInfo;
+
+static const Property via_pm_properties[] = {
+    DEFINE_PROP_BOOL("smm-enabled", ViaPMState, smm_enabled, false),
+};
 
 static void via_pm_class_init(ObjectClass *klass, const void *data)
 {
@@ -338,6 +351,7 @@ static void via_pm_class_init(ObjectClass *klass, const void *data)
     /* Reason: part of VIA south bridge, does not exist stand alone */
     dc->user_creatable = false;
     dc->vmsd = &vmstate_acpi;
+    device_class_set_props(dc, via_pm_properties);
 }
 
 static const TypeInfo via_pm_info = {
@@ -706,6 +720,8 @@ struct ViaISAState {
     ViaPMState pm;
     ViaAC97State ac97;
     PCIDevice mc97;
+
+    bool smm_enabled;
 };
 
 static const VMStateDescription vmstate_via = {
@@ -730,11 +746,23 @@ static void via_isa_init(Object *obj)
     object_initialize_child(obj, "mc97", &s->mc97, TYPE_VIA_MC97);
 }
 
+static const Property via_isa_props[] = {
+    DEFINE_PROP_BOOL("smm-enabled", ViaISAState, smm_enabled, false),
+};
+
+static void via_isa_class_init(ObjectClass *klass, const void *data)
+{
+    DeviceClass *dc = DEVICE_CLASS(klass);
+
+    device_class_set_props(dc, via_isa_props);
+}
+
 static const TypeInfo via_isa_info = {
     .name          = TYPE_VIA_ISA,
     .parent        = TYPE_PCI_DEVICE,
     .instance_size = sizeof(ViaISAState),
     .instance_init = via_isa_init,
+    .class_init    = via_isa_class_init,
     .abstract      = true,
     .interfaces    = (const InterfaceInfo[]) {
         { INTERFACE_CONVENTIONAL_PCI_DEVICE },
@@ -879,6 +907,7 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
 
     /* Function 4: Power Management */
     qdev_prop_set_int32(DEVICE(&s->pm), "addr", d->devfn + 4);
+    qdev_prop_set_bit(DEVICE(&s->pm), "smm-enabled", s->smm_enabled);
     if (!qdev_realize(DEVICE(&s->pm), BUS(pci_bus), errp)) {
         return;
     }
