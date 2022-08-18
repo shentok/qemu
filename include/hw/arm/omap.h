@@ -716,7 +716,7 @@ struct omap_synctimer_s *omap_synctimer_init(struct omap_target_agent_s *ta,
 void omap_synctimer_reset(struct omap_synctimer_s *s);
 
 struct omap_uart_s;
-struct omap_uart_s *omap_uart_init(hwaddr base,
+struct omap_uart_s *omap_uart_init(MemoryRegion *sysmem, hwaddr base,
                 qemu_irq irq, omap_clk fclk, omap_clk iclk,
                 qemu_irq txdma, qemu_irq rxdma,
                 const char *label, Chardev *chr);

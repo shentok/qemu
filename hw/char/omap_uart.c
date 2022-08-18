@@ -50,7 +50,7 @@ void omap_uart_reset(struct omap_uart_s *s)
     s->clksel = 0;
 }
 
-struct omap_uart_s *omap_uart_init(hwaddr base,
+struct omap_uart_s *omap_uart_init(MemoryRegion *sysmem, hwaddr base,
                 qemu_irq irq, omap_clk fclk, omap_clk iclk,
                 qemu_irq txdma, qemu_irq rxdma,
                 const char *label, Chardev *chr)
@@ -60,7 +60,7 @@ struct omap_uart_s *omap_uart_init(hwaddr base,
     s->base = base;
     s->fclk = fclk;
     s->irq = irq;
-    s->serial = serial_mm_init(get_system_memory(), base, 2, irq,
+    s->serial = serial_mm_init(sysmem, base, 2, irq,
                                omap_clk_getrate(fclk)/16,
                                chr ?: qemu_chr_new(label, "null", NULL),
                                DEVICE_NATIVE_ENDIAN);
@@ -165,7 +165,7 @@ struct omap_uart_s *omap2_uart_init(MemoryRegion *sysmem,
                 const char *label, Chardev *chr)
 {
     hwaddr base = omap_l4_attach(ta, 0, NULL);
-    struct omap_uart_s *s = omap_uart_init(base, irq,
+    struct omap_uart_s *s = omap_uart_init(sysmem, base, irq,
                     fclk, iclk, txdma, rxdma, label, chr);
 
     memory_region_init_io(&s->iomem, NULL, &omap_uart_ops, s, "omap.uart", 0x100);

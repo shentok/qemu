@@ -3965,21 +3965,21 @@ struct omap_mpu_state_s *omap310_mpu_init(MemoryRegion *dram,
 
     omap_tcmi_init(system_memory, 0xfffecc00, s);
 
-    s->uart[0] = omap_uart_init(0xfffb0000,
+    s->uart[0] = omap_uart_init(system_memory, 0xfffb0000,
                                 qdev_get_gpio_in(s->ih[1], OMAP_INT_UART1),
                     omap_findclk(s, "uart1_ck"),
                     omap_findclk(s, "uart1_ck"),
                     s->drq[OMAP_DMA_UART1_TX], s->drq[OMAP_DMA_UART1_RX],
                     "uart1",
                     serial_hd(0));
-    s->uart[1] = omap_uart_init(0xfffb0800,
+    s->uart[1] = omap_uart_init(system_memory, 0xfffb0800,
                                 qdev_get_gpio_in(s->ih[1], OMAP_INT_UART2),
                     omap_findclk(s, "uart2_ck"),
                     omap_findclk(s, "uart2_ck"),
                     s->drq[OMAP_DMA_UART2_TX], s->drq[OMAP_DMA_UART2_RX],
                     "uart2",
                     serial_hd(0) ? serial_hd(1) : NULL);
-    s->uart[2] = omap_uart_init(0xfffb9800,
+    s->uart[2] = omap_uart_init(system_memory, 0xfffb9800,
                                 qdev_get_gpio_in(s->ih[0], OMAP_INT_UART3),
                     omap_findclk(s, "uart3_ck"),
                     omap_findclk(s, "uart3_ck"),
