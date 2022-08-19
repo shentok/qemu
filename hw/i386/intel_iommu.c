@@ -3868,6 +3868,7 @@ static void vtd_realize(DeviceState *dev, Error **errp)
     PCMachineState *pcms = PC_MACHINE(ms);
     X86MachineState *x86ms = X86_MACHINE(ms);
     PCIBus *bus = pcms->bus;
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(dev);
     IntelIOMMUState *s = INTEL_IOMMU_DEVICE(dev);
 
     if (!vtd_decide_config(s, errp)) {
@@ -3886,8 +3887,8 @@ static void vtd_realize(DeviceState *dev, Error **errp)
     memory_region_init_io(&s->mr_ir, OBJECT(s), &vtd_mem_ir_ops,
                           s, "vtd-ir", VTD_INTERRUPT_ADDR_SIZE);
     memory_region_init_alias(&s->mr_sys_alias, OBJECT(s),
-                             "vtd-sys-alias", get_system_memory(), 0,
-                             memory_region_size(get_system_memory()));
+                             "vtd-sys-alias", sysbus_address_space(sysbus), 0,
+                             memory_region_size(sysbus_address_space(sysbus)));
     memory_region_add_subregion_overlap(&s->mr_nodmar, 0,
                                         &s->mr_sys_alias, 0);
     memory_region_add_subregion_overlap(&s->mr_nodmar,
