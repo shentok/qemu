@@ -630,6 +630,7 @@ static const VMStateDescription vmstate_bonito = {
 
 static void bonito_pcihost_realize(DeviceState *dev, Error **errp)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(dev);
     PCIHostState *phb = PCI_HOST_BRIDGE(dev);
     BonitoState *bs = BONITO_PCI_HOST_BRIDGE(dev);
     MemoryRegion *pcimem_lo_alias = g_new(MemoryRegion, 3);
@@ -645,7 +646,7 @@ static void bonito_pcihost_realize(DeviceState *dev, Error **errp)
 
         memory_region_init_alias(&pcimem_lo_alias[i], NULL, name,
                                  &bs->pci_mem, i * 64 * MiB, 64 * MiB);
-        memory_region_add_subregion(get_system_memory(),
+        memory_region_add_subregion(sysbus_address_space(sysbus),
                                     BONITO_PCILO_BASE + i * 64 * MiB,
                                     &pcimem_lo_alias[i]);
         g_free(name);
@@ -722,7 +723,7 @@ static void bonito_realize(PCIDevice *dev, Error **errp)
 
     memory_region_init_alias(pcimem_alias, NULL, "pci.mem.alias",
                              &bs->pci_mem, 0, BONITO_PCIHI_SIZE);
-    memory_region_add_subregion(get_system_memory(),
+    memory_region_add_subregion(sysbus_address_space(sysbus),
                                 BONITO_PCIHI_BASE, pcimem_alias);
     create_unimplemented_device("PCI_2",
                                 (hwaddr)BONITO_PCIHI_BASE + BONITO_PCIHI_SIZE,
