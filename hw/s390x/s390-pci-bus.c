@@ -800,14 +800,15 @@ static void s390_pcihost_realize(DeviceState *dev, Error **errp)
 {
     PCIBus *b;
     BusState *bus;
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(dev);
     PCIHostState *phb = PCI_HOST_BRIDGE(dev);
     S390pciState *s = S390_PCI_HOST_BRIDGE(dev);
 
     DPRINTF("host_init\n");
 
     b = pci_register_root_bus(dev, NULL, s390_pci_set_irq, s390_pci_map_irq,
-                              NULL, get_system_memory(), get_system_io(), 0,
-                              64, TYPE_PCI_BUS);
+                              NULL, sysbus_address_space(sysbus),
+                              get_system_io(), 0, 64, TYPE_PCI_BUS);
     pci_setup_iommu(b, s390_pci_dma_iommu, s);
 
     bus = BUS(b);

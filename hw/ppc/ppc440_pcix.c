@@ -112,7 +112,9 @@ static void ppc440_pcix_clear_region(MemoryRegion *parent,
 /* DMA mapping */
 static void ppc440_pcix_update_pim(PPC440PCIXState *s, int idx)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(s);
     MemoryRegion *mem = &s->pim[idx].mr;
+    MemoryRegion *address_space_mem = sysbus_address_space(sysbus);
     char *name;
     uint64_t size;
 
@@ -126,7 +128,7 @@ static void ppc440_pcix_update_pim(PPC440PCIXState *s, int idx)
 
     name = g_strdup_printf("PCI Inbound Window %d", idx);
     size = ~(s->pim[idx].sa & ~7ULL) + 1;
-    memory_region_init_alias(mem, OBJECT(s), name, get_system_memory(),
+    memory_region_init_alias(mem, OBJECT(s), name, address_space_mem,
                              s->pim[idx].la, size);
     memory_region_add_subregion_overlap(&s->bm, 0, mem, -1);
     g_free(name);
@@ -137,8 +139,9 @@ static void ppc440_pcix_update_pim(PPC440PCIXState *s, int idx)
 /* BAR mapping */
 static void ppc440_pcix_update_pom(PPC440PCIXState *s, int idx)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(s);
     MemoryRegion *mem = &s->pom[idx].mr;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = sysbus_address_space(sysbus);
     char *name;
     uint32_t size;
 
@@ -398,10 +401,11 @@ static const MemoryRegionOps pci_reg_ops = {
 static void ppc440_pcix_reset(DeviceState *dev)
 {
     struct PPC440PCIXState *s = PPC440_PCIX_HOST_BRIDGE(dev);
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(dev);
     int i;
 
     for (i = 0; i < PPC440_PCIX_NR_POMS; i++) {
-        ppc440_pcix_clear_region(get_system_memory(), &s->pom[i].mr);
+        ppc440_pcix_clear_region(sysbus_address_space(sysbus), &s->pom[i].mr);
     }
     for (i = 0; i < PPC440_PCIX_NR_PIMS; i++) {
         ppc440_pcix_clear_region(&s->bm, &s->pim[i].mr);
