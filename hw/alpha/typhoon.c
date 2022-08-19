@@ -818,9 +818,10 @@ PCIBus *typhoon_init(MemoryRegion *ram, qemu_irq *p_isa_irq,
                      qemu_irq *p_rtc_irq, AlphaCPU *cpus[4],
                      pci_map_irq_fn sys_map_irq, uint8_t devfn_min)
 {
-    MemoryRegion *addr_space = get_system_memory();
+    MemoryRegion *addr_space;
     DeviceState *dev;
     TyphoonState *s;
+    SysBusDevice *sysbus;
     PCIHostState *phb;
     PCIBus *b;
     int i;
@@ -828,7 +829,10 @@ PCIBus *typhoon_init(MemoryRegion *ram, qemu_irq *p_isa_irq,
     dev = qdev_new(TYPE_TYPHOON_PCI_HOST_BRIDGE);
 
     s = TYPHOON_PCI_HOST_BRIDGE(dev);
+    sysbus = SYS_BUS_DEVICE(dev);
     phb = PCI_HOST_BRIDGE(dev);
+
+    addr_space = sysbus_address_space(sysbus);
 
     s->cchip.misc = 0x800000000ull; /* Revision: Typhoon.  */
     s->pchip.win[3].wba = 2;        /* Window 3 SG always enabled. */
@@ -889,7 +893,7 @@ PCIBus *typhoon_init(MemoryRegion *ram, qemu_irq *p_isa_irq,
                               &s->pchip.reg_mem, &s->pchip.reg_io,
                               devfn_min, 64, TYPE_PCI_BUS);
     phb->bus = b;
-    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
+    sysbus_realize_and_unref(sysbus, &error_fatal);
 
     /* Host memory as seen from the PCI side, via the IOMMU.  */
     memory_region_init_iommu(&s->pchip.iommu, sizeof(s->pchip.iommu),
