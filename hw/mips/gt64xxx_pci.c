@@ -278,12 +278,14 @@ static void check_reserved_space(hwaddr *start, hwaddr *length)
 
 static void gt64120_isd_mapping(GT64120State *s)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(s);
+
     /* Bits 14:0 of ISD map to bits 35:21 of the start address.  */
     hwaddr start = ((hwaddr)s->regs[GT_ISD] << 21) & 0xFFFE00000ull;
     hwaddr length = 0x1000;
 
     if (s->ISD_length) {
-        memory_region_del_subregion(get_system_memory(), &s->ISD_mem);
+        memory_region_del_subregion(sysbus_address_space(sysbus), &s->ISD_mem);
     }
     check_reserved_space(&start, &length);
     length = 0x1000;
@@ -291,16 +293,20 @@ static void gt64120_isd_mapping(GT64120State *s)
     trace_gt64120_isd_remap(s->ISD_length, s->ISD_start, length, start);
     s->ISD_start = start;
     s->ISD_length = length;
-    memory_region_add_subregion(get_system_memory(), s->ISD_start, &s->ISD_mem);
+    memory_region_add_subregion(sysbus_address_space(sysbus), s->ISD_start,
+                                &s->ISD_mem);
 }
 
 static void gt64120_pci_mapping(GT64120State *s)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(s);
+
     /* Update PCI0IO mapping */
     if ((s->regs[GT_PCI0IOLD] & 0x7f) <= s->regs[GT_PCI0IOHD]) {
         /* Unmap old IO address */
         if (s->PCI0IO_length) {
-            memory_region_del_subregion(get_system_memory(), &s->PCI0IO_mem);
+            memory_region_del_subregion(sysbus_address_space(sysbus),
+                                        &s->PCI0IO_mem);
             object_unparent(OBJECT(&s->PCI0IO_mem));
         }
         /* Map new IO address */
@@ -310,8 +316,8 @@ static void gt64120_pci_mapping(GT64120State *s)
         if (s->PCI0IO_length) {
             memory_region_init_alias(&s->PCI0IO_mem, OBJECT(s), "pci0-io",
                                      get_system_io(), 0, s->PCI0IO_length);
-            memory_region_add_subregion(get_system_memory(), s->PCI0IO_start,
-                                        &s->PCI0IO_mem);
+            memory_region_add_subregion(sysbus_address_space(sysbus),
+                                        s->PCI0IO_start, &s->PCI0IO_mem);
         }
     }
 
@@ -319,7 +325,8 @@ static void gt64120_pci_mapping(GT64120State *s)
     if ((s->regs[GT_PCI0M0LD] & 0x7f) <= s->regs[GT_PCI0M0HD]) {
         /* Unmap old MEM address */
         if (s->PCI0M0_length) {
-            memory_region_del_subregion(get_system_memory(), &s->PCI0M0_mem);
+            memory_region_del_subregion(sysbus_address_space(sysbus),
+                                        &s->PCI0M0_mem);
             object_unparent(OBJECT(&s->PCI0M0_mem));
         }
         /* Map new mem address */
@@ -330,8 +337,8 @@ static void gt64120_pci_mapping(GT64120State *s)
             memory_region_init_alias(&s->PCI0M0_mem, OBJECT(s), "pci0-mem0",
                                      &s->pci0_mem, s->PCI0M0_start,
                                      s->PCI0M0_length);
-            memory_region_add_subregion(get_system_memory(), s->PCI0M0_start,
-                                        &s->PCI0M0_mem);
+            memory_region_add_subregion(sysbus_address_space(sysbus),
+                                        s->PCI0M0_start, &s->PCI0M0_mem);
         }
     }
 
@@ -339,7 +346,8 @@ static void gt64120_pci_mapping(GT64120State *s)
     if ((s->regs[GT_PCI0M1LD] & 0x7f) <= s->regs[GT_PCI0M1HD]) {
         /* Unmap old MEM address */
         if (s->PCI0M1_length) {
-            memory_region_del_subregion(get_system_memory(), &s->PCI0M1_mem);
+            memory_region_del_subregion(sysbus_address_space(sysbus),
+                                        &s->PCI0M1_mem);
             object_unparent(OBJECT(&s->PCI0M1_mem));
         }
         /* Map new mem address */
@@ -350,8 +358,8 @@ static void gt64120_pci_mapping(GT64120State *s)
             memory_region_init_alias(&s->PCI0M1_mem, OBJECT(s), "pci0-mem1",
                                      &s->pci0_mem, s->PCI0M1_start,
                                      s->PCI0M1_length);
-            memory_region_add_subregion(get_system_memory(), s->PCI0M1_start,
-                                        &s->PCI0M1_mem);
+            memory_region_add_subregion(sysbus_address_space(sysbus),
+                                        s->PCI0M1_start, &s->PCI0M1_mem);
         }
     }
 }
