@@ -57,6 +57,8 @@ static uint64_t pnv_pbcq_spci_xscom_read(void *opaque, hwaddr addr,
 
 static void pnv_pbcq_update_map(PnvPBCQState *pbcq)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(pbcq->phb);
+    MemoryRegion *system_memory = sysbus_address_space(sysbus);
     uint64_t bar_en = pbcq->nest_regs[PBCQ_NEST_BAR_EN];
     uint64_t bar, mask, size;
 
@@ -71,15 +73,15 @@ static void pnv_pbcq_update_map(PnvPBCQState *pbcq)
     /* Handle unmaps */
     if (memory_region_is_mapped(&pbcq->mmbar0) &&
         !(bar_en & PBCQ_NEST_BAR_EN_MMIO0)) {
-        memory_region_del_subregion(get_system_memory(), &pbcq->mmbar0);
+        memory_region_del_subregion(system_memory, &pbcq->mmbar0);
     }
     if (memory_region_is_mapped(&pbcq->mmbar1) &&
         !(bar_en & PBCQ_NEST_BAR_EN_MMIO1)) {
-        memory_region_del_subregion(get_system_memory(), &pbcq->mmbar1);
+        memory_region_del_subregion(system_memory, &pbcq->mmbar1);
     }
     if (memory_region_is_mapped(&pbcq->phbbar) &&
         !(bar_en & PBCQ_NEST_BAR_EN_PHB)) {
-        memory_region_del_subregion(get_system_memory(), &pbcq->phbbar);
+        memory_region_del_subregion(system_memory, &pbcq->phbbar);
     }
 
     /* Update PHB */
@@ -92,7 +94,7 @@ static void pnv_pbcq_update_map(PnvPBCQState *pbcq)
         mask = pbcq->nest_regs[PBCQ_NEST_MMIO_MASK0];
         size = ((~mask) >> 14) + 1;
         memory_region_init(&pbcq->mmbar0, OBJECT(pbcq), "pbcq-mmio0", size);
-        memory_region_add_subregion(get_system_memory(), bar, &pbcq->mmbar0);
+        memory_region_add_subregion(system_memory, bar, &pbcq->mmbar0);
         pbcq->mmio0_base = bar;
         pbcq->mmio0_size = size;
     }
@@ -102,7 +104,7 @@ static void pnv_pbcq_update_map(PnvPBCQState *pbcq)
         mask = pbcq->nest_regs[PBCQ_NEST_MMIO_MASK1];
         size = ((~mask) >> 14) + 1;
         memory_region_init(&pbcq->mmbar1, OBJECT(pbcq), "pbcq-mmio1", size);
-        memory_region_add_subregion(get_system_memory(), bar, &pbcq->mmbar1);
+        memory_region_add_subregion(system_memory, bar, &pbcq->mmbar1);
         pbcq->mmio1_base = bar;
         pbcq->mmio1_size = size;
     }
@@ -111,7 +113,7 @@ static void pnv_pbcq_update_map(PnvPBCQState *pbcq)
         bar = pbcq->nest_regs[PBCQ_NEST_PHB_BAR] >> 14;
         size = 0x1000;
         memory_region_init(&pbcq->phbbar, OBJECT(pbcq), "pbcq-phb", size);
-        memory_region_add_subregion(get_system_memory(), bar, &pbcq->phbbar);
+        memory_region_add_subregion(system_memory, bar, &pbcq->phbbar);
     }
 
     /* Update PHB */

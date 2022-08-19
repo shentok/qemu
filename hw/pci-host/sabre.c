@@ -366,11 +366,12 @@ static const MemoryRegionOps pci_config_ops = {
 static void sabre_realize(DeviceState *dev, Error **errp)
 {
     SabreState *s = SABRE(dev);
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(s);
     PCIHostState *phb = PCI_HOST_BRIDGE(dev);
     PCIDevice *pci_dev;
 
     memory_region_init(&s->pci_mmio, OBJECT(s), "pci-mmio", 0x100000000ULL);
-    memory_region_add_subregion(get_system_memory(), s->mem_base,
+    memory_region_add_subregion(sysbus_address_space(sysbus), s->mem_base,
                                 &s->pci_mmio);
 
     phb->bus = pci_register_root_bus(dev, "pci",

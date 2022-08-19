@@ -235,7 +235,7 @@ static void raven_pcihost_realizefn(DeviceState *d, Error **errp)
     SysBusDevice *dev = SYS_BUS_DEVICE(d);
     PCIHostState *h = PCI_HOST_BRIDGE(dev);
     PREPPCIState *s = RAVEN_PCI_HOST_BRIDGE(dev);
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = sysbus_address_space(dev);
     int i;
 
     if (s->is_legacy_prep) {
@@ -282,9 +282,10 @@ static void raven_pcihost_realizefn(DeviceState *d, Error **errp)
 
 static void raven_pcihost_initfn(Object *obj)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(obj);
     PCIHostState *h = PCI_HOST_BRIDGE(obj);
     PREPPCIState *s = RAVEN_PCI_HOST_BRIDGE(obj);
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = sysbus_address_space(sysbus);
     DeviceState *pci_dev;
 
     memory_region_init(&s->pci_io, obj, "pci-io", 0x3f800000);
@@ -308,7 +309,7 @@ static void raven_pcihost_initfn(Object *obj)
                              &s->pci_memory, 0,
                              memory_region_size(&s->pci_memory));
     memory_region_init_alias(&s->bm_ram_alias, obj, "bm-system",
-                             get_system_memory(), 0, 0x80000000);
+                             sysbus_address_space(sysbus), 0, 0x80000000);
     memory_region_add_subregion(&s->bm, 0         , &s->bm_pci_memory_alias);
     memory_region_add_subregion(&s->bm, 0x80000000, &s->bm_ram_alias);
     address_space_init(&s->bm_as, &s->bm, "raven-bm");

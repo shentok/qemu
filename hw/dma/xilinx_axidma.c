@@ -530,6 +530,7 @@ static const MemoryRegionOps axidma_ops = {
 
 static void xilinx_axidma_realize(DeviceState *dev, Error **errp)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(dev);
     XilinxAXIDMA *s = XILINX_AXI_DMA(dev);
     XilinxAXIDMAStreamSink *ds = XILINX_AXI_DMA_DATA_STREAM(&s->rx_data_dev);
     XilinxAXIDMAStreamSink *cs = XILINX_AXI_DMA_CONTROL_STREAM(
@@ -559,7 +560,8 @@ static void xilinx_axidma_realize(DeviceState *dev, Error **errp)
     }
 
     address_space_init(&s->as,
-                       s->dma_mr ? s->dma_mr : get_system_memory(), "dma");
+                       s->dma_mr ? s->dma_mr : sysbus_address_space(sysbus),
+                       "dma");
 }
 
 static void xilinx_axidma_init(Object *obj)

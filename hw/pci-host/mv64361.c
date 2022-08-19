@@ -221,26 +221,29 @@ PCIBus *mv64361_get_pci_bus(DeviceState *dev, int n)
     return PCI_HOST_BRIDGE(&mv->pci[n])->bus;
 }
 
-static void unmap_region(MemoryRegion *mr)
+static void unmap_region(MemoryRegion *sysmem, MemoryRegion *mr)
 {
     if (memory_region_is_mapped(mr)) {
-        memory_region_del_subregion(get_system_memory(), mr);
+        memory_region_del_subregion(sysmem, mr);
         object_unparent(OBJECT(mr));
     }
 }
 
-static void map_pci_region(MemoryRegion *mr, MemoryRegion *parent,
+static void map_pci_region(MemoryRegion *system_memory,
+                           MemoryRegion *mr, MemoryRegion *parent,
                            struct Object *owner, const char *name,
                            hwaddr poffs, uint64_t size, hwaddr moffs)
 {
     memory_region_init_alias(mr, owner, name, parent, poffs, size);
-    memory_region_add_subregion(get_system_memory(), moffs, mr);
+    memory_region_add_subregion(system_memory, moffs, mr);
     trace_mv64361_region_map(name, poffs, size, moffs);
 }
 
 static void set_mem_windows(MV64361State *s, uint32_t val)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(s);
     MV64361PCIState *p;
+    MemoryRegion *system_memory = sysbus_address_space(sysbus);
     MemoryRegion *mr;
     uint32_t mask;
     int i;
@@ -257,99 +260,109 @@ static void set_mem_windows(MV64361State *s, uint32_t val)
             if (i == 9) {
                 p = &s->pci[0];
                 mr = &s->cpu_win[i];
-                unmap_region(mr);
+                unmap_region(system_memory, mr);
                 if (!(val & mask)) {
-                    map_pci_region(mr, &p->io, OBJECT(s), "pci0-io-win",
+                    map_pci_region(system_memory, mr, &p->io, OBJECT(s),
+                                   "pci0-io-win",
                                    p->remap[4], (p->io_size + 1) << 16,
                                    (p->io_base & 0xfffff) << 16);
                 }
             } else if (i == 10) {
                 p = &s->pci[0];
                 mr = &s->cpu_win[i];
-                unmap_region(mr);
+                unmap_region(system_memory, mr);
                 if (!(val & mask)) {
-                    map_pci_region(mr, &p->mem, OBJECT(s), "pci0-mem0-win",
+                    map_pci_region(system_memory, mr, &p->mem, OBJECT(s),
+                                   "pci0-mem0-win",
                                    p->remap[0], (p->mem_size[0] + 1) << 16,
                                    (p->mem_base[0] & 0xfffff) << 16);
                 }
             } else if (i == 11) {
                 p = &s->pci[0];
                 mr = &s->cpu_win[i];
-                unmap_region(mr);
+                unmap_region(system_memory, mr);
                 if (!(val & mask)) {
-                    map_pci_region(mr, &p->mem, OBJECT(s), "pci0-mem1-win",
+                    map_pci_region(system_memory, mr, &p->mem, OBJECT(s),
+                                   "pci0-mem1-win",
                                    p->remap[1], (p->mem_size[1] + 1) << 16,
                                    (p->mem_base[1] & 0xfffff) << 16);
                 }
             } else if (i == 12) {
                 p = &s->pci[0];
                 mr = &s->cpu_win[i];
-                unmap_region(mr);
+                unmap_region(system_memory, mr);
                 if (!(val & mask)) {
-                    map_pci_region(mr, &p->mem, OBJECT(s), "pci0-mem2-win",
+                    map_pci_region(system_memory, mr, &p->mem, OBJECT(s),
+                                   "pci0-mem2-win",
                                    p->remap[2], (p->mem_size[2] + 1) << 16,
                                    (p->mem_base[2] & 0xfffff) << 16);
                 }
             } else if (i == 13) {
                 p = &s->pci[0];
                 mr = &s->cpu_win[i];
-                unmap_region(mr);
+                unmap_region(system_memory, mr);
                 if (!(val & mask)) {
-                    map_pci_region(mr, &p->mem, OBJECT(s), "pci0-mem3-win",
+                    map_pci_region(system_memory, mr, &p->mem, OBJECT(s),
+                                   "pci0-mem3-win",
                                    p->remap[3], (p->mem_size[3] + 1) << 16,
                                    (p->mem_base[3] & 0xfffff) << 16);
                 }
             } else if (i == 14) {
                 p = &s->pci[1];
                 mr = &s->cpu_win[i];
-                unmap_region(mr);
+                unmap_region(system_memory, mr);
                 if (!(val & mask)) {
-                    map_pci_region(mr, &p->io, OBJECT(s), "pci1-io-win",
+                    map_pci_region(system_memory, mr, &p->io, OBJECT(s),
+                                   "pci1-io-win",
                                    p->remap[4], (p->io_size + 1) << 16,
                                    (p->io_base & 0xfffff) << 16);
                 }
             } else if (i == 15) {
                 p = &s->pci[1];
                 mr = &s->cpu_win[i];
-                unmap_region(mr);
+                unmap_region(system_memory, mr);
                 if (!(val & mask)) {
-                    map_pci_region(mr, &p->mem, OBJECT(s), "pci1-mem0-win",
+                    map_pci_region(system_memory, mr, &p->mem, OBJECT(s),
+                                   "pci1-mem0-win",
                                    p->remap[0], (p->mem_size[0] + 1) << 16,
                                    (p->mem_base[0] & 0xfffff) << 16);
                 }
             } else if (i == 16) {
                 p = &s->pci[1];
                 mr = &s->cpu_win[i];
-                unmap_region(mr);
+                unmap_region(system_memory, mr);
                 if (!(val & mask)) {
-                    map_pci_region(mr, &p->mem, OBJECT(s), "pci1-mem1-win",
+                    map_pci_region(system_memory, mr, &p->mem, OBJECT(s),
+                                   "pci1-mem1-win",
                                    p->remap[1], (p->mem_size[1] + 1) << 16,
                                    (p->mem_base[1] & 0xfffff) << 16);
                 }
             } else if (i == 17) {
                 p = &s->pci[1];
                 mr = &s->cpu_win[i];
-                unmap_region(mr);
+                unmap_region(system_memory, mr);
                 if (!(val & mask)) {
-                    map_pci_region(mr, &p->mem, OBJECT(s), "pci1-mem2-win",
+                    map_pci_region(system_memory, mr, &p->mem, OBJECT(s),
+                                   "pci1-mem2-win",
                                    p->remap[2], (p->mem_size[2] + 1) << 16,
                                    (p->mem_base[2] & 0xfffff) << 16);
                 }
             } else if (i == 18) {
                 p = &s->pci[1];
                 mr = &s->cpu_win[i];
-                unmap_region(mr);
+                unmap_region(system_memory, mr);
                 if (!(val & mask)) {
-                    map_pci_region(mr, &p->mem, OBJECT(s), "pci1-mem3-win",
+                    map_pci_region(system_memory, mr, &p->mem, OBJECT(s),
+                                   "pci1-mem3-win",
                                    p->remap[3], (p->mem_size[3] + 1) << 16,
                                    (p->mem_base[3] & 0xfffff) << 16);
                 }
             /* 19 is integrated SRAM */
             } else if (i == 20) {
                 mr = &s->regs;
-                unmap_region(mr);
+                unmap_region(system_memory, mr);
                 if (!(val & mask)) {
-                    memory_region_add_subregion(get_system_memory(),
+                    memory_region_add_subregion(sysbus_address_space(sysbus),
                         (s->regs_base & 0xfffff) << 16, mr);
                 }
             }

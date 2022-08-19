@@ -873,7 +873,8 @@ static void pnv_xive_ic_reg_write(void *opaque, hwaddr offset,
                                   uint64_t val, unsigned size)
 {
     PnvXive *xive = PNV_XIVE(opaque);
-    MemoryRegion *sysmem = get_system_memory();
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(xive);
+    MemoryRegion *sysmem = sysbus_address_space(sysbus);
     uint32_t reg = offset >> 3;
     bool is_chip0 = xive->chip->chip_id == 0;
 

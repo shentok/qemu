@@ -907,8 +907,9 @@ static void pnv_phb4_update_regions(PnvPHB4 *phb)
 
 static void pnv_pec_phb_update_map(PnvPHB4 *phb)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(phb);
     PnvPhb4PecState *pec = phb->pec;
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = sysbus_address_space(sysbus);
     uint64_t bar_en = phb->nest_regs[PEC_NEST_STK_BAR_EN];
     int stack_no = pnv_phb4_get_phb_stack_no(phb);
     uint64_t bar, mask, size;

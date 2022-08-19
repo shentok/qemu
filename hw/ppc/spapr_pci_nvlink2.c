@@ -168,8 +168,10 @@ static void spapr_phb_pci_collect_nvgpu(PCIBus *bus, PCIDevice *pdev,
 
 void spapr_phb_nvgpu_setup(SpaprPhbState *sphb, Error **errp)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(sphb);
     int i, j, valid_gpu_num;
     PCIBus *bus;
+    MemoryRegion *system_memory = sysbus_address_space(sysbus);
 
     /* Search for GPUs and NPUs */
     if (!sphb->nv2_gpa_win_addr || !sphb->nv2_atsd_win_addr) {
@@ -206,7 +208,7 @@ void spapr_phb_nvgpu_setup(SpaprPhbState *sphb, Error **errp)
         }
 
         ++valid_gpu_num;
-        memory_region_add_subregion(get_system_memory(), nvslot->gpa,
+        memory_region_add_subregion(system_memory, nvslot->gpa,
                                     MEMORY_REGION(nvmrobj));
 
         for (j = 0; j < nvslot->linknum; ++j) {
@@ -217,7 +219,7 @@ void spapr_phb_nvgpu_setup(SpaprPhbState *sphb, Error **errp)
             if (!atsdmrobj) {
                 continue;
             }
-            memory_region_add_subregion(get_system_memory(),
+            memory_region_add_subregion(system_memory,
                                         nvslot->links[j].atsd_gpa,
                                         MEMORY_REGION(atsdmrobj));
         }
@@ -234,6 +236,8 @@ cleanup_exit:
 
 void spapr_phb_nvgpu_free(SpaprPhbState *sphb)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(sphb);
+    MemoryRegion *system_memory = sysbus_address_space(sysbus);
     int i, j;
 
     if (!sphb->nvgpus) {
@@ -246,7 +250,7 @@ void spapr_phb_nvgpu_free(SpaprPhbState *sphb)
                                                     "nvlink2-mr[0]", NULL);
 
         if (nv_mrobj) {
-            memory_region_del_subregion(get_system_memory(),
+            memory_region_del_subregion(system_memory,
                                         MEMORY_REGION(nv_mrobj));
         }
         for (j = 0; j < nvslot->linknum; ++j) {
@@ -255,7 +259,7 @@ void spapr_phb_nvgpu_free(SpaprPhbState *sphb)
             atsd_mrobj = object_property_get_link(OBJECT(npdev),
                                                   "nvlink2-atsd-mr[0]", NULL);
             if (atsd_mrobj) {
-                memory_region_del_subregion(get_system_memory(),
+                memory_region_del_subregion(system_memory,
                                             MEMORY_REGION(atsd_mrobj));
             }
         }

@@ -779,7 +779,8 @@ static void pnv_xive2_ic_cq_write(void *opaque, hwaddr offset,
                                   uint64_t val, unsigned size)
 {
     PnvXive2 *xive = PNV_XIVE2(opaque);
-    MemoryRegion *sysmem = get_system_memory();
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(xive);
+    MemoryRegion *sysmem = sysbus_address_space(sysbus);
     uint32_t reg = offset >> 3;
     int i;
 

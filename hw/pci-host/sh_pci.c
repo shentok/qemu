@@ -129,7 +129,7 @@ static void sh_pci_device_realize(DeviceState *dev, Error **errp)
     phb->bus = pci_register_root_bus(dev, "pci",
                                      sh_pci_set_irq, sh_pci_map_irq,
                                      s->irq,
-                                     get_system_memory(),
+                                     sysbus_address_space(sbd),
                                      get_system_io(),
                                      PCI_DEVFN(0, 0), 4, TYPE_PCI_BUS);
     memory_region_init_io(&s->memconfig_p4, OBJECT(s), &sh_pci_reg_ops, s,
@@ -140,7 +140,7 @@ static void sh_pci_device_realize(DeviceState *dev, Error **errp)
                              get_system_io(), 0, 0x40000);
     sysbus_init_mmio(sbd, &s->memconfig_p4);
     sysbus_init_mmio(sbd, &s->memconfig_a7);
-    memory_region_add_subregion(get_system_memory(), 0xfe240000, &s->isa);
+    memory_region_add_subregion(sysbus_address_space(sbd), 0xfe240000, &s->isa);
 
     s->dev = pci_create_simple(phb->bus, PCI_DEVFN(0, 0), "sh_pci_host");
 }

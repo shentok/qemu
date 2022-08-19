@@ -197,11 +197,12 @@ static uint64_t pci_reg_read4(void *opaque, hwaddr addr,
 /* DMA mapping */
 static void e500_update_piw(PPCE500PCIState *pci, int idx)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(pci);
     uint64_t tar = ((uint64_t)pci->pib[idx].pitar) << 12;
     uint64_t wbar = ((uint64_t)pci->pib[idx].piwbar) << 12;
     uint64_t war = pci->pib[idx].piwar;
     uint64_t size = 2ULL << (war & PIWAR_SZ_MASK);
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = sysbus_address_space(sysbus);
     MemoryRegion *mem = &pci->pib[idx].mem;
     MemoryRegion *bm = &pci->bm;
     char *name;
@@ -230,12 +231,13 @@ static void e500_update_piw(PPCE500PCIState *pci, int idx)
 /* BAR mapping */
 static void e500_update_pow(PPCE500PCIState *pci, int idx)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(pci);
     uint64_t tar = ((uint64_t)pci->pob[idx].potar) << 12;
     uint64_t wbar = ((uint64_t)pci->pob[idx].powbar) << 12;
     uint64_t war = pci->pob[idx].powar;
     uint64_t size = 2ULL << (war & PIWAR_SZ_MASK);
     MemoryRegion *mem = &pci->pob[idx].mem;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = sysbus_address_space(sysbus);
     char *name;
 
     if (memory_region_is_mapped(mem)) {

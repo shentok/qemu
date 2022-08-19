@@ -84,8 +84,10 @@ static void pcie_host_init(Object *obj)
 
 void pcie_host_mmcfg_unmap(PCIExpressHost *e)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(e);
+
     if (e->base_addr != PCIE_BASE_ADDR_UNMAPPED) {
-        memory_region_del_subregion(get_system_memory(), &e->mmio);
+        memory_region_del_subregion(sysbus_address_space(sysbus), &e->mmio);
         e->base_addr = PCIE_BASE_ADDR_UNMAPPED;
     }
 }
@@ -102,9 +104,12 @@ void pcie_host_mmcfg_init(PCIExpressHost *e, uint32_t size)
 void pcie_host_mmcfg_map(PCIExpressHost *e, hwaddr addr,
                          uint32_t size)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(e);
+
     pcie_host_mmcfg_init(e, size);
     e->base_addr = addr;
-    memory_region_add_subregion(get_system_memory(), e->base_addr, &e->mmio);
+    memory_region_add_subregion(sysbus_address_space(sysbus), e->base_addr,
+                                &e->mmio);
 }
 
 void pcie_host_mmcfg_update(PCIExpressHost *e,

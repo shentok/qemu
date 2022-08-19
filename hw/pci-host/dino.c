@@ -30,6 +30,8 @@
  */
 static void gsc_to_pci_forwarding(DinoState *s)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(s);
+    MemoryRegion *system_memory = sysbus_address_space(sysbus);
     uint32_t io_addr_en, tmp;
     int enabled, i;
 
@@ -45,10 +47,10 @@ static void gsc_to_pci_forwarding(DinoState *s)
         if (enabled && (io_addr_en & (1U << i))) {
             if (!memory_region_is_mapped(mem)) {
                 uint32_t addr = 0xf0000000 + i * DINO_MEM_CHUNK_SIZE;
-                memory_region_add_subregion(get_system_memory(), addr, mem);
+                memory_region_add_subregion(system_memory, addr, mem);
             }
         } else if (memory_region_is_mapped(mem)) {
-            memory_region_del_subregion(get_system_memory(), mem);
+            memory_region_del_subregion(system_memory, mem);
         }
     }
     memory_region_transaction_commit();
