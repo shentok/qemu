@@ -418,8 +418,8 @@ static AddressSpace *virtio_iommu_find_add_as(PCIBus *bus, void *opaque,
          * FlatViews of the system hence VM runs faster.
          */
         memory_region_init_alias(&sdev->bypass_mr, OBJECT(s),
-                                 "system", get_system_memory(), 0,
-                                 memory_region_size(get_system_memory()));
+                                 "system", bus->address_space_mem, 0,
+                                 memory_region_size(bus->address_space_mem));
 
         memory_region_init_iommu(&sdev->iommu_mr, sizeof(sdev->iommu_mr),
                                  TYPE_VIRTIO_IOMMU_MEMORY_REGION,

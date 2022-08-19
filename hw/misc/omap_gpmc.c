@@ -422,7 +422,7 @@ static void omap_gpmc_cs_map(struct omap_gpmc_s *s, int cs)
     memory_region_init(&f->container, NULL, "omap-gpmc-file", size);
     memory_region_add_subregion(&f->container, 0,
                                 omap_gpmc_cs_memregion(s, cs));
-    memory_region_add_subregion(get_system_memory(), base,
+    memory_region_add_subregion(system_memory, base,
                                 &f->container);
 }
 
@@ -436,7 +436,7 @@ static void omap_gpmc_cs_unmap(struct omap_gpmc_s *s, int cs)
     if (!f->iomem && !f->dev) {
         return;
     }
-    memory_region_del_subregion(get_system_memory(), &f->container);
+    memory_region_del_subregion(system_memory, &f->container);
     memory_region_del_subregion(&f->container, omap_gpmc_cs_memregion(s, cs));
     object_unparent(OBJECT(&f->container));
 }
@@ -831,7 +831,7 @@ struct omap_gpmc_s *omap_gpmc_init(struct omap_mpu_state_s *mpu,
     struct omap_gpmc_s *s = g_new0(struct omap_gpmc_s, 1);
 
     memory_region_init_io(&s->iomem, NULL, &omap_gpmc_ops, s, "omap-gpmc", 0x1000);
-    memory_region_add_subregion(get_system_memory(), base, &s->iomem);
+    memory_region_add_subregion(system_memory, base, &s->iomem);
 
     s->irq = irq;
     s->drq = drq;

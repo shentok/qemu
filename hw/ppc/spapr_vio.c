@@ -526,7 +526,7 @@ static void spapr_vio_busdev_realize(DeviceState *qdev, Error **errp)
         memory_region_init(&dev->mrroot, OBJECT(dev), "iommu-spapr-root",
                            MACHINE(spapr)->ram_size);
         memory_region_init_alias(&dev->mrbypass, OBJECT(dev),
-                                 "iommu-spapr-bypass", get_system_memory(),
+                                 "iommu-spapr-bypass", system_memory,
                                  0, MACHINE(spapr)->ram_size);
         memory_region_add_subregion_overlap(&dev->mrroot, 0, &dev->mrbypass, 1);
         address_space_init(&dev->as, &dev->mrroot, qdev->id);
