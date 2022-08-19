@@ -261,7 +261,9 @@ static void allwinner_h3_dramc_reset(DeviceState *dev)
 
 static void allwinner_h3_dramc_realize(DeviceState *dev, Error **errp)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(dev);
     AwH3DramCtlState *s = AW_H3_DRAMC(dev);
+    MemoryRegion *system_memory = sysbus_address_space(sysbus);
 
     /* Only power of 2 RAM sizes from 256MiB up to 2048MiB are supported */
     for (uint8_t i = 8; i < 13; i++) {
@@ -278,13 +280,13 @@ static void allwinner_h3_dramc_realize(DeviceState *dev, Error **errp)
     memory_region_init_ram(&s->row_mirror, OBJECT(s),
                            "allwinner-h3-dramc.row-mirror",
                             4 * KiB, &error_abort);
-    memory_region_add_subregion_overlap(get_system_memory(), s->ram_addr,
+    memory_region_add_subregion_overlap(system_memory, s->ram_addr,
                                        &s->row_mirror, 10);
 
     memory_region_init_alias(&s->row_mirror_alias, OBJECT(s),
                             "allwinner-h3-dramc.row-mirror-alias",
                             &s->row_mirror, 0, 4 * KiB);
-    memory_region_add_subregion_overlap(get_system_memory(),
+    memory_region_add_subregion_overlap(system_memory,
                                         s->ram_addr + 1 * MiB,
                                        &s->row_mirror_alias, 10);
     memory_region_set_enabled(&s->row_mirror_alias, false);
