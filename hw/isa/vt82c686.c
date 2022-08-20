@@ -177,10 +177,16 @@ static void via_pm_reset(DeviceState *d)
 
     memset(s->dev.config + PCI_CONFIG_HEADER_SIZE, 0,
            PCI_CONFIG_SPACE_SIZE - PCI_CONFIG_HEADER_SIZE);
+    /* Power Management IO enable */
+    pci_set_byte(s->dev.config + 0x41, BIT(7));
+    /* Power Management SCI interrupt */
+    pci_set_byte(s->dev.config + 0x42, 9);
     /* Power Management IO base */
-    pci_set_long(s->dev.config + 0x48, 0x1b);
+    pci_set_long(s->dev.config + 0x48, 0xb01b);
     /* SMBus IO base */
-    pci_set_long(s->dev.config + 0x90, 0xb);
+    pci_set_long(s->dev.config + 0x90, 0xb10b);
+    /* SMBus IO enable */
+    pci_set_byte(s->dev.config + 0xd2, BIT(3) | BIT(0));
 
     acpi_pm1_evt_reset(&s->ar);
     acpi_pm1_cnt_reset(&s->ar);
@@ -707,6 +713,9 @@ static void vt82c686b_isa_reset(DeviceState *dev)
     pci_conf[0x4a] = 0x04; /* IDE interrupt Routing */
     pci_conf[0x4f] = 0x03; /* DMA/Master Mem Access Control 3 */
     pci_conf[0x50] = 0x2d; /* PnP DMA Request Control */
+    pci_conf[0x55] = 0xa0;
+    pci_conf[0x56] = 0xba;
+    pci_conf[0x57] = 0xb0;
     pci_conf[0x59] = 0x04;
     pci_conf[0x5a] = 0x04; /* KBC/RTC Control*/
     pci_conf[0x5f] = 0x04;
