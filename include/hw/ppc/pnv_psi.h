@@ -32,7 +32,7 @@ OBJECT_DECLARE_TYPE(PnvPsi, PnvPsiClass,
 #define PSIHB_XSCOM_MAX         0x20
 
 struct PnvPsi {
-    DeviceState parent;
+    SysBusDevice parent;
 
     MemoryRegion regs_mr;
     uint64_t bar;
