@@ -433,7 +433,7 @@ static void designware_pcie_root_realize(PCIDevice *dev, Error **errp)
         viewport->cr[0]   = DESIGNWARE_PCIE_ATU_TYPE_MEM;
 
         source      = &host->pci.address_space_root;
-        destination = get_system_memory();
+        destination = pci_address_space(dev);
         direction   = "Inbound";
 
         /*
@@ -458,7 +458,7 @@ static void designware_pcie_root_realize(PCIDevice *dev, Error **errp)
 
         destination = &host->pci.memory;
         direction   = "Outbound";
-        source      = get_system_memory();
+        source      = pci_address_space(dev);
 
         /*
          * Configure MemoryRegion implementing CPU -> PCI memory
