@@ -125,7 +125,7 @@
 static void pnv_psi_set_bar(PnvPsi *psi, uint64_t bar)
 {
     PnvPsiClass *ppc = PNV_PSI_GET_CLASS(psi);
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = sysbus_address_space(&psi->parent);
     uint64_t old = psi->regs[PSIHB_XSCOM_BAR];
 
     psi->regs[PSIHB_XSCOM_BAR] = bar & (ppc->bar_mask | PSIHB_BAR_EN);
@@ -700,7 +700,7 @@ static void pnv_psi_p9_mmio_write(void *opaque, hwaddr addr,
     PnvPsi *psi = PNV_PSI(opaque);
     Pnv9Psi *psi9 = PNV9_PSI(psi);
     uint32_t reg = PSIHB_REG(addr);
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = sysbus_address_space(&psi->parent);
 
     switch (addr) {
     case PSIHB9_CR:
@@ -825,12 +825,14 @@ static void pnv_psi_power9_set_irq(void *opaque, int irq, int state)
 
 static void pnv_psi_power9_reset(DeviceState *dev)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(dev);
     Pnv9Psi *psi = PNV9_PSI(dev);
+    MemoryRegion *sysmem = sysbus_address_space(sysbus);
 
     pnv_psi_reset(dev);
 
     if (memory_region_is_mapped(&psi->source.esb_mmio)) {
-        memory_region_del_subregion(get_system_memory(), &psi->source.esb_mmio);
+        memory_region_del_subregion(sysmem, &psi->source.esb_mmio);
     }
 }
 
