@@ -1605,11 +1605,13 @@ static NetClientInfo net_gem_info = {
 
 static void gem_realize(DeviceState *dev, Error **errp)
 {
+    SysBusDevice *sysbus = SYS_BUS_DEVICE(dev);
     CadenceGEMState *s = CADENCE_GEM(dev);
     int i;
 
     address_space_init(&s->dma_as,
-                       s->dma_mr ? s->dma_mr : get_system_memory(), "dma");
+                       s->dma_mr ? s->dma_mr : sysbus_address_space(sysbus),
+                       "dma");
 
     if (s->num_priority_queues == 0 ||
         s->num_priority_queues > MAX_PRIORITY_QUEUES) {
