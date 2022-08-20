@@ -22,7 +22,6 @@
 #include "hw/isa/isa.h"
 #include "hw/qdev-properties.h"
 #include "migration/vmstate.h"
-#include "exec/address-spaces.h"
 #include "qapi/error.h"
 #include "trace.h"
 #include "qom/object.h"
@@ -141,6 +140,7 @@ static const MemoryRegionPortio rs6000mc_port_list[] = {
 static void rs6000mc_realize(DeviceState *dev, Error **errp)
 {
     RS6000MCState *s = RS6000MC(dev);
+    MemoryRegion *isa_memory = isa_address_space(&s->parent_obj);
     int socket = 0;
     unsigned int ram_size = s->ram_size / MiB;
     Error *local_err = NULL;
@@ -171,7 +171,7 @@ static void rs6000mc_realize(DeviceState *dev, Error **errp)
                 error_propagate(errp, local_err);
                 return;
             }
-            memory_region_add_subregion_overlap(get_system_memory(), 0,
+            memory_region_add_subregion_overlap(isa_memory, 0,
                                                 &s->simm[socket], socket);
         }
     }
