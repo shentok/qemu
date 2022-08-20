@@ -335,7 +335,7 @@ static void raven_realize(PCIDevice *d, Error **errp)
 
     memory_region_init_rom_nomigrate(&s->bios, OBJECT(s), "bios", BIOS_SIZE,
                                      &error_fatal);
-    memory_region_add_subregion(get_system_memory(), (uint32_t)(-BIOS_SIZE),
+    memory_region_add_subregion(pci_address_space(d), (uint32_t)(-BIOS_SIZE),
                                 &s->bios);
     if (s->bios_name) {
         filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, s->bios_name);
@@ -358,7 +358,7 @@ static void raven_realize(PCIDevice *d, Error **errp)
         }
         g_free(filename);
         if (bios_size < 0 || bios_size > BIOS_SIZE) {
-            memory_region_del_subregion(get_system_memory(), &s->bios);
+            memory_region_del_subregion(pci_address_space(d), &s->bios);
             error_setg(errp, "Could not load bios image '%s'", s->bios_name);
             return;
         }
