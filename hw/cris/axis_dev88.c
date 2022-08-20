@@ -300,7 +300,7 @@ void axisdev88_init(MachineState *machine)
     nmi[0] = qdev_get_gpio_in(dev, 30);
     nmi[1] = qdev_get_gpio_in(dev, 31);
 
-    etraxfs_dmac = etraxfs_dmac_init(0x30000000, 10);
+    etraxfs_dmac = etraxfs_dmac_init(address_space_mem, 0x30000000, 10);
     for (i = 0; i < 10; i++) {
         /* On ETRAX, odd numbered channels are inputs.  */
         etraxfs_dmac_connect(etraxfs_dmac, i, irq + 7 + i, i & 1);

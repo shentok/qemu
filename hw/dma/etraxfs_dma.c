@@ -761,7 +761,8 @@ static void DMA_run(void *opaque)
         qemu_bh_schedule_idle(etraxfs_dmac->bh);
 }
 
-void *etraxfs_dmac_init(hwaddr base, int nr_channels)
+void *etraxfs_dmac_init(MemoryRegion *system_memory, hwaddr base,
+                        int nr_channels)
 {
 	struct fs_dma_ctrl *ctrl = NULL;
 
@@ -774,7 +775,7 @@ void *etraxfs_dmac_init(hwaddr base, int nr_channels)
 
 	memory_region_init_io(&ctrl->mmio, NULL, &dma_ops, ctrl, "etraxfs-dma",
 			      nr_channels * 0x2000);
-	memory_region_add_subregion(get_system_memory(), base, &ctrl->mmio);
+    memory_region_add_subregion(system_memory, base, &ctrl->mmio);
 
 	return ctrl;
 }

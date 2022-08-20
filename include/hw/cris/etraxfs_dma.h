@@ -25,7 +25,8 @@ struct etraxfs_dma_client
 	} client;
 };
 
-void *etraxfs_dmac_init(hwaddr base, int nr_channels);
+void *etraxfs_dmac_init(MemoryRegion *system_memory, hwaddr base,
+                        int nr_channels);
 void etraxfs_dmac_connect(void *opaque, int channel, qemu_irq *line,
 			  int input);
 void etraxfs_dmac_connect_client(void *opaque, int c, 
