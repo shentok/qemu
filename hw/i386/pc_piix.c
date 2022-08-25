@@ -73,6 +73,17 @@ static const int ide_iobase2[MAX_IDE_BUS] = { 0x3f6, 0x376 };
 static const int ide_irq[MAX_IDE_BUS] = { 14, 15 };
 #endif
 
+/*
+ * Return the global irq number corresponding to a given device irq
+ * pin. We could also use the bus number to have a more precise mapping.
+ */
+static int piix3_pci_slot_get_pirq(PCIDevice *pci_dev, int pci_intx)
+{
+    int slot_addend;
+    slot_addend = PCI_SLOT(pci_dev->devfn) - 1;
+    return (pci_intx + slot_addend) & 3;
+}
+
 /* PC hardware initialisation */
 static void pc_init1(MachineState *machine,
                      const char *host_type, const char *pci_type)
@@ -229,6 +240,12 @@ static void pc_init1(MachineState *machine,
                                  x86_machine_is_smm_enabled(x86ms),
                                  &error_abort);
         pci_realize_and_unref(pci_dev, pci_bus, &error_fatal);
+
+        pci_bus_irqs(pci_bus, pci_bus->set_irq,
+                     xen_enabled() ? xen_pci_slot_get_pirq
+                                   : piix3_pci_slot_get_pirq,
+                     pci_dev, pci_bus->nirq);
+
         dev = DEVICE(object_resolve_path_component(OBJECT(pci_dev), "pic"));
         for (i = 0; i < ISA_NUM_IRQS; ++i) {
             qdev_connect_gpio_out(dev, i, x86ms->gsi[i]);
