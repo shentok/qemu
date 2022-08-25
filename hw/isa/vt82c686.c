@@ -105,14 +105,14 @@ static void pm_write_config(PCIDevice *d, uint32_t addr, uint32_t val, int len)
     pci_default_write_config(d, addr, val, len);
     if (ranges_overlap(addr, len, 0x48, 4)) {
         uint32_t v = pci_get_long(s->dev.config + 0x48);
-        pci_set_long(s->dev.config + 0x48, (v & 0xff80UL) | 1);
+        pci_set_long(s->dev.config + 0x48, (v & 0xff80UL) | 0x1b);
     }
     if (range_covers_byte(addr, len, 0x41)) {
         pm_io_space_update(s);
     }
     if (ranges_overlap(addr, len, 0x90, 4)) {
         uint32_t v = pci_get_long(s->dev.config + 0x90);
-        pci_set_long(s->dev.config + 0x90, (v & 0xfff0UL) | 1);
+        pci_set_long(s->dev.config + 0x90, (v & 0xfff0UL) | 0xb);
     }
     if (range_covers_byte(addr, len, 0xd2)) {
         s->dev.config[0xd2] &= 0xf;
@@ -181,9 +181,9 @@ static void via_pm_reset(DeviceState *d)
     memset(s->dev.config + PCI_CONFIG_HEADER_SIZE, 0,
            PCI_CONFIG_SPACE_SIZE - PCI_CONFIG_HEADER_SIZE);
     /* Power Management IO base */
-    pci_set_long(s->dev.config + 0x48, 1);
+    pci_set_long(s->dev.config + 0x48, 0x1b);
     /* SMBus IO base */
-    pci_set_long(s->dev.config + 0x90, 1);
+    pci_set_long(s->dev.config + 0x90, 0xb);
 
     acpi_pm1_evt_reset(&s->ar);
     acpi_pm1_cnt_reset(&s->ar);
