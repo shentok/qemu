@@ -13,8 +13,10 @@
 #include "hw/isa/vt82c686.h"
 #include "hw/pci/pci.h"
 
-static void via_ac97_realize(PCIDevice *pci_dev, Error **errp)
+static void via_ac97_reset(DeviceState *s)
 {
+    PCIDevice *pci_dev = PCI_DEVICE(s);
+
     pci_set_word(pci_dev->config + PCI_COMMAND,
                  PCI_COMMAND_INVALIDATE | PCI_COMMAND_PARITY);
     pci_set_word(pci_dev->config + PCI_STATUS,
@@ -27,12 +29,12 @@ static void via_ac97_class_init(ObjectClass *klass, void *data)
     DeviceClass *dc = DEVICE_CLASS(klass);
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
 
-    k->realize = via_ac97_realize;
     k->vendor_id = PCI_VENDOR_ID_VIA;
     k->device_id = PCI_DEVICE_ID_VIA_AC97;
     k->revision = 0x50;
     k->class_id = PCI_CLASS_MULTIMEDIA_AUDIO;
     set_bit(DEVICE_CATEGORY_SOUND, dc->categories);
+    dc->reset = via_ac97_reset;
     dc->desc = "VIA AC97";
     /* Reason: Part of a south bridge chip */
     dc->user_creatable = false;
