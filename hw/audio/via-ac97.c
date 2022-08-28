@@ -10,8 +10,18 @@
  */
 
 #include "qemu/osdep.h"
+#include "qemu/range.h"
 #include "hw/isa/vt82c686.h"
 #include "hw/pci/pci.h"
+#include "trace.h"
+
+static void via_ac97_write_config(PCIDevice *d, uint32_t addr, uint32_t val, int len)
+{
+    pci_default_write_config(d, addr, val, len);
+    if (ranges_overlap(addr, len, 0x40, 0x10)) {
+        trace_via_ac97_write_config(addr, val, len);
+    }
+}
 
 static void via_ac97_reset(DeviceState *s)
 {
@@ -29,6 +39,7 @@ static void via_ac97_class_init(ObjectClass *klass, void *data)
     DeviceClass *dc = DEVICE_CLASS(klass);
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
 
+    k->config_write = via_ac97_write_config;
     k->vendor_id = PCI_VENDOR_ID_VIA;
     k->device_id = PCI_DEVICE_ID_VIA_AC97;
     k->revision = 0x50;

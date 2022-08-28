@@ -11,3 +11,6 @@ hda_audio_running(const char *stream, int nr, bool running) "st %s, nr %d, run %
 hda_audio_format(const char *stream, int chan, const char *fmt, int freq) "st %s, %d x %s @ %d Hz"
 hda_audio_adjust(const char *stream, int pos) "st %s, pos %d"
 hda_audio_overrun(const char *stream) "st %s"
+
+# via-ac97.c
+via_ac97_write_config(uint32_t addr, uint32_t val, int len) "addr 0x%x val 0x%x len 0x%x"
