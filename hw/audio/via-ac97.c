@@ -32,6 +32,7 @@ static void via_ac97_reset(DeviceState *s)
     pci_set_word(pci_dev->config + PCI_STATUS,
                  PCI_STATUS_CAP_LIST | PCI_STATUS_DEVSEL_MEDIUM);
     pci_set_long(pci_dev->config + PCI_INTERRUPT_PIN, 0x03);
+    pci_set_byte(pci_dev->config + 42, BIT(0));
 }
 
 static void via_ac97_class_init(ObjectClass *klass, void *data)
