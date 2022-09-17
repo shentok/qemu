@@ -143,7 +143,7 @@ static target_ulong h_ipoll(PowerPCCPU *cpu, SpaprMachineState *spapr,
 #define CHECK_EMULATED_XICS_RTAS(spapr, rets)              \
     do {                                                   \
         if (!check_emulated_xics((spapr), __func__)) {     \
-            AddressSpace *as = &address_space_memory; \
+            AddressSpace *as = get_address_space_memory(); \
             rtas_st(as, (rets), 0, RTAS_OUT_HW_ERROR);     \
             return;                                        \
         }                                                  \
@@ -154,7 +154,7 @@ static void rtas_set_xive(PowerPCCPU *cpu, SpaprMachineState *spapr,
                           uint32_t nargs, target_ulong args,
                           uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     ICSState *ics = spapr->ics;
     uint32_t nr, srcno, server, priority;
 
@@ -190,7 +190,7 @@ static void rtas_get_xive(PowerPCCPU *cpu, SpaprMachineState *spapr,
                           uint32_t nargs, target_ulong args,
                           uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     ICSState *ics = spapr->ics;
     uint32_t nr, srcno;
 
@@ -223,7 +223,7 @@ static void rtas_int_off(PowerPCCPU *cpu, SpaprMachineState *spapr,
                          uint32_t nargs, target_ulong args,
                          uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     ICSState *ics = spapr->ics;
     uint32_t nr, srcno;
 
@@ -257,7 +257,7 @@ static void rtas_int_on(PowerPCCPU *cpu, SpaprMachineState *spapr,
                         uint32_t nargs, target_ulong args,
                         uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     ICSState *ics = spapr->ics;
     uint32_t nr, srcno;
 

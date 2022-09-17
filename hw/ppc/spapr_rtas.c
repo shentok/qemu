@@ -56,7 +56,7 @@ static void rtas_display_character(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                    target_ulong args,
                                    uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     uint8_t c = rtas_ld(as, args, 0);
     SpaprVioDevice *sdev = vty_lookup(spapr, 0);
 
@@ -72,7 +72,7 @@ static void rtas_power_off(PowerPCCPU *cpu, SpaprMachineState *spapr,
                            uint32_t token, uint32_t nargs, target_ulong args,
                            uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     if (nargs != 2 || nret != 1) {
         rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
@@ -87,7 +87,7 @@ static void rtas_system_reboot(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                target_ulong args,
                                uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     if (nargs != 0 || nret != 1) {
         rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
@@ -102,7 +102,7 @@ static void rtas_query_cpu_stopped_state(PowerPCCPU *cpu_,
                                          target_ulong args,
                                          uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     target_ulong id;
     PowerPCCPU *cpu;
 
@@ -133,7 +133,7 @@ static void rtas_start_cpu(PowerPCCPU *callcpu, SpaprMachineState *spapr,
                            target_ulong args,
                            uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     target_ulong id, start, r3;
     PowerPCCPU *newcpu;
     CPUPPCState *env;
@@ -231,7 +231,7 @@ static void rtas_ibm_suspend_me(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                 target_ulong args,
                                 uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     CPUState *cs;
 
     if (nargs != 0 || nret != 1) {
@@ -265,7 +265,7 @@ static inline int sysparm_st(target_ulong addr, target_ulong len,
     if (len < 2) {
         return RTAS_OUT_SYSPARM_PARAM_ERROR;
     }
-    stw_be_phys(&address_space_memory, phys, vallen);
+    stw_be_phys(get_address_space_memory(), phys, vallen);
     cpu_physical_memory_write(phys + 2, val, MIN(len - 2, vallen));
     return RTAS_OUT_SUCCESS;
 }
@@ -278,7 +278,7 @@ static void rtas_ibm_get_system_parameter(PowerPCCPU *cpu,
 {
     PowerPCCPUClass *pcc = POWERPC_CPU_GET_CLASS(cpu);
     MachineState *ms = MACHINE(spapr);
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     target_ulong parameter = rtas_ld(as, args, 0);
     target_ulong buffer = rtas_ld(as, args, 1);
     target_ulong length = rtas_ld(as, args, 2);
@@ -334,7 +334,7 @@ static void rtas_ibm_set_system_parameter(PowerPCCPU *cpu,
                                           target_ulong args,
                                           uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     target_ulong parameter = rtas_ld(as, args, 0);
     target_ulong ret = RTAS_OUT_NOT_SUPPORTED;
 
@@ -355,7 +355,7 @@ static void rtas_ibm_os_term(PowerPCCPU *cpu,
                             target_ulong args,
                             uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     target_ulong msgaddr = rtas_ld(as, args, 0);
     char msg[512];
 
@@ -373,7 +373,7 @@ static void rtas_set_power_level(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                  target_ulong args, uint32_t nret,
                                  target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     int32_t power_domain;
 
     if (nargs != 2 || nret != 2) {
@@ -399,7 +399,7 @@ static void rtas_get_power_level(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                   target_ulong args, uint32_t nret,
                                   target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     int32_t power_domain;
 
     if (nargs != 1 || nret != 2) {
@@ -426,7 +426,7 @@ static void rtas_ibm_nmi_register(PowerPCCPU *cpu,
                                   target_ulong args,
                                   uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     hwaddr rtas_addr;
     target_ulong sreset_addr, mce_addr;
 
@@ -470,7 +470,7 @@ static void rtas_ibm_nmi_interlock(PowerPCCPU *cpu,
                                    target_ulong args,
                                    uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
 
     if (spapr_get_cap(spapr, SPAPR_CAP_FWNMI) == SPAPR_CAP_OFF) {
         rtas_st(as, rets, 0, RTAS_OUT_NOT_SUPPORTED);
@@ -521,7 +521,7 @@ target_ulong spapr_rtas_call(PowerPCCPU *cpu, SpaprMachineState *spapr,
                              uint32_t token, uint32_t nargs, target_ulong args,
                              uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
 
     if ((token >= RTAS_TOKEN_BASE) && (token < RTAS_TOKEN_MAX)) {
         struct rtas_call *call = rtas_table + (token - RTAS_TOKEN_BASE);

@@ -615,7 +615,7 @@ static void vfio_iommu_map_notify(IOMMUNotifier *n, IOMMUTLBEntry *iotlb)
     trace_vfio_iommu_map_notify(iotlb->perm == IOMMU_NONE ? "UNMAP" : "MAP",
                                 iova, iova + iotlb->addr_mask);
 
-    if (iotlb->target_as != &address_space_memory) {
+    if (iotlb->target_as != get_address_space_memory()) {
         error_report("Wrong target AS \"%s\", only system memory is allowed",
                      iotlb->target_as->name ? iotlb->target_as->name : "none");
         return;
@@ -1296,7 +1296,7 @@ static void vfio_iommu_map_dirty_notify(IOMMUNotifier *n, IOMMUTLBEntry *iotlb)
 
     trace_vfio_iommu_map_dirty_notify(iova, iova + iotlb->addr_mask);
 
-    if (iotlb->target_as != &address_space_memory) {
+    if (iotlb->target_as != get_address_space_memory()) {
         error_report("Wrong target AS \"%s\", only system memory is allowed",
                      iotlb->target_as->name ? iotlb->target_as->name : "none");
         return;
@@ -2104,7 +2104,7 @@ static int vfio_connect_container(VFIOGroup *group, AddressSpace *as,
             container->prereg_listener = vfio_prereg_listener;
 
             memory_listener_register(&container->prereg_listener,
-                                     &address_space_memory);
+                                     get_address_space_memory());
             if (container->error) {
                 memory_listener_unregister(&container->prereg_listener);
                 ret = -1;

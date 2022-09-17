@@ -277,9 +277,9 @@ uint64_t riscv_load_fdt(MachineState *machine, hwaddr dram_base)
     qemu_fdt_dumpdtb(fdt, fdtsize);
 
     rom_add_blob_fixed_as("fdt", fdt, fdtsize, fdt_addr,
-                          &address_space_memory);
+                          get_address_space_memory());
     qemu_register_reset_nosnapshotload(qemu_fdt_randomize_seeds,
-                        rom_ptr_for_as(&address_space_memory, fdt_addr, fdtsize));
+                        rom_ptr_for_as(get_address_space_memory(), fdt_addr, fdtsize));
 
     return fdt_addr;
 }
@@ -318,7 +318,7 @@ void riscv_rom_copy_firmware_info(MachineState *machine, hwaddr rom_base,
 
     rom_add_blob_fixed_as("mrom.finfo", &dinfo, dinfo_len,
                            rom_base + reset_vec_size,
-                           &address_space_memory);
+                           get_address_space_memory());
 }
 
 void riscv_setup_rom_reset_vec(MachineState *machine, RISCVHartArrayState *harts,
@@ -362,7 +362,7 @@ void riscv_setup_rom_reset_vec(MachineState *machine, RISCVHartArrayState *harts
         reset_vec[i] = cpu_to_le32(reset_vec[i]);
     }
     rom_add_blob_fixed_as("mrom.reset", reset_vec, sizeof(reset_vec),
-                          rom_base, &address_space_memory);
+                          rom_base, get_address_space_memory());
     riscv_rom_copy_firmware_info(machine, rom_base, rom_size, sizeof(reset_vec),
                                  kernel_entry);
 }

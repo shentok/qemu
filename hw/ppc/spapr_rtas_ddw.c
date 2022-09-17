@@ -96,7 +96,7 @@ static void rtas_ibm_query_pe_dma_window(PowerPCCPU *cpu,
                                          target_ulong args,
                                          uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprPhbState *sphb;
     uint64_t buid;
     uint32_t avail, addr, pgmask = 0;
@@ -147,7 +147,7 @@ static void rtas_ibm_create_pe_dma_window(PowerPCCPU *cpu,
                                           target_ulong args,
                                           uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprPhbState *sphb;
     SpaprTceTable *tcet = NULL;
     uint32_t addr, page_shift, window_shift, liobn;
@@ -225,7 +225,7 @@ static void rtas_ibm_remove_pe_dma_window(PowerPCCPU *cpu,
                                           target_ulong args,
                                           uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprPhbState *sphb;
     SpaprTceTable *tcet;
     uint32_t liobn;
@@ -276,7 +276,7 @@ static void rtas_ibm_reset_pe_dma_window(PowerPCCPU *cpu,
                                          target_ulong args,
                                          uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprPhbState *sphb;
     uint64_t buid;
     uint32_t addr;

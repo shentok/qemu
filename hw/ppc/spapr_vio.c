@@ -332,7 +332,7 @@ static void rtas_set_tce_bypass(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                 uint32_t nargs, target_ulong args,
                                 uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprVioBus *bus = spapr->vio_bus;
     SpaprVioDevice *dev;
     uint32_t unit, enable;
@@ -364,7 +364,7 @@ static void rtas_quiesce(PowerPCCPU *cpu, SpaprMachineState *spapr,
                          uint32_t nargs, target_ulong args,
                          uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprVioBus *bus = spapr->vio_bus;
     BusChild *kid;
     SpaprVioDevice *dev = NULL;

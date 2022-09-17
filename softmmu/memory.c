@@ -2140,7 +2140,7 @@ bool memory_get_xlat_addr(IOMMUTLBEntry *iotlb, void **vaddr,
      * this IOMMU to its immediate target.  We need to translate
      * it the rest of the way through to memory.
      */
-    mr = address_space_translate(&address_space_memory, iotlb->translated_addr,
+    mr = address_space_translate(get_address_space_memory(), iotlb->translated_addr,
                                  &xlat, &len, writable, MEMTXATTRS_UNSPECIFIED);
     if (!memory_region_is_ram(mr)) {
         error_report("iommu map to non memory area %" HWADDR_PRIx "", xlat);

@@ -645,7 +645,7 @@ static target_ulong h_prod(PowerPCCPU *cpu, SpaprMachineState *spapr,
 static target_ulong h_rtas(PowerPCCPU *cpu, SpaprMachineState *spapr,
                            target_ulong opcode, target_ulong *args)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     target_ulong rtas_r3 = args[0];
     uint32_t token = rtas_ld(as, rtas_r3, 0);
     uint32_t nargs = rtas_ld(as, rtas_r3, 1);
@@ -1060,8 +1060,8 @@ static uint32_t cas_check_pvr(PowerPCCPU *cpu, uint32_t max_compat,
     for (i = 0; i < 512; ++i) {
         uint32_t pvr, pvr_mask;
 
-        pvr_mask = ldl_be_phys(&address_space_memory, *addr);
-        pvr = ldl_be_phys(&address_space_memory, *addr + 4);
+        pvr_mask = ldl_be_phys(get_address_space_memory(), *addr);
+        pvr = ldl_be_phys(get_address_space_memory(), *addr + 4);
         *addr += 8;
 
         if (~pvr_mask & pvr) {

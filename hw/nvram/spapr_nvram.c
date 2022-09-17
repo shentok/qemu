@@ -60,7 +60,7 @@ static void rtas_nvram_fetch(PowerPCCPU *cpu, SpaprMachineState *spapr,
                              target_ulong args,
                              uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprNvram *nvram = spapr->nvram;
     hwaddr offset, buffer, len;
     void *membuf;
@@ -102,7 +102,7 @@ static void rtas_nvram_store(PowerPCCPU *cpu, SpaprMachineState *spapr,
                              target_ulong args,
                              uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprNvram *nvram = spapr->nvram;
     hwaddr offset, buffer, len;
     int ret;

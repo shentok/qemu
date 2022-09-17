@@ -627,7 +627,7 @@ static uint32_t s390_pci_update_iotlb(S390PCIIOMMU *iommu,
     IOMMUTLBEvent event = {
         .type = entry->perm ? IOMMU_NOTIFIER_MAP : IOMMU_NOTIFIER_UNMAP,
         .entry = {
-            .target_as = &address_space_memory,
+            .target_as = get_address_space_memory(),
             .iova = entry->iova,
             .translated_addr = entry->translated_addr,
             .perm = entry->perm,
@@ -683,7 +683,7 @@ static void s390_pci_batch_unmap(S390PCIIOMMU *iommu, uint64_t iova,
     IOMMUTLBEvent event = {
         .type = IOMMU_NOTIFIER_UNMAP,
         .entry = {
-            .target_as = &address_space_memory,
+            .target_as = get_address_space_memory(),
             .translated_addr = 0,
             .perm = IOMMU_NONE,
         },
@@ -1059,22 +1059,22 @@ static int fmb_do_update(S390PCIBusDevice *pbdev, int offset, uint64_t val,
 
     switch (len) {
     case 8:
-        address_space_stq_be(&address_space_memory, dst, val,
+        address_space_stq_be(get_address_space_memory(), dst, val,
                              MEMTXATTRS_UNSPECIFIED,
                              &ret);
         break;
     case 4:
-        address_space_stl_be(&address_space_memory, dst, val,
+        address_space_stl_be(get_address_space_memory(), dst, val,
                              MEMTXATTRS_UNSPECIFIED,
                              &ret);
         break;
     case 2:
-        address_space_stw_be(&address_space_memory, dst, val,
+        address_space_stw_be(get_address_space_memory(), dst, val,
                              MEMTXATTRS_UNSPECIFIED,
                              &ret);
         break;
     case 1:
-        address_space_stb(&address_space_memory, dst, val,
+        address_space_stb(get_address_space_memory(), dst, val,
                           MEMTXATTRS_UNSPECIFIED,
                           &ret);
         break;

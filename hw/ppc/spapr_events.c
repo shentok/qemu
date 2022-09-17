@@ -853,7 +853,7 @@ static void spapr_mce_dispatch_elog(SpaprMachineState *spapr, PowerPCCPU *cpu,
      */
     spapr->fwnmi_machine_check_interlock = cpu->vcpu_id;
 
-    stq_be_phys(&address_space_memory, rtas_addr + RTAS_ERROR_LOG_OFFSET,
+    stq_be_phys(get_address_space_memory(), rtas_addr + RTAS_ERROR_LOG_OFFSET,
                 env->gpr[3]);
     cpu_physical_memory_write(rtas_addr + RTAS_ERROR_LOG_OFFSET +
                               sizeof(env->gpr[3]), &log, sizeof(log));
@@ -933,7 +933,7 @@ static void check_exception(PowerPCCPU *cpu, SpaprMachineState *spapr,
                             target_ulong args,
                             uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     uint32_t mask, buf, len, event_len;
     SpaprEventLogEntry *event;
     struct rtas_error_log header;
@@ -994,7 +994,7 @@ static void event_scan(PowerPCCPU *cpu, SpaprMachineState *spapr,
                        target_ulong args,
                        uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     int i;
     if (nargs != 4 || nret != 1) {
         rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);

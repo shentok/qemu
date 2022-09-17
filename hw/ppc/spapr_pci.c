@@ -103,7 +103,7 @@ static void finish_read_pci_config(SpaprMachineState *spapr, uint64_t buid,
                                    uint32_t addr, uint32_t size,
                                    target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     PCIDevice *pci_dev;
     uint32_t val;
 
@@ -135,7 +135,7 @@ static void rtas_ibm_read_pci_config(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                      target_ulong args,
                                      uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     uint64_t buid;
     uint32_t size, addr;
 
@@ -156,7 +156,7 @@ static void rtas_read_pci_config(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                  target_ulong args,
                                  uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     uint32_t size, addr;
 
     if ((nargs != 2) || (nret != 2)) {
@@ -174,7 +174,7 @@ static void finish_write_pci_config(SpaprMachineState *spapr, uint64_t buid,
                                     uint32_t addr, uint32_t size,
                                     uint32_t val, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     PCIDevice *pci_dev;
 
     if ((size != 1) && (size != 2) && (size != 4)) {
@@ -204,7 +204,7 @@ static void rtas_ibm_write_pci_config(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                       target_ulong args,
                                       uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     uint64_t buid;
     uint32_t val, size, addr;
 
@@ -226,7 +226,7 @@ static void rtas_write_pci_config(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                   target_ulong args,
                                   uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     uint32_t val, size, addr;
 
     if ((nargs != 3) || (nret != 1)) {
@@ -276,7 +276,7 @@ static void rtas_ibm_change_msi(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                 target_ulong args, uint32_t nret,
                                 target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprMachineClass *smc = SPAPR_MACHINE_GET_CLASS(spapr);
     uint32_t config_addr = rtas_ld(as, args, 0);
     uint64_t buid = rtas_ldq(as, args, 1);
@@ -448,7 +448,7 @@ static void rtas_ibm_query_interrupt_source_number(PowerPCCPU *cpu,
                                                    uint32_t nret,
                                                    target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     uint32_t config_addr = rtas_ld(as, args, 0);
     uint64_t buid = rtas_ldq(as, args, 1);
     unsigned int intr_src_num = -1, ioa_intr_num = rtas_ld(as, args, 3);
@@ -488,7 +488,7 @@ static void rtas_ibm_set_eeh_option(PowerPCCPU *cpu,
                                     target_ulong args, uint32_t nret,
                                     target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprPhbState *sphb;
     uint32_t addr, option;
     uint64_t buid;
@@ -525,7 +525,7 @@ static void rtas_ibm_get_config_addr_info2(PowerPCCPU *cpu,
                                            target_ulong args, uint32_t nret,
                                            target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprPhbState *sphb;
     PCIDevice *pdev;
     uint32_t addr, option;
@@ -580,7 +580,7 @@ static void rtas_ibm_read_slot_reset_state2(PowerPCCPU *cpu,
                                             target_ulong args, uint32_t nret,
                                             target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprPhbState *sphb;
     uint64_t buid;
     int state, ret;
@@ -623,7 +623,7 @@ static void rtas_ibm_set_slot_reset(PowerPCCPU *cpu,
                                     target_ulong args, uint32_t nret,
                                     target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprPhbState *sphb;
     uint32_t option;
     uint64_t buid;
@@ -658,7 +658,7 @@ static void rtas_ibm_configure_pe(PowerPCCPU *cpu,
                                   target_ulong args, uint32_t nret,
                                   target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprPhbState *sphb;
     uint64_t buid;
     int ret;
@@ -692,7 +692,7 @@ static void rtas_ibm_slot_error_detail(PowerPCCPU *cpu,
                                        target_ulong args, uint32_t nret,
                                        target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprPhbState *sphb;
     int option;
     uint64_t buid;

@@ -71,7 +71,7 @@ static void rtas_get_time_of_day(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                  target_ulong args,
                                  uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     struct tm tm;
     uint32_t ns;
 
@@ -97,7 +97,7 @@ static void rtas_set_time_of_day(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                  target_ulong args,
                                  uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = &address_space_memory;
+    AddressSpace *as = get_address_space_memory();
     SpaprRtcState *rtc = &spapr->rtc;
     g_autofree const char *qom_path = NULL;
     struct tm tm;
