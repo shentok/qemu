@@ -17,6 +17,11 @@ struct SysBusState {
     /*< private >*/
     BusState parent_obj;
     /*< public >*/
+
+    struct {
+        MemoryRegion mr;
+        AddressSpace as;
+    } io, memory;
 };
 
 #define TYPE_SYS_BUS_DEVICE "sys-bus-device"
