@@ -349,6 +349,11 @@ struct MachineState {
     MemoryRegion *ram;
     DeviceMemoryState *device_memory;
 
+    struct {
+        MemoryRegion mr;
+        AddressSpace as;
+    } io, memory;
+
     ram_addr_t ram_size;
     ram_addr_t maxram_size;
     uint64_t   ram_slots;

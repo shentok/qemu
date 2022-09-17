@@ -87,12 +87,6 @@
  */
 RAMList ram_list = { .blocks = QLIST_HEAD_INITIALIZER(ram_list.blocks) };
 
-static MemoryRegion *system_memory;
-static MemoryRegion *system_io;
-
-static AddressSpace address_space_io;
-static AddressSpace address_space_memory;
-
 static MemoryRegion io_mem_unassigned;
 
 typedef struct PhysPageEntry PhysPageEntry;
@@ -2675,35 +2669,41 @@ static void tcg_commit(MemoryListener *listener)
 
 static void memory_map_init(void)
 {
-    system_memory = g_malloc(sizeof(*system_memory));
+    memory_region_init(get_system_memory(), NULL, "system", UINT64_MAX);
+    address_space_init(get_address_space_memory(), get_system_memory(),
+                       "memory");
 
-    memory_region_init(system_memory, NULL, "system", UINT64_MAX);
-    address_space_init(&address_space_memory, system_memory, "memory");
-
-    system_io = g_malloc(sizeof(*system_io));
-    memory_region_init_io(system_io, NULL, &unassigned_io_ops, NULL, "io",
-                          65536);
-    address_space_init(&address_space_io, system_io, "I/O");
+    memory_region_init_io(get_system_io(), NULL, &unassigned_io_ops, NULL,
+                          "io", 65536);
+    address_space_init(get_address_space_io(), get_system_io(), "I/O");
 }
 
 MemoryRegion *get_system_memory(void)
 {
-    return system_memory;
+    assert(current_machine);
+
+    return &current_machine->memory.mr;
 }
 
 MemoryRegion *get_system_io(void)
 {
-    return system_io;
+    assert(current_machine);
+
+    return &current_machine->io.mr;
 }
 
 AddressSpace *get_address_space_memory(void)
 {
-    return &address_space_memory;
+    assert(current_machine);
+
+    return &current_machine->memory.as;
 }
 
 AddressSpace *get_address_space_io(void)
 {
-    return &address_space_io;
+    assert(current_machine);
+
+    return &current_machine->io.as;
 }
 
 static void invalidate_and_set_dirty(MemoryRegion *mr, hwaddr addr,
@@ -3009,7 +3009,7 @@ MemTxResult address_space_set(AddressSpace *as, hwaddr addr,
 void cpu_physical_memory_rw(hwaddr addr, void *buf,
                             hwaddr len, bool is_write)
 {
-    address_space_rw(&address_space_memory, addr, MEMTXATTRS_UNSPECIFIED,
+    address_space_rw(get_address_space_memory(), addr, MEMTXATTRS_UNSPECIFIED,
                      buf, len, is_write);
 }
 
@@ -3080,7 +3080,7 @@ void cpu_flush_icache_range(hwaddr start, hwaddr len)
         return;
     }
 
-    address_space_write_rom_internal(&address_space_memory,
+    address_space_write_rom_internal(get_address_space_memory(),
                                      start, MEMTXATTRS_UNSPECIFIED,
                                      NULL, len, FLUSH_CACHE);
 }
@@ -3325,14 +3325,14 @@ void *cpu_physical_memory_map(hwaddr addr,
                               hwaddr *plen,
                               bool is_write)
 {
-    return address_space_map(&address_space_memory, addr, plen, is_write,
+    return address_space_map(get_address_space_memory(), addr, plen, is_write,
                              MEMTXATTRS_UNSPECIFIED);
 }
 
 void cpu_physical_memory_unmap(void *buffer, hwaddr len,
                                bool is_write, hwaddr access_len)
 {
-    return address_space_unmap(&address_space_memory, buffer, len,
+    return address_space_unmap(get_address_space_memory(), buffer, len,
                                is_write, access_len);
 }
 
@@ -3556,7 +3556,7 @@ bool cpu_physical_memory_is_io(hwaddr phys_addr)
     hwaddr l = 1;
 
     RCU_READ_LOCK_GUARD();
-    mr = address_space_translate(&address_space_memory,
+    mr = address_space_translate(get_address_space_memory(),
                                  phys_addr, &phys_addr, &l, false,
                                  MEMTXATTRS_UNSPECIFIED);
 
