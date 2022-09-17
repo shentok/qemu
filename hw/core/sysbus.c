@@ -88,6 +88,11 @@ static const TypeInfo system_bus_info = {
     .class_init = system_bus_class_init,
 };
 
+SysBusState *sysbus_get_parent_bus(SysBusDevice *sbdev)
+{
+    return SYSTEM_BUS(qdev_get_parent_bus(DEVICE(sbdev)));
+}
+
 /* Check whether an IRQ source exists */
 bool sysbus_has_irq(SysBusDevice *dev, int n)
 {
@@ -131,6 +136,7 @@ bool sysbus_has_mmio(SysBusDevice *dev, unsigned int n)
 static void sysbus_mmio_map_common(SysBusDevice *dev, int n, hwaddr addr,
                                    bool may_overlap, int priority)
 {
+    MemoryRegion *system_memory = sysbus_address_space(dev);
     assert(n >= 0 && n < dev->num_mmio);
 
     if (dev->mmio[n].addr == addr) {
@@ -139,17 +145,17 @@ static void sysbus_mmio_map_common(SysBusDevice *dev, int n, hwaddr addr,
     }
     if (dev->mmio[n].addr != (hwaddr)-1) {
         /* Unregister previous mapping.  */
-        memory_region_del_subregion(get_system_memory(), dev->mmio[n].memory);
+        memory_region_del_subregion(system_memory, dev->mmio[n].memory);
     }
     dev->mmio[n].addr = addr;
     if (may_overlap) {
-        memory_region_add_subregion_overlap(get_system_memory(),
+        memory_region_add_subregion_overlap(system_memory,
                                             addr,
                                             dev->mmio[n].memory,
                                             priority);
     }
     else {
-        memory_region_add_subregion(get_system_memory(),
+        memory_region_add_subregion(system_memory,
                                     addr,
                                     dev->mmio[n].memory);
     }
@@ -157,10 +163,11 @@ static void sysbus_mmio_map_common(SysBusDevice *dev, int n, hwaddr addr,
 
 void sysbus_mmio_unmap(SysBusDevice *dev, int n)
 {
+    MemoryRegion *system_memory = sysbus_address_space(dev);
     assert(n >= 0 && n < dev->num_mmio);
 
     if (dev->mmio[n].addr != (hwaddr)-1) {
-        memory_region_del_subregion(get_system_memory(), dev->mmio[n].memory);
+        memory_region_del_subregion(system_memory, dev->mmio[n].memory);
         dev->mmio[n].addr = (hwaddr)-1;
     }
 }
@@ -302,12 +309,17 @@ static char *sysbus_get_fw_dev_path(DeviceState *dev)
 void sysbus_add_io(SysBusDevice *dev, hwaddr addr,
                        MemoryRegion *mem)
 {
-    memory_region_add_subregion(get_system_io(), addr, mem);
+    memory_region_add_subregion(sysbus_address_space_io(dev), addr, mem);
 }
 
 MemoryRegion *sysbus_address_space(SysBusDevice *dev)
 {
-    return get_system_memory();
+    return &sysbus_get_parent_bus(dev)->system_memory;
+}
+
+MemoryRegion *sysbus_address_space_io(SysBusDevice *dev)
+{
+    return &sysbus_get_parent_bus(dev)->system_io;
 }
 
 static void sysbus_device_class_init(ObjectClass *klass, void *data)
