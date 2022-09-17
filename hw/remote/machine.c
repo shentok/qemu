@@ -50,7 +50,7 @@ static void remote_machine_init(MachineState *machine)
     object_property_add_child(OBJECT(s), "remote-pcihost", OBJECT(rem_host));
     memory_region_add_subregion_overlap(system_memory, 0x0, pci_memory, -1);
 
-    qdev_realize(DEVICE(rem_host), sysbus_get_default(), &error_fatal);
+    qdev_realize(DEVICE(rem_host), BUS(&machine->main_system_bus), &error_fatal);
 
     pci_host = PCI_HOST_BRIDGE(rem_host);
 

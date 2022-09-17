@@ -1449,7 +1449,8 @@ void qdev_machine_creation_done(void)
      * to be reset. Note that this will *not* reset any Device objects
      * which are not attached to some part of the qbus tree!
      */
-    qemu_register_reset(resettable_cold_reset_fn, sysbus_get_default());
+    qemu_register_reset(resettable_cold_reset_fn,
+                        &current_machine->main_system_bus);
 
     notifier_list_notify(&machine_init_done_notifiers, NULL);
 

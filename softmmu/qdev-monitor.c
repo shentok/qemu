@@ -490,23 +490,21 @@ static BusState *qbus_find_recursive(BusState *bus, const char *name,
     return pick;
 }
 
-static BusState *qbus_find(const char *path, Error **errp)
+static BusState *qbus_find(BusState *bus, const char *path, Error **errp)
 {
     DeviceState *dev;
-    BusState *bus;
     char elem[128];
     int pos, len;
 
     /* find start element */
     if (path[0] == '/') {
-        bus = sysbus_get_default();
         pos = 0;
     } else {
         if (sscanf(path, "%127[^/]%n", elem, &len) != 1) {
             assert(!path[0]);
             elem[0] = len = 0;
         }
-        bus = qbus_find_recursive(sysbus_get_default(), elem, NULL);
+        bus = qbus_find_recursive(bus, elem, NULL);
         if (!bus) {
             error_setg(errp, "Bus '%s' not found", elem);
             return NULL;
@@ -636,7 +634,7 @@ DeviceState *qdev_device_add_from_qdict(const QDict *opts,
     /* find bus */
     path = qdict_get_try_str(opts, "bus");
     if (path != NULL) {
-        bus = qbus_find(path, errp);
+        bus = qbus_find(sysbus_get_default(), path, errp);
         if (!bus) {
             return NULL;
         }

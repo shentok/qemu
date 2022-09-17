@@ -33,5 +33,6 @@
  * sysbus devices attached to it.
  */
 void platform_bus_add_all_fdt_nodes(void *fdt, const char *intc, hwaddr addr,
-                                    hwaddr bus_size, int irq_start);
+                                    hwaddr bus_size, int irq_start,
+                                    BusState *sysbus);
 #endif

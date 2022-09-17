@@ -108,11 +108,8 @@ static void smbios_add_ipmi_devices(BusState *bus)
     }
 }
 
-void smbios_build_type_38_table(void)
+void smbios_build_type_38_table(BusState *bus)
 {
-    BusState *bus;
-
-    bus = sysbus_get_default();
     if (bus) {
         smbios_add_ipmi_devices(bus);
     }

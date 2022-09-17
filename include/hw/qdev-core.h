@@ -796,9 +796,6 @@ bool device_is_in_reset(DeviceState *dev);
  */
 bool bus_is_in_reset(BusState *bus);
 
-/* This should go away once we get rid of the NULL bus hack */
-BusState *sysbus_get_default(void);
-
 char *qdev_get_fw_dev_path(DeviceState *dev);
 char *qdev_get_own_fw_dev_path_from_handler(BusState *bus, DeviceState *dev);
 

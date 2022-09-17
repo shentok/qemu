@@ -1066,7 +1066,7 @@ void smbios_get_tables(MachineState *ms,
         assert((mem_array_size + offset) < (T32_BASE - T19_BASE));
 
         smbios_build_type_32_table();
-        smbios_build_type_38_table();
+        smbios_build_type_38_table(BUS(&current_machine->main_system_bus));
         smbios_build_type_41_table(errp);
         smbios_build_type_127_table();
 

@@ -254,12 +254,13 @@ static void dt_setup_isa_bus(MicrovmMachineState *mms, DeviceState *bridge)
 
 static void dt_setup_sys_bus(MicrovmMachineState *mms)
 {
+    MachineState *ms = MACHINE(mms);
     BusState *bus;
     BusChild *kid;
     Object *obj;
 
     /* sysbus devices */
-    bus = sysbus_get_default();
+    bus = BUS(&ms->main_system_bus);
     QTAILQ_FOREACH(kid, &bus->children, sibling) {
         DeviceState *dev = kid->child;
 

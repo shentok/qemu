@@ -390,7 +390,7 @@ static void microvm_fix_kernel_cmdline(MachineState *machine)
      * introducing any significant issues.
      */
     cmdline = g_strdup(machine->kernel_cmdline);
-    bus = sysbus_get_default();
+    bus = BUS(&machine->main_system_bus);
     QTAILQ_FOREACH(kid, &bus->children, sibling) {
         DeviceState *dev = kid->child;
         ObjectClass *class = object_get_class(OBJECT(dev));

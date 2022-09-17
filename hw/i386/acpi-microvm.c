@@ -47,12 +47,13 @@
 static void acpi_dsdt_add_virtio(Aml *scope,
                                  MicrovmMachineState *mms)
 {
+    MachineState *ms = MACHINE(mms);
     gchar *separator;
     long int index;
     BusState *bus;
     BusChild *kid;
 
-    bus = sysbus_get_default();
+    bus = BUS(&ms->main_system_bus);
     QTAILQ_FOREACH(kid, &bus->children, sibling) {
         DeviceState *dev = kid->child;
         Object *obj = object_dynamic_cast(OBJECT(dev), TYPE_VIRTIO_MMIO);

@@ -18,6 +18,7 @@
  */
 
 #include "qemu/osdep.h"
+#include "hw/boards.h"
 #include "hw/qdev-properties.h"
 #include "qemu/ctype.h"
 #include "qemu/module.h"
@@ -129,12 +130,6 @@ static void qbus_init_internal(BusState *bus, DeviceState *parent,
         bus->parent->num_child_bus++;
         object_property_add_child(OBJECT(bus->parent), bus->name, OBJECT(bus));
         object_unref(OBJECT(bus));
-
-        /* The only bus without a parent is the main system bus */
-        assert(sysbus_get_default());
-    } else {
-        /* The only bus without a parent is the main system bus */
-        assert(!sysbus_get_default());
     }
 }
 

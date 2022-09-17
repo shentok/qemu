@@ -98,6 +98,6 @@ extern unsigned smbios_table_cnt;
     } while (0)
 
 /* IPMI SMBIOS firmware handling */
-void smbios_build_type_38_table(void);
+void smbios_build_type_38_table(BusState *bus);
 
 #endif /* QEMU_SMBIOS_BUILD_H */

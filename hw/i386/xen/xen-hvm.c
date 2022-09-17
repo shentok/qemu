@@ -1499,7 +1499,7 @@ void xen_hvm_init_pc(PCMachineState *pcms, MemoryRegion **ram_memory)
 
     state->device_listener = xen_device_listener;
     QLIST_INIT(&state->dev_list);
-    device_listener_register(&state->device_listener, sysbus_get_default());
+    device_listener_register(&state->device_listener, ms->main_system_bus);
 
     xen_bus_init();
 

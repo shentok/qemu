@@ -530,7 +530,8 @@ static void add_fdt_node(SysBusDevice *sbdev, void *opaque)
 }
 
 void platform_bus_add_all_fdt_nodes(void *fdt, const char *intc, hwaddr addr,
-                                    hwaddr bus_size, int irq_start)
+                                    hwaddr bus_size, int irq_start,
+                                    BusState *sysbus)
 {
     const char platcomp[] = "qemu,platform\0simple-bus";
     PlatformBusDevice *pbus;
@@ -554,7 +555,7 @@ void platform_bus_add_all_fdt_nodes(void *fdt, const char *intc, hwaddr addr,
 
     qemu_fdt_setprop_phandle(fdt, node, "interrupt-parent", intc);
 
-    dev = qdev_find_recursive(sysbus_get_default(), TYPE_PLATFORM_BUS_DEVICE);
+    dev = qdev_find_recursive(sysbus, TYPE_PLATFORM_BUS_DEVICE);
     pbus = PLATFORM_BUS_DEVICE(dev);
 
     PlatformBusFDTData data = {
