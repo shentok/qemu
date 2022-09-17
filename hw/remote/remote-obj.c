@@ -112,7 +112,7 @@ static void remote_object_machine_done(Notifier *notifier, void *data)
     o->dev = dev;
 
     o->listener.unrealize = remote_object_unrealize_listener;
-    device_listener_register(&o->listener);
+    device_listener_register(&o->listener, sysbus_get_default());
 
     /* co-routine should free this. */
     comdev = g_new0(RemoteCommDev, 1);

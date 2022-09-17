@@ -3442,7 +3442,7 @@ static void virtio_net_device_realize(DeviceState *dev, Error **errp)
     if (n->failover) {
         n->primary_listener.hide_device = failover_hide_primary_device;
         qatomic_set(&n->failover_primary_hidden, true);
-        device_listener_register(&n->primary_listener);
+        device_listener_register(&n->primary_listener, sysbus_get_default());
         n->migration_state.notify = virtio_net_migration_state_notifier;
         add_migration_state_change_notifier(&n->migration_state);
         n->host_features |= (1ULL << VIRTIO_NET_F_STANDBY);

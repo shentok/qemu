@@ -198,12 +198,11 @@ static int device_listener_add(DeviceState *dev, void *opaque)
     return 0;
 }
 
-void device_listener_register(DeviceListener *listener)
+void device_listener_register(DeviceListener *listener, BusState *bus)
 {
     QTAILQ_INSERT_TAIL(&device_listeners, listener, link);
 
-    qbus_walk_children(sysbus_get_default(), NULL, NULL, device_listener_add,
-                       NULL, NULL);
+    qbus_walk_children(bus, NULL, NULL, device_listener_add, NULL, NULL);
 }
 
 void device_listener_unregister(DeviceListener *listener)

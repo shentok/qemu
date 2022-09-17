@@ -873,7 +873,7 @@ static inline void qbus_mark_full(BusState *bus)
     bus->full = true;
 }
 
-void device_listener_register(DeviceListener *listener);
+void device_listener_register(DeviceListener *listener, BusState *bus);
 void device_listener_unregister(DeviceListener *listener);
 
 /**
