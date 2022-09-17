@@ -67,6 +67,8 @@ struct SysBusDevice {
 
 typedef void FindSysbusDeviceFunc(SysBusDevice *sbdev, void *opaque);
 
+SysBusState *sysbus_get_parent_bus(SysBusDevice *sbdev);
+
 void sysbus_init_mmio(SysBusDevice *dev, MemoryRegion *memory);
 MemoryRegion *sysbus_mmio_get_region(SysBusDevice *dev, int n);
 void sysbus_init_irq(SysBusDevice *dev, qemu_irq *p);
@@ -86,6 +88,7 @@ void sysbus_mmio_unmap(SysBusDevice *dev, int n);
 void sysbus_add_io(SysBusDevice *dev, hwaddr addr,
                    MemoryRegion *mem);
 MemoryRegion *sysbus_address_space(SysBusDevice *dev);
+MemoryRegion *sysbus_address_space_io(SysBusDevice *dev);
 
 bool sysbus_realize(SysBusDevice *dev, Error **errp);
 bool sysbus_realize_and_unref(SysBusDevice *dev, Error **errp);
