@@ -16,7 +16,6 @@
 #include "cpu.h"
 #include "internals.h"
 #include "fpu/softfloat-helpers.h"
-#include "cpu-csr.h"
 #include "sysemu/reset.h"
 
 const char * const regnames[32] = {
