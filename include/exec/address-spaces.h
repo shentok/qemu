@@ -23,29 +23,51 @@
 
 #ifndef CONFIG_USER_ONLY
 
+#include "hw/boards.h"
+
 /**
  * Get the root memory region.  This is a legacy function, provided for
  * compatibility. Prefer using SysBusState::system_memory directly.
  */
-MemoryRegion *get_system_memory(void);
+inline MemoryRegion *get_system_memory(void)
+{
+    assert(current_machine);
+
+    return &current_machine->memory.mr;
+}
 
 /**
  * Get the root I/O port region.  This is a legacy function, provided for
  * compatibility. Prefer using SysBusState::system_io directly.
  */
-MemoryRegion *get_system_io(void);
+inline MemoryRegion *get_system_io(void)
+{
+    assert(current_machine);
+
+    return &current_machine->io.mr;
+}
 
 /**
  * Get the root memory address space.  This is a legacy function, provided for
  * compatibility. Prefer using SysBusState::address_space_memory directly.
  */
-AddressSpace *get_address_space_memory(void);
+inline AddressSpace *get_address_space_memory(void)
+{
+    assert(current_machine);
+
+    return &current_machine->memory.as;
+}
 
 /**
  * Get the root I/O port address space.  This is a legacy function, provided
  * for compatibility. Prefer using SysBusState::address_space_io directly.
  */
-AddressSpace *get_address_space_io(void);
+inline AddressSpace *get_address_space_io(void)
+{
+    assert(current_machine);
+
+    return &current_machine->io.as;
+}
 
 #endif
 
