@@ -2672,34 +2672,6 @@ static void memory_map_init(void)
     address_space_init(get_address_space_io(), get_system_io(), "I/O");
 }
 
-MemoryRegion *get_system_memory(void)
-{
-    assert(current_machine);
-
-    return &current_machine->main_system_bus.memory.mr;
-}
-
-MemoryRegion *get_system_io(void)
-{
-    assert(current_machine);
-
-    return &current_machine->main_system_bus.io.mr;
-}
-
-AddressSpace *get_address_space_memory(void)
-{
-    assert(current_machine);
-
-    return &current_machine->main_system_bus.memory.as;
-}
-
-AddressSpace *get_address_space_io(void)
-{
-    assert(current_machine);
-
-    return &current_machine->main_system_bus.io.as;
-}
-
 static void invalidate_and_set_dirty(MemoryRegion *mr, hwaddr addr,
                                      hwaddr length)
 {
