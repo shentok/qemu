@@ -23,28 +23,42 @@
 
 #ifndef CONFIG_USER_ONLY
 
+#include "hw/boards.h"
+
 /**
  * Get the root memory region.  Prefer using SysBusState::system_memory
  * directly.
  */
-MemoryRegion *get_system_memory(void);
+inline MemoryRegion *get_system_memory(void)
+{
+    return &current_machine->main_system_bus.system_memory;
+}
 
 /**
  * Get the root I/O port region.  Prefer using SysBusState::system_io directly.
  */
-MemoryRegion *get_system_io(void);
+inline MemoryRegion *get_system_io(void)
+{
+    return &current_machine->main_system_bus.system_io;
+}
 
 /**
  * Get the root memory address space.  Prefer using
  * SysBusState::address_space_memory directly.
  */
-AddressSpace *get_address_space_memory(void);
+inline AddressSpace *get_address_space_memory(void)
+{
+    return &current_machine->main_system_bus.address_space_memory;
+}
 
 /**
  * Get the root I/O port address space.  Prefer using
  * SysBusState::address_space_io directly.
  */
-AddressSpace *get_address_space_io(void);
+inline AddressSpace *get_address_space_io(void)
+{
+    return &current_machine->main_system_bus.address_space_io;
+}
 
 #endif
 
