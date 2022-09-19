@@ -811,14 +811,18 @@ ISABus *pnv_lpc_isa_create(PnvLpcController *lpc, bool use_cpld, Error **errp)
 {
     Error *local_err = NULL;
     ISABus *isa_bus;
+    DeviceState *dev;
     qemu_irq *irqs;
     qemu_irq_handler handler;
+
+    dev = qdev_new("isabus-bridge");
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
 
     /* let isa_bus_new() create its own bridge on SysBus otherwise
      * devices specified on the command line won't find the bus and
      * will fail to create.
      */
-    isa_bus = isa_bus_new(NULL, &lpc->isa_mem, &lpc->isa_io, &local_err);
+    isa_bus = isa_bus_new(dev, &lpc->isa_mem, &lpc->isa_io, &local_err);
     if (local_err) {
         error_propagate(errp, local_err);
         return NULL;

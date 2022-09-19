@@ -89,6 +89,7 @@ static ISABus *hppa_isa_bus(void)
     ISABus *isa_bus;
     qemu_irq *isa_irqs;
     MemoryRegion *isa_region;
+    DeviceState *dev;
 
     isa_region = g_new(MemoryRegion, 1);
     memory_region_init_io(isa_region, NULL, &hppa_pci_ignore_ops,
@@ -96,7 +97,10 @@ static ISABus *hppa_isa_bus(void)
     memory_region_add_subregion(get_system_memory(), IDE_HPA,
                                 isa_region);
 
-    isa_bus = isa_bus_new(NULL, get_system_memory(), isa_region,
+    dev = qdev_new("isabus-bridge");
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
+
+    isa_bus = isa_bus_new(dev, get_system_memory(), isa_region,
                           &error_abort);
     isa_irqs = i8259_init(isa_bus,
                           /* qemu_allocate_irq(dino_set_isa_irq, s, 0)); */

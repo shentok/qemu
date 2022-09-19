@@ -222,9 +222,14 @@ static void pc_init1(MachineState *machine,
         piix3_devfn = piix3->dev.devfn;
         isa_bus = ISA_BUS(qdev_get_child_bus(DEVICE(piix3), "isa.0"));
     } else {
+        DeviceState *dev;
+
         pci_bus = NULL;
-        isa_bus = isa_bus_new(NULL, get_system_memory(), system_io,
-                              &error_abort);
+
+        dev = qdev_new("isabus-bridge");
+        sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
+        isa_bus = isa_bus_new(dev, system_memory, system_io, &error_abort);
+
         pcms->hpet_enabled = false;
     }
     isa_bus_irqs(isa_bus, x86ms->gsi);

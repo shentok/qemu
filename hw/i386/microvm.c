@@ -163,6 +163,7 @@ static void microvm_devices_init(MicrovmMachineState *mms)
     ISABus *isa_bus;
     ISADevice *rtc_state;
     GSIState *gsi_state;
+    DeviceState *dev;
     int ioapics;
     int i;
 
@@ -172,7 +173,10 @@ static void microvm_devices_init(MicrovmMachineState *mms)
     x86ms->gsi = qemu_allocate_irqs(gsi_handler, gsi_state,
                                     IOAPIC_NUM_PINS * ioapics);
 
-    isa_bus = isa_bus_new(NULL, get_system_memory(), get_system_io(),
+    dev = qdev_new("isabus-bridge");
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
+
+    isa_bus = isa_bus_new(dev, get_system_memory(), get_system_io(),
                           &error_abort);
     isa_bus_irqs(isa_bus, x86ms->gsi);
 
