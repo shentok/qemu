@@ -170,6 +170,8 @@ static void pc_init1(MachineState *machine,
         hole64_size = object_property_get_uint(OBJECT(i440fx_host),
                                                PCI_HOST_PROP_PCI_HOLE64_SIZE,
                                                &error_abort);
+        object_property_add_child(OBJECT(machine), "i440fx",
+                                  OBJECT(i440fx_host));
     } else {
         pci_memory = NULL;
         rom_memory = system_memory;
