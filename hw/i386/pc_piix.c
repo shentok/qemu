@@ -78,8 +78,8 @@ static void pc_init1(MachineState *machine,
     PCMachineState *pcms = PC_MACHINE(machine);
     PCMachineClass *pcmc = PC_MACHINE_GET_CLASS(pcms);
     X86MachineState *x86ms = X86_MACHINE(machine);
-    MemoryRegion *system_memory = get_system_memory();
-    MemoryRegion *system_io = get_system_io();
+    MemoryRegion *system_memory = &machine->main_system_bus.system_memory;
+    MemoryRegion *system_io = &machine->main_system_bus.system_io;
     PCIBus *pci_bus;
     ISABus *isa_bus;
     int piix3_devfn = -1;
@@ -227,7 +227,8 @@ static void pc_init1(MachineState *machine,
         pci_bus = NULL;
 
         dev = qdev_new("isabus-bridge");
-        sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
+        qdev_realize_and_unref(dev, BUS(&machine->main_system_bus),
+                               &error_fatal);
         isa_bus = isa_bus_new(dev, system_memory, system_io, &error_abort);
 
         pcms->hpet_enabled = false;
