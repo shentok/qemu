@@ -119,17 +119,17 @@ size_t qemu_ram_pagesize_largest(void);
 void cpu_address_space_init(CPUState *cpu, int asidx,
                             const char *prefix, MemoryRegion *mr);
 
-void cpu_physical_memory_rw(hwaddr addr, void *buf,
+void cpu_physical_memory_rw(AddressSpace *as, hwaddr addr, void *buf,
                             hwaddr len, bool is_write);
-static inline void cpu_physical_memory_read(hwaddr addr,
+static inline void cpu_physical_memory_read(AddressSpace *as, hwaddr addr,
                                             void *buf, hwaddr len)
 {
-    cpu_physical_memory_rw(addr, buf, len, false);
+    cpu_physical_memory_rw(as, addr, buf, len, false);
 }
-static inline void cpu_physical_memory_write(hwaddr addr,
+static inline void cpu_physical_memory_write(AddressSpace *as, hwaddr addr,
                                              const void *buf, hwaddr len)
 {
-    cpu_physical_memory_rw(addr, (void *)buf, len, true);
+    cpu_physical_memory_rw(as, addr, (void *)buf, len, true);
 }
 void cpu_reloading_memory_map(void);
 void *cpu_physical_memory_map(hwaddr addr,

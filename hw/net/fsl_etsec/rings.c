@@ -24,6 +24,7 @@
 #include "qemu/osdep.h"
 #include "net/checksum.h"
 #include "qemu/log.h"
+#include "exec/address-spaces.h"
 #include "etsec.h"
 #include "registers.h"
 
@@ -110,7 +111,8 @@ static void read_buffer_descriptor(eTSEC         *etsec,
     assert(bd != NULL);
 
     RING_DEBUG("READ Buffer Descriptor @ 0x" HWADDR_FMT_plx"\n", addr);
-    cpu_physical_memory_read(addr,
+    cpu_physical_memory_read(get_address_space_memory(),
+                             addr,
                              bd,
                              sizeof(eTSEC_rxtx_bd));
 
@@ -142,7 +144,8 @@ static void write_buffer_descriptor(eTSEC         *etsec,
     }
 
     RING_DEBUG("Write Buffer Descriptor @ 0x" HWADDR_FMT_plx"\n", addr);
-    cpu_physical_memory_write(addr,
+    cpu_physical_memory_write(get_address_space_memory(),
+                              addr,
                               bd,
                               sizeof(eTSEC_rxtx_bd));
 }
@@ -239,7 +242,8 @@ static void process_tx_bd(eTSEC         *etsec,
     etsec->tx_buffer = g_realloc(etsec->tx_buffer,
                                     etsec->tx_buffer_len + bd->length);
     tmp_buff = etsec->tx_buffer + etsec->tx_buffer_len;
-    cpu_physical_memory_read(bd->bufptr + tbdbth, tmp_buff, bd->length);
+    cpu_physical_memory_read(get_address_space_memory(),
+                             bd->bufptr + tbdbth, tmp_buff, bd->length);
 
     /* Update buffer length */
     etsec->tx_buffer_len += bd->length;
@@ -380,6 +384,7 @@ static void fill_rx_bd(eTSEC          *etsec,
     uint16_t to_write;
     hwaddr   bufptr = bd->bufptr +
         ((hwaddr)(etsec->regs[TBDBPH].value & 0xF) << 32);
+    AddressSpace *as = get_address_space_memory();
     uint8_t  padd[etsec->rx_padding];
     uint8_t  rem;
 
@@ -392,7 +397,8 @@ static void fill_rx_bd(eTSEC          *etsec,
     /* This operation will only write FCB */
     if (etsec->rx_fcb_size != 0) {
 
-        cpu_physical_memory_write(bufptr, etsec->rx_fcb, etsec->rx_fcb_size);
+        cpu_physical_memory_write(as, bufptr, etsec->rx_fcb,
+                                  etsec->rx_fcb_size);
 
         bufptr             += etsec->rx_fcb_size;
         bd->length         += etsec->rx_fcb_size;
@@ -408,7 +414,7 @@ static void fill_rx_bd(eTSEC          *etsec,
 
     /* This operation can only write packet data and no padding */
     if (to_write > 0) {
-        cpu_physical_memory_write(bufptr, *buf, to_write);
+        cpu_physical_memory_write(as, bufptr, *buf, to_write);
 
         *buf   += to_write;
         bufptr += to_write;
@@ -430,7 +436,7 @@ static void fill_rx_bd(eTSEC          *etsec,
             etsec->rx_padding -= rem;
             *size             -= rem;
             bd->length        += rem;
-            cpu_physical_memory_write(bufptr, padd, rem);
+            cpu_physical_memory_write(as, bufptr, padd, rem);
         }
     }
 }

@@ -508,23 +508,25 @@ typedef struct NvdimmFuncReadFITOut NvdimmFuncReadFITOut;
 QEMU_BUILD_BUG_ON(sizeof(NvdimmFuncReadFITOut) > NVDIMM_DSM_MEMORY_SIZE);
 
 static void
-nvdimm_dsm_function0(uint32_t supported_func, hwaddr dsm_mem_addr)
+nvdimm_dsm_function0(uint32_t supported_func, AddressSpace *as,
+                     hwaddr dsm_mem_addr)
 {
     NvdimmDsmFunc0Out func0 = {
         .len = cpu_to_le32(sizeof(func0)),
         .supported_func = cpu_to_le32(supported_func),
     };
-    cpu_physical_memory_write(dsm_mem_addr, &func0, sizeof(func0));
+    cpu_physical_memory_write(as, dsm_mem_addr, &func0, sizeof(func0));
 }
 
 static void
-nvdimm_dsm_no_payload(uint32_t func_ret_status, hwaddr dsm_mem_addr)
+nvdimm_dsm_no_payload(uint32_t func_ret_status, AddressSpace *as,
+                      hwaddr dsm_mem_addr)
 {
     NvdimmDsmFuncNoPayloadOut out = {
         .len = cpu_to_le32(sizeof(out)),
         .func_ret_status = cpu_to_le32(func_ret_status),
     };
-    cpu_physical_memory_write(dsm_mem_addr, &out, sizeof(out));
+    cpu_physical_memory_write(as, dsm_mem_addr, &out, sizeof(out));
 }
 
 #define NVDIMM_DSM_RET_STATUS_SUCCESS        0 /* Success */
@@ -537,7 +539,7 @@ nvdimm_dsm_no_payload(uint32_t func_ret_status, hwaddr dsm_mem_addr)
 
 /* Read FIT data, defined in docs/specs/acpi_nvdimm.txt. */
 static void nvdimm_dsm_func_read_fit(NVDIMMState *state, NvdimmDsmIn *in,
-                                     hwaddr dsm_mem_addr)
+                                     AddressSpace *as, hwaddr dsm_mem_addr)
 {
     NvdimmFitBuffer *fit_buf = &state->fit_buf;
     NvdimmFuncReadFITIn *read_fit;
@@ -579,28 +581,28 @@ exit:
     read_fit_out->func_ret_status = cpu_to_le32(func_ret_status);
     memcpy(read_fit_out->fit, fit->data + read_fit->offset, read_len);
 
-    cpu_physical_memory_write(dsm_mem_addr, read_fit_out, size);
+    cpu_physical_memory_write(as, dsm_mem_addr, read_fit_out, size);
 
     g_free(read_fit_out);
 }
 
 static void
-nvdimm_dsm_handle_reserved_root_method(NVDIMMState *state,
-                                       NvdimmDsmIn *in, hwaddr dsm_mem_addr)
+nvdimm_dsm_handle_reserved_root_method(NVDIMMState *state, NvdimmDsmIn *in,
+                                       AddressSpace *as, hwaddr dsm_mem_addr)
 {
     switch (in->function) {
     case 0x0:
-        nvdimm_dsm_function0(0x1 | 1 << 1 /* Read FIT */, dsm_mem_addr);
+        nvdimm_dsm_function0(0x1 | 1 << 1 /* Read FIT */, as, dsm_mem_addr);
         return;
     case 0x1 /* Read FIT */:
-        nvdimm_dsm_func_read_fit(state, in, dsm_mem_addr);
+        nvdimm_dsm_func_read_fit(state, in, as, dsm_mem_addr);
         return;
     }
 
-    nvdimm_dsm_no_payload(NVDIMM_DSM_RET_STATUS_UNSUPPORT, dsm_mem_addr);
+    nvdimm_dsm_no_payload(NVDIMM_DSM_RET_STATUS_UNSUPPORT, as, dsm_mem_addr);
 }
 
-static void nvdimm_dsm_root(NvdimmDsmIn *in, hwaddr dsm_mem_addr)
+static void nvdimm_dsm_root(NvdimmDsmIn *in, AddressSpace *as, hwaddr dsm_mem_addr)
 {
     /*
      * function 0 is called to inquire which functions are supported by
@@ -608,12 +610,12 @@ static void nvdimm_dsm_root(NvdimmDsmIn *in, hwaddr dsm_mem_addr)
      */
     if (!in->function) {
         nvdimm_dsm_function0(0 /* No function supported other than
-                                  function 0 */, dsm_mem_addr);
+                                  function 0 */, as, dsm_mem_addr);
         return;
     }
 
     /* No function except function 0 is supported yet. */
-    nvdimm_dsm_no_payload(NVDIMM_DSM_RET_STATUS_UNSUPPORT, dsm_mem_addr);
+    nvdimm_dsm_no_payload(NVDIMM_DSM_RET_STATUS_UNSUPPORT, as, dsm_mem_addr);
 }
 
 /*
@@ -649,7 +651,8 @@ static uint32_t nvdimm_get_max_xfer_label_size(void)
  * It gets the size of Namespace Label data area and the max data size
  * that Get/Set Namespace Label Data functions can transfer.
  */
-static void nvdimm_dsm_label_size(NVDIMMDevice *nvdimm, hwaddr dsm_mem_addr)
+static void nvdimm_dsm_label_size(NVDIMMDevice *nvdimm, AddressSpace *as,
+                                  hwaddr dsm_mem_addr)
 {
     NvdimmFuncGetLabelSizeOut label_size_out = {
         .len = cpu_to_le32(sizeof(label_size_out)),
@@ -665,7 +668,7 @@ static void nvdimm_dsm_label_size(NVDIMMDevice *nvdimm, hwaddr dsm_mem_addr)
     label_size_out.label_size = cpu_to_le32(label_size);
     label_size_out.max_xfer = cpu_to_le32(mxfer);
 
-    cpu_physical_memory_write(dsm_mem_addr, &label_size_out,
+    cpu_physical_memory_write(as, dsm_mem_addr, &label_size_out,
                               sizeof(label_size_out));
 }
 
@@ -697,7 +700,7 @@ static uint32_t nvdimm_rw_label_data_check(NVDIMMDevice *nvdimm,
  * DSM Spec Rev1 4.5 Get Namespace Label Data (Function Index 5).
  */
 static void nvdimm_dsm_get_label_data(NVDIMMDevice *nvdimm, NvdimmDsmIn *in,
-                                      hwaddr dsm_mem_addr)
+                                      AddressSpace *as, hwaddr dsm_mem_addr)
 {
     NVDIMMClass *nvc = NVDIMM_GET_CLASS(nvdimm);
     NvdimmFuncGetLabelDataIn *get_label_data;
@@ -715,7 +718,7 @@ static void nvdimm_dsm_get_label_data(NVDIMMDevice *nvdimm, NvdimmDsmIn *in,
     status = nvdimm_rw_label_data_check(nvdimm, get_label_data->offset,
                                         get_label_data->length);
     if (status != NVDIMM_DSM_RET_STATUS_SUCCESS) {
-        nvdimm_dsm_no_payload(status, dsm_mem_addr);
+        nvdimm_dsm_no_payload(status, as, dsm_mem_addr);
         return;
     }
 
@@ -729,7 +732,7 @@ static void nvdimm_dsm_get_label_data(NVDIMMDevice *nvdimm, NvdimmDsmIn *in,
     nvc->read_label_data(nvdimm, get_label_data_out->out_buf,
                          get_label_data->length, get_label_data->offset);
 
-    cpu_physical_memory_write(dsm_mem_addr, get_label_data_out, size);
+    cpu_physical_memory_write(as, dsm_mem_addr, get_label_data_out, size);
     g_free(get_label_data_out);
 }
 
@@ -737,7 +740,7 @@ static void nvdimm_dsm_get_label_data(NVDIMMDevice *nvdimm, NvdimmDsmIn *in,
  * DSM Spec Rev1 4.6 Set Namespace Label Data (Function Index 6).
  */
 static void nvdimm_dsm_set_label_data(NVDIMMDevice *nvdimm, NvdimmDsmIn *in,
-                                      hwaddr dsm_mem_addr)
+                                      AddressSpace *as, hwaddr dsm_mem_addr)
 {
     NVDIMMClass *nvc = NVDIMM_GET_CLASS(nvdimm);
     NvdimmFuncSetLabelDataIn *set_label_data;
@@ -754,7 +757,7 @@ static void nvdimm_dsm_set_label_data(NVDIMMDevice *nvdimm, NvdimmDsmIn *in,
     status = nvdimm_rw_label_data_check(nvdimm, set_label_data->offset,
                                         set_label_data->length);
     if (status != NVDIMM_DSM_RET_STATUS_SUCCESS) {
-        nvdimm_dsm_no_payload(status, dsm_mem_addr);
+        nvdimm_dsm_no_payload(status, as, dsm_mem_addr);
         return;
     }
 
@@ -763,10 +766,11 @@ static void nvdimm_dsm_set_label_data(NVDIMMDevice *nvdimm, NvdimmDsmIn *in,
 
     nvc->write_label_data(nvdimm, set_label_data->in_buf,
                           set_label_data->length, set_label_data->offset);
-    nvdimm_dsm_no_payload(NVDIMM_DSM_RET_STATUS_SUCCESS, dsm_mem_addr);
+    nvdimm_dsm_no_payload(NVDIMM_DSM_RET_STATUS_SUCCESS, as, dsm_mem_addr);
 }
 
-static void nvdimm_dsm_device(NvdimmDsmIn *in, hwaddr dsm_mem_addr)
+static void nvdimm_dsm_device(NvdimmDsmIn *in, AddressSpace *as,
+                              hwaddr dsm_mem_addr)
 {
     NVDIMMDevice *nvdimm = nvdimm_get_device_by_handle(in->handle);
 
@@ -782,12 +786,12 @@ static void nvdimm_dsm_device(NvdimmDsmIn *in, hwaddr dsm_mem_addr)
                               1 << 5 /* Get Namespace Label Data */ |
                               1 << 6 /* Set Namespace Label Data */;
         }
-        nvdimm_dsm_function0(supported_func, dsm_mem_addr);
+        nvdimm_dsm_function0(supported_func, as, dsm_mem_addr);
         return;
     }
 
     if (!nvdimm) {
-        nvdimm_dsm_no_payload(NVDIMM_DSM_RET_STATUS_NOMEMDEV,
+        nvdimm_dsm_no_payload(NVDIMM_DSM_RET_STATUS_NOMEMDEV, as,
                               dsm_mem_addr);
         return;
     }
@@ -796,25 +800,25 @@ static void nvdimm_dsm_device(NvdimmDsmIn *in, hwaddr dsm_mem_addr)
     switch (in->function) {
     case 4 /* Get Namespace Label Size */:
         if (nvdimm->label_size) {
-            nvdimm_dsm_label_size(nvdimm, dsm_mem_addr);
+            nvdimm_dsm_label_size(nvdimm, as, dsm_mem_addr);
             return;
         }
         break;
     case 5 /* Get Namespace Label Data */:
         if (nvdimm->label_size) {
-            nvdimm_dsm_get_label_data(nvdimm, in, dsm_mem_addr);
+            nvdimm_dsm_get_label_data(nvdimm, in, as, dsm_mem_addr);
             return;
         }
         break;
     case 0x6 /* Set Namespace Label Data */:
         if (nvdimm->label_size) {
-            nvdimm_dsm_set_label_data(nvdimm, in, dsm_mem_addr);
+            nvdimm_dsm_set_label_data(nvdimm, in, as, dsm_mem_addr);
             return;
         }
         break;
     }
 
-    nvdimm_dsm_no_payload(NVDIMM_DSM_RET_STATUS_UNSUPPORT, dsm_mem_addr);
+    nvdimm_dsm_no_payload(NVDIMM_DSM_RET_STATUS_UNSUPPORT, as, dsm_mem_addr);
 }
 
 static uint64_t
@@ -830,6 +834,7 @@ nvdimm_dsm_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     NVDIMMState *state = opaque;
     NvdimmDsmIn *in;
     hwaddr dsm_mem_addr = val;
+    AddressSpace *as = get_address_space_memory();
 
     trace_acpi_nvdimm_dsm_mem_addr(dsm_mem_addr);
 
@@ -839,7 +844,7 @@ nvdimm_dsm_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
      * this by copying DSM memory to QEMU local memory.
      */
     in = g_new(NvdimmDsmIn, 1);
-    cpu_physical_memory_read(dsm_mem_addr, in, sizeof(*in));
+    cpu_physical_memory_read(as, dsm_mem_addr, in, sizeof(*in));
 
     in->revision = le32_to_cpu(in->revision);
     in->function = le32_to_cpu(in->function);
@@ -849,22 +854,22 @@ nvdimm_dsm_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 
     if (in->revision != 0x1 /* Currently we only support DSM Spec Rev1. */) {
         trace_acpi_nvdimm_invalid_revision(in->revision);
-        nvdimm_dsm_no_payload(NVDIMM_DSM_RET_STATUS_UNSUPPORT, dsm_mem_addr);
+        nvdimm_dsm_no_payload(NVDIMM_DSM_RET_STATUS_UNSUPPORT, as, dsm_mem_addr);
         goto exit;
     }
 
     if (in->handle == NVDIMM_QEMU_RSVD_HANDLE_ROOT) {
-        nvdimm_dsm_handle_reserved_root_method(state, in, dsm_mem_addr);
+        nvdimm_dsm_handle_reserved_root_method(state, in, as, dsm_mem_addr);
         goto exit;
     }
 
      /* Handle 0 is reserved for NVDIMM Root Device. */
     if (!in->handle) {
-        nvdimm_dsm_root(in, dsm_mem_addr);
+        nvdimm_dsm_root(in, as, dsm_mem_addr);
         goto exit;
     }
 
-    nvdimm_dsm_device(in, dsm_mem_addr);
+    nvdimm_dsm_device(in, as, dsm_mem_addr);
 
 exit:
     g_free(in);

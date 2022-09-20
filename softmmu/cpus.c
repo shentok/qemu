@@ -30,6 +30,7 @@
 #include "qapi/qapi-commands-misc.h"
 #include "qapi/qapi-events-run-state.h"
 #include "qapi/qmp/qerror.h"
+#include "exec/address-spaces.h"
 #include "exec/gdbstub.h"
 #include "sysemu/hw_accel.h"
 #include "exec/cpu-common.h"
@@ -808,7 +809,7 @@ void qmp_pmemsave(int64_t addr, int64_t size, const char *filename,
         l = sizeof(buf);
         if (l > size)
             l = size;
-        cpu_physical_memory_read(addr, buf, l);
+        cpu_physical_memory_read(get_address_space_memory(), addr, buf, l);
         if (fwrite(buf, 1, l, f) != l) {
             error_setg(errp, QERR_IO_ERROR);
             goto exit;

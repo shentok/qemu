@@ -2978,10 +2978,10 @@ MemTxResult address_space_set(const AddressSpace *as, hwaddr addr,
     return error;
 }
 
-void cpu_physical_memory_rw(hwaddr addr, void *buf,
+void cpu_physical_memory_rw(AddressSpace *as, hwaddr addr, void *buf,
                             hwaddr len, bool is_write)
 {
-    address_space_rw(get_address_space_memory(), addr, MEMTXATTRS_UNSPECIFIED,
+    address_space_rw(as, addr, MEMTXATTRS_UNSPECIFIED,
                      buf, len, is_write);
 }
 

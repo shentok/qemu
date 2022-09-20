@@ -298,8 +298,8 @@ static struct QEMU_PACKED sl_param_info {
     .phadadj		= 0x01,
 };
 
-void sl_bootparam_write(hwaddr ptr)
+void sl_bootparam_write(AddressSpace *as, hwaddr ptr)
 {
-    cpu_physical_memory_write(ptr, &zaurus_bootparam,
+    cpu_physical_memory_write(as, ptr, &zaurus_bootparam,
                               sizeof(struct sl_param_info));
 }

@@ -156,7 +156,8 @@ static void vmgenid_update_guest(VmGenIdState *vms)
              * in order to implement the "OVMF SDT Header probe suppressor"
              * see docs/specs/vmgenid.txt for more details.
              */
-            cpu_physical_memory_write(vmgenid_addr, guid_le.data,
+            cpu_physical_memory_write(get_address_space_memory(),
+                                      vmgenid_addr, guid_le.data,
                                       sizeof(guid_le.data));
             /* Send _GPE.E05 event */
             acpi_send_event(DEVICE(obj), ACPI_VMGENID_CHANGE_STATUS);

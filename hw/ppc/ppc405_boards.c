@@ -258,7 +258,8 @@ static void boot_from_kernel(MachineState *machine, PowerPCCPU *cpu)
     if (machine->kernel_cmdline) {
         len = strlen(machine->kernel_cmdline);
         bdloc -= ((len + 255) & ~255);
-        cpu_physical_memory_write(bdloc, machine->kernel_cmdline, len + 1);
+        cpu_physical_memory_write(&machine->memory.as, bdloc,
+                                  machine->kernel_cmdline, len + 1);
         boot_info.cmdline_base = bdloc;
         boot_info.cmdline_size = bdloc + len;
     }

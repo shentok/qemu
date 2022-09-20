@@ -261,7 +261,7 @@ static void tosa_init(MachineState *machine)
 
     tosa_binfo.board_id = 0x208;
     arm_load_kernel(mpu->cpu, machine, &tosa_binfo);
-    sl_bootparam_write(SL_PXA_PARAM_BASE);
+    sl_bootparam_write(&machine->memory.as, SL_PXA_PARAM_BASE);
 }
 
 static void tosapda_machine_init(MachineClass *mc)

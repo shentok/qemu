@@ -407,7 +407,8 @@ pvscsi_cmp_ring_put(PVSCSIState *s, struct PVSCSIRingCmpDesc *cmp_desc)
 
     cmp_descr_pa = pvscsi_ring_pop_cmp_descr(&s->rings);
     trace_pvscsi_cmp_ring_put(cmp_descr_pa);
-    cpu_physical_memory_write(cmp_descr_pa, cmp_desc, sizeof(*cmp_desc));
+    cpu_physical_memory_write(get_address_space_memory(), cmp_descr_pa,
+                              cmp_desc, sizeof(*cmp_desc));
 }
 
 static void
@@ -417,7 +418,8 @@ pvscsi_msg_ring_put(PVSCSIState *s, struct PVSCSIRingMsgDesc *msg_desc)
 
     msg_descr_pa = pvscsi_ring_pop_msg_descr(&s->rings);
     trace_pvscsi_msg_ring_put(msg_descr_pa);
-    cpu_physical_memory_write(msg_descr_pa, msg_desc, sizeof(*msg_desc));
+    cpu_physical_memory_write(get_address_space_memory(), msg_descr_pa,
+                              msg_desc, sizeof(*msg_desc));
 }
 
 static void

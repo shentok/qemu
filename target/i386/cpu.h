@@ -1616,6 +1616,8 @@ typedef struct CPUArchState {
     target_ulong kernelgsbase;
 #endif
 
+    AddressSpace *as;
+
     uint64_t tsc_adjust;
     uint64_t tsc_deadline;
     uint64_t tsc_aux;

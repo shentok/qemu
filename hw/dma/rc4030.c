@@ -301,8 +301,9 @@ static void rc4030_write(void *opaque, hwaddr addr, uint64_t data,
         /* HACK */
         if (s->cache_ltag == 0x80000001 && s->cache_bmask == 0xf0f0f0f) {
             hwaddr dest = s->cache_ptag & ~0x1;
+            AddressSpace *as = get_address_space_memory();
             dest += (s->cache_maint & 0x3) << 3;
-            cpu_physical_memory_write(dest, &val, 4);
+            cpu_physical_memory_write(as, dest, &val, 4);
         }
         break;
     /* Remote Speed Registers */

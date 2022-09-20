@@ -1027,7 +1027,7 @@ static void spitz_common_init(MachineState *machine)
 
     spitz_binfo.board_id = smc->arm_id;
     arm_load_kernel(mpu->cpu, machine, &spitz_binfo);
-    sl_bootparam_write(SL_PXA_PARAM_BASE);
+    sl_bootparam_write(&machine->memory.as, SL_PXA_PARAM_BASE);
 }
 
 static void spitz_common_class_init(ObjectClass *oc, void *data)

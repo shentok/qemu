@@ -2771,7 +2771,8 @@ void kvm_flush_coalesced_mmio_buffer(void)
                                     MEMTXATTRS_UNSPECIFIED, ent->data,
                                     ent->len);
             } else {
-                cpu_physical_memory_write(ent->phys_addr, ent->data, ent->len);
+                cpu_physical_memory_write(get_address_space_memory(),
+                                          ent->phys_addr, ent->data, ent->len);
             }
             smp_wmb();
             ring->first = (ring->first + 1) % KVM_COALESCED_MMIO_MAX;

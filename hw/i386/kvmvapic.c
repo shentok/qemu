@@ -134,13 +134,17 @@ static const TPRInstruction tpr_instr[] = {
 
 static void read_guest_rom_state(VAPICROMState *s)
 {
-    cpu_physical_memory_read(s->rom_state_paddr, &s->rom_state,
+    AddressSpace *as = get_address_space_memory();
+
+    cpu_physical_memory_read(as, s->rom_state_paddr, &s->rom_state,
                              sizeof(GuestROMState));
 }
 
 static void write_guest_rom_state(VAPICROMState *s)
 {
-    cpu_physical_memory_write(s->rom_state_paddr, &s->rom_state,
+    AddressSpace *as = get_address_space_memory();
+
+    cpu_physical_memory_write(as, s->rom_state_paddr, &s->rom_state,
                               sizeof(GuestROMState));
 }
 
@@ -284,6 +288,7 @@ instruction_ok:
 static int update_rom_mapping(VAPICROMState *s, CPUX86State *env, target_ulong ip)
 {
     CPUState *cs = env_cpu(env);
+    AddressSpace *as = get_address_space_memory();
     hwaddr paddr;
     uint32_t rom_state_vaddr;
     uint32_t pos, patch, offset;
@@ -321,14 +326,14 @@ static int update_rom_mapping(VAPICROMState *s, CPUX86State *env, target_ulong i
     for (pos = le32_to_cpu(s->rom_state.fixup_start);
          pos < le32_to_cpu(s->rom_state.fixup_end);
          pos += 4) {
-        cpu_physical_memory_read(paddr + pos - s->rom_state.vaddr,
+        cpu_physical_memory_read(as, paddr + pos - s->rom_state.vaddr,
                                  &offset, sizeof(offset));
         offset = le32_to_cpu(offset);
-        cpu_physical_memory_read(paddr + offset, &patch, sizeof(patch));
+        cpu_physical_memory_read(as, paddr + offset, &patch, sizeof(patch));
         patch = le32_to_cpu(patch);
         patch += rom_state_vaddr - le32_to_cpu(s->rom_state.vaddr);
         patch = cpu_to_le32(patch);
-        cpu_physical_memory_write(paddr + offset, &patch, sizeof(patch));
+        cpu_physical_memory_write(as, paddr + offset, &patch, sizeof(patch));
     }
     read_guest_rom_state(s);
     s->vapic_paddr = paddr + le32_to_cpu(s->rom_state.vapic_vaddr) -
@@ -364,6 +369,7 @@ static int get_kpcr_number(X86CPU *cpu)
 static int vapic_enable(VAPICROMState *s, X86CPU *cpu)
 {
     int cpu_number = get_kpcr_number(cpu);
+    AddressSpace *as = get_address_space_memory();
     hwaddr vapic_paddr;
     static const uint8_t enabled = 1;
 
@@ -372,7 +378,7 @@ static int vapic_enable(VAPICROMState *s, X86CPU *cpu)
     }
     vapic_paddr = s->vapic_paddr +
         (((hwaddr)cpu_number) << VAPIC_CPU_SHIFT);
-    cpu_physical_memory_write(vapic_paddr + offsetof(VAPICState, enabled),
+    cpu_physical_memory_write(as, vapic_paddr + offsetof(VAPICState, enabled),
                               &enabled, sizeof(enabled));
     apic_enable_vapic(cpu->apic_state, vapic_paddr);
 
@@ -530,6 +536,7 @@ static void vapic_reset(DeviceState *dev)
 static int patch_hypercalls(VAPICROMState *s)
 {
     hwaddr rom_paddr = s->rom_state_paddr & ROM_BLOCK_MASK;
+    AddressSpace *as = get_address_space_memory();
     static const uint8_t vmcall_pattern[] = { /* vmcall */
         0xb8, 0x1, 0, 0, 0, 0xf, 0x1, 0xc1
     };
@@ -543,7 +550,7 @@ static int patch_hypercalls(VAPICROMState *s)
     uint8_t *rom;
 
     rom = g_malloc(s->rom_size);
-    cpu_physical_memory_read(rom_paddr, rom, s->rom_size);
+    cpu_physical_memory_read(as, rom_paddr, rom, s->rom_size);
 
     for (pos = 0; pos < s->rom_size - sizeof(vmcall_pattern); pos++) {
         if (kvm_irqchip_in_kernel()) {
@@ -559,7 +566,7 @@ static int patch_hypercalls(VAPICROMState *s)
         }
         if (memcmp(rom + pos, pattern, 7) == 0 &&
             (rom[pos + 7] == alternates[0] || rom[pos + 7] == alternates[1])) {
-            cpu_physical_memory_write(rom_paddr + pos + 5, patch, 3);
+            cpu_physical_memory_write(as, rom_paddr + pos + 5, patch, 3);
             /*
              * Don't flush the tb here. Under ordinary conditions, the patched
              * calls are miles away from the current IP. Under malicious
@@ -740,9 +747,11 @@ static void do_vapic_enable(CPUState *cs, run_on_cpu_data data)
 {
     VAPICROMState *s = data.host_ptr;
     X86CPU *cpu = X86_CPU(cs);
+    AddressSpace *as = get_address_space_memory();
 
     static const uint8_t enabled = 1;
-    cpu_physical_memory_write(s->vapic_paddr + offsetof(VAPICState, enabled),
+    cpu_physical_memory_write(as,
+                              s->vapic_paddr + offsetof(VAPICState, enabled),
                               &enabled, sizeof(enabled));
     apic_enable_vapic(cpu->apic_state, s->vapic_paddr);
     s->state = VAPIC_ACTIVE;
@@ -763,8 +772,9 @@ static void kvmvapic_vm_state_change(void *opaque, bool running,
         if (ms->smp.cpus == 1) {
             run_on_cpu(first_cpu, do_vapic_enable, RUN_ON_CPU_HOST_PTR(s));
         } else {
+            AddressSpace *as = get_address_space_memory();
             zero = g_malloc0(s->rom_state.vapic_size);
-            cpu_physical_memory_write(s->vapic_paddr, zero,
+            cpu_physical_memory_write(as, s->vapic_paddr, zero,
                                       s->rom_state.vapic_size);
             g_free(zero);
         }
