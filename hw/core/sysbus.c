@@ -305,9 +305,19 @@ void sysbus_add_io(SysBusDevice *dev, hwaddr addr,
     memory_region_add_subregion(get_system_io(), addr, mem);
 }
 
+SysBusState *sysbus_get_parent_bus(SysBusDevice *sbdev)
+{
+    return SYSTEM_BUS(qdev_get_parent_bus(&sbdev->parent_obj));
+}
+
 MemoryRegion *sysbus_address_space(SysBusDevice *dev)
 {
     return get_system_memory();
+}
+
+AddressSpace *sysbus_address_space2(SysBusDevice *dev)
+{
+    return &sysbus_get_parent_bus(dev)->memory.as;
 }
 
 static void sysbus_device_class_init(ObjectClass *klass, void *data)

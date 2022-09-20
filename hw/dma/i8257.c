@@ -27,6 +27,7 @@
 #include "hw/qdev-properties.h"
 #include "migration/vmstate.h"
 #include "hw/dma/i8257.h"
+#include "exec/address-spaces.h"
 #include "qapi/error.h"
 #include "qemu/main-loop.h"
 #include "qemu/module.h"
@@ -404,6 +405,7 @@ static int i8257_dma_read_memory(IsaDma *obj, int nchan, void *buf, int pos,
     I8257State *d = I8257(obj);
     I8257Regs *r = &d->regs[nchan & 3];
     hwaddr addr = ((r->pageh & 0x7f) << 24) | (r->page << 16) | r->now[ADDR];
+    AddressSpace *as = get_address_space_memory();
 
     if (i8257_is_verify_transfer(r)) {
         return len;
@@ -413,7 +415,7 @@ static int i8257_dma_read_memory(IsaDma *obj, int nchan, void *buf, int pos,
         int i;
         uint8_t *p = buf;
 
-        cpu_physical_memory_read (addr - pos - len, buf, len);
+        cpu_physical_memory_read(as, addr - pos - len, buf, len);
         /* What about 16bit transfers? */
         for (i = 0; i < len >> 1; i++) {
             uint8_t b = p[len - i - 1];
@@ -421,7 +423,7 @@ static int i8257_dma_read_memory(IsaDma *obj, int nchan, void *buf, int pos,
         }
     }
     else
-        cpu_physical_memory_read (addr + pos, buf, len);
+        cpu_physical_memory_read(as, addr + pos, buf, len);
 
     return len;
 }
@@ -432,6 +434,7 @@ static int i8257_dma_write_memory(IsaDma *obj, int nchan, void *buf, int pos,
     I8257State *s = I8257(obj);
     I8257Regs *r = &s->regs[nchan & 3];
     hwaddr addr = ((r->pageh & 0x7f) << 24) | (r->page << 16) | r->now[ADDR];
+    AddressSpace *as = get_address_space_memory();
 
     if (i8257_is_verify_transfer(r)) {
         return len;
@@ -441,7 +444,7 @@ static int i8257_dma_write_memory(IsaDma *obj, int nchan, void *buf, int pos,
         int i;
         uint8_t *p = buf;
 
-        cpu_physical_memory_write (addr - pos - len, buf, len);
+        cpu_physical_memory_write(as, addr - pos - len, buf, len);
         /* What about 16bit transfers? */
         for (i = 0; i < len; i++) {
             uint8_t b = p[len - i - 1];
@@ -449,7 +452,7 @@ static int i8257_dma_write_memory(IsaDma *obj, int nchan, void *buf, int pos,
         }
     }
     else
-        cpu_physical_memory_write (addr + pos, buf, len);
+        cpu_physical_memory_write(as, addr + pos, buf, len);
 
     return len;
 }

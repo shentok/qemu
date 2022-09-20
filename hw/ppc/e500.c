@@ -597,7 +597,8 @@ static int ppce500_load_device_tree(PPCE500MachineState *pms,
 done:
     if (!dry_run) {
         qemu_fdt_dumpdtb(fdt, fdt_size);
-        cpu_physical_memory_write(addr, fdt, fdt_size);
+        cpu_physical_memory_write(&machine->main_system_bus.memory.as, addr,
+                                  fdt, fdt_size);
     }
     ret = fdt_size;
     g_free(fdt);
