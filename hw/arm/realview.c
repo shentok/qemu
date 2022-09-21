@@ -74,7 +74,7 @@ static void realview_init(MachineState *machine,
 {
     ARMCPU *cpu = NULL;
     CPUARMState *env;
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &machine->memory.mr;
     MemoryRegion *ram_lo;
     MemoryRegion *ram_hi = g_new(MemoryRegion, 1);
     MemoryRegion *ram_alias = g_new(MemoryRegion, 1);

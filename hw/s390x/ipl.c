@@ -478,7 +478,7 @@ static int load_netboot_image(Error **errp)
     MachineState *ms = MACHINE(qdev_get_machine());
     S390IPLState *ipl = get_ipl_device();
     char *netboot_filename;
-    MemoryRegion *sysmem =  get_system_memory();
+    MemoryRegion *sysmem =  &ms->memory.mr;
     MemoryRegion *mr = NULL;
     void *ram_ptr = NULL;
     int img_size = -1;

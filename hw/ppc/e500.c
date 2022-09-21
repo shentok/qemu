@@ -891,7 +891,7 @@ static void ppce500_power_off(void *opaque, int line, int on)
 
 void ppce500_init(MachineState *machine)
 {
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     PPCE500MachineState *pms = PPCE500_MACHINE(machine);
     const PPCE500MachineClass *pmc = PPCE500_MACHINE_GET_CLASS(machine);
     PCIBus *pci_bus;

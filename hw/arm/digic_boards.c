@@ -64,7 +64,7 @@ static void digic4_board_init(MachineState *machine, DigicBoard *board)
         exit(1);
     }
 
-    memory_region_add_subregion(get_system_memory(), 0, machine->ram);
+    memory_region_add_subregion(&machine->memory.mr, 0, machine->ram);
 
     if (board->add_rom0) {
         board->add_rom0(s, DIGIC4_ROM0_BASE,

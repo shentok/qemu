@@ -76,7 +76,7 @@ static void sifive_e_machine_init(MachineState *machine)
     const MemMapEntry *memmap = sifive_e_memmap;
 
     SiFiveEState *s = RISCV_E_MACHINE(machine);
-    MemoryRegion *sys_mem = get_system_memory();
+    MemoryRegion *sys_mem = &machine->memory.mr;
     int i;
 
     if (machine->ram_size != mc->default_ram_size) {
@@ -190,7 +190,7 @@ static void sifive_e_soc_realize(DeviceState *dev, Error **errp)
     MachineState *ms = MACHINE(qdev_get_machine());
     const MemMapEntry *memmap = sifive_e_memmap;
     SiFiveESoCState *s = RISCV_E_SOC(dev);
-    MemoryRegion *sys_mem = get_system_memory();
+    MemoryRegion *sys_mem = &ms->memory.mr;
 
     object_property_set_str(OBJECT(&s->cpus), "cpu-type", ms->cpu_type,
                             &error_abort);

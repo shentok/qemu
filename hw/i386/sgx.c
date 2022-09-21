@@ -284,6 +284,7 @@ void pc_machine_init_sgx_epc(PCMachineState *pcms)
 {
     SGXEPCState *sgx_epc = &pcms->sgx_epc;
     X86MachineState *x86ms = X86_MACHINE(pcms);
+    MachineState *ms = MACHINE(pcms);
     SgxEPCList *list = NULL;
     Object *obj;
 
@@ -295,8 +296,7 @@ void pc_machine_init_sgx_epc(PCMachineState *pcms)
     sgx_epc->base = x86ms->above_4g_mem_start + x86ms->above_4g_mem_size;
 
     memory_region_init(&sgx_epc->mr, OBJECT(pcms), "sgx-epc", UINT64_MAX);
-    memory_region_add_subregion(get_system_memory(), sgx_epc->base,
-                                &sgx_epc->mr);
+    memory_region_add_subregion(&ms->memory.mr, sgx_epc->base, &sgx_epc->mr);
 
     for (list = x86ms->sgx_epc_list; list; list = list->next) {
         obj = object_new("sgx-epc");

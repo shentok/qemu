@@ -70,7 +70,7 @@ static void
 petalogix_ml605_init(MachineState *machine)
 {
     ram_addr_t ram_size = machine->ram_size;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     DeviceState *dev, *dma, *eth0;
     Object *ds, *cs;
     MicroBlazeCPU *cpu;

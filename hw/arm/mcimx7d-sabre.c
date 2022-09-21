@@ -43,7 +43,7 @@ static void mcimx7d_sabre_init(MachineState *machine)
     object_property_add_child(OBJECT(machine), "soc", OBJECT(s));
     qdev_realize(DEVICE(s), NULL, &error_fatal);
 
-    memory_region_add_subregion(get_system_memory(), FSL_IMX7_MMDC_ADDR,
+    memory_region_add_subregion(&machine->memory.mr, FSL_IMX7_MMDC_ADDR,
                                 machine->ram);
 
     for (i = 0; i < FSL_IMX7_NUM_USDHCS; i++) {

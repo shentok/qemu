@@ -947,7 +947,7 @@ static void next_cube_init(MachineState *machine)
     MemoryRegion *dmamem = g_new(MemoryRegion, 1);
     MemoryRegion *bmapm1 = g_new(MemoryRegion, 1);
     MemoryRegion *bmapm2 = g_new(MemoryRegion, 1);
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &machine->memory.mr;
     const char *bios_name = machine->firmware ?: ROM_FILE;
     DeviceState *dev;
     DeviceState *pcdev;

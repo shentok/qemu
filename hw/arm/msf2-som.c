@@ -48,7 +48,7 @@ static void emcraft_sf2_s2s010_init(MachineState *machine)
     DriveInfo *dinfo = drive_get(IF_MTD, 0, 0);
     qemu_irq cs_line;
     BusState *spi_bus;
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &machine->memory.mr;
     MemoryRegion *ddr = g_new(MemoryRegion, 1);
     Clock *m3clk;
 

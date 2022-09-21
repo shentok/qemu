@@ -332,7 +332,7 @@ static void rtas_set_tce_bypass(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                 uint32_t nargs, target_ulong args,
                                 uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = get_address_space_memory();
+    AddressSpace *as = &MACHINE(spapr)->memory.as;
     SpaprVioBus *bus = spapr->vio_bus;
     SpaprVioDevice *dev;
     uint32_t unit, enable;
@@ -364,7 +364,7 @@ static void rtas_quiesce(PowerPCCPU *cpu, SpaprMachineState *spapr,
                          uint32_t nargs, target_ulong args,
                          uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = get_address_space_memory();
+    AddressSpace *as = &MACHINE(spapr)->memory.as;
     SpaprVioBus *bus = spapr->vio_bus;
     BusChild *kid;
     SpaprVioDevice *dev = NULL;
@@ -524,12 +524,13 @@ static void spapr_vio_busdev_realize(DeviceState *qdev, Error **errp)
 
     if (pc->rtce_window_size) {
         uint32_t liobn = SPAPR_VIO_LIOBN(dev->reg);
+        MachineState *ms = MACHINE(spapr);
 
         memory_region_init(&dev->mrroot, OBJECT(dev), "iommu-spapr-root",
-                           MACHINE(spapr)->ram_size);
+                           ms->ram_size);
         memory_region_init_alias(&dev->mrbypass, OBJECT(dev),
-                                 "iommu-spapr-bypass", get_system_memory(),
-                                 0, MACHINE(spapr)->ram_size);
+                                 "iommu-spapr-bypass", &ms->memory.mr,
+                                 0, ms->ram_size);
         memory_region_add_subregion_overlap(&dev->mrroot, 0, &dev->mrbypass, 1);
         address_space_init(&dev->as, &dev->mrroot, qdev->id);
 

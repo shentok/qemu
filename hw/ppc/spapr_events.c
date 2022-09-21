@@ -933,7 +933,7 @@ static void check_exception(PowerPCCPU *cpu, SpaprMachineState *spapr,
                             target_ulong args,
                             uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = get_address_space_memory();
+    AddressSpace *as = &MACHINE(spapr)->memory.as;
     uint32_t mask, buf, len, event_len;
     SpaprEventLogEntry *event;
     struct rtas_error_log header;
@@ -994,7 +994,7 @@ static void event_scan(PowerPCCPU *cpu, SpaprMachineState *spapr,
                        target_ulong args,
                        uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = get_address_space_memory();
+    AddressSpace *as = &MACHINE(spapr)->memory.as;
     int i;
     if (nargs != 4 || nret != 1) {
         rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);

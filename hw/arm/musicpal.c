@@ -1221,7 +1221,7 @@ static void musicpal_init(MachineState *machine)
     unsigned long flash_size;
     DriveInfo *dinfo;
     MachineClass *mc = MACHINE_GET_CLASS(machine);
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     MemoryRegion *sram = g_new(MemoryRegion, 1);
 
     /* For now we use a fixed - the original - RAM size */
@@ -1292,7 +1292,7 @@ static void musicpal_init(MachineState *machine)
     dev = qdev_new(TYPE_MV88W8618_ETH);
     qdev_set_nic_properties(dev, &nd_table[0]);
     object_property_set_link(OBJECT(dev), "dma-memory",
-                             OBJECT(get_system_memory()), &error_fatal);
+                             OBJECT(&machine->memory.mr), &error_fatal);
     sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(dev), 0, MP_ETH_BASE);
     sysbus_connect_irq(SYS_BUS_DEVICE(dev), 0,

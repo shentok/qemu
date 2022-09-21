@@ -408,7 +408,7 @@ static void q800_init(MachineState *machine)
     qemu_register_reset(main_cpu_reset, cpu);
 
     /* RAM */
-    memory_region_add_subregion(get_system_memory(), 0, machine->ram);
+    memory_region_add_subregion(&machine->memory.mr, 0, machine->ram);
 
     /*
      * Memory from IO_BASE to IO_BASE + IO_SLICE is repeated
@@ -418,9 +418,9 @@ static void q800_init(MachineState *machine)
     for (i = 0; i < io_slice_nb; i++) {
         char *name = g_strdup_printf("mac_m68k.io[%d]", i + 1);
 
-        memory_region_init_alias(&io[i], NULL, name, get_system_memory(),
+        memory_region_init_alias(&io[i], NULL, name, &machine->memory.mr,
                                  IO_BASE, IO_SLICE);
-        memory_region_add_subregion(get_system_memory(),
+        memory_region_add_subregion(&machine->memory.mr,
                                     IO_BASE + (i + 1) * IO_SLICE, &io[i]);
         g_free(name);
     }
@@ -484,7 +484,7 @@ static void q800_init(MachineState *machine)
     qdev_prop_set_uint8(dev, "it_shift", 2);
     qdev_prop_set_bit(dev, "big_endian", true);
     object_property_set_link(OBJECT(dev), "dma_mr",
-                             OBJECT(get_system_memory()), &error_abort);
+                             OBJECT(&machine->memory.mr), &error_abort);
     sysbus = SYS_BUS_DEVICE(dev);
     sysbus_realize_and_unref(sysbus, &error_fatal);
     sysbus_mmio_map(sysbus, 0, SONIC_BASE);
@@ -492,7 +492,7 @@ static void q800_init(MachineState *machine)
 
     memory_region_init_rom(dp8393x_prom, NULL, "dp8393x-q800.prom",
                            SONIC_PROM_SIZE, &error_fatal);
-    memory_region_add_subregion(get_system_memory(), SONIC_PROM_BASE,
+    memory_region_add_subregion(&machine->memory.mr, SONIC_PROM_BASE,
                                 dp8393x_prom);
 
     /* Add MAC address with valid checksum to PROM */
@@ -645,7 +645,7 @@ static void q800_init(MachineState *machine)
         memory_region_init_ram_ptr(rom, NULL, "m68k_fake_mac.rom",
                                    sizeof(fake_mac_rom), fake_mac_rom);
         memory_region_set_readonly(rom, true);
-        memory_region_add_subregion(get_system_memory(), MACROM_ADDR, rom);
+        memory_region_add_subregion(&machine->memory.mr, MACROM_ADDR, rom);
 
         if (kernel_cmdline) {
             BOOTINFOSTR(param_ptr, BI_COMMAND_LINE,
@@ -691,7 +691,7 @@ static void q800_init(MachineState *machine)
         memory_region_init_rom(rom, NULL, "m68k_mac.rom", MACROM_SIZE,
                                &error_abort);
         filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, bios_name);
-        memory_region_add_subregion(get_system_memory(), MACROM_ADDR, rom);
+        memory_region_add_subregion(&machine->memory.mr, MACROM_ADDR, rom);
 
         /* Load MacROM binary */
         if (filename) {

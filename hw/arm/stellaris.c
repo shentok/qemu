@@ -1029,7 +1029,7 @@ static void stellaris_init(MachineState *ms, stellaris_board_info *board)
 
     MemoryRegion *sram = g_new(MemoryRegion, 1);
     MemoryRegion *flash = g_new(MemoryRegion, 1);
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &ms->memory.mr;
 
     flash_size = (((board->dc0 & 0xffff) + 1) << 1) * 1024;
     sram_size = ((board->dc0 >> 18) + 1) * 1024;
@@ -1071,7 +1071,7 @@ static void stellaris_init(MachineState *ms, stellaris_board_info *board)
                           qdev_get_clock_out(ssys_dev, "SYSCLK"));
     /* This SoC does not connect the systick reference clock */
     object_property_set_link(OBJECT(nvic), "memory",
-                             OBJECT(get_system_memory()), &error_abort);
+                             OBJECT(&ms->memory.mr), &error_abort);
     /* This will exit with an error if the user passed us a bad cpu_type */
     sysbus_realize_and_unref(SYS_BUS_DEVICE(nvic), &error_fatal);
 

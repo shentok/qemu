@@ -93,7 +93,7 @@ static void orangepi_init(MachineState *machine)
     qdev_realize_and_unref(carddev, bus, &error_fatal);
 
     /* SDRAM */
-    memory_region_add_subregion(get_system_memory(), h3->memmap[AW_H3_DEV_SDRAM],
+    memory_region_add_subregion(&machine->memory.mr, h3->memmap[AW_H3_DEV_SDRAM],
                                 machine->ram);
 
     /* Load target kernel or start using BootROM */

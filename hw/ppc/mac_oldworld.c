@@ -123,12 +123,12 @@ static void ppc_heathrow_init(MachineState *machine)
         exit(1);
     }
 
-    memory_region_add_subregion(get_system_memory(), 0, machine->ram);
+    memory_region_add_subregion(&machine->memory.mr, 0, machine->ram);
 
     /* allocate and load firmware ROM */
     memory_region_init_rom(bios, NULL, "ppc_heathrow.bios", PROM_SIZE,
                            &error_fatal);
-    memory_region_add_subregion(get_system_memory(), PROM_BASE, bios);
+    memory_region_add_subregion(&machine->memory.mr, PROM_BASE, bios);
 
     filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, bios_name);
     if (filename) {
@@ -229,10 +229,10 @@ static void ppc_heathrow_init(MachineState *machine)
     sysbus_mmio_map(s, 0, GRACKLE_BASE);
     sysbus_mmio_map(s, 1, GRACKLE_BASE + 0x200000);
     /* PCI hole */
-    memory_region_add_subregion(get_system_memory(), 0x80000000ULL,
+    memory_region_add_subregion(&machine->memory.mr, 0x80000000ULL,
                                 sysbus_mmio_get_region(s, 2));
     /* Register 2 MB of ISA IO space */
-    memory_region_add_subregion(get_system_memory(), 0xfe000000,
+    memory_region_add_subregion(&machine->memory.mr, 0xfe000000,
                                 sysbus_mmio_get_region(s, 3));
 
     pci_bus = PCI_HOST_BRIDGE(grackle_dev)->bus;

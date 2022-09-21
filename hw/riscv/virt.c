@@ -1076,20 +1076,19 @@ static inline DeviceState *gpex_pcie_init(MemoryRegion *sys_mem,
     ecam_reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 0);
     memory_region_init_alias(ecam_alias, OBJECT(dev), "pcie-ecam",
                              ecam_reg, 0, ecam_size);
-    memory_region_add_subregion(get_system_memory(), ecam_base, ecam_alias);
+    memory_region_add_subregion(sys_mem, ecam_base, ecam_alias);
 
     mmio_alias = g_new0(MemoryRegion, 1);
     mmio_reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 1);
     memory_region_init_alias(mmio_alias, OBJECT(dev), "pcie-mmio",
                              mmio_reg, mmio_base, mmio_size);
-    memory_region_add_subregion(get_system_memory(), mmio_base, mmio_alias);
+    memory_region_add_subregion(sys_mem, mmio_base, mmio_alias);
 
     /* Map high MMIO space */
     high_mmio_alias = g_new0(MemoryRegion, 1);
     memory_region_init_alias(high_mmio_alias, OBJECT(dev), "pcie-mmio-high",
                              mmio_reg, high_mmio_base, high_mmio_size);
-    memory_region_add_subregion(get_system_memory(), high_mmio_base,
-                                high_mmio_alias);
+    memory_region_add_subregion(sys_mem, high_mmio_base, high_mmio_alias);
 
     sysbus_mmio_map(SYS_BUS_DEVICE(dev), 2, pio_base);
 
@@ -1203,7 +1202,7 @@ static void create_platform_bus(RISCVVirtState *s, DeviceState *irqchip)
     SysBusDevice *sysbus;
     const MemMapEntry *memmap = virt_memmap;
     int i;
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &MACHINE(s)->memory.mr;
 
     dev = qdev_new(TYPE_PLATFORM_BUS_DEVICE);
     dev->id = g_strdup(TYPE_PLATFORM_BUS_DEVICE);
@@ -1322,7 +1321,7 @@ static void virt_machine_init(MachineState *machine)
 {
     const MemMapEntry *memmap = virt_memmap;
     RISCVVirtState *s = RISCV_VIRT_MACHINE(machine);
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &machine->memory.mr;
     MemoryRegion *mask_rom = g_new(MemoryRegion, 1);
     char *soc_name;
     DeviceState *mmio_irqchip, *virtio_irqchip, *pcie_irqchip;

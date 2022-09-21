@@ -9,7 +9,7 @@
 #include "hw/intc/i8259.h"
 
 
-PCIBus *typhoon_init(MemoryRegion *, qemu_irq *, qemu_irq *, AlphaCPU *[4],
+PCIBus *typhoon_init(MachineState *, qemu_irq *, qemu_irq *, AlphaCPU *[4],
                      pci_map_irq_fn, uint8_t devfn_min);
 
 /* alpha_pci.c.  */

@@ -469,6 +469,7 @@ static void loongarch_devices_init(DeviceState *pch_pic, LoongArchMachineState *
     PCIBus *pci_bus;
     MemoryRegion *ecam_alias, *ecam_reg, *pio_alias, *pio_reg;
     MemoryRegion *mmio_alias, *mmio_reg, *pm_mem;
+    MachineState *ms = MACHINE(lams);
     int i;
 
     gpex_dev = qdev_new(TYPE_GPEX_HOST);
@@ -482,7 +483,7 @@ static void loongarch_devices_init(DeviceState *pch_pic, LoongArchMachineState *
     ecam_reg = sysbus_mmio_get_region(d, 0);
     memory_region_init_alias(ecam_alias, OBJECT(gpex_dev), "pcie-ecam",
                              ecam_reg, 0, VIRT_PCI_CFG_SIZE);
-    memory_region_add_subregion(get_system_memory(), VIRT_PCI_CFG_BASE,
+    memory_region_add_subregion(&ms->memory.mr, VIRT_PCI_CFG_BASE,
                                 ecam_alias);
 
     /* Map PCI mem space */
@@ -490,7 +491,7 @@ static void loongarch_devices_init(DeviceState *pch_pic, LoongArchMachineState *
     mmio_reg = sysbus_mmio_get_region(d, 1);
     memory_region_init_alias(mmio_alias, OBJECT(gpex_dev), "pcie-mmio",
                              mmio_reg, VIRT_PCI_MEM_BASE, VIRT_PCI_MEM_SIZE);
-    memory_region_add_subregion(get_system_memory(), VIRT_PCI_MEM_BASE,
+    memory_region_add_subregion(&ms->memory.mr, VIRT_PCI_MEM_BASE,
                                 mmio_alias);
 
     /* Map PCI IO port space. */
@@ -498,7 +499,7 @@ static void loongarch_devices_init(DeviceState *pch_pic, LoongArchMachineState *
     pio_reg = sysbus_mmio_get_region(d, 2);
     memory_region_init_alias(pio_alias, OBJECT(gpex_dev), "pcie-io", pio_reg,
                              VIRT_PCI_IO_OFFSET, VIRT_PCI_IO_SIZE);
-    memory_region_add_subregion(get_system_memory(), VIRT_PCI_IO_BASE,
+    memory_region_add_subregion(&ms->memory.mr, VIRT_PCI_IO_BASE,
                                 pio_alias);
 
     for (i = 0; i < GPEX_NUM_IRQS; i++) {
@@ -507,7 +508,7 @@ static void loongarch_devices_init(DeviceState *pch_pic, LoongArchMachineState *
         gpex_set_irq_num(GPEX_HOST(gpex_dev), i, 16 + i);
     }
 
-    serial_mm_init(get_system_memory(), VIRT_UART_BASE, 0,
+    serial_mm_init(&ms->memory.mr, VIRT_UART_BASE, 0,
                    qdev_get_gpio_in(pch_pic,
                                     VIRT_UART_IRQ - PCH_PIC_IRQ_OFFSET),
                    115200, serial_hd(0), DEVICE_LITTLE_ENDIAN);
@@ -537,7 +538,7 @@ static void loongarch_devices_init(DeviceState *pch_pic, LoongArchMachineState *
     pm_mem = g_new(MemoryRegion, 1);
     memory_region_init_io(pm_mem, NULL, &loongarch_virt_pm_ops,
                           NULL, "loongarch_virt_pm", PM_SIZE);
-    memory_region_add_subregion(get_system_memory(), PM_BASE, pm_mem);
+    memory_region_add_subregion(&ms->memory.mr, PM_BASE, pm_mem);
     /* acpi ged */
     lams->acpi_ged = create_acpi_ged(pch_pic, lams);
     /* platform bus */
@@ -620,12 +621,12 @@ static void loongarch_irq_init(LoongArchMachineState *lams)
     qdev_prop_set_uint32(pch_pic, "pch_pic_irq_num", num);
     d = SYS_BUS_DEVICE(pch_pic);
     sysbus_realize_and_unref(d, &error_fatal);
-    memory_region_add_subregion(get_system_memory(), VIRT_IOAPIC_REG_BASE,
+    memory_region_add_subregion(&ms->memory.mr, VIRT_IOAPIC_REG_BASE,
                             sysbus_mmio_get_region(d, 0));
-    memory_region_add_subregion(get_system_memory(),
+    memory_region_add_subregion(&ms->memory.mr,
                             VIRT_IOAPIC_REG_BASE + PCH_PIC_ROUTE_ENTRY_OFFSET,
                             sysbus_mmio_get_region(d, 1));
-    memory_region_add_subregion(get_system_memory(),
+    memory_region_add_subregion(&ms->memory.mr,
                             VIRT_IOAPIC_REG_BASE + PCH_PIC_INT_STATUS_LO,
                             sysbus_mmio_get_region(d, 2));
 
@@ -653,7 +654,8 @@ static void loongarch_irq_init(LoongArchMachineState *lams)
 
 static void loongarch_firmware_init(LoongArchMachineState *lams)
 {
-    char *filename = MACHINE(lams)->firmware;
+    MachineState *ms = MACHINE(lams);
+    char *filename = ms->firmware;
     char *bios_name = NULL;
     int bios_size;
 
@@ -679,7 +681,7 @@ static void loongarch_firmware_init(LoongArchMachineState *lams)
         memory_region_init_ram(&lams->bios, NULL, "loongarch.bios",
                                VIRT_BIOS_SIZE, &error_fatal);
         memory_region_set_readonly(&lams->bios, true);
-        memory_region_add_subregion(get_system_memory(), VIRT_BIOS_BASE, &lams->bios);
+        memory_region_add_subregion(&ms->memory.mr, VIRT_BIOS_BASE, &lams->bios);
         lams->bios_loaded = true;
     }
 
@@ -751,7 +753,7 @@ static void loongarch_init(MachineState *machine)
     ram_addr_t offset = 0;
     ram_addr_t ram_size = machine->ram_size;
     uint64_t highram_size = 0;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     LoongArchMachineState *lams = LOONGARCH_MACHINE(machine);
     int i;
     hwaddr fdt_base;

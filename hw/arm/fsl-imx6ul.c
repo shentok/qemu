@@ -587,16 +587,16 @@ static void fsl_imx6ul_realize(DeviceState *dev, Error **errp)
      */
     memory_region_init_rom(&s->rom, OBJECT(dev), "imx6ul.rom",
                            FSL_IMX6UL_ROM_SIZE, &error_abort);
-    memory_region_add_subregion(get_system_memory(), FSL_IMX6UL_ROM_ADDR,
-                                &s->rom);
+    memory_region_add_subregion(&ms->memory.mr,
+                                FSL_IMX6UL_ROM_ADDR, &s->rom);
 
     /*
      * CAAM memory
      */
     memory_region_init_rom(&s->caam, OBJECT(dev), "imx6ul.caam",
                            FSL_IMX6UL_CAAM_MEM_SIZE, &error_abort);
-    memory_region_add_subregion(get_system_memory(), FSL_IMX6UL_CAAM_MEM_ADDR,
-                                &s->caam);
+    memory_region_add_subregion(&ms->memory.mr,
+                                FSL_IMX6UL_CAAM_MEM_ADDR, &s->caam);
 
     /*
      * OCRAM memory
@@ -604,8 +604,8 @@ static void fsl_imx6ul_realize(DeviceState *dev, Error **errp)
     memory_region_init_ram(&s->ocram, NULL, "imx6ul.ocram",
                            FSL_IMX6UL_OCRAM_MEM_SIZE,
                            &error_abort);
-    memory_region_add_subregion(get_system_memory(), FSL_IMX6UL_OCRAM_MEM_ADDR,
-                                &s->ocram);
+    memory_region_add_subregion(&ms->memory.mr,
+                                FSL_IMX6UL_OCRAM_MEM_ADDR, &s->ocram);
 
     /*
      * internal OCRAM (128 KB) is aliased over 512 KB
@@ -613,7 +613,7 @@ static void fsl_imx6ul_realize(DeviceState *dev, Error **errp)
     memory_region_init_alias(&s->ocram_alias, OBJECT(dev),
                              "imx6ul.ocram_alias", &s->ocram, 0,
                              FSL_IMX6UL_OCRAM_ALIAS_SIZE);
-    memory_region_add_subregion(get_system_memory(),
+    memory_region_add_subregion(&ms->memory.mr,
                                 FSL_IMX6UL_OCRAM_ALIAS_ADDR, &s->ocram_alias);
 }
 

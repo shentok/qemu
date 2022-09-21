@@ -122,7 +122,7 @@ exynos4_boards_init_common(MachineState *machine,
     exynos4_board_binfo.gic_cpu_if_addr =
             EXYNOS4210_SMP_PRIVATE_BASE_ADDR + 0x100;
 
-    exynos4_boards_init_ram(s, get_system_memory(),
+    exynos4_boards_init_ram(s, &machine->memory.mr,
                             exynos4_board_ram_size[board_type]);
 
     object_initialize_child(OBJECT(machine), "soc", &s->soc,

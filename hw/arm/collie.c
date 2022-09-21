@@ -52,7 +52,7 @@ static void collie_init(MachineState *machine)
 
     cms->sa1110 = sa1110_init(machine->cpu_type);
 
-    memory_region_add_subregion(get_system_memory(), SA_SDCS0, machine->ram);
+    memory_region_add_subregion(&machine->memory.mr, SA_SDCS0, machine->ram);
 
     for (unsigned i = 0; i < 2; i++) {
         DriveInfo *dinfo = drive_get(IF_PFLASH, 0, i);

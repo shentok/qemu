@@ -43,7 +43,7 @@ static void mcimx6ul_evk_init(MachineState *machine)
     object_property_set_uint(OBJECT(s), "fec2-phy-num", 1, &error_fatal);
     qdev_realize(DEVICE(s), NULL, &error_fatal);
 
-    memory_region_add_subregion(get_system_memory(), FSL_IMX6UL_MMDC_ADDR,
+    memory_region_add_subregion(&machine->memory.mr, FSL_IMX6UL_MMDC_ADDR,
                                 machine->ram);
 
     for (i = 0; i < FSL_IMX6UL_NUM_USDHCS; i++) {

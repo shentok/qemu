@@ -222,7 +222,7 @@ static void calxeda_init(MachineState *machine, enum cxmachines machine_id)
         cpu_vfiq[n] = qdev_get_gpio_in(DEVICE(cpu), ARM_CPU_VFIQ);
     }
 
-    sysmem = get_system_memory();
+    sysmem = &machine->memory.mr;
     /* SDRAM at address zero.  */
     memory_region_add_subregion(sysmem, 0, machine->ram);
 

@@ -276,10 +276,9 @@ uint64_t riscv_load_fdt(MachineState *machine, hwaddr dram_base)
     /* copy in the device tree */
     qemu_fdt_dumpdtb(fdt, fdtsize);
 
-    rom_add_blob_fixed_as("fdt", fdt, fdtsize, fdt_addr,
-                          get_address_space_memory());
+    rom_add_blob_fixed_as("fdt", fdt, fdtsize, fdt_addr, &machine->memory.as);
     qemu_register_reset_nosnapshotload(qemu_fdt_randomize_seeds,
-                        rom_ptr_for_as(get_address_space_memory(), fdt_addr, fdtsize));
+                        rom_ptr_for_as(&machine->memory.as, fdt_addr, fdtsize));
 
     return fdt_addr;
 }

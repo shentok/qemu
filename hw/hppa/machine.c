@@ -82,7 +82,7 @@ static const MemoryRegionOps hppa_pci_ignore_ops = {
     },
 };
 
-static ISABus *hppa_isa_bus(void)
+static ISABus *hppa_isa_bus(MachineState *machine)
 {
     ISABus *isa_bus;
     qemu_irq *isa_irqs;
@@ -91,11 +91,10 @@ static ISABus *hppa_isa_bus(void)
     isa_region = g_new(MemoryRegion, 1);
     memory_region_init_io(isa_region, NULL, &hppa_pci_ignore_ops,
                           NULL, "isa-io", 0x800);
-    memory_region_add_subregion(get_system_memory(), IDE_HPA,
+    memory_region_add_subregion(&machine->memory.mr, IDE_HPA,
                                 isa_region);
 
-    isa_bus = isa_bus_new(NULL, get_system_memory(), isa_region,
-                          &error_abort);
+    isa_bus = isa_bus_new(NULL, &machine->memory.mr, isa_region, &error_abort);
     isa_irqs = i8259_init(isa_bus,
                           /* qemu_allocate_irq(dino_set_isa_irq, s, 0)); */
                           NULL);
@@ -185,7 +184,7 @@ static void machine_hppa_init(MachineState *machine)
     uint64_t firmware_low, firmware_high;
     long size;
     uint64_t kernel_entry = 0, kernel_low, kernel_high;
-    MemoryRegion *addr_space = get_system_memory();
+    MemoryRegion *addr_space = &machine->memory.mr;
     MemoryRegion *rom_region;
     MemoryRegion *cpu_region;
     long i;
@@ -228,7 +227,7 @@ static void machine_hppa_init(MachineState *machine)
     assert(pci_bus);
 
     /* Create ISA bus. */
-    isa_bus = hppa_isa_bus();
+    isa_bus = hppa_isa_bus(machine);
     assert(isa_bus);
 
     /* Realtime clock, used by firmware for PDC_TOD call. */

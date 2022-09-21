@@ -82,7 +82,7 @@ static void imx25_pdk_init(MachineState *machine)
         exit(EXIT_FAILURE);
     }
 
-    memory_region_add_subregion(get_system_memory(), FSL_IMX25_SDRAM0_ADDR,
+    memory_region_add_subregion(&machine->memory.mr, FSL_IMX25_SDRAM0_ADDR,
                                 machine->ram);
 
     /* initialize the alias memory if any */
@@ -105,7 +105,7 @@ static void imx25_pdk_init(MachineState *machine)
             memory_region_init_alias(&s->ram_alias, NULL, "ram.alias",
                                      machine->ram,
                                      alias_offset, ram[i].size - size);
-            memory_region_add_subregion(get_system_memory(),
+            memory_region_add_subregion(&machine->memory.mr,
                                         ram[i].addr + size, &s->ram_alias);
         }
 

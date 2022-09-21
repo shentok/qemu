@@ -125,7 +125,7 @@ static void mainstone_common_init(MachineState *machine,
     mpu = pxa270_init(mainstone_binfo.ram_size, machine->cpu_type);
     memory_region_init_rom(rom, NULL, "mainstone.rom", MAINSTONE_ROM_SIZE,
                            &error_fatal);
-    memory_region_add_subregion(get_system_memory(), 0x00000000, rom);
+    memory_region_add_subregion(&machine->memory.mr, 0x00000000, rom);
 
     /* There are two 32MiB flash devices on the board */
     for (i = 0; i < 2; i ++) {

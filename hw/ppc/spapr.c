@@ -501,7 +501,7 @@ static int spapr_dt_dynamic_memory(SpaprMachineState *spapr, void *fdt,
             dynamic_memory[2] = cpu_to_be32(spapr_drc_index(drc));
             dynamic_memory[3] = cpu_to_be32(0); /* reserved */
             dynamic_memory[4] = cpu_to_be32(spapr_pc_dimm_node(dimms, addr));
-            if (memory_region_present(get_system_memory(), addr)) {
+            if (memory_region_present(&machine->memory.mr, addr)) {
                 dynamic_memory[5] = cpu_to_be32(SPAPR_LMB_FLAGS_ASSIGNED);
             } else {
                 dynamic_memory[5] = cpu_to_be32(0);
@@ -2730,7 +2730,7 @@ static void spapr_machine_init(MachineState *machine)
     PCIHostState *phb;
     bool has_vga;
     int i;
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &machine->memory.mr;
     long load_limit, fw_size;
     Error *resize_hpt_err = NULL;
 

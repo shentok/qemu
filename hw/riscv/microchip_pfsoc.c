@@ -195,7 +195,7 @@ static void microchip_pfsoc_soc_realize(DeviceState *dev, Error **errp)
     MachineState *ms = MACHINE(qdev_get_machine());
     MicrochipPFSoCState *s = MICROCHIP_PFSOC(dev);
     const MemMapEntry *memmap = microchip_pfsoc_memmap;
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &ms->memory.mr;
     MemoryRegion *rsvd0_mem = g_new(MemoryRegion, 1);
     MemoryRegion *e51_dtim_mem = g_new(MemoryRegion, 1);
     MemoryRegion *l2lim_mem = g_new(MemoryRegion, 1);
@@ -518,7 +518,7 @@ static void microchip_icicle_kit_machine_init(MachineState *machine)
     MachineClass *mc = MACHINE_GET_CLASS(machine);
     const MemMapEntry *memmap = microchip_pfsoc_memmap;
     MicrochipIcicleKitState *s = MICROCHIP_ICICLE_KIT_MACHINE(machine);
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &machine->memory.mr;
     MemoryRegion *mem_low = g_new(MemoryRegion, 1);
     MemoryRegion *mem_low_alias = g_new(MemoryRegion, 1);
     MemoryRegion *mem_high = g_new(MemoryRegion, 1);

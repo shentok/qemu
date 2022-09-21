@@ -266,7 +266,7 @@ static void main_cpu_reset(void *opaque)
 
 static void sam460ex_init(MachineState *machine)
 {
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     MemoryRegion *isa = g_new(MemoryRegion, 1);
     MemoryRegion *l2cache_ram = g_new(MemoryRegion, 1);
     DeviceState *uic[4];
@@ -430,7 +430,7 @@ static void sam460ex_init(MachineState *machine)
 
     memory_region_init_alias(isa, NULL, "isa_mmio", get_system_io(),
                              0, 0x10000);
-    memory_region_add_subregion(get_system_memory(), 0xc08000000, isa);
+    memory_region_add_subregion(&machine->memory.mr, 0xc08000000, isa);
 
     /* PCI devices */
     pci_create_simple(pci_bus, PCI_DEVFN(6, 0), "sm501");

@@ -99,7 +99,7 @@ static void niagara_init(MachineState *machine)
 {
     NiagaraBoardState *s = g_new(NiagaraBoardState, 1);
     DriveInfo *dinfo = drive_get(IF_PFLASH, 0, 0);
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &machine->memory.mr;
 
     /* init CPUs */
     sparc64_cpu_devinit(machine->cpu_type, NIAGARA_PROM_BASE);
@@ -140,7 +140,7 @@ static void niagara_init(MachineState *machine)
         if (size > 0) {
             memory_region_init_ram(&s->vdisk_ram, NULL, "sun4v_vdisk.ram", size,
                                    &error_fatal);
-            memory_region_add_subregion(get_system_memory(),
+            memory_region_add_subregion(&machine->memory.mr,
                                         NIAGARA_VDISK_BASE, &s->vdisk_ram);
             dinfo->is_default = 1;
             rom_add_file_fixed(blk_name(blk), NIAGARA_VDISK_BASE, -1);

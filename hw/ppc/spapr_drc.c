@@ -1054,7 +1054,7 @@ static void rtas_set_indicator(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                uint32_t nargs, target_ulong args,
                                uint32_t nret, target_ulong rets)
 {
-    AddressSpace *as = get_address_space_memory();
+    AddressSpace *as = &MACHINE(spapr)->memory.as;
     uint32_t type, idx, state;
     uint32_t ret = RTAS_OUT_SUCCESS;
 
@@ -1090,7 +1090,7 @@ static void rtas_get_sensor_state(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                   target_ulong args, uint32_t nret,
                                   target_ulong rets)
 {
-    AddressSpace *as = get_address_space_memory();
+    AddressSpace *as = &MACHINE(spapr)->memory.as;
     uint32_t sensor_type;
     uint32_t sensor_index;
     uint32_t sensor_state = 0;
@@ -1153,7 +1153,7 @@ static void rtas_ibm_configure_connector(PowerPCCPU *cpu,
                                          target_ulong args, uint32_t nret,
                                          target_ulong rets)
 {
-    AddressSpace *as = get_address_space_memory();
+    AddressSpace *as = &MACHINE(spapr)->memory.as;
     uint64_t wa_addr;
     uint64_t wa_offset;
     uint32_t drc_index;

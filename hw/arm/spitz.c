@@ -995,7 +995,7 @@ static void spitz_common_init(MachineState *machine)
     sl_flash_register(mpu, (model == spitz) ? FLASH_128M : FLASH_1024M);
 
     memory_region_init_rom(rom, NULL, "spitz.rom", SPITZ_ROM, &error_fatal);
-    memory_region_add_subregion(get_system_memory(), 0, rom);
+    memory_region_add_subregion(&machine->memory.mr, 0, rom);
 
     /* Setup peripherals */
     spitz_keyboard_register(mpu);

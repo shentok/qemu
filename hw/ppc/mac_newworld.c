@@ -170,12 +170,12 @@ static void ppc_core99_init(MachineState *machine)
         error_report("RAM size more than 2 GiB is not supported");
         exit(1);
     }
-    memory_region_add_subregion(get_system_memory(), 0, machine->ram);
+    memory_region_add_subregion(&machine->memory.mr, 0, machine->ram);
 
     /* allocate and load firmware ROM */
     memory_region_init_rom(bios, NULL, "ppc_core99.bios", PROM_SIZE,
                            &error_fatal);
-    memory_region_add_subregion(get_system_memory(), PROM_BASE, bios);
+    memory_region_add_subregion(&machine->memory.mr, PROM_BASE, bios);
 
     filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, bios_name);
     if (filename) {
@@ -297,7 +297,7 @@ static void ppc_core99_init(MachineState *machine)
     /* UniN init */
     s = SYS_BUS_DEVICE(qdev_new(TYPE_UNI_NORTH));
     sysbus_realize_and_unref(s, &error_fatal);
-    memory_region_add_subregion(get_system_memory(), 0xf8000000,
+    memory_region_add_subregion(&machine->memory.mr, 0xf8000000,
                                 sysbus_mmio_get_region(s, 0));
 
     if (PPC_INPUT(env) == PPC_FLAGS_INPUT_970) {
@@ -310,10 +310,10 @@ static void ppc_core99_init(MachineState *machine)
         sysbus_mmio_map(s, 0, 0xf0800000);
         sysbus_mmio_map(s, 1, 0xf0c00000);
         /* PCI hole */
-        memory_region_add_subregion(get_system_memory(), 0x80000000,
+        memory_region_add_subregion(&machine->memory.mr, 0x80000000,
                                     sysbus_mmio_get_region(s, 2));
         /* Register 8 MB of ISA IO space */
-        memory_region_add_subregion(get_system_memory(), 0xf2000000,
+        memory_region_add_subregion(&machine->memory.mr, 0xf2000000,
                                     sysbus_mmio_get_region(s, 3));
     } else {
         machine_arch = ARCH_MAC99;
@@ -341,10 +341,10 @@ static void ppc_core99_init(MachineState *machine)
         sysbus_mmio_map(s, 0, 0xf2800000);
         sysbus_mmio_map(s, 1, 0xf2c00000);
         /* PCI hole */
-        memory_region_add_subregion(get_system_memory(), 0x80000000,
+        memory_region_add_subregion(&machine->memory.mr, 0x80000000,
                                     sysbus_mmio_get_region(s, 2));
         /* Register 8 MB of ISA IO space */
-        memory_region_add_subregion(get_system_memory(), 0xf2000000,
+        memory_region_add_subregion(&machine->memory.mr, 0xf2000000,
                                     sysbus_mmio_get_region(s, 3));
     }
 

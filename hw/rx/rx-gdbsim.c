@@ -82,7 +82,7 @@ static void rx_gdbsim_init(MachineState *machine)
     MachineClass *mc = MACHINE_GET_CLASS(machine);
     RxGdbSimMachineState *s = RX_GDBSIM_MACHINE(machine);
     RxGdbSimMachineClass *rxc = RX_GDBSIM_MACHINE_GET_CLASS(machine);
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &machine->memory.mr;
     const char *kernel_filename = machine->kernel_filename;
     const char *dtb_filename = machine->dtb;
     uint8_t rng_seed[32];

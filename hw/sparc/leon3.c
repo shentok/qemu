@@ -221,7 +221,7 @@ static void leon3_generic_hw_init(MachineState *machine)
     const char *kernel_filename = machine->kernel_filename;
     SPARCCPU *cpu;
     CPUSPARCState   *env;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     MemoryRegion *prom = g_new(MemoryRegion, 1);
     int         ret;
     char       *filename;

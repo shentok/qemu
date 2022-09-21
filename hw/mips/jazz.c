@@ -123,7 +123,7 @@ static const MemoryRegionOps dma_dummy_ops = {
 static void mips_jazz_init(MachineState *machine,
                            enum jazz_model_e jazz_model)
 {
-    MemoryRegion *address_space = get_system_memory();
+    MemoryRegion *address_space = &machine->memory.mr;
     char *filename;
     int bios_size, n, big_endian;
     Clock *cpuclk;

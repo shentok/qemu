@@ -75,17 +75,17 @@ XtensaCPU *xtensa_sim_common_init(MachineState *machine)
 
         sysram.location[0].size = ram_size;
         xtensa_create_memory_regions(&env->config->instrom, "xtensa.instrom",
-                                     get_system_memory());
+                                     &machine->memory.mr);
         xtensa_create_memory_regions(&env->config->instram, "xtensa.instram",
-                                     get_system_memory());
+                                     &machine->memory.mr);
         xtensa_create_memory_regions(&env->config->datarom, "xtensa.datarom",
-                                     get_system_memory());
+                                     &machine->memory.mr);
         xtensa_create_memory_regions(&env->config->dataram, "xtensa.dataram",
-                                     get_system_memory());
+                                     &machine->memory.mr);
         xtensa_create_memory_regions(&env->config->sysrom, "xtensa.sysrom",
-                                     get_system_memory());
+                                     &machine->memory.mr);
         xtensa_create_memory_regions(&sysram, "xtensa.sysram",
-                                     get_system_memory());
+                                     &machine->memory.mr);
     }
     if (serial_hd(0)) {
         xtensa_sim_open_console(serial_hd(0));

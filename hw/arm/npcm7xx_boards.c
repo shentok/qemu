@@ -90,11 +90,12 @@ static void npcm7xx_connect_flash(NPCM7xxFIUState *fiu, int cs_no,
     qdev_connect_gpio_out_named(DEVICE(fiu), "cs", cs_no, flash_cs);
 }
 
-static void npcm7xx_connect_dram(NPCM7xxState *soc, MemoryRegion *dram)
+static void npcm7xx_connect_dram(NPCM7xxState *soc, MachineState *machine)
 {
-    memory_region_add_subregion(get_system_memory(), NPCM7XX_DRAM_BA, dram);
+    memory_region_add_subregion(&machine->memory.mr, NPCM7XX_DRAM_BA,
+                                machine->ram);
 
-    object_property_set_link(OBJECT(soc), "dram-mr", OBJECT(dram),
+    object_property_set_link(OBJECT(soc), "dram-mr", OBJECT(machine->ram),
                              &error_abort);
 }
 
@@ -381,7 +382,7 @@ static void npcm750_evb_init(MachineState *machine)
     NPCM7xxState *soc;
 
     soc = npcm7xx_create_soc(machine, NPCM750_EVB_POWER_ON_STRAPS);
-    npcm7xx_connect_dram(soc, machine->ram);
+    npcm7xx_connect_dram(soc, machine);
     qdev_realize(DEVICE(soc), NULL, &error_fatal);
 
     npcm7xx_load_bootrom(machine, soc);
@@ -396,7 +397,7 @@ static void quanta_gsj_init(MachineState *machine)
     NPCM7xxState *soc;
 
     soc = npcm7xx_create_soc(machine, QUANTA_GSJ_POWER_ON_STRAPS);
-    npcm7xx_connect_dram(soc, machine->ram);
+    npcm7xx_connect_dram(soc, machine);
     qdev_realize(DEVICE(soc), NULL, &error_fatal);
 
     npcm7xx_load_bootrom(machine, soc);
@@ -412,7 +413,7 @@ static void quanta_gbs_init(MachineState *machine)
     NPCM7xxState *soc;
 
     soc = npcm7xx_create_soc(machine, QUANTA_GBS_POWER_ON_STRAPS);
-    npcm7xx_connect_dram(soc, machine->ram);
+    npcm7xx_connect_dram(soc, machine);
     qdev_realize(DEVICE(soc), NULL, &error_fatal);
 
     npcm7xx_load_bootrom(machine, soc);
@@ -430,7 +431,7 @@ static void kudo_bmc_init(MachineState *machine)
     NPCM7xxState *soc;
 
     soc = npcm7xx_create_soc(machine, KUDO_BMC_POWER_ON_STRAPS);
-    npcm7xx_connect_dram(soc, machine->ram);
+    npcm7xx_connect_dram(soc, machine);
     qdev_realize(DEVICE(soc), NULL, &error_fatal);
 
     npcm7xx_load_bootrom(machine, soc);
@@ -449,7 +450,7 @@ static void mori_bmc_init(MachineState *machine)
     NPCM7xxState *soc;
 
     soc = npcm7xx_create_soc(machine, MORI_BMC_POWER_ON_STRAPS);
-    npcm7xx_connect_dram(soc, machine->ram);
+    npcm7xx_connect_dram(soc, machine);
     qdev_realize(DEVICE(soc), NULL, &error_fatal);
 
     npcm7xx_load_bootrom(machine, soc);

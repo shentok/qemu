@@ -189,7 +189,8 @@ static void xen_ram_init(PCMachineState *pcms,
                          ram_addr_t ram_size, MemoryRegion **ram_memory_p)
 {
     X86MachineState *x86ms = X86_MACHINE(pcms);
-    MemoryRegion *sysmem = get_system_memory();
+    MachineState *ms = MACHINE(pcms);
+    MemoryRegion *sysmem = &ms->memory.mr;
     ram_addr_t block_len;
     uint64_t user_lowmem =
         object_property_get_uint(qdev_get_machine(),

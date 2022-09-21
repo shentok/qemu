@@ -38,7 +38,8 @@
 #include "xtensa_memory.h"
 #include "xtensa_sim.h"
 
-static void create_pcie(CPUXtensaState *env, int irq_base, hwaddr addr_base)
+static void create_pcie(CPUXtensaState *env, MachineState *ms, int irq_base,
+                        hwaddr addr_base)
 {
     hwaddr base_ecam = addr_base + 0x00100000;
     hwaddr size_ecam =             0x03f00000;
@@ -67,7 +68,7 @@ static void create_pcie(CPUXtensaState *env, int irq_base, hwaddr addr_base)
     ecam_reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 0);
     memory_region_init_alias(ecam_alias, OBJECT(dev), "pcie-ecam",
                              ecam_reg, 0, size_ecam);
-    memory_region_add_subregion(get_system_memory(), base_ecam, ecam_alias);
+    memory_region_add_subregion(&ms->memory.mr, base_ecam, ecam_alias);
 
     /*
      * Map the MMIO window into system address space so as to expose
@@ -79,14 +80,14 @@ static void create_pcie(CPUXtensaState *env, int irq_base, hwaddr addr_base)
     mmio_reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 1);
     memory_region_init_alias(mmio_alias, OBJECT(dev), "pcie-mmio",
                              mmio_reg, base_mmio, size_mmio);
-    memory_region_add_subregion(get_system_memory(), base_mmio, mmio_alias);
+    memory_region_add_subregion(&ms->memory.mr, base_mmio, mmio_alias);
 
     /* Map IO port space. */
     pio_alias = g_new0(MemoryRegion, 1);
     pio_reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 2);
     memory_region_init_alias(pio_alias, OBJECT(dev), "pcie-pio",
                              pio_reg, 0, size_pio);
-    memory_region_add_subregion(get_system_memory(), base_pio, pio_alias);
+    memory_region_add_subregion(&ms->memory.mr, base_pio, pio_alias);
 
     /* Connect IRQ lines. */
     extints = xtensa_get_extints(env);
@@ -117,7 +118,7 @@ static void xtensa_virt_init(MachineState *machine)
     XtensaCPU *cpu = xtensa_sim_common_init(machine);
     CPUXtensaState *env = &cpu->env;
 
-    create_pcie(env, 0, 0xf0000000);
+    create_pcie(env, machine, 0, 0xf0000000);
     xtensa_sim_load_kernel(cpu, machine);
 }
 

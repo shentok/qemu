@@ -96,7 +96,7 @@ static void cubieboard_init(MachineState *machine)
     qdev_prop_set_drive_err(carddev, "drive", blk, &error_fatal);
     qdev_realize_and_unref(carddev, bus, &error_fatal);
 
-    memory_region_add_subregion(get_system_memory(), AW_A10_SDRAM_BASE,
+    memory_region_add_subregion(&machine->memory.mr, AW_A10_SDRAM_BASE,
                                 machine->ram);
 
     /* Load target kernel or start using BootROM */

@@ -1309,7 +1309,7 @@ static void n8x0_init(MachineState *machine,
     }
     binfo->ram_size = machine->ram_size;
 
-    memory_region_add_subregion(get_system_memory(), OMAP2_Q2_BASE,
+    memory_region_add_subregion(&machine->memory.mr, OMAP2_Q2_BASE,
                                 machine->ram);
 
     s->mpu = omap2420_mpu_init(machine->ram, machine->cpu_type);

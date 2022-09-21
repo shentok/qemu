@@ -103,7 +103,7 @@ static void sx1_init(MachineState *machine, const int version)
 {
     struct omap_mpu_state_s *mpu;
     MachineClass *mc = MACHINE_GET_CLASS(machine);
-    MemoryRegion *address_space = get_system_memory();
+    MemoryRegion *address_space = &machine->memory.mr;
     MemoryRegion *flash = g_new(MemoryRegion, 1);
     MemoryRegion *cs = g_new(MemoryRegion, 4);
     static uint32_t cs0val = 0x00213090;

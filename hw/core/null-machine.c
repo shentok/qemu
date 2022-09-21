@@ -32,7 +32,7 @@ static void machine_none_init(MachineState *mch)
 
     /* RAM at address zero */
     if (mch->ram) {
-        memory_region_add_subregion(get_system_memory(), 0, mch->ram);
+        memory_region_add_subregion(&mch->memory.mr, 0, mch->ram);
     }
 
     if (mch->kernel_filename) {

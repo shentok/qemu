@@ -814,11 +814,11 @@ static void typhoon_alarm_timer(void *opaque)
     cpu_interrupt(CPU(s->cchip.cpu[cpu]), CPU_INTERRUPT_TIMER);
 }
 
-PCIBus *typhoon_init(MemoryRegion *ram, qemu_irq *p_isa_irq,
+PCIBus *typhoon_init(MachineState *machine, qemu_irq *p_isa_irq,
                      qemu_irq *p_rtc_irq, AlphaCPU *cpus[4],
                      pci_map_irq_fn sys_map_irq, uint8_t devfn_min)
 {
-    MemoryRegion *addr_space = get_system_memory();
+    MemoryRegion *addr_space = &machine->memory.mr;
     DeviceState *dev;
     TyphoonState *s;
     PCIHostState *phb;
@@ -849,7 +849,7 @@ PCIBus *typhoon_init(MemoryRegion *ram, qemu_irq *p_isa_irq,
 
     /* Main memory region, 0x00.0000.0000.  Real hardware supports 32GB,
        but the address space hole reserved at this point is 8TB.  */
-    memory_region_add_subregion(addr_space, 0, ram);
+    memory_region_add_subregion(addr_space, 0, machine->ram);
 
     /* TIGbus, 0x801.0000.0000, 1GB.  */
     /* ??? The TIGbus is used for delivering interrupts, and access to

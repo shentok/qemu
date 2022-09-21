@@ -242,7 +242,7 @@ static void r2d_init(MachineState *machine)
     int i;
     DeviceState *dev;
     SysBusDevice *busdev;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     PCIBus *pci_bus;
 
     cpu = SUPERH_CPU(cpu_create(machine->cpu_type));

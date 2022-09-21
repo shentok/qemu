@@ -348,7 +348,7 @@ static void aspeed_machine_init(MachineState *machine)
     object_property_set_int(OBJECT(&bmc->soc), "hw-strap2", amc->hw_strap2,
                             &error_abort);
     object_property_set_link(OBJECT(&bmc->soc), "memory",
-                             OBJECT(get_system_memory()), &error_abort);
+                             OBJECT(&machine->memory.mr), &error_abort);
     object_property_set_link(OBJECT(&bmc->soc), "dram",
                              OBJECT(machine->ram), &error_abort);
     if (machine->kernel_filename) {
@@ -385,12 +385,12 @@ static void aspeed_machine_init(MachineState *machine)
         if (ASPEED_MACHINE(machine)->mmio_exec) {
             memory_region_init_alias(boot_rom, NULL, "aspeed.boot_rom",
                                      &fl->mmio, 0, size);
-            memory_region_add_subregion(get_system_memory(), FIRMWARE_ADDR,
+            memory_region_add_subregion(&machine->memory.mr, FIRMWARE_ADDR,
                                         boot_rom);
         } else {
             memory_region_init_rom(boot_rom, NULL, "aspeed.boot_rom",
                                    size, &error_abort);
-            memory_region_add_subregion(get_system_memory(), FIRMWARE_ADDR,
+            memory_region_add_subregion(&machine->memory.mr, FIRMWARE_ADDR,
                                         boot_rom);
             write_boot_rom(drive0, FIRMWARE_ADDR, size, &error_abort);
         }
@@ -401,7 +401,7 @@ static void aspeed_machine_init(MachineState *machine)
         MemoryRegion *smpboot = g_new(MemoryRegion, 1);
         memory_region_init_ram(smpboot, NULL, "aspeed.smpboot",
                                0x80, &error_abort);
-        memory_region_add_subregion(get_system_memory(),
+        memory_region_add_subregion(&machine->memory.mr,
                                     AST_SMP_MAILBOX_BASE, smpboot);
 
         aspeed_board_binfo.write_secondary_boot = aspeed_write_smpboot;
@@ -1414,7 +1414,7 @@ static void aspeed_minibmc_machine_init(MachineState *machine)
     qdev_connect_clock_in(DEVICE(&bmc->soc), "sysclk", sysclk);
 
     object_property_set_link(OBJECT(&bmc->soc), "memory",
-                             OBJECT(get_system_memory()), &error_abort);
+                             OBJECT(&machine->memory.mr), &error_abort);
     connect_serial_hds_to_uarts(bmc);
     qdev_realize(DEVICE(&bmc->soc), NULL, &error_abort);
 

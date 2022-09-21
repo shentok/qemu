@@ -645,7 +645,7 @@ static target_ulong h_prod(PowerPCCPU *cpu, SpaprMachineState *spapr,
 static target_ulong h_rtas(PowerPCCPU *cpu, SpaprMachineState *spapr,
                            target_ulong opcode, target_ulong *args)
 {
-    AddressSpace *as = get_address_space_memory();
+    AddressSpace *as = &MACHINE(spapr)->memory.as;
     target_ulong rtas_r3 = args[0];
     uint32_t token = rtas_ld(as, rtas_r3, 0);
     uint32_t nargs = rtas_ld(as, rtas_r3, 1);

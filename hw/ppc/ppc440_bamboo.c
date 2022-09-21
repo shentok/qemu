@@ -163,7 +163,7 @@ static void bamboo_init(MachineState *machine)
     const char *kernel_filename = machine->kernel_filename;
     const char *initrd_filename = machine->initrd_filename;
     unsigned int pci_irq_nrs[4] = { 28, 27, 26, 25 };
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     MemoryRegion *isa = g_new(MemoryRegion, 1);
     PCIBus *pcibus;
     PowerPCCPU *cpu;
@@ -225,7 +225,7 @@ static void bamboo_init(MachineState *machine)
 
     memory_region_init_alias(isa, NULL, "isa_mmio",
                              get_system_io(), 0, PPC440EP_PCI_IOLEN);
-    memory_region_add_subregion(get_system_memory(), PPC440EP_PCI_IO, isa);
+    memory_region_add_subregion(&machine->memory.mr, PPC440EP_PCI_IO, isa);
 
     if (serial_hd(0) != NULL) {
         serial_mm_init(address_space_mem, 0xef600300, 0,
