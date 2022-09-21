@@ -258,7 +258,7 @@ void axisdev88_init(MachineState *machine)
     void *etraxfs_dmac;
     struct etraxfs_dma_client *dma_eth;
     int i;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     MemoryRegion *phys_intmem = g_new(MemoryRegion, 1);
 
     /* init CPUs */

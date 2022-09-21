@@ -59,7 +59,7 @@ static void tricore_testboard_init(MachineState *machine, int board_id)
     CPUTriCoreState *env;
     TriCoreTestDeviceState *test_dev;
 
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &machine->memory.mr;
     MemoryRegion *ext_cram = g_new(MemoryRegion, 1);
     MemoryRegion *ext_dram = g_new(MemoryRegion, 1);
     MemoryRegion *int_cram = g_new(MemoryRegion, 1);

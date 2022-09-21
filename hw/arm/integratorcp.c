@@ -590,7 +590,7 @@ static void integratorcp_init(MachineState *machine)
     ram_addr_t ram_size = machine->ram_size;
     Object *cpuobj;
     ARMCPU *cpu;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     MemoryRegion *ram_alias = g_new(MemoryRegion, 1);
     qemu_irq pic[32];
     DeviceState *dev, *sic, *icp;

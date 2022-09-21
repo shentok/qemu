@@ -99,6 +99,7 @@ static void microvm_set_rtc(MicrovmMachineState *mms, ISADevice *s)
 static void create_gpex(MicrovmMachineState *mms)
 {
     X86MachineState *x86ms = X86_MACHINE(mms);
+    MachineState *machine = MACHINE(mms);
     MemoryRegion *mmio32_alias;
     MemoryRegion *mmio64_alias;
     MemoryRegion *mmio_reg;
@@ -115,7 +116,7 @@ static void create_gpex(MicrovmMachineState *mms)
     ecam_reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 0);
     memory_region_init_alias(ecam_alias, OBJECT(dev), "pcie-ecam",
                              ecam_reg, 0, mms->gpex.ecam.size);
-    memory_region_add_subregion(get_system_memory(),
+    memory_region_add_subregion(&machine->memory.mr,
                                 mms->gpex.ecam.base, ecam_alias);
 
     /* Map the MMIO window into system address space so as to expose
@@ -128,14 +129,14 @@ static void create_gpex(MicrovmMachineState *mms)
         mmio32_alias = g_new0(MemoryRegion, 1);
         memory_region_init_alias(mmio32_alias, OBJECT(dev), "pcie-mmio32", mmio_reg,
                                  mms->gpex.mmio32.base, mms->gpex.mmio32.size);
-        memory_region_add_subregion(get_system_memory(),
+        memory_region_add_subregion(&machine->memory.mr,
                                     mms->gpex.mmio32.base, mmio32_alias);
     }
     if (mms->gpex.mmio64.size) {
         mmio64_alias = g_new0(MemoryRegion, 1);
         memory_region_init_alias(mmio64_alias, OBJECT(dev), "pcie-mmio64", mmio_reg,
                                  mms->gpex.mmio64.base, mms->gpex.mmio64.size);
-        memory_region_add_subregion(get_system_memory(),
+        memory_region_add_subregion(&machine->memory.mr,
                                     mms->gpex.mmio64.base, mmio64_alias);
     }
 
@@ -160,6 +161,7 @@ static void microvm_devices_init(MicrovmMachineState *mms)
 {
     const char *default_firmware;
     X86MachineState *x86ms = X86_MACHINE(mms);
+    MachineState *ms = MACHINE(mms);
     ISABus *isa_bus;
     ISADevice *rtc_state;
     GSIState *gsi_state;
@@ -172,8 +174,7 @@ static void microvm_devices_init(MicrovmMachineState *mms)
     x86ms->gsi = qemu_allocate_irqs(gsi_handler, gsi_state,
                                     IOAPIC_NUM_PINS * ioapics);
 
-    isa_bus = isa_bus_new(NULL, get_system_memory(), get_system_io(),
-                          &error_abort);
+    isa_bus = isa_bus_new(NULL, &ms->memory.mr, get_system_io(), &error_abort);
     isa_bus_irqs(isa_bus, x86ms->gsi);
 
     ioapic_init_gsi(gsi_state, "machine");
@@ -278,7 +279,7 @@ static void microvm_devices_init(MicrovmMachineState *mms)
     default_firmware = x86_machine_is_acpi_enabled(x86ms)
             ? MICROVM_BIOS_FILENAME
             : MICROVM_QBOOT_FILENAME;
-    x86_bios_rom_init(MACHINE(mms), default_firmware, get_system_memory(), true);
+    x86_bios_rom_init(MACHINE(mms), default_firmware, &ms->memory.mr, true);
 }
 
 static void microvm_memory_init(MicrovmMachineState *mms)
@@ -286,7 +287,7 @@ static void microvm_memory_init(MicrovmMachineState *mms)
     MachineState *machine = MACHINE(mms);
     X86MachineState *x86ms = X86_MACHINE(mms);
     MemoryRegion *ram_below_4g, *ram_above_4g;
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &machine->memory.mr;
     FWCfgState *fw_cfg;
     ram_addr_t lowmem = 0xc0000000; /* 3G */
     int i;

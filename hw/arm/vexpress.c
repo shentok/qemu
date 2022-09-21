@@ -269,7 +269,7 @@ static void a9_daughterboard_init(const VexpressMachineState *vms,
                                   qemu_irq *pic)
 {
     MachineState *machine = MACHINE(vms);
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &machine->memory.mr;
     MemoryRegion *lowram = g_new(MemoryRegion, 1);
     ram_addr_t low_ram_size;
 
@@ -354,7 +354,7 @@ static void a15_daughterboard_init(const VexpressMachineState *vms,
                                    qemu_irq *pic)
 {
     MachineState *machine = MACHINE(vms);
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &machine->memory.mr;
     MemoryRegion *sram = g_new(MemoryRegion, 1);
 
     {
@@ -546,7 +546,7 @@ static void vexpress_common_init(MachineState *machine)
     PFlashCFI01 *pflash0;
     I2CBus *i2c;
     ram_addr_t vram_size, sram_size;
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &machine->memory.mr;
     MemoryRegion *vram = g_new(MemoryRegion, 1);
     MemoryRegion *sram = g_new(MemoryRegion, 1);
     MemoryRegion *flashalias = g_new(MemoryRegion, 1);

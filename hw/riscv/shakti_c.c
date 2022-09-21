@@ -44,7 +44,7 @@ static const struct MemmapEntry {
 static void shakti_c_machine_state_init(MachineState *mstate)
 {
     ShaktiCMachineState *sms = RISCV_SHAKTI_MACHINE(mstate);
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &mstate->memory.mr;
 
     /* Allow only Shakti C CPU for this platform */
     if (strcmp(mstate->cpu_type, TYPE_RISCV_CPU_SHAKTI_C) != 0) {
@@ -105,7 +105,7 @@ static void shakti_c_soc_state_realize(DeviceState *dev, Error **errp)
 {
     MachineState *ms = MACHINE(qdev_get_machine());
     ShaktiCSoCState *sss = RISCV_SHAKTI_SOC(dev);
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &ms->memory.mr;
 
     sysbus_realize(SYS_BUS_DEVICE(&sss->cpus), &error_abort);
 

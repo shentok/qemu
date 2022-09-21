@@ -184,7 +184,7 @@ static void versatile_init(MachineState *machine, int board_id)
 {
     Object *cpuobj;
     ARMCPU *cpu;
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &machine->memory.mr;
     qemu_irq pic[32];
     qemu_irq sic[32];
     DeviceState *dev, *sysctl;

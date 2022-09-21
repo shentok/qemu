@@ -126,7 +126,7 @@ static void pegasos2_init(MachineState *machine)
         error_report("RAM size more than 2 GiB is not supported");
         exit(1);
     }
-    memory_region_add_subregion(get_system_memory(), 0, machine->ram);
+    memory_region_add_subregion(&machine->memory.mr, 0, machine->ram);
 
     /* allocate and load firmware */
     filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, fwname);
@@ -138,7 +138,7 @@ static void pegasos2_init(MachineState *machine)
         pm->vof = g_malloc0(sizeof(*pm->vof));
     }
     memory_region_init_rom(rom, NULL, "pegasos2.rom", PROM_SIZE, &error_fatal);
-    memory_region_add_subregion(get_system_memory(), PROM_ADDR, rom);
+    memory_region_add_subregion(&machine->memory.mr, PROM_ADDR, rom);
     sz = load_elf(filename, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1,
                   PPC_ELF_MACHINE, 0, 0);
     if (sz <= 0) {

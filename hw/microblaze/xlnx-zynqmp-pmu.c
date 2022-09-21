@@ -148,7 +148,7 @@ type_init(xlnx_zynqmp_pmu_soc_register_types)
 static void xlnx_zynqmp_pmu_init(MachineState *machine)
 {
     XlnxZynqMPPMUSoCState *pmu = g_new0(XlnxZynqMPPMUSoCState, 1);
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     MemoryRegion *pmu_rom = g_new(MemoryRegion, 1);
     MemoryRegion *pmu_ram = g_new(MemoryRegion, 1);
 

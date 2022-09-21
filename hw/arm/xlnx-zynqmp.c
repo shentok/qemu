@@ -446,7 +446,7 @@ static void xlnx_zynqmp_realize(DeviceState *dev, Error **errp)
 {
     MachineState *ms = MACHINE(qdev_get_machine());
     XlnxZynqMPState *s = XLNX_ZYNQMP(dev);
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &ms->memory.mr;
     uint8_t i;
     uint64_t ram_size;
     int num_apus = MIN(ms->smp.cpus, XLNX_ZYNQMP_NUM_APU_CPUS);
@@ -473,8 +473,7 @@ static void xlnx_zynqmp_realize(DeviceState *dev, Error **errp)
         memory_region_init_alias(&s->ddr_ram_high, OBJECT(dev),
                                  "ddr-ram-high", s->ddr_ram, ddr_low_size,
                                  ddr_high_size);
-        memory_region_add_subregion(get_system_memory(),
-                                    XLNX_ZYNQMP_HIGH_RAM_START,
+        memory_region_add_subregion(system_memory, XLNX_ZYNQMP_HIGH_RAM_START,
                                     &s->ddr_ram_high);
     } else {
         /* RAM must be non-zero */
@@ -484,7 +483,7 @@ static void xlnx_zynqmp_realize(DeviceState *dev, Error **errp)
 
     memory_region_init_alias(&s->ddr_ram_low, OBJECT(dev), "ddr-ram-low",
                              s->ddr_ram, 0, ddr_low_size);
-    memory_region_add_subregion(get_system_memory(), 0, &s->ddr_ram_low);
+    memory_region_add_subregion(system_memory, 0, &s->ddr_ram_low);
 
     /* Create the four OCM banks */
     for (i = 0; i < XLNX_ZYNQMP_NUM_OCM_BANKS; i++) {
@@ -492,7 +491,7 @@ static void xlnx_zynqmp_realize(DeviceState *dev, Error **errp)
 
         memory_region_init_ram(&s->ocm_ram[i], NULL, ocm_name,
                                XLNX_ZYNQMP_OCM_RAM_SIZE, &error_fatal);
-        memory_region_add_subregion(get_system_memory(),
+        memory_region_add_subregion(system_memory,
                                     XLNX_ZYNQMP_OCM_RAM_0_ADDRESS +
                                         i * XLNX_ZYNQMP_OCM_RAM_SIZE,
                                     &s->ocm_ram[i]);

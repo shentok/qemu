@@ -224,7 +224,7 @@ static void xtfpga_init(const XtfpgaBoardDesc *board, MachineState *machine)
 #else
     int be = 0;
 #endif
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &machine->memory.mr;
     XtensaCPU *cpu = NULL;
     CPUXtensaState *env = NULL;
     MemoryRegion *system_io;

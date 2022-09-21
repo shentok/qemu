@@ -34,7 +34,7 @@ OBJECT_DECLARE_SIMPLE_TYPE(MicrobitMachineState, MICROBIT_MACHINE)
 static void microbit_init(MachineState *machine)
 {
     MicrobitMachineState *s = MICROBIT_MACHINE(machine);
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &machine->memory.mr;
     MemoryRegion *mr;
 
     object_initialize_child(OBJECT(machine), "nrf51", &s->nrf51,

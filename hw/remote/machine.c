@@ -33,7 +33,7 @@ static void remote_machine_init(MachineState *machine)
     RemotePCIHost *rem_host;
     PCIHostState *pci_host;
 
-    system_memory = get_system_memory();
+    system_memory = &machine->memory.mr;
     system_io = get_system_io();
 
     pci_memory = g_new(MemoryRegion, 1);

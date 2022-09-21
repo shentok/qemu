@@ -186,7 +186,7 @@ static void spike_board_init(MachineState *machine)
 {
     const MemMapEntry *memmap = spike_memmap;
     SpikeState *s = SPIKE_MACHINE(machine);
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &machine->memory.mr;
     MemoryRegion *mask_rom = g_new(MemoryRegion, 1);
     target_ulong firmware_end_addr, kernel_start_addr;
     uint32_t fdt_load_addr;

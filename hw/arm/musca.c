@@ -220,6 +220,7 @@ static MemoryRegion *make_mpc(MuscaMachineState *mms, void *opaque,
      * stubs behind the PPCs).
      * The whole CryptoIsland region behind its MPC is an unimplemented stub.
      */
+    MachineState *ms = MACHINE(mms);
     MuscaMachineClass *mmc = MUSCA_MACHINE_GET_CLASS(mms);
     TZMPC *mpc = opaque;
     int i = mpc - &mms->mpc[0];
@@ -262,7 +263,7 @@ static MemoryRegion *make_mpc(MuscaMachineState *mms, void *opaque,
     sysbus_realize(SYS_BUS_DEVICE(mpc), &error_fatal);
     /* Map the upstream end of the MPC into system memory */
     upstream = sysbus_mmio_get_region(SYS_BUS_DEVICE(mpc), 1);
-    memory_region_add_subregion(get_system_memory(), mpcinfo[i].addr, upstream);
+    memory_region_add_subregion(&ms->memory.mr, mpcinfo[i].addr, upstream);
     /* and connect its interrupt to the SSE-200 */
     qdev_connect_gpio_out_named(DEVICE(mpc), "irq", 0,
                                 qdev_get_gpio_in_named(DEVICE(&mms->sse),
@@ -356,7 +357,7 @@ static void musca_init(MachineState *machine)
     MuscaMachineState *mms = MUSCA_MACHINE(machine);
     MuscaMachineClass *mmc = MUSCA_MACHINE_GET_CLASS(mms);
     MachineClass *mc = MACHINE_GET_CLASS(machine);
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &machine->memory.mr;
     DeviceState *ssedev;
     DeviceState *dev_splitter;
     const PPCInfo *ppcs;

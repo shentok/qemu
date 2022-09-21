@@ -236,7 +236,7 @@ static void mcf5208evb_init(MachineState *machine)
     uint64_t elf_entry;
     hwaddr entry;
     qemu_irq *pic;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     MemoryRegion *rom = g_new(MemoryRegion, 1);
     MemoryRegion *sram = g_new(MemoryRegion, 1);
 

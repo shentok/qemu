@@ -271,7 +271,7 @@ static void raspi_machine_init(MachineState *machine)
     }
 
     /* FIXME: Remove when we have custom CPU address space support */
-    memory_region_add_subregion_overlap(get_system_memory(), 0,
+    memory_region_add_subregion_overlap(&machine->memory.mr, 0,
                                         machine->ram, 0);
 
     /* Setup the SOC */

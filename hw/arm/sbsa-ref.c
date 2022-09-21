@@ -596,6 +596,7 @@ static void create_pcie(SBSAMachineState *sms)
     hwaddr size_mmio_high = sbsa_ref_memmap[SBSA_PCIE_MMIO_HIGH].size;
     hwaddr base_pio = sbsa_ref_memmap[SBSA_PCIE_PIO].base;
     int irq = sbsa_ref_irqmap[SBSA_PCIE];
+    MemoryRegion *system_memory = &MACHINE(sms)->memory.mr;
     MemoryRegion *mmio_alias, *mmio_alias_high, *mmio_reg;
     MemoryRegion *ecam_alias, *ecam_reg;
     DeviceState *dev;
@@ -610,21 +611,20 @@ static void create_pcie(SBSAMachineState *sms)
     ecam_reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 0);
     memory_region_init_alias(ecam_alias, OBJECT(dev), "pcie-ecam",
                              ecam_reg, 0, size_ecam);
-    memory_region_add_subregion(get_system_memory(), base_ecam, ecam_alias);
+    memory_region_add_subregion(system_memory, base_ecam, ecam_alias);
 
     /* Map the MMIO space */
     mmio_alias = g_new0(MemoryRegion, 1);
     mmio_reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 1);
     memory_region_init_alias(mmio_alias, OBJECT(dev), "pcie-mmio",
                              mmio_reg, base_mmio, size_mmio);
-    memory_region_add_subregion(get_system_memory(), base_mmio, mmio_alias);
+    memory_region_add_subregion(system_memory, base_mmio, mmio_alias);
 
     /* Map the MMIO_HIGH space */
     mmio_alias_high = g_new0(MemoryRegion, 1);
     memory_region_init_alias(mmio_alias_high, OBJECT(dev), "pcie-mmio-high",
                              mmio_reg, base_mmio_high, size_mmio_high);
-    memory_region_add_subregion(get_system_memory(), base_mmio_high,
-                                mmio_alias_high);
+    memory_region_add_subregion(system_memory, base_mmio_high, mmio_alias_high);
 
     /* Map IO port space */
     sysbus_mmio_map(SYS_BUS_DEVICE(dev), 2, base_pio);
@@ -678,7 +678,7 @@ static void sbsa_ref_init(MachineState *machine)
     unsigned int max_cpus = machine->smp.max_cpus;
     SBSAMachineState *sms = SBSA_MACHINE(machine);
     MachineClass *mc = MACHINE_GET_CLASS(machine);
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &machine->memory.mr;
     MemoryRegion *secure_sysmem = g_new(MemoryRegion, 1);
     bool firmware_loaded;
     const CPUArchIdList *possible_cpus;

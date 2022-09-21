@@ -416,7 +416,7 @@ static inline void loongson3_virt_devices_init(MachineState *machine,
     ecam_reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 0);
     memory_region_init_alias(s->ecam_alias, OBJECT(dev), "pcie-ecam",
                              ecam_reg, 0, virt_memmap[VIRT_PCIE_ECAM].size);
-    memory_region_add_subregion(get_system_memory(),
+    memory_region_add_subregion(&machine->memory.mr,
                                 virt_memmap[VIRT_PCIE_ECAM].base,
                                 s->ecam_alias);
 
@@ -425,7 +425,7 @@ static inline void loongson3_virt_devices_init(MachineState *machine,
     memory_region_init_alias(s->mmio_alias, OBJECT(dev), "pcie-mmio",
                              mmio_reg, virt_memmap[VIRT_PCIE_MMIO].base,
                              virt_memmap[VIRT_PCIE_MMIO].size);
-    memory_region_add_subregion(get_system_memory(),
+    memory_region_add_subregion(&machine->memory.mr,
                                 virt_memmap[VIRT_PCIE_MMIO].base,
                                 s->mmio_alias);
 
@@ -433,7 +433,7 @@ static inline void loongson3_virt_devices_init(MachineState *machine,
     memory_region_init_alias(s->pio_alias, OBJECT(dev), "pcie-pio",
                              get_system_io(), 0,
                              virt_memmap[VIRT_PCIE_PIO].size);
-    memory_region_add_subregion(get_system_memory(),
+    memory_region_add_subregion(&machine->memory.mr,
                                 virt_memmap[VIRT_PCIE_PIO].base, s->pio_alias);
     sysbus_mmio_map(SYS_BUS_DEVICE(dev), 2, virt_memmap[VIRT_PCIE_PIO].base);
 
@@ -476,7 +476,7 @@ static void mips_loongson3_virt_init(MachineState *machine)
     const char *kernel_filename = machine->kernel_filename;
     const char *initrd_filename = machine->initrd_filename;
     ram_addr_t ram_size = machine->ram_size;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     MemoryRegion *ram = g_new(MemoryRegion, 1);
     MemoryRegion *bios = g_new(MemoryRegion, 1);
     MemoryRegion *iomem = g_new(MemoryRegion, 1);

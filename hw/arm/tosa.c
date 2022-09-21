@@ -236,7 +236,7 @@ static struct arm_boot_info tosa_binfo = {
 
 static void tosa_init(MachineState *machine)
 {
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     MemoryRegion *rom = g_new(MemoryRegion, 1);
     PXA2xxState *mpu;
     TC6393xbState *tmio;

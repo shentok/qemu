@@ -165,7 +165,7 @@ static void mainstone_common_init(MemoryRegion *address_space_mem,
 
 static void mainstone_init(MachineState *machine)
 {
-    mainstone_common_init(get_system_memory(), machine, mainstone, 0x196);
+    mainstone_common_init(&machine->memory.mr, machine, mainstone, 0x196);
 }
 
 static void mainstone2_machine_init(MachineClass *mc)

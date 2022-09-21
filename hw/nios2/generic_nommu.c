@@ -42,7 +42,7 @@
 static void nios2_generic_nommu_init(MachineState *machine)
 {
     Nios2CPU *cpu;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     MemoryRegion *phys_tcm = g_new(MemoryRegion, 1);
     MemoryRegion *phys_tcm_alias = g_new(MemoryRegion, 1);
     MemoryRegion *phys_ram = g_new(MemoryRegion, 1);

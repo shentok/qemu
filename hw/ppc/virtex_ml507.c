@@ -204,7 +204,7 @@ static void virtex_init(MachineState *machine)
     const char *kernel_cmdline = machine->kernel_cmdline;
     hwaddr initrd_base = 0;
     int initrd_size = 0;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     DeviceState *dev;
     PowerPCCPU *cpu;
     CPUPPCState *env;

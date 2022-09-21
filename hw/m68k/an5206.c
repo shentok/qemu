@@ -41,7 +41,7 @@ static void an5206_init(MachineState *machine)
     int kernel_size;
     uint64_t elf_entry;
     hwaddr entry;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     MemoryRegion *sram = g_new(MemoryRegion, 1);
 
     cpu = M68K_CPU(cpu_create(machine->cpu_type));

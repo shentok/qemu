@@ -223,7 +223,7 @@ static struct arm_boot_info palmte_binfo = {
 
 static void palmte_init(MachineState *machine)
 {
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->memory.mr;
     struct omap_mpu_state_s *mpu;
     int flash_size = 0x00800000;
     static uint32_t cs0val = 0xffffffff;

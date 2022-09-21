@@ -56,7 +56,7 @@ static void sabrelite_init(MachineState *machine)
 
     qdev_realize(DEVICE(s), NULL, &error_fatal);
 
-    memory_region_add_subregion(get_system_memory(), FSL_IMX6_MMDC_ADDR,
+    memory_region_add_subregion(&machine->memory.mr, FSL_IMX6_MMDC_ADDR,
                                 machine->ram);
 
     {

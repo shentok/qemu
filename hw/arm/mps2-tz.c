@@ -340,12 +340,12 @@ static MemoryRegion *mr_for_raminfo(MPS2TZMachineState *mms,
 /* Create an alias of an entire original MemoryRegion @orig
  * located at @base in the memory map.
  */
-static void make_ram_alias(MemoryRegion *mr, const char *name,
-                           MemoryRegion *orig, hwaddr base)
+static void make_ram_alias(MemoryRegion *system_memory, MemoryRegion *mr,
+                           const char *name, MemoryRegion *orig, hwaddr base)
 {
     memory_region_init_alias(mr, NULL, name, orig, 0,
                              memory_region_size(orig));
-    memory_region_add_subregion(get_system_memory(), base, mr);
+    memory_region_add_subregion(system_memory, base, mr);
 }
 
 static qemu_irq get_sse_irq_in(MPS2TZMachineState *mms, int irqno)
@@ -557,6 +557,7 @@ static MemoryRegion *make_mpc(MPS2TZMachineState *mms, void *opaque,
 {
     TZMPC *mpc = opaque;
     int i = mpc - &mms->mpc[0];
+    MemoryRegion *system_memory = &MACHINE(mms)->memory.mr;
     MemoryRegion *upstream;
     const RAMInfo *raminfo = find_raminfo_for_mpc(mms, i);
     MemoryRegion *ram = mr_for_raminfo(mms, raminfo);
@@ -567,7 +568,7 @@ static MemoryRegion *make_mpc(MPS2TZMachineState *mms, void *opaque,
     sysbus_realize(SYS_BUS_DEVICE(mpc), &error_fatal);
     /* Map the upstream end of the MPC into system memory */
     upstream = sysbus_mmio_get_region(SYS_BUS_DEVICE(mpc), 1);
-    memory_region_add_subregion(get_system_memory(), raminfo->base, upstream);
+    memory_region_add_subregion(system_memory, raminfo->base, upstream);
     /* and connect its interrupt to the IoTKit */
     qdev_connect_gpio_out_named(DEVICE(mpc), "irq", 0,
                                 qdev_get_gpio_in_named(DEVICE(&mms->iotkit),
@@ -754,16 +755,18 @@ static void create_non_mpc_ram(MPS2TZMachineState *mms)
      */
     const RAMInfo *p;
     MPS2TZMachineClass *mmc = MPS2TZ_MACHINE_GET_CLASS(mms);
+    MemoryRegion *system_memory = &MACHINE(mms)->memory.mr;
 
     for (p = mmc->raminfo; p->name; p++) {
         if (p->flags & IS_ALIAS) {
             SysBusDevice *mpc_sbd = SYS_BUS_DEVICE(&mms->mpc[p->mpc]);
             MemoryRegion *upstream = sysbus_mmio_get_region(mpc_sbd, 1);
-            make_ram_alias(&mms->ram[p->mrindex], p->name, upstream, p->base);
+            make_ram_alias(system_memory, &mms->ram[p->mrindex],
+                           p->name, upstream, p->base);
         } else if (p->mpc == -1) {
             /* RAM not behind an MPC */
             MemoryRegion *mr = mr_for_raminfo(mms, p);
-            memory_region_add_subregion(get_system_memory(), p->base, mr);
+            memory_region_add_subregion(system_memory, p->base, mr);
         }
     }
 }
@@ -795,7 +798,7 @@ static void mps2tz_common_init(MachineState *machine)
     MPS2TZMachineState *mms = MPS2TZ_MACHINE(machine);
     MPS2TZMachineClass *mmc = MPS2TZ_MACHINE_GET_CLASS(mms);
     MachineClass *mc = MACHINE_GET_CLASS(machine);
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &machine->memory.mr;
     DeviceState *iotkitdev;
     DeviceState *dev_splitter;
     const PPCInfo *ppcs;

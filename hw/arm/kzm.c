@@ -82,7 +82,7 @@ static void kzm_init(MachineState *machine)
         exit(EXIT_FAILURE);
     }
 
-    memory_region_add_subregion(get_system_memory(), FSL_IMX31_SDRAM0_ADDR,
+    memory_region_add_subregion(&machine->memory.mr, FSL_IMX31_SDRAM0_ADDR,
                                 machine->ram);
 
     /* initialize the alias memory if any */
@@ -105,7 +105,7 @@ static void kzm_init(MachineState *machine)
             memory_region_init_alias(&s->ram_alias, NULL, "ram.alias",
                                      machine->ram,
                                      alias_offset, ram[i].size - size);
-            memory_region_add_subregion(get_system_memory(),
+            memory_region_add_subregion(&machine->memory.mr,
                                         ram[i].addr + size, &s->ram_alias);
         }
 
@@ -118,7 +118,7 @@ static void kzm_init(MachineState *machine)
     }
 
     if (serial_hd(2)) { /* touchscreen */
-        serial_mm_init(get_system_memory(), KZM_FPGA_ADDR+0x10, 0,
+        serial_mm_init(&machine->memory.mr, KZM_FPGA_ADDR + 0x10, 0,
                        qdev_get_gpio_in(DEVICE(&s->soc.avic), 52),
                        14745600, serial_hd(2), DEVICE_NATIVE_ENDIAN);
     }

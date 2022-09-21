@@ -44,7 +44,7 @@ static void shix_init(MachineState *machine)
     int ret;
     SuperHCPU *cpu;
     struct SH7750State *s;
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &machine->memory.mr;
     MemoryRegion *rom = g_new(MemoryRegion, 1);
     MemoryRegion *sdram = g_new(MemoryRegion, 2);
     const char *bios_name = machine->firmware ?: BIOS_FILENAME;
