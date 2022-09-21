@@ -51,7 +51,7 @@ static void connex_init(MachineState *machine)
 {
     PXA2xxState *cpu;
     DriveInfo *dinfo;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->main_system_bus.memory.mr;
 
     uint32_t connex_rom = 0x01000000;
     uint32_t connex_ram = 0x04000000;
@@ -81,7 +81,7 @@ static void verdex_init(MachineState *machine)
 {
     PXA2xxState *cpu;
     DriveInfo *dinfo;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->main_system_bus.memory.mr;
 
     uint32_t verdex_rom = 0x02000000;
     uint32_t verdex_ram = 0x10000000;

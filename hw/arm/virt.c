@@ -1428,7 +1428,7 @@ static void create_pcie(VirtMachineState *vms)
     ecam_reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 0);
     memory_region_init_alias(ecam_alias, OBJECT(dev), "pcie-ecam",
                              ecam_reg, 0, size_ecam);
-    memory_region_add_subregion(get_system_memory(), base_ecam, ecam_alias);
+    memory_region_add_subregion(&ms->main_system_bus.memory.mr, base_ecam, ecam_alias);
 
     /* Map the MMIO window into system address space so as to expose
      * the section of PCI MMIO space which starts at the same base address
@@ -1439,7 +1439,7 @@ static void create_pcie(VirtMachineState *vms)
     mmio_reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 1);
     memory_region_init_alias(mmio_alias, OBJECT(dev), "pcie-mmio",
                              mmio_reg, base_mmio, size_mmio);
-    memory_region_add_subregion(get_system_memory(), base_mmio, mmio_alias);
+    memory_region_add_subregion(&ms->main_system_bus.memory.mr, base_mmio, mmio_alias);
 
     if (vms->highmem_mmio) {
         /* Map high MMIO space */
@@ -1447,7 +1447,7 @@ static void create_pcie(VirtMachineState *vms)
 
         memory_region_init_alias(high_mmio_alias, OBJECT(dev), "pcie-mmio-high",
                                  mmio_reg, base_mmio_high, size_mmio_high);
-        memory_region_add_subregion(get_system_memory(), base_mmio_high,
+        memory_region_add_subregion(&ms->main_system_bus.memory.mr, base_mmio_high,
                                     high_mmio_alias);
     }
 
@@ -1535,7 +1535,7 @@ static void create_platform_bus(VirtMachineState *vms)
     DeviceState *dev;
     SysBusDevice *s;
     int i;
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &MACHINE(vms)->main_system_bus.memory.mr;
 
     dev = qdev_new(TYPE_PLATFORM_BUS_DEVICE);
     dev->id = g_strdup(TYPE_PLATFORM_BUS_DEVICE);
@@ -1980,7 +1980,7 @@ static void machvirt_init(MachineState *machine)
     VirtMachineClass *vmc = VIRT_MACHINE_GET_CLASS(machine);
     MachineClass *mc = MACHINE_GET_CLASS(machine);
     const CPUArchIdList *possible_cpus;
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &machine->main_system_bus.memory.mr;
     MemoryRegion *secure_sysmem = NULL;
     MemoryRegion *tag_sysmem = NULL;
     MemoryRegion *secure_tag_sysmem = NULL;

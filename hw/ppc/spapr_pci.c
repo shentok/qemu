@@ -1755,6 +1755,7 @@ static void spapr_phb_finalizefn(Object *obj)
 static void spapr_phb_unrealize(DeviceState *dev)
 {
     SpaprMachineState *spapr = SPAPR_MACHINE(qdev_get_machine());
+    MachineState *ms = MACHINE(spapr);
     SysBusDevice *s = SYS_BUS_DEVICE(dev);
     PCIHostState *phb = PCI_HOST_BRIDGE(s);
     SpaprPhbState *sphb = SPAPR_PCI_HOST_BRIDGE(phb);
@@ -1805,11 +1806,14 @@ static void spapr_phb_unrealize(DeviceState *dev)
     qbus_set_hotplug_handler(BUS(phb->bus), NULL);
     pci_unregister_root_bus(phb->bus);
 
-    memory_region_del_subregion(get_system_memory(), &sphb->iowindow);
+    memory_region_del_subregion(&ms->main_system_bus.memory.mr,
+                                &sphb->iowindow);
     if (sphb->mem64_win_pciaddr != (hwaddr)-1) {
-        memory_region_del_subregion(get_system_memory(), &sphb->mem64window);
+        memory_region_del_subregion(&ms->main_system_bus.memory.mr,
+                                    &sphb->mem64window);
     }
-    memory_region_del_subregion(get_system_memory(), &sphb->mem32window);
+    memory_region_del_subregion(&ms->main_system_bus.memory.mr,
+                                &sphb->mem32window);
 }
 
 static void spapr_phb_destroy_msi(gpointer opaque)
@@ -1908,8 +1912,8 @@ static void spapr_phb_realize(DeviceState *dev, Error **errp)
                              namebuf, &sphb->memspace,
                              SPAPR_PCI_MEM_WIN_BUS_OFFSET, sphb->mem_win_size);
     g_free(namebuf);
-    memory_region_add_subregion(get_system_memory(), sphb->mem_win_addr,
-                                &sphb->mem32window);
+    memory_region_add_subregion(&ms->main_system_bus.memory.mr,
+                                sphb->mem_win_addr, &sphb->mem32window);
 
     if (sphb->mem64_win_size != 0) {
         namebuf = g_strdup_printf("%s.mmio64-alias", sphb->dtbusname);
@@ -1918,7 +1922,7 @@ static void spapr_phb_realize(DeviceState *dev, Error **errp)
                                  sphb->mem64_win_pciaddr, sphb->mem64_win_size);
         g_free(namebuf);
 
-        memory_region_add_subregion(get_system_memory(),
+        memory_region_add_subregion(&ms->main_system_bus.memory.mr,
                                     sphb->mem64_win_addr,
                                     &sphb->mem64window);
     }
@@ -1933,8 +1937,8 @@ static void spapr_phb_realize(DeviceState *dev, Error **errp)
     memory_region_init_alias(&sphb->iowindow, OBJECT(sphb), namebuf,
                              &sphb->iospace, 0, SPAPR_PCI_IO_WIN_SIZE);
     g_free(namebuf);
-    memory_region_add_subregion(get_system_memory(), sphb->io_win_addr,
-                                &sphb->iowindow);
+    memory_region_add_subregion(&ms->main_system_bus.memory.mr,
+                                sphb->io_win_addr, &sphb->iowindow);
 
     bus = pci_register_root_bus(dev, NULL,
                                 pci_spapr_set_irq, pci_swizzle_map_irq_fn, sphb,

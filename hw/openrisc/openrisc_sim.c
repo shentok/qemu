@@ -245,6 +245,7 @@ static void openrisc_sim_serial_init(Or1ksimState *state, hwaddr base,
                                      OpenRISCCPU *cpus[], int irq_pin,
                                      int uart_idx)
 {
+    MachineState *machine = MACHINE(state);
     void *fdt = state->fdt;
     char *nodename;
     qemu_irq serial_irq;
@@ -262,7 +263,7 @@ static void openrisc_sim_serial_init(Or1ksimState *state, hwaddr base,
     } else {
         serial_irq = get_cpu_irq(cpus, 0, irq_pin);
     }
-    serial_mm_init(get_system_memory(), base, 0, serial_irq, 115200,
+    serial_mm_init(&machine->main_system_bus.memory.mr, base, 0, serial_irq, 115200,
                    serial_hd(OR1KSIM_UART_COUNT - uart_idx - 1),
                    DEVICE_NATIVE_ENDIAN);
 
@@ -308,7 +309,7 @@ static void openrisc_sim_init(MachineState *machine)
 
     ram = g_malloc(sizeof(*ram));
     memory_region_init_ram(ram, NULL, "openrisc.ram", ram_size, &error_fatal);
-    memory_region_add_subregion(get_system_memory(), 0, ram);
+    memory_region_add_subregion(&machine->main_system_bus.memory.mr, 0, ram);
 
     openrisc_create_fdt(state, or1ksim_memmap, smp_cpus, machine->ram_size,
                         machine->kernel_cmdline);

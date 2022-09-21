@@ -1222,7 +1222,7 @@ void mips_malta_init(MachineState *machine)
     const char *initrd_filename = machine->initrd_filename;
     char *filename;
     PFlashCFI01 *fl;
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &machine->main_system_bus.memory.mr;
     MemoryRegion *ram_low_preio = g_new(MemoryRegion, 1);
     MemoryRegion *ram_low_postio;
     MemoryRegion *bios, *bios_copy = g_new(MemoryRegion, 1);

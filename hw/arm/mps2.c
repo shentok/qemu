@@ -116,7 +116,7 @@ static void make_ram(MemoryRegion *mr, const char *name,
                      hwaddr base, hwaddr size)
 {
     memory_region_init_ram(mr, NULL, name, size, &error_fatal);
-    memory_region_add_subregion(get_system_memory(), base, mr);
+    memory_region_add_subregion(&machine->main_system_bus.memory.mr, base, mr);
 }
 
 /* Create an alias of an entire original MemoryRegion @orig
@@ -127,14 +127,14 @@ static void make_ram_alias(MemoryRegion *mr, const char *name,
 {
     memory_region_init_alias(mr, NULL, name, orig, 0,
                              memory_region_size(orig));
-    memory_region_add_subregion(get_system_memory(), base, mr);
+    memory_region_add_subregion(&machine->main_system_bus.memory.mr, base, mr);
 }
 
 static void mps2_common_init(MachineState *machine)
 {
     MPS2MachineState *mms = MPS2_MACHINE(machine);
     MPS2MachineClass *mmc = MPS2_MACHINE_GET_CLASS(machine);
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &machine->main_system_bus.memory.mr;
     MachineClass *mc = MACHINE_GET_CLASS(machine);
     DeviceState *armv7m, *sccdev;
     int i;

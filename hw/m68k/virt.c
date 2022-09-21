@@ -142,7 +142,7 @@ static void virt_init(MachineState *machine)
     qemu_register_reset(main_cpu_reset, reset_info);
 
     /* RAM */
-    memory_region_add_subregion(get_system_memory(), 0, machine->ram);
+    memory_region_add_subregion(&machine->main_system_bus.memory.mr, 0, machine->ram);
 
     /* IRQ Controller */
 

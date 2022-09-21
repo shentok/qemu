@@ -49,7 +49,7 @@ static void collie_init(MachineState *machine)
 
     cms->sa1110 = sa1110_init(machine->cpu_type);
 
-    memory_region_add_subregion(get_system_memory(), SA_SDCS0, machine->ram);
+    memory_region_add_subregion(&machine->main_system_bus.memory.mr, SA_SDCS0, machine->ram);
 
     dinfo = drive_get(IF_PFLASH, 0, 0);
     pflash_cfi01_register(SA_CS0, "collie.fl1", 0x02000000,

@@ -273,7 +273,7 @@ static void ppc405_init(MachineState *machine)
     Ppc405MachineState *ppc405 = PPC405_MACHINE(machine);
     MachineClass *mc = MACHINE_GET_CLASS(machine);
     const char *kernel_filename = machine->kernel_filename;
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &machine->main_system_bus.memory.mr;
 
     if (machine->ram_size != mc->default_ram_size) {
         char *sz = size_to_str(mc->default_ram_size);
@@ -490,7 +490,7 @@ static void ref405ep_init(MachineState *machine)
     /* allocate SRAM */
     memory_region_init_ram(sram, NULL, "ref405ep.sram", PPC405EP_SRAM_SIZE,
                            &error_fatal);
-    memory_region_add_subregion(get_system_memory(), PPC405EP_SRAM_BASE, sram);
+    memory_region_add_subregion(&machine->main_system_bus.memory.mr, PPC405EP_SRAM_BASE, sram);
 
     /* Register FPGA */
     dev = qdev_new(TYPE_REF405EP_FPGA);

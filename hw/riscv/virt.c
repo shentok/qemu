@@ -1063,7 +1063,7 @@ update_bootargs:
     qemu_fdt_setprop(mc->fdt, "/chosen", "rng-seed", rng_seed, sizeof(rng_seed));
 }
 
-static inline DeviceState *gpex_pcie_init(MemoryRegion *sys_mem,
+static inline DeviceState *gpex_pcie_init(MachineState *machine,
                                           hwaddr ecam_base, hwaddr ecam_size,
                                           hwaddr mmio_base, hwaddr mmio_size,
                                           hwaddr high_mmio_base,
@@ -1085,19 +1085,19 @@ static inline DeviceState *gpex_pcie_init(MemoryRegion *sys_mem,
     ecam_reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 0);
     memory_region_init_alias(ecam_alias, OBJECT(dev), "pcie-ecam",
                              ecam_reg, 0, ecam_size);
-    memory_region_add_subregion(get_system_memory(), ecam_base, ecam_alias);
+    memory_region_add_subregion(&machine->main_system_bus.memory.mr, ecam_base, ecam_alias);
 
     mmio_alias = g_new0(MemoryRegion, 1);
     mmio_reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 1);
     memory_region_init_alias(mmio_alias, OBJECT(dev), "pcie-mmio",
                              mmio_reg, mmio_base, mmio_size);
-    memory_region_add_subregion(get_system_memory(), mmio_base, mmio_alias);
+    memory_region_add_subregion(&machine->main_system_bus.memory.mr, mmio_base, mmio_alias);
 
     /* Map high MMIO space */
     high_mmio_alias = g_new0(MemoryRegion, 1);
     memory_region_init_alias(high_mmio_alias, OBJECT(dev), "pcie-mmio-high",
                              mmio_reg, high_mmio_base, high_mmio_size);
-    memory_region_add_subregion(get_system_memory(), high_mmio_base,
+    memory_region_add_subregion(&machine->main_system_bus.memory.mr, high_mmio_base,
                                 high_mmio_alias);
 
     sysbus_mmio_map(SYS_BUS_DEVICE(dev), 2, pio_base);
@@ -1212,7 +1212,7 @@ static void create_platform_bus(RISCVVirtState *s, DeviceState *irqchip)
     SysBusDevice *sysbus;
     const MemMapEntry *memmap = virt_memmap;
     int i;
-    MemoryRegion *sysmem = get_system_memory();
+    MemoryRegion *sysmem = &MACHINE(s)->main_system_bus.memory.mr;
 
     dev = qdev_new(TYPE_PLATFORM_BUS_DEVICE);
     dev->id = g_strdup(TYPE_PLATFORM_BUS_DEVICE);
@@ -1330,7 +1330,7 @@ static void virt_machine_init(MachineState *machine)
 {
     const MemMapEntry *memmap = virt_memmap;
     RISCVVirtState *s = RISCV_VIRT_MACHINE(machine);
-    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_memory = &machine->main_system_bus.memory.mr;
     MemoryRegion *mask_rom = g_new(MemoryRegion, 1);
     char *soc_name;
     DeviceState *mmio_irqchip, *virtio_irqchip, *pcie_irqchip;
@@ -1478,7 +1478,7 @@ static void virt_machine_init(MachineState *machine)
             qdev_get_gpio_in(DEVICE(virtio_irqchip), VIRTIO_IRQ + i));
     }
 
-    gpex_pcie_init(system_memory,
+    gpex_pcie_init(machine,
                    memmap[VIRT_PCIE_ECAM].base,
                    memmap[VIRT_PCIE_ECAM].size,
                    memmap[VIRT_PCIE_MMIO].base,

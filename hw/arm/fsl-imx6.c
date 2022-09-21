@@ -420,8 +420,8 @@ static void fsl_imx6_realize(DeviceState *dev, Error **errp)
         error_propagate(errp, err);
         return;
     }
-    memory_region_add_subregion(get_system_memory(), FSL_IMX6_ROM_ADDR,
-                                &s->rom);
+    memory_region_add_subregion(&ms->main_system_bus.memory.mr,
+                                FSL_IMX6_ROM_ADDR, &s->rom);
 
     /* CAAM memory */
     memory_region_init_rom(&s->caam, OBJECT(dev), "imx6.caam",
@@ -430,8 +430,8 @@ static void fsl_imx6_realize(DeviceState *dev, Error **errp)
         error_propagate(errp, err);
         return;
     }
-    memory_region_add_subregion(get_system_memory(), FSL_IMX6_CAAM_MEM_ADDR,
-                                &s->caam);
+    memory_region_add_subregion(&ms->main_system_bus.memory.mr,
+                                FSL_IMX6_CAAM_MEM_ADDR, &s->caam);
 
     /* OCRAM memory */
     memory_region_init_ram(&s->ocram, NULL, "imx6.ocram", FSL_IMX6_OCRAM_SIZE,
@@ -440,14 +440,14 @@ static void fsl_imx6_realize(DeviceState *dev, Error **errp)
         error_propagate(errp, err);
         return;
     }
-    memory_region_add_subregion(get_system_memory(), FSL_IMX6_OCRAM_ADDR,
-                                &s->ocram);
+    memory_region_add_subregion(&ms->main_system_bus.memory.mr,
+                                FSL_IMX6_OCRAM_ADDR, &s->ocram);
 
     /* internal OCRAM (256 KB) is aliased over 1 MB */
     memory_region_init_alias(&s->ocram_alias, OBJECT(dev), "imx6.ocram_alias",
                              &s->ocram, 0, FSL_IMX6_OCRAM_ALIAS_SIZE);
-    memory_region_add_subregion(get_system_memory(), FSL_IMX6_OCRAM_ALIAS_ADDR,
-                                &s->ocram_alias);
+    memory_region_add_subregion(&ms->main_system_bus.memory.mr,
+                                FSL_IMX6_OCRAM_ALIAS_ADDR, &s->ocram_alias);
 }
 
 static Property fsl_imx6_properties[] = {

@@ -231,11 +231,12 @@ static void openrisc_virt_serial_init(OR1KVirtState *state, hwaddr base,
                                      hwaddr size, int num_cpus,
                                      OpenRISCCPU *cpus[], int irq_pin)
 {
+    MachineState *ms = MACHINE(state);
     void *fdt = state->fdt;
     char *nodename;
     qemu_irq serial_irq = get_per_cpu_irq(cpus, num_cpus, irq_pin);
 
-    serial_mm_init(get_system_memory(), base, 0, serial_irq, 115200,
+    serial_mm_init(&ms->main_system_bus.memory.mr, base, 0, serial_irq, 115200,
                    serial_hd(0), DEVICE_NATIVE_ENDIAN);
 
     /* Add device tree node for serial. */
@@ -371,6 +372,7 @@ static void openrisc_virt_pcie_init(OR1KVirtState *state,
                                     int num_cpus, OpenRISCCPU *cpus[],
                                     int irq_base, int32_t pic_phandle)
 {
+    MachineState *ms = MACHINE(state);
     void *fdt = state->fdt;
     char *nodename;
     MemoryRegion *alias;
@@ -387,7 +389,8 @@ static void openrisc_virt_pcie_init(OR1KVirtState *state,
     reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 0);
     memory_region_init_alias(alias, OBJECT(dev), "pcie-ecam",
                              reg, 0, ecam_size);
-    memory_region_add_subregion(get_system_memory(), ecam_base, alias);
+    memory_region_add_subregion(&ms->main_system_bus.memory.mr, ecam_base,
+                                alias);
 
     /*
      * Map the MMIO window into system address space so as to expose
@@ -399,14 +402,16 @@ static void openrisc_virt_pcie_init(OR1KVirtState *state,
     reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 1);
     memory_region_init_alias(alias, OBJECT(dev), "pcie-mmio",
                              reg, mmio_base, mmio_size);
-    memory_region_add_subregion(get_system_memory(), mmio_base, alias);
+    memory_region_add_subregion(&ms->main_system_bus.memory.mr, mmio_base,
+                                alias);
 
     /* Map IO port space. */
     alias = g_new0(MemoryRegion, 1);
     reg = sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 2);
     memory_region_init_alias(alias, OBJECT(dev), "pcie-pio",
                              reg, 0, pio_size);
-    memory_region_add_subregion(get_system_memory(), pio_base, alias);
+    memory_region_add_subregion(&ms->main_system_bus.memory.mr, pio_base,
+                                alias);
 
     /* Connect IRQ lines. */
     for (i = 0; i < GPEX_NUM_IRQS; i++) {
@@ -494,7 +499,7 @@ static void openrisc_virt_init(MachineState *machine)
 
     ram = g_malloc(sizeof(*ram));
     memory_region_init_ram(ram, NULL, "openrisc.ram", ram_size, &error_fatal);
-    memory_region_add_subregion(get_system_memory(), 0, ram);
+    memory_region_add_subregion(&machine->main_system_bus.memory.mr, 0, ram);
 
     openrisc_create_fdt(state, virt_memmap, smp_cpus, machine->ram_size,
                         machine->kernel_cmdline, &pic_phandle);

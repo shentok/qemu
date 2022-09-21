@@ -672,7 +672,7 @@ static void boston_mach_init(MachineState *machine)
     DeviceState *dev;
     BostonState *s;
     MemoryRegion *flash, *ddr_low_alias, *lcd, *platreg;
-    MemoryRegion *sys_mem = get_system_memory();
+    MemoryRegion *sys_mem = &machine->main_system_bus.memory.mr;
     XilinxPCIEHost *pcie2;
     PCIDevice *ahci;
     DriveInfo *hd[6];

@@ -299,7 +299,7 @@ static const TypeInfo aer915_info = {
 
 static void z2_init(MachineState *machine)
 {
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *address_space_mem = &machine->main_system_bus.memory.mr;
     uint32_t sector_len = 0x10000;
     PXA2xxState *mpu;
     DriveInfo *dinfo;
