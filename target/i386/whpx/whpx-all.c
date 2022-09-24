@@ -2431,9 +2431,9 @@ static MemoryListener whpx_memory_listener = {
     .priority = 10,
 };
 
-static void whpx_memory_init(void)
+static void whpx_memory_init(AddressSpace *as)
 {
-    memory_listener_register(&whpx_memory_listener, get_address_space_memory());
+    memory_listener_register(&whpx_memory_listener, as);
 }
 
 /*
@@ -2707,7 +2707,7 @@ static int whpx_accel_init(MachineState *ms)
         goto error;
     }
 
-    whpx_memory_init();
+    whpx_memory_init(&ms->memory.as);
 
     printf("Windows Hypervisor Platform accelerator is operational\n");
     return 0;

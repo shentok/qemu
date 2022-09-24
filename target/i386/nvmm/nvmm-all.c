@@ -1198,7 +1198,7 @@ nvmm_accel_init(MachineState *ms)
         return -err;
     }
 
-    memory_listener_register(&nvmm_memory_listener, get_address_space_memory());
+    memory_listener_register(&nvmm_memory_listener, &ms->memory.as);
     ram_block_notifier_add(&nvmm_ram_notifier);
 
     printf("NetBSD Virtual Machine Monitor accelerator is operational\n");

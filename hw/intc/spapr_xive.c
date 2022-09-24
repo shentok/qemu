@@ -1666,6 +1666,7 @@ static target_ulong h_int_esb(PowerPCCPU *cpu,
                               target_ulong opcode,
                               target_ulong *args)
 {
+    MachineState *ms = MACHINE(spapr);
     SpaprXive *xive = spapr->xive;
     XiveEAS eas;
     target_ulong flags  = args[0];
@@ -1708,7 +1709,7 @@ static target_ulong h_int_esb(PowerPCCPU *cpu,
     } else {
         mmio_addr = xive->vc_base + xive_source_esb_mgmt(xsrc, lisn) + offset;
 
-        if (dma_memory_rw(get_address_space_memory(), mmio_addr, &data, 8,
+        if (dma_memory_rw(&ms->memory.as, mmio_addr, &data, 8,
                           (flags & SPAPR_XIVE_ESB_STORE),
                           MEMTXATTRS_UNSPECIFIED)) {
             qemu_log_mask(LOG_GUEST_ERROR, "XIVE: failed to access ESB @0x%"
