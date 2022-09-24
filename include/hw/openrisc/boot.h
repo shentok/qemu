@@ -29,6 +29,6 @@ hwaddr openrisc_load_initrd(void *fdt, const char *filename,
                             hwaddr load_start, uint64_t mem_size);
 
 uint32_t openrisc_load_fdt(void *fdt, hwaddr load_start,
-                           uint64_t mem_size);
+                           AddressSpace *address_space);
 
 #endif /* OPENRISC_BOOT_H */

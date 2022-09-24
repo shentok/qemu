@@ -541,7 +541,7 @@ static void openrisc_virt_init(MachineState *machine)
                                              load_addr, machine->ram_size);
         }
         boot_info.fdt_addr = openrisc_load_fdt(state->fdt, load_addr,
-                                               machine->ram_size);
+                                               &address_space_memory);
     }
 }
 
