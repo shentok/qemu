@@ -89,7 +89,7 @@ hwaddr openrisc_load_initrd(void *fdt, const char *filename,
 }
 
 uint32_t openrisc_load_fdt(void *fdt, hwaddr load_start,
-                           uint64_t mem_size)
+                           AddressSpace *address_space)
 {
     uint32_t fdt_addr;
     int ret;
@@ -109,8 +109,7 @@ uint32_t openrisc_load_fdt(void *fdt, hwaddr load_start,
     /* copy in the device tree */
     qemu_fdt_dumpdtb(fdt, fdtsize);
 
-    rom_add_blob_fixed_as("fdt", fdt, fdtsize, fdt_addr,
-                          get_address_space_memory());
+    rom_add_blob_fixed_as("fdt", fdt, fdtsize, fdt_addr, address_space);
 
     return fdt_addr;
 }
