@@ -2660,8 +2660,8 @@ static int kvm_init(MachineState *ms)
     s->memory_listener.listener.coalesced_io_add = kvm_coalesce_mmio_region;
     s->memory_listener.listener.coalesced_io_del = kvm_uncoalesce_mmio_region;
 
-    kvm_memory_listener_register(s, &s->memory_listener,
-                                 get_address_space_memory(), 0, "kvm-memory");
+    kvm_memory_listener_register(s, &s->memory_listener, &ms->memory.as,
+                                 0, "kvm-memory");
     if (kvm_eventfds_allowed) {
         memory_listener_register(&kvm_io_listener,
                                  get_address_space_io());

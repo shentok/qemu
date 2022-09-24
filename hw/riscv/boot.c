@@ -317,7 +317,7 @@ void riscv_rom_copy_firmware_info(MachineState *machine, hwaddr rom_base,
 
     rom_add_blob_fixed_as("mrom.finfo", &dinfo, dinfo_len,
                            rom_base + reset_vec_size,
-                           get_address_space_memory());
+                           &machine->memory.as);
 }
 
 void riscv_setup_rom_reset_vec(MachineState *machine, RISCVHartArrayState *harts,
@@ -361,7 +361,7 @@ void riscv_setup_rom_reset_vec(MachineState *machine, RISCVHartArrayState *harts
         reset_vec[i] = cpu_to_le32(reset_vec[i]);
     }
     rom_add_blob_fixed_as("mrom.reset", reset_vec, sizeof(reset_vec),
-                          rom_base, get_address_space_memory());
+                          rom_base, &machine->memory.as);
     riscv_rom_copy_firmware_info(machine, rom_base, rom_size, sizeof(reset_vec),
                                  kernel_entry);
 }

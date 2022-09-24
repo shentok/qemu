@@ -809,6 +809,7 @@ static uint32_t spapr_mce_get_elog_type(PowerPCCPU *cpu, bool recovered,
 static void spapr_mce_dispatch_elog(SpaprMachineState *spapr, PowerPCCPU *cpu,
                                     bool recovered)
 {
+    MachineState *ms = MACHINE(spapr);
     CPUState *cs = CPU(cpu);
     CPUPPCState *env = &cpu->env;
     uint64_t rtas_addr;
@@ -853,7 +854,7 @@ static void spapr_mce_dispatch_elog(SpaprMachineState *spapr, PowerPCCPU *cpu,
      */
     spapr->fwnmi_machine_check_interlock = cpu->vcpu_id;
 
-    stq_be_phys(get_address_space_memory(), rtas_addr + RTAS_ERROR_LOG_OFFSET,
+    stq_be_phys(&ms->memory.as, rtas_addr + RTAS_ERROR_LOG_OFFSET,
                 env->gpr[3]);
     cpu_physical_memory_write(rtas_addr + RTAS_ERROR_LOG_OFFSET +
                               sizeof(env->gpr[3]), &log, sizeof(log));

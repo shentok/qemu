@@ -319,7 +319,7 @@ static void microvm_memory_init(MicrovmMachineState *mms)
     }
 
     fw_cfg = fw_cfg_init_io_dma(FW_CFG_IO_BASE, FW_CFG_IO_BASE + 4,
-                                get_address_space_memory());
+                                &machine->memory.as);
 
     fw_cfg_add_i16(fw_cfg, FW_CFG_NB_CPUS, machine->smp.cpus);
     fw_cfg_add_i16(fw_cfg, FW_CFG_MAX_CPUS, machine->smp.max_cpus);
@@ -341,7 +341,7 @@ static void microvm_memory_init(MicrovmMachineState *mms)
     }
 
     x86ms->fw_cfg = fw_cfg;
-    x86ms->ioapic_as = get_address_space_memory();
+    x86ms->ioapic_as = &machine->memory.as;
 }
 
 static gchar *microvm_get_mmio_cmdline(gchar *name, uint32_t virtio_irq_base)

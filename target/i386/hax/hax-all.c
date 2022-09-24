@@ -290,16 +290,17 @@ int hax_vm_destroy(struct hax_vm *vm)
     return 0;
 }
 
-static int hax_init(ram_addr_t ram_size, int max_cpus)
+static int hax_init(MachineState *ms)
 {
     struct hax_state *hax = NULL;
     struct hax_qemu_version qversion;
+    int max_cpus = (int)ms->smp.max_cpus;
     int ret;
 
     hax = &hax_global;
 
     memset(hax, 0, sizeof(struct hax_state));
-    hax->mem_quota = ram_size;
+    hax->mem_quota = ms->ram_size;
 
     hax->fd = hax_mod_open();
     if (hax_invalid_fd(hax->fd)) {
@@ -329,7 +330,7 @@ static int hax_init(ram_addr_t ram_size, int max_cpus)
         goto error;
     }
 
-    hax_memory_init();
+    hax_memory_init(&ms->memory.as);
 
     qversion.cur_version = hax_cur_version;
     qversion.min_version = hax_min_version;
@@ -349,7 +350,7 @@ static int hax_init(ram_addr_t ram_size, int max_cpus)
 
 static int hax_accel_init(MachineState *ms)
 {
-    int ret = hax_init(ms->ram_size, (int)ms->smp.max_cpus);
+    int ret = hax_init(ms);
 
     if (ret && (ret != -ENOSPC)) {
         fprintf(stderr, "No accelerator found.\n");

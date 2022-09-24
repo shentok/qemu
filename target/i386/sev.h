@@ -28,6 +28,7 @@
 #define SEV_POLICY_SEV          0x20
 
 typedef struct SevKernelLoaderContext {
+    AddressSpace *as;
     char *setup_data;
     size_t setup_size;
     char *kernel_data;

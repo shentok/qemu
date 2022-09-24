@@ -69,8 +69,9 @@ static void main_cpu_reset(void *opaque)
 
 static uint64_t rtc_read(void *opaque, hwaddr addr, unsigned size)
 {
+    MachineState *machine = opaque;
     uint8_t val;
-    address_space_read(get_address_space_memory(), 0x90000071,
+    address_space_read(&machine->memory.as, 0x90000071,
                        MEMTXATTRS_UNSPECIFIED, &val, 1);
     return val;
 }
@@ -78,8 +79,9 @@ static uint64_t rtc_read(void *opaque, hwaddr addr, unsigned size)
 static void rtc_write(void *opaque, hwaddr addr,
                       uint64_t val, unsigned size)
 {
+    MachineState *machine = opaque;
     uint8_t buf = val & 0xff;
-    address_space_write(get_address_space_memory(), 0x90000071,
+    address_space_write(&machine->memory.as, 0x90000071,
                         MEMTXATTRS_UNSPECIFIED, &buf, 1);
 }
 
@@ -357,7 +359,7 @@ static void mips_jazz_init(MachineState *machine,
 
     /* Real time clock */
     mc146818_rtc_init(isa_bus, 1980, NULL);
-    memory_region_init_io(rtc, NULL, &rtc_ops, NULL, "rtc", 0x1000);
+    memory_region_init_io(rtc, NULL, &rtc_ops, machine, "rtc", 0x1000);
     memory_region_add_subregion(address_space, 0x80004000, rtc);
 
     /* Keyboard (i8042) */

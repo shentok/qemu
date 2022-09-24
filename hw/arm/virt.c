@@ -2299,7 +2299,7 @@ static void machvirt_init(MachineState *machine)
      */
     create_virtio_devices(vms);
 
-    vms->fw_cfg = create_fw_cfg(vms, get_address_space_memory());
+    vms->fw_cfg = create_fw_cfg(vms, &machine->memory.as);
     rom_set_fw(vms->fw_cfg);
 
     create_platform_bus(vms);

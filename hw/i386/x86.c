@@ -814,7 +814,7 @@ void x86_load_linux(X86MachineState *x86ms,
     const char *initrd_filename = machine->initrd_filename;
     const char *dtb_filename = machine->dtb;
     const char *kernel_cmdline = machine->kernel_cmdline;
-    SevKernelLoaderContext sev_load_ctx = {};
+    SevKernelLoaderContext sev_load_ctx = { .as = &machine->memory.as };
     enum { RNG_SEED_LENGTH = 32 };
 
     /* Align to 16 bytes as a paranoia measure */
