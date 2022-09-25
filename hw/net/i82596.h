@@ -15,8 +15,6 @@
 typedef struct I82596State_st I82596State;
 
 struct I82596State_st {
-    MemoryRegion mmio;
-    MemoryRegion *as;
     qemu_irq irq;
     NICState *nic;
     NICConf conf;
@@ -41,12 +39,6 @@ struct I82596State_st {
     uint8_t tx_buffer[0x4000];
 };
 
-void i82596_h_reset(void *opaque);
-void i82596_ioport_writew(void *opaque, uint32_t addr, uint32_t val);
-uint32_t i82596_ioport_readw(void *opaque, uint32_t addr);
-void i82596_ioport_writel(void *opaque, uint32_t addr, uint32_t val);
-uint32_t i82596_ioport_readl(void *opaque, uint32_t addr);
-uint32_t i82596_bcr_readw(I82596State *s, uint32_t rap);
 ssize_t i82596_receive(NetClientState *nc, const uint8_t *buf, size_t size_);
 bool i82596_can_receive(NetClientState *nc);
 void i82596_set_link_status(NetClientState *nc);
