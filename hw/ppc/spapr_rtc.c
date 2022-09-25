@@ -71,24 +71,25 @@ static void rtas_get_time_of_day(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                  target_ulong args,
                                  uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     struct tm tm;
     uint32_t ns;
 
     if ((nargs != 0) || (nret != 8)) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
     spapr_rtc_read(&spapr->rtc, &tm, &ns);
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
-    rtas_st(rets, 1, tm.tm_year + 1900);
-    rtas_st(rets, 2, tm.tm_mon + 1);
-    rtas_st(rets, 3, tm.tm_mday);
-    rtas_st(rets, 4, tm.tm_hour);
-    rtas_st(rets, 5, tm.tm_min);
-    rtas_st(rets, 6, tm.tm_sec);
-    rtas_st(rets, 7, ns);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 1, tm.tm_year + 1900);
+    rtas_st(as, rets, 2, tm.tm_mon + 1);
+    rtas_st(as, rets, 3, tm.tm_mday);
+    rtas_st(as, rets, 4, tm.tm_hour);
+    rtas_st(as, rets, 5, tm.tm_min);
+    rtas_st(as, rets, 6, tm.tm_sec);
+    rtas_st(as, rets, 7, ns);
 }
 
 static void rtas_set_time_of_day(PowerPCCPU *cpu, SpaprMachineState *spapr,
@@ -96,6 +97,7 @@ static void rtas_set_time_of_day(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                  target_ulong args,
                                  uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprRtcState *rtc = &spapr->rtc;
     g_autofree const char *qom_path = NULL;
     struct tm tm;
@@ -103,20 +105,20 @@ static void rtas_set_time_of_day(PowerPCCPU *cpu, SpaprMachineState *spapr,
     int64_t host_ns;
 
     if ((nargs != 7) || (nret != 1)) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
-    tm.tm_year = rtas_ld(args, 0) - 1900;
-    tm.tm_mon = rtas_ld(args, 1) - 1;
-    tm.tm_mday = rtas_ld(args, 2);
-    tm.tm_hour = rtas_ld(args, 3);
-    tm.tm_min = rtas_ld(args, 4);
-    tm.tm_sec = rtas_ld(args, 5);
+    tm.tm_year = rtas_ld(as, args, 0) - 1900;
+    tm.tm_mon = rtas_ld(as, args, 1) - 1;
+    tm.tm_mday = rtas_ld(as, args, 2);
+    tm.tm_hour = rtas_ld(as, args, 3);
+    tm.tm_min = rtas_ld(as, args, 4);
+    tm.tm_sec = rtas_ld(as, args, 5);
 
     new_s = mktimegm(&tm);
     if (new_s == -1) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
@@ -128,7 +130,7 @@ static void rtas_set_time_of_day(PowerPCCPU *cpu, SpaprMachineState *spapr,
 
     rtc->ns_offset = (new_s * NANOSECONDS_PER_SECOND) - host_ns;
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
 }
 
 static void spapr_rtc_qom_date(Object *obj, struct tm *current_tm, Error **errp)

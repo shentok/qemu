@@ -56,14 +56,15 @@ static void rtas_display_character(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                    target_ulong args,
                                    uint32_t nret, target_ulong rets)
 {
-    uint8_t c = rtas_ld(args, 0);
+    AddressSpace *as = &address_space_memory;
+    uint8_t c = rtas_ld(as, args, 0);
     SpaprVioDevice *sdev = vty_lookup(spapr, 0);
 
     if (!sdev) {
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
     } else {
         vty_putchars(sdev, &c, sizeof(c));
-        rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+        rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
     }
 }
 
@@ -71,13 +72,14 @@ static void rtas_power_off(PowerPCCPU *cpu, SpaprMachineState *spapr,
                            uint32_t token, uint32_t nargs, target_ulong args,
                            uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     if (nargs != 2 || nret != 1) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
     qemu_system_shutdown_request(SHUTDOWN_CAUSE_GUEST_SHUTDOWN);
     cpu_stop_current();
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
 }
 
 static void rtas_system_reboot(PowerPCCPU *cpu, SpaprMachineState *spapr,
@@ -85,12 +87,13 @@ static void rtas_system_reboot(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                target_ulong args,
                                uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     if (nargs != 0 || nret != 1) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
     qemu_system_reset_request(SHUTDOWN_CAUSE_GUEST_RESET);
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
 }
 
 static void rtas_query_cpu_stopped_state(PowerPCCPU *cpu_,
@@ -99,29 +102,30 @@ static void rtas_query_cpu_stopped_state(PowerPCCPU *cpu_,
                                          target_ulong args,
                                          uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     target_ulong id;
     PowerPCCPU *cpu;
 
     if (nargs != 1 || nret != 2) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
-    id = rtas_ld(args, 0);
+    id = rtas_ld(as, args, 0);
     cpu = spapr_find_cpu(id);
     if (cpu != NULL) {
         if (CPU(cpu)->halted) {
-            rtas_st(rets, 1, 0);
+            rtas_st(as, rets, 1, 0);
         } else {
-            rtas_st(rets, 1, 2);
+            rtas_st(as, rets, 1, 2);
         }
 
-        rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+        rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
         return;
     }
 
     /* Didn't find a matching cpu */
-    rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+    rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
 }
 
 static void rtas_start_cpu(PowerPCCPU *callcpu, SpaprMachineState *spapr,
@@ -129,6 +133,7 @@ static void rtas_start_cpu(PowerPCCPU *callcpu, SpaprMachineState *spapr,
                            target_ulong args,
                            uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     target_ulong id, start, r3;
     PowerPCCPU *newcpu;
     CPUPPCState *env;
@@ -136,25 +141,25 @@ static void rtas_start_cpu(PowerPCCPU *callcpu, SpaprMachineState *spapr,
     target_ulong caller_lpcr;
 
     if (nargs != 3 || nret != 1) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
-    id = rtas_ld(args, 0);
-    start = rtas_ld(args, 1);
-    r3 = rtas_ld(args, 2);
+    id = rtas_ld(as, args, 0);
+    start = rtas_ld(as, args, 1);
+    r3 = rtas_ld(as, args, 2);
 
     newcpu = spapr_find_cpu(id);
     if (!newcpu) {
         /* Didn't find a matching cpu */
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
     env = &newcpu->env;
 
     if (!CPU(newcpu)->halted) {
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
 
@@ -197,7 +202,7 @@ static void rtas_start_cpu(PowerPCCPU *callcpu, SpaprMachineState *spapr,
 
     qemu_cpu_kick(CPU(newcpu));
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
 }
 
 static void rtas_stop_self(PowerPCCPU *cpu, SpaprMachineState *spapr,
@@ -226,10 +231,11 @@ static void rtas_ibm_suspend_me(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                 target_ulong args,
                                 uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     CPUState *cs;
 
     if (nargs != 0 || nret != 1) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
@@ -242,13 +248,13 @@ static void rtas_ibm_suspend_me(PowerPCCPU *cpu, SpaprMachineState *spapr,
 
         /* See h_join */
         if (!cs->halted || (e->msr & (1ULL << MSR_EE))) {
-            rtas_st(rets, 0, H_MULTI_THREADS_ACTIVE);
+            rtas_st(as, rets, 0, H_MULTI_THREADS_ACTIVE);
             return;
         }
     }
 
     qemu_system_suspend_request();
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
 }
 
 static inline int sysparm_st(target_ulong addr, target_ulong len,
@@ -272,9 +278,10 @@ static void rtas_ibm_get_system_parameter(PowerPCCPU *cpu,
 {
     PowerPCCPUClass *pcc = POWERPC_CPU_GET_CLASS(cpu);
     MachineState *ms = MACHINE(spapr);
-    target_ulong parameter = rtas_ld(args, 0);
-    target_ulong buffer = rtas_ld(args, 1);
-    target_ulong length = rtas_ld(args, 2);
+    AddressSpace *as = &address_space_memory;
+    target_ulong parameter = rtas_ld(as, args, 0);
+    target_ulong buffer = rtas_ld(as, args, 1);
+    target_ulong length = rtas_ld(as, args, 2);
     target_ulong ret;
 
     switch (parameter) {
@@ -318,7 +325,7 @@ static void rtas_ibm_get_system_parameter(PowerPCCPU *cpu,
         ret = RTAS_OUT_NOT_SUPPORTED;
     }
 
-    rtas_st(rets, 0, ret);
+    rtas_st(as, rets, 0, ret);
 }
 
 static void rtas_ibm_set_system_parameter(PowerPCCPU *cpu,
@@ -327,7 +334,8 @@ static void rtas_ibm_set_system_parameter(PowerPCCPU *cpu,
                                           target_ulong args,
                                           uint32_t nret, target_ulong rets)
 {
-    target_ulong parameter = rtas_ld(args, 0);
+    AddressSpace *as = &address_space_memory;
+    target_ulong parameter = rtas_ld(as, args, 0);
     target_ulong ret = RTAS_OUT_NOT_SUPPORTED;
 
     switch (parameter) {
@@ -338,7 +346,7 @@ static void rtas_ibm_set_system_parameter(PowerPCCPU *cpu,
         break;
     }
 
-    rtas_st(rets, 0, ret);
+    rtas_st(as, rets, 0, ret);
 }
 
 static void rtas_ibm_os_term(PowerPCCPU *cpu,
@@ -347,7 +355,8 @@ static void rtas_ibm_os_term(PowerPCCPU *cpu,
                             target_ulong args,
                             uint32_t nret, target_ulong rets)
 {
-    target_ulong msgaddr = rtas_ld(args, 0);
+    AddressSpace *as = &address_space_memory;
+    target_ulong msgaddr = rtas_ld(as, args, 0);
     char msg[512];
 
     cpu_physical_memory_read(msgaddr, msg, sizeof(msg) - 1);
@@ -356,7 +365,7 @@ static void rtas_ibm_os_term(PowerPCCPU *cpu,
     error_report("OS terminated: %s", msg);
     qemu_system_guest_panicked(NULL);
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
 }
 
 static void rtas_set_power_level(PowerPCCPU *cpu, SpaprMachineState *spapr,
@@ -364,24 +373,25 @@ static void rtas_set_power_level(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                  target_ulong args, uint32_t nret,
                                  target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     int32_t power_domain;
 
     if (nargs != 2 || nret != 2) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
     /* we currently only use a single, "live insert" powerdomain for
      * hotplugged/dlpar'd resources, so the power is always live/full (100)
      */
-    power_domain = rtas_ld(args, 0);
+    power_domain = rtas_ld(as, args, 0);
     if (power_domain != -1) {
-        rtas_st(rets, 0, RTAS_OUT_NOT_SUPPORTED);
+        rtas_st(as, rets, 0, RTAS_OUT_NOT_SUPPORTED);
         return;
     }
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
-    rtas_st(rets, 1, 100);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 1, 100);
 }
 
 static void rtas_get_power_level(PowerPCCPU *cpu, SpaprMachineState *spapr,
@@ -389,24 +399,25 @@ static void rtas_get_power_level(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                   target_ulong args, uint32_t nret,
                                   target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     int32_t power_domain;
 
     if (nargs != 1 || nret != 2) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
     /* we currently only use a single, "live insert" powerdomain for
      * hotplugged/dlpar'd resources, so the power is always live/full (100)
      */
-    power_domain = rtas_ld(args, 0);
+    power_domain = rtas_ld(as, args, 0);
     if (power_domain != -1) {
-        rtas_st(rets, 0, RTAS_OUT_NOT_SUPPORTED);
+        rtas_st(as, rets, 0, RTAS_OUT_NOT_SUPPORTED);
         return;
     }
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
-    rtas_st(rets, 1, 100);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 1, 100);
 }
 
 static void rtas_ibm_nmi_register(PowerPCCPU *cpu,
@@ -415,33 +426,34 @@ static void rtas_ibm_nmi_register(PowerPCCPU *cpu,
                                   target_ulong args,
                                   uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     hwaddr rtas_addr;
     target_ulong sreset_addr, mce_addr;
 
     if (spapr_get_cap(spapr, SPAPR_CAP_FWNMI) == SPAPR_CAP_OFF) {
-        rtas_st(rets, 0, RTAS_OUT_NOT_SUPPORTED);
+        rtas_st(as, rets, 0, RTAS_OUT_NOT_SUPPORTED);
         return;
     }
 
     rtas_addr = spapr_get_rtas_addr();
     if (!rtas_addr) {
-        rtas_st(rets, 0, RTAS_OUT_NOT_SUPPORTED);
+        rtas_st(as, rets, 0, RTAS_OUT_NOT_SUPPORTED);
         return;
     }
 
-    sreset_addr = rtas_ld(args, 0);
-    mce_addr = rtas_ld(args, 1);
+    sreset_addr = rtas_ld(as, args, 0);
+    mce_addr = rtas_ld(as, args, 1);
 
     /* PAPR requires these are in the first 32M of memory and within RMA */
     if (sreset_addr >= 32 * MiB || sreset_addr >= spapr->rma_size ||
            mce_addr >= 32 * MiB ||    mce_addr >= spapr->rma_size) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
     if (kvm_enabled()) {
         if (kvmppc_set_fwnmi(cpu) < 0) {
-            rtas_st(rets, 0, RTAS_OUT_NOT_SUPPORTED);
+            rtas_st(as, rets, 0, RTAS_OUT_NOT_SUPPORTED);
             return;
         }
     }
@@ -449,7 +461,7 @@ static void rtas_ibm_nmi_register(PowerPCCPU *cpu,
     spapr->fwnmi_system_reset_addr = sreset_addr;
     spapr->fwnmi_machine_check_addr = mce_addr;
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
 }
 
 static void rtas_ibm_nmi_interlock(PowerPCCPU *cpu,
@@ -458,8 +470,10 @@ static void rtas_ibm_nmi_interlock(PowerPCCPU *cpu,
                                    target_ulong args,
                                    uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
+
     if (spapr_get_cap(spapr, SPAPR_CAP_FWNMI) == SPAPR_CAP_OFF) {
-        rtas_st(rets, 0, RTAS_OUT_NOT_SUPPORTED);
+        rtas_st(as, rets, 0, RTAS_OUT_NOT_SUPPORTED);
         return;
     }
 
@@ -468,7 +482,7 @@ static void rtas_ibm_nmi_interlock(PowerPCCPU *cpu,
 "FWNMI: ibm,nmi-interlock RTAS called with FWNMI not registered.\n");
 
         /* NMI register not called */
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
@@ -484,7 +498,7 @@ static void rtas_ibm_nmi_interlock(PowerPCCPU *cpu,
          * PowerVM. When most Linux clients are fixed, this could be
          * changed.
          */
-        rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+        rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
         return;
     }
 
@@ -494,7 +508,7 @@ static void rtas_ibm_nmi_interlock(PowerPCCPU *cpu,
      */
     spapr->fwnmi_machine_check_interlock = -1;
     qemu_cond_signal(&spapr->fwnmi_machine_check_interlock_cond);
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
     migrate_del_blocker(spapr->fwnmi_migration_blocker);
 }
 
@@ -507,6 +521,8 @@ target_ulong spapr_rtas_call(PowerPCCPU *cpu, SpaprMachineState *spapr,
                              uint32_t token, uint32_t nargs, target_ulong args,
                              uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
+
     if ((token >= RTAS_TOKEN_BASE) && (token < RTAS_TOKEN_MAX)) {
         struct rtas_call *call = rtas_table + (token - RTAS_TOKEN_BASE);
 
@@ -526,7 +542,7 @@ target_ulong spapr_rtas_call(PowerPCCPU *cpu, SpaprMachineState *spapr,
     }
 
     hcall_dprintf("Unknown RTAS token 0x%x\n", token);
-    rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+    rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
     return H_PARAMETER;
 }
 

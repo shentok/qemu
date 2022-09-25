@@ -140,12 +140,13 @@ static target_ulong h_ipoll(PowerPCCPU *cpu, SpaprMachineState *spapr,
     return H_SUCCESS;
 }
 
-#define CHECK_EMULATED_XICS_RTAS(spapr, rets)          \
-    do {                                               \
-        if (!check_emulated_xics((spapr), __func__)) { \
-            rtas_st((rets), 0, RTAS_OUT_HW_ERROR);     \
-            return;                                    \
-        }                                              \
+#define CHECK_EMULATED_XICS_RTAS(spapr, rets)              \
+    do {                                                   \
+        if (!check_emulated_xics((spapr), __func__)) {     \
+            AddressSpace *as = &address_space_memory; \
+            rtas_st(as, (rets), 0, RTAS_OUT_HW_ERROR);     \
+            return;                                        \
+        }                                                  \
     } while (0)
 
 static void rtas_set_xive(PowerPCCPU *cpu, SpaprMachineState *spapr,
@@ -153,34 +154,35 @@ static void rtas_set_xive(PowerPCCPU *cpu, SpaprMachineState *spapr,
                           uint32_t nargs, target_ulong args,
                           uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     ICSState *ics = spapr->ics;
     uint32_t nr, srcno, server, priority;
 
     CHECK_EMULATED_XICS_RTAS(spapr, rets);
 
     if ((nargs != 3) || (nret != 1)) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
     if (!ics) {
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
 
-    nr = rtas_ld(args, 0);
-    server = rtas_ld(args, 1);
-    priority = rtas_ld(args, 2);
+    nr = rtas_ld(as, args, 0);
+    server = rtas_ld(as, args, 1);
+    priority = rtas_ld(as, args, 2);
 
     if (!ics_valid_irq(ics, nr) || !xics_icp_get(XICS_FABRIC(spapr), server)
         || (priority > 0xff)) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
     srcno = nr - ics->offset;
     ics_write_xive(ics, srcno, server, priority, priority);
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
 }
 
 static void rtas_get_xive(PowerPCCPU *cpu, SpaprMachineState *spapr,
@@ -188,31 +190,32 @@ static void rtas_get_xive(PowerPCCPU *cpu, SpaprMachineState *spapr,
                           uint32_t nargs, target_ulong args,
                           uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     ICSState *ics = spapr->ics;
     uint32_t nr, srcno;
 
     CHECK_EMULATED_XICS_RTAS(spapr, rets);
 
     if ((nargs != 1) || (nret != 3)) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
     if (!ics) {
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
 
-    nr = rtas_ld(args, 0);
+    nr = rtas_ld(as, args, 0);
 
     if (!ics_valid_irq(ics, nr)) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
     srcno = nr - ics->offset;
-    rtas_st(rets, 1, ics->irqs[srcno].server);
-    rtas_st(rets, 2, ics->irqs[srcno].priority);
+    rtas_st(as, rets, 1, ics->irqs[srcno].server);
+    rtas_st(as, rets, 2, ics->irqs[srcno].priority);
 }
 
 static void rtas_int_off(PowerPCCPU *cpu, SpaprMachineState *spapr,
@@ -220,24 +223,25 @@ static void rtas_int_off(PowerPCCPU *cpu, SpaprMachineState *spapr,
                          uint32_t nargs, target_ulong args,
                          uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     ICSState *ics = spapr->ics;
     uint32_t nr, srcno;
 
     CHECK_EMULATED_XICS_RTAS(spapr, rets);
 
     if ((nargs != 1) || (nret != 1)) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
     if (!ics) {
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
 
-    nr = rtas_ld(args, 0);
+    nr = rtas_ld(as, args, 0);
 
     if (!ics_valid_irq(ics, nr)) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
@@ -245,7 +249,7 @@ static void rtas_int_off(PowerPCCPU *cpu, SpaprMachineState *spapr,
     ics_write_xive(ics, srcno, ics->irqs[srcno].server, 0xff,
                    ics->irqs[srcno].priority);
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
 }
 
 static void rtas_int_on(PowerPCCPU *cpu, SpaprMachineState *spapr,
@@ -253,24 +257,25 @@ static void rtas_int_on(PowerPCCPU *cpu, SpaprMachineState *spapr,
                         uint32_t nargs, target_ulong args,
                         uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     ICSState *ics = spapr->ics;
     uint32_t nr, srcno;
 
     CHECK_EMULATED_XICS_RTAS(spapr, rets);
 
     if ((nargs != 1) || (nret != 1)) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
     if (!ics) {
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
 
-    nr = rtas_ld(args, 0);
+    nr = rtas_ld(as, args, 0);
 
     if (!ics_valid_irq(ics, nr)) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
@@ -279,7 +284,7 @@ static void rtas_int_on(PowerPCCPU *cpu, SpaprMachineState *spapr,
                    ics->irqs[srcno].saved_priority,
                    ics->irqs[srcno].saved_priority);
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
 }
 
 static void ics_spapr_realize(DeviceState *dev, Error **errp)

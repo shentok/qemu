@@ -1054,6 +1054,7 @@ static void rtas_set_indicator(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                uint32_t nargs, target_ulong args,
                                uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     uint32_t type, idx, state;
     uint32_t ret = RTAS_OUT_SUCCESS;
 
@@ -1062,9 +1063,9 @@ static void rtas_set_indicator(PowerPCCPU *cpu, SpaprMachineState *spapr,
         goto out;
     }
 
-    type = rtas_ld(args, 0);
-    idx = rtas_ld(args, 1);
-    state = rtas_ld(args, 2);
+    type = rtas_ld(as, args, 0);
+    idx = rtas_ld(as, args, 1);
+    state = rtas_ld(as, args, 2);
 
     switch (type) {
     case RTAS_SENSOR_TYPE_ISOLATION_STATE:
@@ -1081,7 +1082,7 @@ static void rtas_set_indicator(PowerPCCPU *cpu, SpaprMachineState *spapr,
     }
 
 out:
-    rtas_st(rets, 0, ret);
+    rtas_st(as, rets, 0, ret);
 }
 
 static void rtas_get_sensor_state(PowerPCCPU *cpu, SpaprMachineState *spapr,
@@ -1089,6 +1090,7 @@ static void rtas_get_sensor_state(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                   target_ulong args, uint32_t nret,
                                   target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     uint32_t sensor_type;
     uint32_t sensor_index;
     uint32_t sensor_state = 0;
@@ -1101,8 +1103,8 @@ static void rtas_get_sensor_state(PowerPCCPU *cpu, SpaprMachineState *spapr,
         goto out;
     }
 
-    sensor_type = rtas_ld(args, 0);
-    sensor_index = rtas_ld(args, 1);
+    sensor_type = rtas_ld(as, args, 0);
+    sensor_index = rtas_ld(as, args, 1);
 
     if (sensor_type != RTAS_SENSOR_TYPE_ENTITY_SENSE) {
         /* currently only DR-related sensors are implemented */
@@ -1122,8 +1124,8 @@ static void rtas_get_sensor_state(PowerPCCPU *cpu, SpaprMachineState *spapr,
     sensor_state = drck->dr_entity_sense(drc);
 
 out:
-    rtas_st(rets, 0, ret);
-    rtas_st(rets, 1, sensor_state);
+    rtas_st(as, rets, 0, ret);
+    rtas_st(as, rets, 1, sensor_state);
 }
 
 /* configure-connector work area offsets, int32_t units for field
@@ -1151,6 +1153,7 @@ static void rtas_ibm_configure_connector(PowerPCCPU *cpu,
                                          target_ulong args, uint32_t nret,
                                          target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     uint64_t wa_addr;
     uint64_t wa_offset;
     uint32_t drc_index;
@@ -1160,13 +1163,13 @@ static void rtas_ibm_configure_connector(PowerPCCPU *cpu,
     int rc;
 
     if (nargs != 2 || nret != 1) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
-    wa_addr = ((uint64_t)rtas_ld(args, 1) << 32) | rtas_ld(args, 0);
+    wa_addr = ((uint64_t)rtas_ld(as, args, 1) << 32) | rtas_ld(as, args, 0);
 
-    drc_index = rtas_ld(wa_addr, 0);
+    drc_index = rtas_ld(as, wa_addr, 0);
     drc = spapr_drc_by_index(drc_index);
     if (!drc) {
         trace_spapr_rtas_ibm_configure_connector_invalid(drc_index);
@@ -1231,7 +1234,7 @@ static void rtas_ibm_configure_connector(PowerPCCPU *cpu,
 
             /* provide the name of the next OF node */
             wa_offset = CC_VAL_DATA_OFFSET;
-            rtas_st(wa_addr, CC_IDX_NODE_NAME_OFFSET, wa_offset);
+            rtas_st(as, wa_addr, CC_IDX_NODE_NAME_OFFSET, wa_offset);
             configure_connector_st(wa_addr, wa_offset, name, strlen(name) + 1);
             resp = SPAPR_DR_CC_RESPONSE_NEXT_CHILD;
             break;
@@ -1262,7 +1265,7 @@ static void rtas_ibm_configure_connector(PowerPCCPU *cpu,
 
             /* provide the name of the next OF property */
             wa_offset = CC_VAL_DATA_OFFSET;
-            rtas_st(wa_addr, CC_IDX_PROP_NAME_OFFSET, wa_offset);
+            rtas_st(as, wa_addr, CC_IDX_PROP_NAME_OFFSET, wa_offset);
             configure_connector_st(wa_addr, wa_offset, name, strlen(name) + 1);
 
             /* provide the length and value of the OF property. data gets
@@ -1270,8 +1273,8 @@ static void rtas_ibm_configure_connector(PowerPCCPU *cpu,
              * name string
              */
             wa_offset += strlen(name) + 1,
-            rtas_st(wa_addr, CC_IDX_PROP_LEN, prop_len);
-            rtas_st(wa_addr, CC_IDX_PROP_DATA_OFFSET, wa_offset);
+            rtas_st(as, wa_addr, CC_IDX_PROP_LEN, prop_len);
+            rtas_st(as, wa_addr, CC_IDX_PROP_DATA_OFFSET, wa_offset);
             configure_connector_st(wa_addr, wa_offset, prop->data, prop_len);
             resp = SPAPR_DR_CC_RESPONSE_NEXT_PROPERTY;
             break;
@@ -1288,7 +1291,7 @@ static void rtas_ibm_configure_connector(PowerPCCPU *cpu,
 
     rc = resp;
 out:
-    rtas_st(rets, 0, rc);
+    rtas_st(as, rets, 0, rc);
 }
 
 static void spapr_drc_register_types(void)

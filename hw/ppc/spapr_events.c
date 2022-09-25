@@ -933,19 +933,20 @@ static void check_exception(PowerPCCPU *cpu, SpaprMachineState *spapr,
                             target_ulong args,
                             uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     uint32_t mask, buf, len, event_len;
     SpaprEventLogEntry *event;
     struct rtas_error_log header;
     int i;
 
     if ((nargs < 6) || (nargs > 7) || nret != 1) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
-    mask = rtas_ld(args, 2);
-    buf = rtas_ld(args, 4);
-    len = rtas_ld(args, 5);
+    mask = rtas_ld(as, args, 2);
+    buf = rtas_ld(as, args, 4);
+    len = rtas_ld(as, args, 5);
 
     event = rtas_event_log_dequeue(spapr, mask);
     if (!event) {
@@ -963,7 +964,7 @@ static void check_exception(PowerPCCPU *cpu, SpaprMachineState *spapr,
     cpu_physical_memory_write(buf, &header, sizeof(header));
     cpu_physical_memory_write(buf + sizeof(header), event->extended_log,
                               event->extended_length);
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
     g_free(event->extended_log);
     g_free(event);
 
@@ -985,7 +986,7 @@ static void check_exception(PowerPCCPU *cpu, SpaprMachineState *spapr,
     return;
 
 out_no_events:
-    rtas_st(rets, 0, RTAS_OUT_NO_ERRORS_FOUND);
+    rtas_st(as, rets, 0, RTAS_OUT_NO_ERRORS_FOUND);
 }
 
 static void event_scan(PowerPCCPU *cpu, SpaprMachineState *spapr,
@@ -993,9 +994,10 @@ static void event_scan(PowerPCCPU *cpu, SpaprMachineState *spapr,
                        target_ulong args,
                        uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     int i;
     if (nargs != 4 || nret != 1) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
@@ -1009,7 +1011,7 @@ static void event_scan(PowerPCCPU *cpu, SpaprMachineState *spapr,
         }
     }
 
-    rtas_st(rets, 0, RTAS_OUT_NO_ERRORS_FOUND);
+    rtas_st(as, rets, 0, RTAS_OUT_NO_ERRORS_FOUND);
 }
 
 void spapr_clear_pending_events(SpaprMachineState *spapr)

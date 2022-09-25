@@ -96,6 +96,7 @@ static void rtas_ibm_query_pe_dma_window(PowerPCCPU *cpu,
                                          target_ulong args,
                                          uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprPhbState *sphb;
     uint64_t buid;
     uint32_t avail, addr, pgmask = 0;
@@ -104,8 +105,8 @@ static void rtas_ibm_query_pe_dma_window(PowerPCCPU *cpu,
         goto param_error_exit;
     }
 
-    buid = ((uint64_t)rtas_ld(args, 1) << 32) | rtas_ld(args, 2);
-    addr = rtas_ld(args, 0);
+    buid = ((uint64_t)rtas_ld(as, args, 1) << 32) | rtas_ld(as, args, 2);
+    addr = rtas_ld(as, args, 0);
     sphb = spapr_pci_find_phb(spapr, buid);
     if (!sphb || !sphb->ddw_enabled) {
         goto param_error_exit;
@@ -116,28 +117,28 @@ static void rtas_ibm_query_pe_dma_window(PowerPCCPU *cpu,
 
     avail = SPAPR_PCI_DMA_MAX_WINDOWS - spapr_phb_get_active_win_num(sphb);
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
-    rtas_st(rets, 1, avail);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 1, avail);
     if (nret == 6) {
         /*
          * Set the Max TCE number as 1<<(58-21) = 0x20.0000.0000
          * 1<<59 is the huge window start and 21 is 2M page shift.
          */
-        rtas_st(rets, 2, 0x00000020);
-        rtas_st(rets, 3, 0x00000000);
-        rtas_st(rets, 4, pgmask);
-        rtas_st(rets, 5, 0); /* DMA migration mask, not supported */
+        rtas_st(as, rets, 2, 0x00000020);
+        rtas_st(as, rets, 3, 0x00000000);
+        rtas_st(as, rets, 4, pgmask);
+        rtas_st(as, rets, 5, 0); /* DMA migration mask, not supported */
     } else {
-        rtas_st(rets, 2, 0x80000000);
-        rtas_st(rets, 3, pgmask);
-        rtas_st(rets, 4, 0); /* DMA migration mask, not supported */
+        rtas_st(as, rets, 2, 0x80000000);
+        rtas_st(as, rets, 3, pgmask);
+        rtas_st(as, rets, 4, 0); /* DMA migration mask, not supported */
     }
 
     trace_spapr_iommu_ddw_query(buid, addr, avail, 0x80000000, pgmask);
     return;
 
 param_error_exit:
-    rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+    rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
 }
 
 static void rtas_ibm_create_pe_dma_window(PowerPCCPU *cpu,
@@ -146,6 +147,7 @@ static void rtas_ibm_create_pe_dma_window(PowerPCCPU *cpu,
                                           target_ulong args,
                                           uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprPhbState *sphb;
     SpaprTceTable *tcet = NULL;
     uint32_t addr, page_shift, window_shift, liobn;
@@ -156,15 +158,15 @@ static void rtas_ibm_create_pe_dma_window(PowerPCCPU *cpu,
         goto param_error_exit;
     }
 
-    buid = ((uint64_t)rtas_ld(args, 1) << 32) | rtas_ld(args, 2);
-    addr = rtas_ld(args, 0);
+    buid = ((uint64_t)rtas_ld(as, args, 1) << 32) | rtas_ld(as, args, 2);
+    addr = rtas_ld(as, args, 0);
     sphb = spapr_pci_find_phb(spapr, buid);
     if (!sphb || !sphb->ddw_enabled) {
         goto param_error_exit;
     }
 
-    page_shift = rtas_ld(args, 3);
-    window_shift = rtas_ld(args, 4);
+    page_shift = rtas_ld(as, args, 3);
+    window_shift = rtas_ld(as, args, 4);
     liobn = spapr_phb_get_free_liobn(sphb);
     windows = spapr_phb_get_active_win_num(sphb);
 
@@ -202,19 +204,19 @@ static void rtas_ibm_create_pe_dma_window(PowerPCCPU *cpu,
     trace_spapr_iommu_ddw_create(buid, addr, 1ULL << page_shift,
                                  1ULL << window_shift, tcet->bus_offset, liobn);
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
-    rtas_st(rets, 1, liobn);
-    rtas_st(rets, 2, tcet->bus_offset >> 32);
-    rtas_st(rets, 3, tcet->bus_offset & ((uint32_t) -1));
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 1, liobn);
+    rtas_st(as, rets, 2, tcet->bus_offset >> 32);
+    rtas_st(as, rets, 3, tcet->bus_offset & ((uint32_t) -1));
 
     return;
 
 hw_error_exit:
-    rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+    rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
     return;
 
 param_error_exit:
-    rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+    rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
 }
 
 static void rtas_ibm_remove_pe_dma_window(PowerPCCPU *cpu,
@@ -223,6 +225,7 @@ static void rtas_ibm_remove_pe_dma_window(PowerPCCPU *cpu,
                                           target_ulong args,
                                           uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprPhbState *sphb;
     SpaprTceTable *tcet;
     uint32_t liobn;
@@ -232,7 +235,7 @@ static void rtas_ibm_remove_pe_dma_window(PowerPCCPU *cpu,
         goto param_error_exit;
     }
 
-    liobn = rtas_ld(args, 0);
+    liobn = rtas_ld(as, args, 0);
     tcet = spapr_tce_find_by_liobn(liobn);
     if (!tcet) {
         goto param_error_exit;
@@ -260,11 +263,11 @@ static void rtas_ibm_remove_pe_dma_window(PowerPCCPU *cpu,
         trace_spapr_iommu_ddw_reset(sphb->buid, 0);
     }
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
     return;
 
 param_error_exit:
-    rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+    rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
 }
 
 static void rtas_ibm_reset_pe_dma_window(PowerPCCPU *cpu,
@@ -273,6 +276,7 @@ static void rtas_ibm_reset_pe_dma_window(PowerPCCPU *cpu,
                                          target_ulong args,
                                          uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprPhbState *sphb;
     uint64_t buid;
     uint32_t addr;
@@ -281,8 +285,8 @@ static void rtas_ibm_reset_pe_dma_window(PowerPCCPU *cpu,
         goto param_error_exit;
     }
 
-    buid = ((uint64_t)rtas_ld(args, 1) << 32) | rtas_ld(args, 2);
-    addr = rtas_ld(args, 0);
+    buid = ((uint64_t)rtas_ld(as, args, 1) << 32) | rtas_ld(as, args, 2);
+    addr = rtas_ld(as, args, 0);
     sphb = spapr_pci_find_phb(spapr, buid);
     if (!sphb || !sphb->ddw_enabled) {
         goto param_error_exit;
@@ -291,12 +295,12 @@ static void rtas_ibm_reset_pe_dma_window(PowerPCCPU *cpu,
     spapr_phb_dma_reset(sphb);
     trace_spapr_iommu_ddw_reset(buid, addr);
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
 
     return;
 
 param_error_exit:
-    rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+    rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
 }
 
 static void spapr_rtas_ddw_init(void)

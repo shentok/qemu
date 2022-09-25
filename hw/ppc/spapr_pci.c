@@ -103,12 +103,13 @@ static void finish_read_pci_config(SpaprMachineState *spapr, uint64_t buid,
                                    uint32_t addr, uint32_t size,
                                    target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     PCIDevice *pci_dev;
     uint32_t val;
 
     if ((size != 1) && (size != 2) && (size != 4)) {
         /* access must be 1, 2 or 4 bytes */
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
 
@@ -118,15 +119,15 @@ static void finish_read_pci_config(SpaprMachineState *spapr, uint64_t buid,
     if (!pci_dev || (addr % size) || (addr >= pci_config_size(pci_dev))) {
         /* Access must be to a valid device, within bounds and
          * naturally aligned */
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
 
     val = pci_host_config_read_common(pci_dev, addr,
                                       pci_config_size(pci_dev), size);
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
-    rtas_st(rets, 1, val);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 1, val);
 }
 
 static void rtas_ibm_read_pci_config(PowerPCCPU *cpu, SpaprMachineState *spapr,
@@ -134,17 +135,18 @@ static void rtas_ibm_read_pci_config(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                      target_ulong args,
                                      uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     uint64_t buid;
     uint32_t size, addr;
 
     if ((nargs != 4) || (nret != 2)) {
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
 
-    buid = rtas_ldq(args, 1);
-    size = rtas_ld(args, 3);
-    addr = rtas_ld(args, 0);
+    buid = rtas_ldq(as, args, 1);
+    size = rtas_ld(as, args, 3);
+    addr = rtas_ld(as, args, 0);
 
     finish_read_pci_config(spapr, buid, addr, size, rets);
 }
@@ -154,15 +156,16 @@ static void rtas_read_pci_config(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                  target_ulong args,
                                  uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     uint32_t size, addr;
 
     if ((nargs != 2) || (nret != 2)) {
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
 
-    size = rtas_ld(args, 1);
-    addr = rtas_ld(args, 0);
+    size = rtas_ld(as, args, 1);
+    addr = rtas_ld(as, args, 0);
 
     finish_read_pci_config(spapr, 0, addr, size, rets);
 }
@@ -171,11 +174,12 @@ static void finish_write_pci_config(SpaprMachineState *spapr, uint64_t buid,
                                     uint32_t addr, uint32_t size,
                                     uint32_t val, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     PCIDevice *pci_dev;
 
     if ((size != 1) && (size != 2) && (size != 4)) {
         /* access must be 1, 2 or 4 bytes */
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
 
@@ -185,14 +189,14 @@ static void finish_write_pci_config(SpaprMachineState *spapr, uint64_t buid,
     if (!pci_dev || (addr % size) || (addr >= pci_config_size(pci_dev))) {
         /* Access must be to a valid device, within bounds and
          * naturally aligned */
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
 
     pci_host_config_write_common(pci_dev, addr, pci_config_size(pci_dev),
                                  val, size);
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
 }
 
 static void rtas_ibm_write_pci_config(PowerPCCPU *cpu, SpaprMachineState *spapr,
@@ -200,18 +204,19 @@ static void rtas_ibm_write_pci_config(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                       target_ulong args,
                                       uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     uint64_t buid;
     uint32_t val, size, addr;
 
     if ((nargs != 5) || (nret != 1)) {
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
 
-    buid = rtas_ldq(args, 1);
-    val = rtas_ld(args, 4);
-    size = rtas_ld(args, 3);
-    addr = rtas_ld(args, 0);
+    buid = rtas_ldq(as, args, 1);
+    val = rtas_ld(as, args, 4);
+    size = rtas_ld(as, args, 3);
+    addr = rtas_ld(as, args, 0);
 
     finish_write_pci_config(spapr, buid, addr, size, val, rets);
 }
@@ -221,17 +226,18 @@ static void rtas_write_pci_config(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                   target_ulong args,
                                   uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     uint32_t val, size, addr;
 
     if ((nargs != 3) || (nret != 1)) {
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
 
 
-    val = rtas_ld(args, 2);
-    size = rtas_ld(args, 1);
-    addr = rtas_ld(args, 0);
+    val = rtas_ld(as, args, 2);
+    size = rtas_ld(as, args, 1);
+    addr = rtas_ld(as, args, 0);
 
     finish_write_pci_config(spapr, 0, addr, size, val, rets);
 }
@@ -270,12 +276,13 @@ static void rtas_ibm_change_msi(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                 target_ulong args, uint32_t nret,
                                 target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprMachineClass *smc = SPAPR_MACHINE_GET_CLASS(spapr);
-    uint32_t config_addr = rtas_ld(args, 0);
-    uint64_t buid = rtas_ldq(args, 1);
-    unsigned int func = rtas_ld(args, 3);
-    unsigned int req_num = rtas_ld(args, 4); /* 0 == remove all */
-    unsigned int seq_num = rtas_ld(args, 5);
+    uint32_t config_addr = rtas_ld(as, args, 0);
+    uint64_t buid = rtas_ldq(as, args, 1);
+    unsigned int func = rtas_ld(as, args, 3);
+    unsigned int req_num = rtas_ld(as, args, 4); /* 0 == remove all */
+    unsigned int seq_num = rtas_ld(as, args, 5);
     unsigned int ret_intr_type;
     unsigned int irq, max_irqs = 0;
     SpaprPhbState *phb = NULL;
@@ -291,7 +298,7 @@ static void rtas_ibm_change_msi(PowerPCCPU *cpu, SpaprMachineState *spapr,
         pdev = spapr_pci_find_dev(spapr, buid, config_addr);
     }
     if (!phb || !pdev) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
@@ -302,7 +309,7 @@ static void rtas_ibm_change_msi(PowerPCCPU *cpu, SpaprMachineState *spapr,
         } else if (msix_present(pdev)) {
             ret_intr_type = RTAS_TYPE_MSIX;
         } else {
-            rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+            rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
             return;
         }
         break;
@@ -310,7 +317,7 @@ static void rtas_ibm_change_msi(PowerPCCPU *cpu, SpaprMachineState *spapr,
         if (msi_present(pdev)) {
             ret_intr_type = RTAS_TYPE_MSI;
         } else {
-            rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+            rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
             return;
         }
         break;
@@ -318,13 +325,13 @@ static void rtas_ibm_change_msi(PowerPCCPU *cpu, SpaprMachineState *spapr,
         if (msix_present(pdev)) {
             ret_intr_type = RTAS_TYPE_MSIX;
         } else {
-            rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+            rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
             return;
         }
         break;
     default:
         error_report("rtas_ibm_change_msi(%u) is not implemented", func);
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
@@ -334,7 +341,7 @@ static void rtas_ibm_change_msi(PowerPCCPU *cpu, SpaprMachineState *spapr,
     if (!req_num) {
         if (!msi) {
             trace_spapr_pci_msi("Releasing wrong config", config_addr);
-            rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+            rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
             return;
         }
 
@@ -347,8 +354,8 @@ static void rtas_ibm_change_msi(PowerPCCPU *cpu, SpaprMachineState *spapr,
         g_hash_table_remove(phb->msi, &config_addr);
 
         trace_spapr_pci_msi("Released MSIs", config_addr);
-        rtas_st(rets, 0, RTAS_OUT_SUCCESS);
-        rtas_st(rets, 1, 0);
+        rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
+        rtas_st(as, rets, 1, 0);
         return;
     }
 
@@ -363,7 +370,7 @@ static void rtas_ibm_change_msi(PowerPCCPU *cpu, SpaprMachineState *spapr,
     if (!max_irqs) {
         error_report("Requested interrupt type %d is not enabled for device %x",
                      ret_intr_type, config_addr);
-        rtas_st(rets, 0, -1); /* Hardware error */
+        rtas_st(as, rets, 0, -1); /* Hardware error */
         return;
     }
     /* Correct the number if the guest asked for too many */
@@ -385,7 +392,7 @@ static void rtas_ibm_change_msi(PowerPCCPU *cpu, SpaprMachineState *spapr,
     if (err) {
         error_reportf_err(err, "Can't allocate MSIs for device %x: ",
                           config_addr);
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
 
@@ -400,7 +407,7 @@ static void rtas_ibm_change_msi(PowerPCCPU *cpu, SpaprMachineState *spapr,
             }
             error_reportf_err(err, "Can't allocate MSIs for device %x: ",
                               config_addr);
-            rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+            rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
             return;
         }
     }
@@ -423,11 +430,11 @@ static void rtas_ibm_change_msi(PowerPCCPU *cpu, SpaprMachineState *spapr,
     g_hash_table_insert(phb->msi, config_addr_key, msi);
 
 out:
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
-    rtas_st(rets, 1, req_num);
-    rtas_st(rets, 2, ++seq_num);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 1, req_num);
+    rtas_st(as, rets, 2, ++seq_num);
     if (nret > 3) {
-        rtas_st(rets, 3, ret_intr_type);
+        rtas_st(as, rets, 3, ret_intr_type);
     }
 
     trace_spapr_pci_rtas_ibm_change_msi(config_addr, func, req_num, irq);
@@ -441,9 +448,10 @@ static void rtas_ibm_query_interrupt_source_number(PowerPCCPU *cpu,
                                                    uint32_t nret,
                                                    target_ulong rets)
 {
-    uint32_t config_addr = rtas_ld(args, 0);
-    uint64_t buid = rtas_ldq(args, 1);
-    unsigned int intr_src_num = -1, ioa_intr_num = rtas_ld(args, 3);
+    AddressSpace *as = &address_space_memory;
+    uint32_t config_addr = rtas_ld(as, args, 0);
+    uint64_t buid = rtas_ldq(as, args, 1);
+    unsigned int intr_src_num = -1, ioa_intr_num = rtas_ld(as, args, 3);
     SpaprPhbState *phb = NULL;
     PCIDevice *pdev = NULL;
     SpaprPciMsi *msi;
@@ -454,7 +462,7 @@ static void rtas_ibm_query_interrupt_source_number(PowerPCCPU *cpu,
         pdev = spapr_pci_find_dev(spapr, buid, config_addr);
     }
     if (!phb || !pdev) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
@@ -462,16 +470,16 @@ static void rtas_ibm_query_interrupt_source_number(PowerPCCPU *cpu,
     msi = (SpaprPciMsi *) g_hash_table_lookup(phb->msi, &config_addr);
     if (!msi || !msi->first_irq || !msi->num || (ioa_intr_num >= msi->num)) {
         trace_spapr_pci_msi("Failed to return vector", config_addr);
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
     intr_src_num = msi->first_irq + ioa_intr_num;
     trace_spapr_pci_rtas_ibm_query_interrupt_source_number(ioa_intr_num,
                                                            intr_src_num);
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
-    rtas_st(rets, 1, intr_src_num);
-    rtas_st(rets, 2, 1);/* 0 == level; 1 == edge */
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 1, intr_src_num);
+    rtas_st(as, rets, 2, 1);/* 0 == level; 1 == edge */
 }
 
 static void rtas_ibm_set_eeh_option(PowerPCCPU *cpu,
@@ -480,6 +488,7 @@ static void rtas_ibm_set_eeh_option(PowerPCCPU *cpu,
                                     target_ulong args, uint32_t nret,
                                     target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprPhbState *sphb;
     uint32_t addr, option;
     uint64_t buid;
@@ -489,9 +498,9 @@ static void rtas_ibm_set_eeh_option(PowerPCCPU *cpu,
         goto param_error_exit;
     }
 
-    buid = rtas_ldq(args, 1);
-    addr = rtas_ld(args, 0);
-    option = rtas_ld(args, 3);
+    buid = rtas_ldq(as, args, 1);
+    addr = rtas_ld(as, args, 0);
+    option = rtas_ld(as, args, 3);
 
     sphb = spapr_pci_find_phb(spapr, buid);
     if (!sphb) {
@@ -503,11 +512,11 @@ static void rtas_ibm_set_eeh_option(PowerPCCPU *cpu,
     }
 
     ret = spapr_phb_vfio_eeh_set_option(sphb, addr, option);
-    rtas_st(rets, 0, ret);
+    rtas_st(as, rets, 0, ret);
     return;
 
 param_error_exit:
-    rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+    rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
 }
 
 static void rtas_ibm_get_config_addr_info2(PowerPCCPU *cpu,
@@ -516,6 +525,7 @@ static void rtas_ibm_get_config_addr_info2(PowerPCCPU *cpu,
                                            target_ulong args, uint32_t nret,
                                            target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprPhbState *sphb;
     PCIDevice *pdev;
     uint32_t addr, option;
@@ -525,7 +535,7 @@ static void rtas_ibm_get_config_addr_info2(PowerPCCPU *cpu,
         goto param_error_exit;
     }
 
-    buid = rtas_ldq(args, 1);
+    buid = rtas_ldq(as, args, 1);
     sphb = spapr_pci_find_phb(spapr, buid);
     if (!sphb) {
         goto param_error_exit;
@@ -539,29 +549,29 @@ static void rtas_ibm_get_config_addr_info2(PowerPCCPU *cpu,
      * We always have PE address of form "00BB0001". "BB"
      * represents the bus number of PE's primary bus.
      */
-    option = rtas_ld(args, 3);
+    option = rtas_ld(as, args, 3);
     switch (option) {
     case RTAS_GET_PE_ADDR:
-        addr = rtas_ld(args, 0);
+        addr = rtas_ld(as, args, 0);
         pdev = spapr_pci_find_dev(spapr, buid, addr);
         if (!pdev) {
             goto param_error_exit;
         }
 
-        rtas_st(rets, 1, (pci_bus_num(pci_get_bus(pdev)) << 16) + 1);
+        rtas_st(as, rets, 1, (pci_bus_num(pci_get_bus(pdev)) << 16) + 1);
         break;
     case RTAS_GET_PE_MODE:
-        rtas_st(rets, 1, RTAS_PE_MODE_SHARED);
+        rtas_st(as, rets, 1, RTAS_PE_MODE_SHARED);
         break;
     default:
         goto param_error_exit;
     }
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
     return;
 
 param_error_exit:
-    rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+    rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
 }
 
 static void rtas_ibm_read_slot_reset_state2(PowerPCCPU *cpu,
@@ -570,6 +580,7 @@ static void rtas_ibm_read_slot_reset_state2(PowerPCCPU *cpu,
                                             target_ulong args, uint32_t nret,
                                             target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprPhbState *sphb;
     uint64_t buid;
     int state, ret;
@@ -578,7 +589,7 @@ static void rtas_ibm_read_slot_reset_state2(PowerPCCPU *cpu,
         goto param_error_exit;
     }
 
-    buid = rtas_ldq(args, 1);
+    buid = rtas_ldq(as, args, 1);
     sphb = spapr_pci_find_phb(spapr, buid);
     if (!sphb) {
         goto param_error_exit;
@@ -589,21 +600,21 @@ static void rtas_ibm_read_slot_reset_state2(PowerPCCPU *cpu,
     }
 
     ret = spapr_phb_vfio_eeh_get_state(sphb, &state);
-    rtas_st(rets, 0, ret);
+    rtas_st(as, rets, 0, ret);
     if (ret != RTAS_OUT_SUCCESS) {
         return;
     }
 
-    rtas_st(rets, 1, state);
-    rtas_st(rets, 2, RTAS_EEH_SUPPORT);
-    rtas_st(rets, 3, RTAS_EEH_PE_UNAVAIL_INFO);
+    rtas_st(as, rets, 1, state);
+    rtas_st(as, rets, 2, RTAS_EEH_SUPPORT);
+    rtas_st(as, rets, 3, RTAS_EEH_PE_UNAVAIL_INFO);
     if (nret >= 5) {
-        rtas_st(rets, 4, RTAS_EEH_PE_RECOVER_INFO);
+        rtas_st(as, rets, 4, RTAS_EEH_PE_RECOVER_INFO);
     }
     return;
 
 param_error_exit:
-    rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+    rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
 }
 
 static void rtas_ibm_set_slot_reset(PowerPCCPU *cpu,
@@ -612,6 +623,7 @@ static void rtas_ibm_set_slot_reset(PowerPCCPU *cpu,
                                     target_ulong args, uint32_t nret,
                                     target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprPhbState *sphb;
     uint32_t option;
     uint64_t buid;
@@ -621,8 +633,8 @@ static void rtas_ibm_set_slot_reset(PowerPCCPU *cpu,
         goto param_error_exit;
     }
 
-    buid = rtas_ldq(args, 1);
-    option = rtas_ld(args, 3);
+    buid = rtas_ldq(as, args, 1);
+    option = rtas_ld(as, args, 3);
     sphb = spapr_pci_find_phb(spapr, buid);
     if (!sphb) {
         goto param_error_exit;
@@ -633,11 +645,11 @@ static void rtas_ibm_set_slot_reset(PowerPCCPU *cpu,
     }
 
     ret = spapr_phb_vfio_eeh_reset(sphb, option);
-    rtas_st(rets, 0, ret);
+    rtas_st(as, rets, 0, ret);
     return;
 
 param_error_exit:
-    rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+    rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
 }
 
 static void rtas_ibm_configure_pe(PowerPCCPU *cpu,
@@ -646,6 +658,7 @@ static void rtas_ibm_configure_pe(PowerPCCPU *cpu,
                                   target_ulong args, uint32_t nret,
                                   target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprPhbState *sphb;
     uint64_t buid;
     int ret;
@@ -654,7 +667,7 @@ static void rtas_ibm_configure_pe(PowerPCCPU *cpu,
         goto param_error_exit;
     }
 
-    buid = rtas_ldq(args, 1);
+    buid = rtas_ldq(as, args, 1);
     sphb = spapr_pci_find_phb(spapr, buid);
     if (!sphb) {
         goto param_error_exit;
@@ -665,11 +678,11 @@ static void rtas_ibm_configure_pe(PowerPCCPU *cpu,
     }
 
     ret = spapr_phb_vfio_eeh_configure(sphb);
-    rtas_st(rets, 0, ret);
+    rtas_st(as, rets, 0, ret);
     return;
 
 param_error_exit:
-    rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+    rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
 }
 
 /* To support it later */
@@ -679,6 +692,7 @@ static void rtas_ibm_slot_error_detail(PowerPCCPU *cpu,
                                        target_ulong args, uint32_t nret,
                                        target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprPhbState *sphb;
     int option;
     uint64_t buid;
@@ -687,7 +701,7 @@ static void rtas_ibm_slot_error_detail(PowerPCCPU *cpu,
         goto param_error_exit;
     }
 
-    buid = rtas_ldq(args, 1);
+    buid = rtas_ldq(as, args, 1);
     sphb = spapr_pci_find_phb(spapr, buid);
     if (!sphb) {
         goto param_error_exit;
@@ -697,7 +711,7 @@ static void rtas_ibm_slot_error_detail(PowerPCCPU *cpu,
         goto param_error_exit;
     }
 
-    option = rtas_ld(args, 7);
+    option = rtas_ld(as, args, 7);
     switch (option) {
     case RTAS_SLOT_TEMP_ERR_LOG:
     case RTAS_SLOT_PERM_ERR_LOG:
@@ -707,11 +721,11 @@ static void rtas_ibm_slot_error_detail(PowerPCCPU *cpu,
     }
 
     /* We don't have error log yet */
-    rtas_st(rets, 0, RTAS_OUT_NO_ERRORS_FOUND);
+    rtas_st(as, rets, 0, RTAS_OUT_NO_ERRORS_FOUND);
     return;
 
 param_error_exit:
-    rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+    rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
 }
 
 static void pci_spapr_set_irq(void *opaque, int irq_num, int level)

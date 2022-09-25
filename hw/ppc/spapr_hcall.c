@@ -645,10 +645,11 @@ static target_ulong h_prod(PowerPCCPU *cpu, SpaprMachineState *spapr,
 static target_ulong h_rtas(PowerPCCPU *cpu, SpaprMachineState *spapr,
                            target_ulong opcode, target_ulong *args)
 {
+    AddressSpace *as = &address_space_memory;
     target_ulong rtas_r3 = args[0];
-    uint32_t token = rtas_ld(rtas_r3, 0);
-    uint32_t nargs = rtas_ld(rtas_r3, 1);
-    uint32_t nret = rtas_ld(rtas_r3, 2);
+    uint32_t token = rtas_ld(as, rtas_r3, 0);
+    uint32_t nargs = rtas_ld(as, rtas_r3, 1);
+    uint32_t nret = rtas_ld(as, rtas_r3, 2);
 
     return spapr_rtas_call(cpu, spapr, token, nargs, rtas_r3 + 12,
                            nret, rtas_r3 + 12 + 4*nargs);

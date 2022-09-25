@@ -60,29 +60,30 @@ static void rtas_nvram_fetch(PowerPCCPU *cpu, SpaprMachineState *spapr,
                              target_ulong args,
                              uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprNvram *nvram = spapr->nvram;
     hwaddr offset, buffer, len;
     void *membuf;
 
     if ((nargs != 3) || (nret != 2)) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
     if (!nvram) {
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
-        rtas_st(rets, 1, 0);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 1, 0);
         return;
     }
 
-    offset = rtas_ld(args, 0);
-    buffer = rtas_ld(args, 1);
-    len = rtas_ld(args, 2);
+    offset = rtas_ld(as, args, 0);
+    buffer = rtas_ld(as, args, 1);
+    len = rtas_ld(as, args, 2);
 
     if (((offset + len) < offset)
         || ((offset + len) > nvram->size)) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
-        rtas_st(rets, 1, 0);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 1, 0);
         return;
     }
 
@@ -92,8 +93,8 @@ static void rtas_nvram_fetch(PowerPCCPU *cpu, SpaprMachineState *spapr,
     memcpy(membuf, nvram->buf + offset, len);
     cpu_physical_memory_unmap(membuf, len, 1, len);
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
-    rtas_st(rets, 1, len);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 1, len);
 }
 
 static void rtas_nvram_store(PowerPCCPU *cpu, SpaprMachineState *spapr,
@@ -101,28 +102,29 @@ static void rtas_nvram_store(PowerPCCPU *cpu, SpaprMachineState *spapr,
                              target_ulong args,
                              uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprNvram *nvram = spapr->nvram;
     hwaddr offset, buffer, len;
     int ret;
     void *membuf;
 
     if ((nargs != 3) || (nret != 2)) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
     if (!nvram) {
-        rtas_st(rets, 0, RTAS_OUT_HW_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_HW_ERROR);
         return;
     }
 
-    offset = rtas_ld(args, 0);
-    buffer = rtas_ld(args, 1);
-    len = rtas_ld(args, 2);
+    offset = rtas_ld(as, args, 0);
+    buffer = rtas_ld(as, args, 1);
+    len = rtas_ld(as, args, 2);
 
     if (((offset + len) < offset)
         || ((offset + len) > nvram->size)) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
@@ -138,8 +140,8 @@ static void rtas_nvram_store(PowerPCCPU *cpu, SpaprMachineState *spapr,
 
     cpu_physical_memory_unmap(membuf, len, 0, len);
 
-    rtas_st(rets, 0, (ret < 0) ? RTAS_OUT_HW_ERROR : RTAS_OUT_SUCCESS);
-    rtas_st(rets, 1, (ret < 0) ? 0 : len);
+    rtas_st(as, rets, 0, (ret < 0) ? RTAS_OUT_HW_ERROR : RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 1, (ret < 0) ? 0 : len);
 }
 
 static void spapr_nvram_realize(SpaprVioDevice *dev, Error **errp)

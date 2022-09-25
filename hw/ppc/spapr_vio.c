@@ -332,30 +332,31 @@ static void rtas_set_tce_bypass(PowerPCCPU *cpu, SpaprMachineState *spapr,
                                 uint32_t nargs, target_ulong args,
                                 uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprVioBus *bus = spapr->vio_bus;
     SpaprVioDevice *dev;
     uint32_t unit, enable;
 
     if (nargs != 2) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
-    unit = rtas_ld(args, 0);
-    enable = rtas_ld(args, 1);
+    unit = rtas_ld(as, args, 0);
+    enable = rtas_ld(as, args, 1);
     dev = spapr_vio_find_by_reg(bus, unit);
     if (!dev) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
     if (!dev->tcet) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
     spapr_vio_set_bypass(dev, !!enable);
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
 }
 
 static void rtas_quiesce(PowerPCCPU *cpu, SpaprMachineState *spapr,
@@ -363,12 +364,13 @@ static void rtas_quiesce(PowerPCCPU *cpu, SpaprMachineState *spapr,
                          uint32_t nargs, target_ulong args,
                          uint32_t nret, target_ulong rets)
 {
+    AddressSpace *as = &address_space_memory;
     SpaprVioBus *bus = spapr->vio_bus;
     BusChild *kid;
     SpaprVioDevice *dev = NULL;
 
     if (nargs != 0) {
-        rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
+        rtas_st(as, rets, 0, RTAS_OUT_PARAM_ERROR);
         return;
     }
 
@@ -377,7 +379,7 @@ static void rtas_quiesce(PowerPCCPU *cpu, SpaprMachineState *spapr,
         spapr_vio_quiesce_one(dev);
     }
 
-    rtas_st(rets, 0, RTAS_OUT_SUCCESS);
+    rtas_st(as, rets, 0, RTAS_OUT_SUCCESS);
 }
 
 static SpaprVioDevice *reg_conflict(SpaprVioDevice *dev)
