@@ -213,7 +213,8 @@ hwaddr riscv_load_initrd(const char *filename, uint64_t mem_size,
     return *start + size;
 }
 
-uint64_t riscv_load_fdt(hwaddr dram_base, uint64_t mem_size, void *fdt)
+uint64_t riscv_load_fdt(MachineState *machine, hwaddr dram_base,
+                        uint64_t mem_size, void *fdt)
 {
     uint64_t temp, fdt_addr;
     hwaddr dram_end = dram_base + mem_size;
@@ -239,8 +240,7 @@ uint64_t riscv_load_fdt(hwaddr dram_base, uint64_t mem_size, void *fdt)
     /* copy in the device tree */
     qemu_fdt_dumpdtb(fdt, fdtsize);
 
-    rom_add_blob_fixed_as("fdt", fdt, fdtsize, fdt_addr,
-                          get_address_space_memory());
+    rom_add_blob_fixed_as("fdt", fdt, fdtsize, fdt_addr, &machine->memory.as);
 
     return fdt_addr;
 }
