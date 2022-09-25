@@ -249,10 +249,11 @@ void riscv_load_initrd(MachineState *machine, uint64_t kernel_entry)
     }
 }
 
-uint64_t riscv_load_fdt(hwaddr dram_base, uint64_t mem_size, void *fdt)
+uint64_t riscv_load_fdt(MachineState *machine, hwaddr dram_base)
 {
     uint64_t temp, fdt_addr;
-    hwaddr dram_end = dram_base + mem_size;
+    hwaddr dram_end = dram_base + machine->ram_size;
+    void *fdt = machine->fdt;
     int ret, fdtsize = fdt_totalsize(fdt);
 
     if (fdtsize <= 0) {
