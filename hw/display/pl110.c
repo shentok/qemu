@@ -8,6 +8,7 @@
  */
 
 #include "qemu/osdep.h"
+#include "exec/address-spaces.h"
 #include "hw/irq.h"
 #include "hw/sysbus.h"
 #include "migration/vmstate.h"
@@ -210,7 +211,6 @@ static int pl110_enabled(PL110State *s)
 static void pl110_update_display(void *opaque)
 {
     PL110State *s = (PL110State *)opaque;
-    SysBusDevice *sbd;
     DisplaySurface *surface = qemu_console_surface(s->con);
     drawfn fn;
     int src_width;
@@ -221,8 +221,6 @@ static void pl110_update_display(void *opaque)
     if (!pl110_enabled(s)) {
         return;
     }
-
-    sbd = SYS_BUS_DEVICE(s);
 
     if (s->cr & PL110_CR_BGR)
         bpp_offset = 0;
@@ -290,7 +288,7 @@ static void pl110_update_display(void *opaque)
     first = 0;
     if (s->invalidate) {
         framebuffer_update_memory_section(&s->fbsection,
-                                          sysbus_address_space(sbd),
+                                          get_system_memory(),
                                           s->upbase,
                                           s->rows, src_width);
     }
