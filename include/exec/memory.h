@@ -119,7 +119,7 @@ typedef enum {
 #define IOMMU_ACCESS_FLAG(r, w) (((r) ? IOMMU_RO : 0) | ((w) ? IOMMU_WO : 0))
 
 struct IOMMUTLBEntry {
-    AddressSpace    *target_as;
+    const AddressSpace *target_as;
     hwaddr           iova;
     hwaddr           translated_addr;
     hwaddr           addr_mask;  /* 0xfff = 4k translation */
@@ -1069,7 +1069,7 @@ struct FlatView {
     MemoryRegion *root;
 };
 
-static inline FlatView *address_space_to_flatview(AddressSpace *as)
+static inline FlatView *address_space_to_flatview(const AddressSpace *as)
 {
     return qatomic_rcu_read(&as->current_map);
 }
@@ -2522,7 +2522,7 @@ void address_space_remove_listeners(AddressSpace *as);
  * @len: the number of bytes to read or write
  * @is_write: indicates the transfer direction
  */
-MemTxResult address_space_rw(AddressSpace *as, hwaddr addr,
+MemTxResult address_space_rw(const AddressSpace *as, hwaddr addr,
                              MemTxAttrs attrs, void *buf,
                              hwaddr len, bool is_write);
 
@@ -2539,7 +2539,7 @@ MemTxResult address_space_rw(AddressSpace *as, hwaddr addr,
  * @buf: buffer with the data transferred
  * @len: the number of bytes to write
  */
-MemTxResult address_space_write(AddressSpace *as, hwaddr addr,
+MemTxResult address_space_write(const AddressSpace *as, hwaddr addr,
                                 MemTxAttrs attrs,
                                 const void *buf, hwaddr len);
 
@@ -2565,7 +2565,7 @@ MemTxResult address_space_write(AddressSpace *as, hwaddr addr,
  * @buf: buffer with the data transferred
  * @len: the number of bytes to write
  */
-MemTxResult address_space_write_rom(AddressSpace *as, hwaddr addr,
+MemTxResult address_space_write_rom(const AddressSpace *as, hwaddr addr,
                                     MemTxAttrs attrs,
                                     const void *buf, hwaddr len);
 
@@ -2592,12 +2592,12 @@ MemTxResult address_space_write_rom(AddressSpace *as, hwaddr addr,
 
 #define SUFFIX
 #define ARG1         as
-#define ARG1_DECL    AddressSpace *as
+#define ARG1_DECL    const AddressSpace *as
 #include "exec/memory_ldst.h.inc"
 
 #define SUFFIX
 #define ARG1         as
-#define ARG1_DECL    AddressSpace *as
+#define ARG1_DECL    const AddressSpace *as
 #include "exec/memory_ldst_phys.h.inc"
 
 struct MemoryRegionCache {
@@ -2695,7 +2695,7 @@ static inline void address_space_stb_cached(MemoryRegionCache *cache,
  * are relative to @addr.
  */
 int64_t address_space_cache_init(MemoryRegionCache *cache,
-                                 AddressSpace *as,
+                                 const AddressSpace *as,
                                  hwaddr addr,
                                  hwaddr len,
                                  bool is_write);
@@ -2722,7 +2722,7 @@ void address_space_cache_destroy(MemoryRegionCache *cache);
 /* address_space_get_iotlb_entry: translate an address into an IOTLB
  * entry. Should be called from an RCU critical section.
  */
-IOMMUTLBEntry address_space_get_iotlb_entry(AddressSpace *as, hwaddr addr,
+IOMMUTLBEntry address_space_get_iotlb_entry(const AddressSpace *as, hwaddr addr,
                                             bool is_write, MemTxAttrs attrs);
 
 /* address_space_translate: translate an address range into an address space
@@ -2743,7 +2743,7 @@ MemoryRegion *flatview_translate(FlatView *fv,
                                  hwaddr *len, bool is_write,
                                  MemTxAttrs attrs);
 
-static inline MemoryRegion *address_space_translate(AddressSpace *as,
+static inline MemoryRegion *address_space_translate(const AddressSpace *as,
                                                     hwaddr addr, hwaddr *xlat,
                                                     hwaddr *len, bool is_write,
                                                     MemTxAttrs attrs)
@@ -2768,7 +2768,7 @@ static inline MemoryRegion *address_space_translate(AddressSpace *as,
  * @is_write: indicates the transfer direction
  * @attrs: memory attributes
  */
-bool address_space_access_valid(AddressSpace *as, hwaddr addr, hwaddr len,
+bool address_space_access_valid(const AddressSpace *as, hwaddr addr, hwaddr len,
                                 bool is_write, MemTxAttrs attrs);
 
 /* address_space_map: map a physical memory region into a host virtual address
@@ -2786,7 +2786,7 @@ bool address_space_access_valid(AddressSpace *as, hwaddr addr, hwaddr len,
  * @is_write: indicates the transfer direction
  * @attrs: memory attributes
  */
-void *address_space_map(AddressSpace *as, hwaddr addr,
+void *address_space_map(const AddressSpace *as, hwaddr addr,
                         hwaddr *plen, bool is_write, MemTxAttrs attrs);
 
 /* address_space_unmap: Unmaps a memory region previously mapped by address_space_map()
@@ -2800,12 +2800,12 @@ void *address_space_map(AddressSpace *as, hwaddr addr,
  * @access_len: amount of data actually transferred
  * @is_write: indicates the transfer direction
  */
-void address_space_unmap(AddressSpace *as, void *buffer, hwaddr len,
+void address_space_unmap(const AddressSpace *as, void *buffer, hwaddr len,
                          bool is_write, hwaddr access_len);
 
 
 /* Internal functions, part of the implementation of address_space_read.  */
-MemTxResult address_space_read_full(AddressSpace *as, hwaddr addr,
+MemTxResult address_space_read_full(const AddressSpace *as, hwaddr addr,
                                     MemTxAttrs attrs, void *buf, hwaddr len);
 MemTxResult flatview_read_continue(FlatView *fv, hwaddr addr,
                                    MemTxAttrs attrs, void *buf,
@@ -2849,7 +2849,7 @@ static inline bool memory_access_is_direct(MemoryRegion *mr, bool is_write)
  * @len: length of the data transferred
  */
 static inline __attribute__((__always_inline__))
-MemTxResult address_space_read(AddressSpace *as, hwaddr addr,
+MemTxResult address_space_read(const AddressSpace *as, hwaddr addr,
                                MemTxAttrs attrs, void *buf,
                                hwaddr len)
 {
@@ -2935,7 +2935,7 @@ address_space_write_cached(MemoryRegionCache *cache, hwaddr addr,
  * @len: the number of bytes to fill with the constant byte
  * @attrs: memory transaction attributes
  */
-MemTxResult address_space_set(AddressSpace *as, hwaddr addr,
+MemTxResult address_space_set(const AddressSpace *as, hwaddr addr,
                               uint8_t c, hwaddr len, MemTxAttrs attrs);
 
 #ifdef NEED_CPU_H

@@ -179,7 +179,7 @@ extern unsigned long reserved_va;
 
 #define SUFFIX
 #define ARG1         as
-#define ARG1_DECL    AddressSpace *as
+#define ARG1_DECL    const AddressSpace *as
 #define TARGET_ENDIANNESS
 #include "exec/memory_ldst.h.inc"
 
@@ -197,7 +197,7 @@ static inline void stl_phys_notdirty(AddressSpace *as, hwaddr addr, uint32_t val
 
 #define SUFFIX
 #define ARG1         as
-#define ARG1_DECL    AddressSpace *as
+#define ARG1_DECL    const AddressSpace *as
 #define TARGET_ENDIANNESS
 #include "exec/memory_ldst_phys.h.inc"
 

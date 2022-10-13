@@ -410,7 +410,7 @@ static MemoryRegionSection address_space_translate_iommu(IOMMUMemoryRegion *iomm
                                                          hwaddr *page_mask_out,
                                                          bool is_write,
                                                          bool is_mmio,
-                                                         AddressSpace **target_as,
+                                                         const AddressSpace **target_as,
                                                          MemTxAttrs attrs)
 {
     MemoryRegionSection *section;
@@ -482,7 +482,7 @@ static MemoryRegionSection flatview_do_translate(FlatView *fv,
                                                  hwaddr *page_mask_out,
                                                  bool is_write,
                                                  bool is_mmio,
-                                                 AddressSpace **target_as,
+                                                 const AddressSpace **target_as,
                                                  MemTxAttrs attrs)
 {
     MemoryRegionSection *section;
@@ -513,7 +513,7 @@ static MemoryRegionSection flatview_do_translate(FlatView *fv,
 }
 
 /* Called from RCU critical section */
-IOMMUTLBEntry address_space_get_iotlb_entry(AddressSpace *as, hwaddr addr,
+IOMMUTLBEntry address_space_get_iotlb_entry(const AddressSpace *as, hwaddr addr,
                                             bool is_write, MemTxAttrs attrs)
 {
     MemoryRegionSection section;
@@ -556,7 +556,7 @@ MemoryRegion *flatview_translate(FlatView *fv, hwaddr addr, hwaddr *xlat,
 {
     MemoryRegion *mr;
     MemoryRegionSection section;
-    AddressSpace *as = NULL;
+    const AddressSpace *as = NULL;
 
     /* This can be MMIO, so setup MMIO bit. */
     section = flatview_do_translate(fv, addr, xlat, plen, NULL,
@@ -2918,7 +2918,7 @@ static MemTxResult flatview_read(FlatView *fv, hwaddr addr,
                                   addr1, l, mr);
 }
 
-MemTxResult address_space_read_full(AddressSpace *as, hwaddr addr,
+MemTxResult address_space_read_full(const AddressSpace *as, hwaddr addr,
                                     MemTxAttrs attrs, void *buf, hwaddr len)
 {
     MemTxResult result = MEMTX_OK;
@@ -2933,7 +2933,7 @@ MemTxResult address_space_read_full(AddressSpace *as, hwaddr addr,
     return result;
 }
 
-MemTxResult address_space_write(AddressSpace *as, hwaddr addr,
+MemTxResult address_space_write(const AddressSpace *as, hwaddr addr,
                                 MemTxAttrs attrs,
                                 const void *buf, hwaddr len)
 {
@@ -2949,7 +2949,7 @@ MemTxResult address_space_write(AddressSpace *as, hwaddr addr,
     return result;
 }
 
-MemTxResult address_space_rw(AddressSpace *as, hwaddr addr, MemTxAttrs attrs,
+MemTxResult address_space_rw(const AddressSpace *as, hwaddr addr, MemTxAttrs attrs,
                              void *buf, hwaddr len, bool is_write)
 {
     if (is_write) {
@@ -2959,7 +2959,7 @@ MemTxResult address_space_rw(AddressSpace *as, hwaddr addr, MemTxAttrs attrs,
     }
 }
 
-MemTxResult address_space_set(AddressSpace *as, hwaddr addr,
+MemTxResult address_space_set(const AddressSpace *as, hwaddr addr,
                               uint8_t c, hwaddr len, MemTxAttrs attrs)
 {
 #define FILLBUF_SIZE 512
@@ -2990,7 +2990,7 @@ enum write_rom_type {
     FLUSH_CACHE,
 };
 
-static inline MemTxResult address_space_write_rom_internal(AddressSpace *as,
+static inline MemTxResult address_space_write_rom_internal(const AddressSpace *as,
                                                            hwaddr addr,
                                                            MemTxAttrs attrs,
                                                            const void *ptr,
@@ -3032,7 +3032,7 @@ static inline MemTxResult address_space_write_rom_internal(AddressSpace *as,
 }
 
 /* used for ROM loading : can write in RAM and ROM */
-MemTxResult address_space_write_rom(AddressSpace *as, hwaddr addr,
+MemTxResult address_space_write_rom(const AddressSpace *as, hwaddr addr,
                                     MemTxAttrs attrs,
                                     const void *buf, hwaddr len)
 {
@@ -3165,7 +3165,7 @@ static bool flatview_access_valid(FlatView *fv, hwaddr addr, hwaddr len,
     return true;
 }
 
-bool address_space_access_valid(AddressSpace *as, hwaddr addr,
+bool address_space_access_valid(const AddressSpace *as, hwaddr addr,
                                 hwaddr len, bool is_write,
                                 MemTxAttrs attrs)
 {
@@ -3210,7 +3210,7 @@ flatview_extend_translation(FlatView *fv, hwaddr addr,
  * Use cpu_register_map_client() to know when retrying the map operation is
  * likely to succeed.
  */
-void *address_space_map(AddressSpace *as,
+void *address_space_map(const AddressSpace *as,
                         hwaddr addr,
                         hwaddr *plen,
                         bool is_write,
@@ -3264,7 +3264,7 @@ void *address_space_map(AddressSpace *as,
  * Will also mark the memory as dirty if is_write is true.  access_len gives
  * the amount of memory that was actually read or written by the caller.
  */
-void address_space_unmap(AddressSpace *as, void *buffer, hwaddr len,
+void address_space_unmap(const AddressSpace *as, void *buffer, hwaddr len,
                          bool is_write, hwaddr access_len)
 {
     if (buffer != bounce.buffer) {
@@ -3308,7 +3308,7 @@ void cpu_physical_memory_unmap(void *buffer, hwaddr len,
                                is_write, access_len);
 }
 
-#define ARG1_DECL                AddressSpace *as
+#define ARG1_DECL                const AddressSpace *as
 #define ARG1                     as
 #define SUFFIX
 #define TRANSLATE(...)           address_space_translate(as, __VA_ARGS__)
@@ -3317,7 +3317,7 @@ void cpu_physical_memory_unmap(void *buffer, hwaddr len,
 #include "memory_ldst.c.inc"
 
 int64_t address_space_cache_init(MemoryRegionCache *cache,
-                                 AddressSpace *as,
+                                 const AddressSpace *as,
                                  hwaddr addr,
                                  hwaddr len,
                                  bool is_write)
@@ -3400,7 +3400,7 @@ static inline MemoryRegion *address_space_translate_cached(
     MemoryRegionSection section;
     MemoryRegion *mr;
     IOMMUMemoryRegion *iommu_mr;
-    AddressSpace *target_as;
+    const AddressSpace *target_as;
 
     assert(!cache->ptr);
     *xlat = addr + cache->xlat;

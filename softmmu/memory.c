@@ -752,7 +752,7 @@ static FlatView *generate_memory_topology(MemoryRegion *mr)
     return view;
 }
 
-static void address_space_add_del_ioeventfds(AddressSpace *as,
+static void address_space_add_del_ioeventfds(const AddressSpace *as,
                                              MemoryRegionIoeventfd *fds_new,
                                              unsigned fds_new_nb,
                                              MemoryRegionIoeventfd *fds_old,
@@ -801,7 +801,7 @@ static void address_space_add_del_ioeventfds(AddressSpace *as,
     }
 }
 
-FlatView *address_space_get_flatview(AddressSpace *as)
+FlatView *address_space_get_flatview(const AddressSpace *as)
 {
     FlatView *view;
 
