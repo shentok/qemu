@@ -18,7 +18,7 @@
 
 /* #define DEBUG_IOMMU */
 
-MemTxResult dma_memory_set(AddressSpace *as, dma_addr_t addr,
+MemTxResult dma_memory_set(const AddressSpace *as, dma_addr_t addr,
                            uint8_t c, dma_addr_t len, MemTxAttrs attrs)
 {
     dma_barrier(as, DMA_DIRECTION_FROM_DEVICE);
@@ -27,7 +27,7 @@ MemTxResult dma_memory_set(AddressSpace *as, dma_addr_t addr,
 }
 
 void qemu_sglist_init(QEMUSGList *qsg, DeviceState *dev, int alloc_hint,
-                      AddressSpace *as)
+                      const AddressSpace *as)
 {
     qsg->sg = g_new(ScatterGatherEntry, alloc_hint);
     qsg->nsg = 0;

@@ -40,10 +40,10 @@ struct QEMUSGList {
     int nalloc;
     dma_addr_t size;
     DeviceState *dev;
-    AddressSpace *as;
+    const AddressSpace *as;
 };
 
-static inline void dma_barrier(AddressSpace *as, DMADirection dir)
+static inline void dma_barrier(const AddressSpace *as, DMADirection dir)
 {
     /*
      * This is called before DMA read and write operations
@@ -69,7 +69,7 @@ static inline void dma_barrier(AddressSpace *as, DMADirection dir)
 /* Checks that the given range of addresses is valid for DMA.  This is
  * useful for certain cases, but usually you should just use
  * dma_memory_{read,write}() and check for errors */
-static inline bool dma_memory_valid(AddressSpace *as,
+static inline bool dma_memory_valid(const AddressSpace *as,
                                     dma_addr_t addr, dma_addr_t len,
                                     DMADirection dir, MemTxAttrs attrs)
 {
@@ -78,7 +78,7 @@ static inline bool dma_memory_valid(AddressSpace *as,
                                       attrs);
 }
 
-static inline MemTxResult dma_memory_rw_relaxed(AddressSpace *as,
+static inline MemTxResult dma_memory_rw_relaxed(const AddressSpace *as,
                                                 dma_addr_t addr,
                                                 void *buf, dma_addr_t len,
                                                 DMADirection dir,
@@ -88,7 +88,7 @@ static inline MemTxResult dma_memory_rw_relaxed(AddressSpace *as,
                             buf, len, dir == DMA_DIRECTION_FROM_DEVICE);
 }
 
-static inline MemTxResult dma_memory_read_relaxed(AddressSpace *as,
+static inline MemTxResult dma_memory_read_relaxed(const AddressSpace *as,
                                                   dma_addr_t addr,
                                                   void *buf, dma_addr_t len)
 {
@@ -97,7 +97,7 @@ static inline MemTxResult dma_memory_read_relaxed(AddressSpace *as,
                                  MEMTXATTRS_UNSPECIFIED);
 }
 
-static inline MemTxResult dma_memory_write_relaxed(AddressSpace *as,
+static inline MemTxResult dma_memory_write_relaxed(const AddressSpace *as,
                                                    dma_addr_t addr,
                                                    const void *buf,
                                                    dma_addr_t len)
@@ -121,7 +121,7 @@ static inline MemTxResult dma_memory_write_relaxed(AddressSpace *as,
  * @dir: indicates the transfer direction
  * @attrs: memory transaction attributes
  */
-static inline MemTxResult dma_memory_rw(AddressSpace *as, dma_addr_t addr,
+static inline MemTxResult dma_memory_rw(const AddressSpace *as, dma_addr_t addr,
                                         void *buf, dma_addr_t len,
                                         DMADirection dir, MemTxAttrs attrs)
 {
@@ -143,7 +143,7 @@ static inline MemTxResult dma_memory_rw(AddressSpace *as, dma_addr_t addr,
  * @len: length of the data transferred
  * @attrs: memory transaction attributes
  */
-static inline MemTxResult dma_memory_read(AddressSpace *as, dma_addr_t addr,
+static inline MemTxResult dma_memory_read(const AddressSpace *as, dma_addr_t addr,
                                           void *buf, dma_addr_t len,
                                           MemTxAttrs attrs)
 {
@@ -164,7 +164,7 @@ static inline MemTxResult dma_memory_read(AddressSpace *as, dma_addr_t addr,
  * @len: the number of bytes to write
  * @attrs: memory transaction attributes
  */
-static inline MemTxResult dma_memory_write(AddressSpace *as, dma_addr_t addr,
+static inline MemTxResult dma_memory_write(const AddressSpace *as, dma_addr_t addr,
                                            const void *buf, dma_addr_t len,
                                            MemTxAttrs attrs)
 {
@@ -185,7 +185,7 @@ static inline MemTxResult dma_memory_write(AddressSpace *as, dma_addr_t addr,
  * @len: the number of bytes to fill with the constant byte
  * @attrs: memory transaction attributes
  */
-MemTxResult dma_memory_set(AddressSpace *as, dma_addr_t addr,
+MemTxResult dma_memory_set(const AddressSpace *as, dma_addr_t addr,
                            uint8_t c, dma_addr_t len, MemTxAttrs attrs);
 
 /**
@@ -202,7 +202,7 @@ MemTxResult dma_memory_set(AddressSpace *as, dma_addr_t addr,
  * @dir: indicates the transfer direction
  * @attrs: memory attributes
  */
-static inline void *dma_memory_map(AddressSpace *as,
+static inline void *dma_memory_map(const AddressSpace *as,
                                    dma_addr_t addr, dma_addr_t *len,
                                    DMADirection dir, MemTxAttrs attrs)
 {
@@ -229,7 +229,7 @@ static inline void *dma_memory_map(AddressSpace *as,
  * @dir: indicates the transfer direction
  * @access_len: amount of data actually transferred
  */
-static inline void dma_memory_unmap(AddressSpace *as,
+static inline void dma_memory_unmap(const AddressSpace *as,
                                     void *buffer, dma_addr_t len,
                                     DMADirection dir, dma_addr_t access_len)
 {
@@ -238,7 +238,7 @@ static inline void dma_memory_unmap(AddressSpace *as,
 }
 
 #define DEFINE_LDST_DMA(_lname, _sname, _bits, _end) \
-    static inline MemTxResult ld##_lname##_##_end##_dma(AddressSpace *as, \
+    static inline MemTxResult ld##_lname##_##_end##_dma(const AddressSpace *as, \
                                                         dma_addr_t addr, \
                                                         uint##_bits##_t *pval, \
                                                         MemTxAttrs attrs) \
@@ -247,7 +247,7 @@ static inline void dma_memory_unmap(AddressSpace *as,
         _end##_bits##_to_cpus(pval); \
         return res; \
     } \
-    static inline MemTxResult st##_sname##_##_end##_dma(AddressSpace *as, \
+    static inline MemTxResult st##_sname##_##_end##_dma(const AddressSpace *as, \
                                                         dma_addr_t addr, \
                                                         uint##_bits##_t val, \
                                                         MemTxAttrs attrs) \
@@ -256,13 +256,13 @@ static inline void dma_memory_unmap(AddressSpace *as,
         return dma_memory_write(as, addr, &val, (_bits) / 8, attrs); \
     }
 
-static inline MemTxResult ldub_dma(AddressSpace *as, dma_addr_t addr,
+static inline MemTxResult ldub_dma(const AddressSpace *as, dma_addr_t addr,
                                    uint8_t *val, MemTxAttrs attrs)
 {
     return dma_memory_read(as, addr, val, 1, attrs);
 }
 
-static inline MemTxResult stb_dma(AddressSpace *as, dma_addr_t addr,
+static inline MemTxResult stb_dma(const AddressSpace *as, dma_addr_t addr,
                                   uint8_t val, MemTxAttrs attrs)
 {
     return dma_memory_write(as, addr, &val, 1, attrs);
@@ -283,7 +283,7 @@ struct ScatterGatherEntry {
 };
 
 void qemu_sglist_init(QEMUSGList *qsg, DeviceState *dev, int alloc_hint,
-                      AddressSpace *as);
+                      const AddressSpace *as);
 void qemu_sglist_add(QEMUSGList *qsg, dma_addr_t base, dma_addr_t len);
 void qemu_sglist_destroy(QEMUSGList *qsg);
 
