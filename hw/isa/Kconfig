@@ -53,6 +53,7 @@ config PIIX4
     select IDE_PIIX
     select ISA_BUS
     select MC146818RTC
+    select PROXY_PIC
     select USB_UHCI
 
 config VT82C686
