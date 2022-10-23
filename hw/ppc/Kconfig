@@ -137,6 +137,9 @@ config E500PLAT
     bool
     select E500
 
+config MPC5200B
+    bool
+
 config MPC8544DS
     bool
     select E500
