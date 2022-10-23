@@ -139,6 +139,7 @@ config E500PLAT
 
 config MPC5200B
     bool
+    select MPC5200B_PIC
 
 config MPC8544DS
     bool

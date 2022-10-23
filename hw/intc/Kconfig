@@ -20,6 +20,9 @@ config OPENPIC
     bool
     select MSI_NONBROKEN
 
+config MPC5200B_PIC
+    bool
+
 config APIC
     bool
     select MSI_NONBROKEN
