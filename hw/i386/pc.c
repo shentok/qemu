@@ -28,6 +28,7 @@
 #include "hw/i386/pc.h"
 #include "hw/char/serial-isa.h"
 #include "hw/char/parallel.h"
+#include "hw/char/parallel-isa.h"
 #include "hw/hyperv/hv-balloon.h"
 #include "hw/i386/fw_cfg.h"
 #include "hw/i386/vmport.h"
@@ -1097,25 +1098,39 @@ static void pc_superio_init(ISABus *isa_bus, bool create_fdctrl,
     DriveInfo *fd[MAX_FD];
     qemu_irq *a20_line;
     ISADevice *i8042, *port92, *vmmouse;
+    bool ambig;
 
-    serial_hds_isa_init(isa_bus, 0, MAX_ISA_SERIAL_PORTS);
-    parallel_hds_isa_init(isa_bus, MAX_PARALLEL_PORTS);
-
-    for (i = 0; i < MAX_FD; i++) {
-        fd[i] = drive_get(IF_FLOPPY, 0, i);
-        create_fdctrl |= !!fd[i];
+    if (!object_resolve_path_type("", TYPE_ISA_SERIAL, &ambig) && !ambig) {
+        serial_hds_isa_init(isa_bus, 0, MAX_ISA_SERIAL_PORTS);
     }
-    if (create_fdctrl) {
+
+    if (!object_resolve_path_type("", TYPE_ISA_PARALLEL, &ambig) && !ambig) {
+        parallel_hds_isa_init(isa_bus, MAX_PARALLEL_PORTS);
+    }
+
+    if (!object_resolve_path_type("", TYPE_ISA_FDC, &ambig) && !ambig) {
+        for (i = 0; i < MAX_FD; i++) {
+            fd[i] = drive_get(IF_FLOPPY, 0, i);
+            create_fdctrl |= !!fd[i];
+        }
+        if (create_fdctrl) {
 #ifdef CONFIG_FDC_ISA
-        ISADevice *fdc = isa_new(TYPE_ISA_FDC);
-        if (fdc) {
-            isa_realize_and_unref(fdc, isa_bus, &error_fatal);
-            isa_fdc_init_drives(fdc, fd);
+            ISADevice *fdc = isa_new(TYPE_ISA_FDC);
+            if (fdc) {
+                isa_realize_and_unref(fdc, isa_bus, &error_fatal);
+                isa_fdc_init_drives(fdc, fd);
+            }
         }
 #endif
     }
 
-    if (!create_i8042) {
+    i8042 = ISA_DEVICE(object_resolve_path_type("", TYPE_I8042, &ambig));
+
+    if (!i8042 && !ambig && create_i8042) {
+        i8042 = isa_create_simple(isa_bus, TYPE_I8042);
+    }
+
+    if (!i8042) {
         if (!no_vmport) {
             error_setg(errp,
                        "vmport requires the i8042 controller to be enabled");
@@ -1123,7 +1138,6 @@ static void pc_superio_init(ISABus *isa_bus, bool create_fdctrl,
         return;
     }
 
-    i8042 = isa_create_simple(isa_bus, TYPE_I8042);
     if (!no_vmport) {
         isa_create_simple(isa_bus, TYPE_VMPORT);
         vmmouse = isa_try_new("vmmouse");
