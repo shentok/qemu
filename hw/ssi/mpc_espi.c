@@ -261,27 +261,48 @@ static bool mpc_espi_is_enabled(MPCESPIState *s)
 
 static void mpc_espi_flush_txfifo(MPCESPIState *s)
 {
-    uint32_t tx;
-    uint32_t rx;
+    if (s->rx_skip == 0 && s->regs[ESPI_SPCOM] & ESPI_SPMODE_OD) {
+        uint32_t tx;
+        uint32_t rx;
 
-    while (!fifo8_is_empty(&s->tx_fifo) && s->burst_length > 0) {
-        tx = mpc_espi_tx_fifo_pop(s);
+        while (!fifo8_is_empty(&s->tx_fifo) && s->burst_length > 0) {
+            tx = mpc_espi_tx_fifo_pop(s);
 
-        /* We need to write one byte at a time */
-        rx = ssi_transfer(s->bus, tx);
+            /* We need to write one byte at a time */
+            rx = ssi_transfer(s->bus, tx);
 
-        if (s->regs[ESPI_SPMODE] & ESPI_SPMODE_LOOP) {
-            rx = tx;
+            if (s->regs[ESPI_SPMODE] & ESPI_SPMODE_LOOP) {
+                rx = tx;
+            }
+
+            if (s->rx_skip == 0) {
+                mpc_espi_rx_fifo_push(s, rx);
+            }
+
+            /* Remove 8 bits from the actual burst */
+            s->burst_length--;
+
+            if (s->burst_length <= 0 && (!(s->regs[ESPI_SPIE] & ESPI_SPIE_DON))) {
+                s->regs[ESPI_SPIE] |= ESPI_SPIE_DON;
+                qemu_set_irq(s->irq, 1);
+            }
+        }
+    } else {
+        for (; s->rx_skip > 0; s->rx_skip--) {
+            uint32_t tx = mpc_espi_tx_fifo_pop(s);
+
+            /* We need to write one byte at a time */
+            ssi_transfer(s->bus, tx);
         }
 
-        if (s->rx_skip == 0) {
+        while (!fifo8_is_full(&s->rx_fifo) && s->burst_length > 0) {
+            /* We need to write one byte at a time */
+            uint32_t rx = ssi_transfer(s->bus, 0);
+
             mpc_espi_rx_fifo_push(s, rx);
-        }
 
-        /* Remove 8 bits from the actual burst */
-        s->burst_length--;
-        if (s->rx_skip > 0) {
-            s->rx_skip--;
+            /* Remove 8 bits from the actual burst */
+            s->burst_length--;
         }
 
         if (s->burst_length <= 0 && (!(s->regs[ESPI_SPIE] & ESPI_SPIE_DON))) {
