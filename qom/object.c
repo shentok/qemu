@@ -1729,8 +1729,7 @@ static void object_get_child_property(Object *obj, Visitor *v,
     g_free(path);
 }
 
-static Object *object_resolve_child_property(Object *parent, void *opaque,
-                                             const char *part)
+static Object *object_resolve_child_property(Object *parent, void *opaque)
 {
     return opaque;
 }
@@ -1903,8 +1902,7 @@ static void object_set_link_property(Object *obj, Visitor *v,
     }
 }
 
-static Object *object_resolve_link_property(Object *parent, void *opaque,
-                                            const char *part)
+static Object *object_resolve_link_property(Object *parent, void *opaque)
 {
     LinkProperty *lprop = opaque;
 
@@ -2066,7 +2064,7 @@ Object *object_resolve_path_component(Object *parent, const char *part)
     }
 
     if (prop->resolve) {
-        return prop->resolve(parent, prop->opaque, part);
+        return prop->resolve(parent, prop->opaque);
     } else {
         return NULL;
     }
@@ -2727,8 +2725,7 @@ static void property_set_alias(Object *obj, Visitor *v, const char *name,
     visit_free(alias_v);
 }
 
-static Object *property_resolve_alias(Object *obj, void *opaque,
-                                      const char *part)
+static Object *property_resolve_alias(Object *obj, void *opaque)
 {
     AliasProperty *prop = opaque;
 
