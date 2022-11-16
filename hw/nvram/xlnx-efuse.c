@@ -236,10 +236,9 @@ static void efuse_prop_get_drive(Object *obj, Visitor *v, const char *name,
     qdev_prop_drive.get(obj, v, name, opaque, errp);
 }
 
-static void efuse_prop_release_drive(Object *obj, const char *name,
-                                     void *opaque)
+static void efuse_prop_release_drive(ObjectProperty *oprop, Object *obj)
 {
-    qdev_prop_drive.release(obj, name, opaque);
+    qdev_prop_drive.release(oprop, obj);
 }
 
 static const PropertyInfo efuse_prop_drive = {

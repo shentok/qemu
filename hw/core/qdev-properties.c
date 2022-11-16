@@ -449,9 +449,9 @@ const PropertyInfo qdev_prop_uint64_checkmask = {
 
 /* --- string --- */
 
-static void release_string(Object *obj, const char *name, void *opaque)
+static void release_string(ObjectProperty *oprop, Object *obj)
 {
-    Property *prop = opaque;
+    Property *prop = oprop->opaque;
     g_free(*(char **)object_field_prop_ptr(obj, prop));
 }
 
@@ -560,11 +560,11 @@ typedef struct {
  * we call the underlying element's property release hook, and
  * then free the memory we allocated when we added the property.
  */
-static void array_element_release(Object *obj, const char *name, void *opaque)
+static void array_element_release(ObjectProperty *oprop, Object *obj)
 {
-    ArrayElementProperty *p = opaque;
+    ArrayElementProperty *p = oprop->opaque;
     if (p->release) {
-        p->release(obj, name, opaque);
+        p->release(oprop, obj);
     }
     g_free(p->propname);
     g_free(p);

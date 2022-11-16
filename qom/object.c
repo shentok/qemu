@@ -629,7 +629,7 @@ static void object_property_del_all(Object *obj)
         while ((prop = object_property_iter_next(&iter)) != NULL) {
             if (g_hash_table_add(done, prop)) {
                 if (prop->release) {
-                    prop->release(obj, prop->name, prop->opaque);
+                    prop->release(prop, obj);
                     released = true;
                     break;
                 }
@@ -651,7 +651,7 @@ static void object_property_del_child(Object *obj, Object *child)
         prop = value;
         if (object_property_is_child(prop) && prop->opaque == child) {
             if (prop->release) {
-                prop->release(obj, prop->name, prop->opaque);
+                prop->release(prop, obj);
                 prop->release = NULL;
             }
             break;
@@ -1376,8 +1376,10 @@ void object_property_del(Object *obj, const char *name)
 {
     ObjectProperty *prop = g_hash_table_lookup(obj->properties, name);
 
+    assert(strcmp(prop->name, name) == 0);
+
     if (prop->release) {
-        prop->release(obj, name, prop->opaque);
+        prop->release(prop, obj);
     }
     g_hash_table_remove(obj->properties, name);
 }
@@ -1735,10 +1737,9 @@ static Object *object_resolve_child_property(ObjectProperty *oprop,
     return oprop->opaque;
 }
 
-static void object_finalize_child_property(Object *obj, const char *name,
-                                           void *opaque)
+static void object_finalize_child_property(ObjectProperty *oprop, Object *obj)
 {
-    Object *child = opaque;
+    Object *child = oprop->opaque;
 
     if (child->class->unparent) {
         (child->class->unparent)(child);
@@ -1911,10 +1912,9 @@ static Object *object_resolve_link_property(ObjectProperty *oprop,
     return *object_link_get_targetp(parent, lprop);
 }
 
-static void object_release_link_property(Object *obj, const char *name,
-                                         void *opaque)
+static void object_release_link_property(ObjectProperty *oprop, Object *obj)
 {
-    LinkProperty *prop = opaque;
+    LinkProperty *prop = oprop->opaque;
     Object **targetp = object_link_get_targetp(obj, prop);
 
     if ((prop->flags & OBJ_PROP_LINK_STRONG) && *targetp) {
@@ -2209,10 +2209,9 @@ static void property_set_str(Object *obj, Visitor *v, const char *name,
     g_free(value);
 }
 
-static void property_release_data(Object *obj, const char *name,
-                                  void *opaque)
+static void property_release_data(ObjectProperty *oprop, Object *obj)
 {
-    g_free(opaque);
+    g_free(oprop->opaque);
 }
 
 ObjectProperty *
@@ -2735,9 +2734,9 @@ static Object *property_resolve_alias(ObjectProperty *oprop,
     return object_resolve_path_component(prop->target_obj, prop->target_name);
 }
 
-static void property_release_alias(Object *obj, const char *name, void *opaque)
+static void property_release_alias(ObjectProperty *oprop, Object *obj)
 {
-    AliasProperty *prop = opaque;
+    AliasProperty *prop = oprop->opaque;
 
     g_free(prop->target_name);
     g_free(prop);

@@ -313,11 +313,10 @@ static void device_set_bootindex(Object *obj, Visitor *v, const char *name,
     add_boot_device_path(*prop->bootindex, prop->dev, prop->suffix);
 }
 
-static void property_release_bootindex(Object *obj, const char *name,
-                                       void *opaque)
+static void property_release_bootindex(ObjectProperty *oprop, Object *obj)
 
 {
-    BootIndexProperty *prop = opaque;
+    BootIndexProperty *prop = oprop->opaque;
 
     del_boot_device_path(prop->dev, prop->suffix);
     g_free(prop);

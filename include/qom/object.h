@@ -63,14 +63,11 @@ typedef Object *(ObjectPropertyResolve)(ObjectProperty *prop, Object *obj);
 /**
  * typedef ObjectPropertyRelease:
  * @obj: the object that owns the property
- * @name: the name of the property
- * @opaque: the opaque registered with the property
+ * @prop: the property to be released
  *
  * Called when a property is removed from a object.
  */
-typedef void (ObjectPropertyRelease)(Object *obj,
-                                     const char *name,
-                                     void *opaque);
+typedef void (ObjectPropertyRelease)(ObjectProperty *prop, Object *obj);
 
 /**
  * typedef ObjectPropertyInit:
