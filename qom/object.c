@@ -497,7 +497,7 @@ static void object_class_property_init_all(Object *obj)
     object_class_property_iter_init(&iter, object_get_class(obj));
     while ((prop = object_property_iter_next(&iter))) {
         if (prop->init) {
-            prop->init(obj, prop);
+            prop->init(prop, obj);
         }
     }
 }
@@ -1547,7 +1547,7 @@ int64_t object_property_get_int(Object *obj, const char *name,
     return retval;
 }
 
-static void object_property_init_defval(Object *obj, ObjectProperty *prop)
+static void object_property_init_defval(ObjectProperty *prop, Object *obj)
 {
     Visitor *v = qobject_input_visitor_new(prop->defval);
 

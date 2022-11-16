@@ -71,12 +71,12 @@ typedef void (ObjectPropertyRelease)(ObjectProperty *prop, Object *obj);
 
 /**
  * typedef ObjectPropertyInit:
- * @obj: the object that owns the property
  * @prop: the property to set
+ * @obj: the object that owns the property
  *
  * Called when a property is initialized.
  */
-typedef void (ObjectPropertyInit)(Object *obj, ObjectProperty *prop);
+typedef void (ObjectPropertyInit)(ObjectProperty *prop, Object *obj);
 
 struct ObjectProperty
 {

@@ -872,7 +872,7 @@ void qdev_property_add_static(DeviceState *dev, Property *prop)
     if (prop->set_default) {
         prop->info->set_default_value(op, prop);
         if (op->init) {
-            op->init(obj, op);
+            op->init(op, obj);
         }
     }
 }
