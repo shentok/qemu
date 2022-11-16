@@ -47,10 +47,10 @@ typedef void (ObjectPropertyAccessor)(Object *obj,
 
 /**
  * typedef ObjectPropertyResolve:
+ * @prop: the property to be resolved
  * @obj: the object that owns the property
- * @opaque: the opaque registered with the property
  *
- * Resolves the #Object corresponding to property @part.
+ * Resolves the #Object corresponding to property @prop.
  *
  * The returned object can also be used as a starting point
  * to resolve a relative path starting with "@part".
@@ -58,8 +58,7 @@ typedef void (ObjectPropertyAccessor)(Object *obj,
  * Returns: If @path is the path that led to @obj, the function
  * returns the #Object corresponding to "@path/@part".
  */
-typedef Object *(ObjectPropertyResolve)(Object *obj,
-                                        void *opaque);
+typedef Object *(ObjectPropertyResolve)(ObjectProperty *prop, Object *obj);
 
 /**
  * typedef ObjectPropertyRelease:

@@ -1212,7 +1212,8 @@ static void memory_region_get_container(Object *obj, Visitor *v,
     }
 }
 
-static Object *memory_region_resolve_container(Object *obj, void *opaque)
+static Object *memory_region_resolve_container(ObjectProperty *oprop,
+                                               Object *obj)
 {
     MemoryRegion *mr = MEMORY_REGION(obj);
 
