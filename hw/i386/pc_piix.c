@@ -104,6 +104,7 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     PCMachineState *pcms = PC_MACHINE(machine);
     PCMachineClass *pcmc = PC_MACHINE_GET_CLASS(pcms);
     X86MachineState *x86ms = X86_MACHINE(machine);
+    MachineClass *mc = MACHINE_GET_CLASS(machine);
     MemoryRegion *system_memory = get_system_memory();
     MemoryRegion *system_io = get_system_io();
     Object *phb = NULL;
@@ -345,7 +346,8 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     }
 
     /* init basic PC hardware */
-    pc_basic_device_init(pcms, isa_bus, x86ms->gsi, x86ms->rtc, true, 0x4);
+    pc_basic_device_init(pcms, isa_bus, x86ms->gsi, x86ms->rtc, !mc->no_floppy,
+                         0x4);
 }
 
 typedef enum PCSouthBridgeOption {
