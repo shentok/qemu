@@ -128,20 +128,17 @@ static void pc_q35_init(MachineState *machine)
     PCMachineState *pcms = PC_MACHINE(machine);
     PCMachineClass *pcmc = PC_MACHINE_GET_CLASS(pcms);
     X86MachineState *x86ms = X86_MACHINE(machine);
-    Object *phb;
+    MachineClass *mc = MACHINE_GET_CLASS(machine);
+    Object *phb = NULL;
+    ISABus *isa_bus;
     PCIDevice *lpc;
-    DeviceState *lpc_dev;
+    DeviceState *dev;
+    GSIState *gsi_state;
     MemoryRegion *system_memory = get_system_memory();
     MemoryRegion *system_io = get_system_io();
     MemoryRegion *pci_memory = g_new(MemoryRegion, 1);
-    GSIState *gsi_state;
-    ISABus *isa_bus;
     int i;
     ram_addr_t lowmem;
-    DriveInfo *hd[MAX_SATA_PORTS];
-    MachineClass *mc = MACHINE_GET_CLASS(machine);
-    bool acpi_pcihp;
-    bool keep_pci_slot_hpc;
     uint64_t pci_hole64_size = 0;
 
     assert(pcmc->pci_enabled);
@@ -195,13 +192,8 @@ static void pc_q35_init(MachineState *machine)
     /* create pci host bus */
     phb = OBJECT(qdev_new(TYPE_Q35_HOST_DEVICE));
 
-    pci_hole64_size = object_property_get_uint(phb,
-                                               PCI_HOST_PROP_PCI_HOLE64_SIZE,
-                                               &error_abort);
-
     /* allocate ram and load rom/bios */
     memory_region_init(pci_memory, NULL, "pci", UINT64_MAX);
-    pc_memory_init(pcms, system_memory, pci_memory, pci_hole64_size);
 
     object_property_add_child(OBJECT(machine), "phb", phb);
     object_property_set_link(phb, PCI_HOST_PROP_RAM_MEM,
@@ -223,23 +215,29 @@ static void pc_q35_init(MachineState *machine)
     /* pci */
     pcms->pcibus = PCI_BUS(qdev_get_child_bus(DEVICE(phb), "pcie.0"));
 
+    pci_hole64_size = object_property_get_uint(phb,
+                                               PCI_HOST_PROP_PCI_HOLE64_SIZE,
+                                               &error_abort);
+
+    pc_memory_init(pcms, system_memory, pci_memory, pci_hole64_size);
+
     /* irq lines */
     gsi_state = pc_gsi_create(&x86ms->gsi, true);
 
     /* create ISA bus */
     lpc = pci_new_multifunction(PCI_DEVFN(ICH9_LPC_DEV, ICH9_LPC_FUNC),
                                 TYPE_ICH9_LPC_DEVICE);
-    lpc_dev = DEVICE(lpc);
-    qdev_prop_set_bit(lpc_dev, "smm-enabled",
+    dev = DEVICE(lpc);
+    qdev_prop_set_bit(dev, "smm-enabled",
                       x86_machine_is_smm_enabled(x86ms));
     for (i = 0; i < IOAPIC_NUM_PINS; i++) {
-        qdev_connect_gpio_out_named(lpc_dev, ICH9_GPIO_GSI, i, x86ms->gsi[i]);
+        qdev_connect_gpio_out_named(dev, ICH9_GPIO_GSI, i, x86ms->gsi[i]);
     }
     pci_realize_and_unref(lpc, pcms->pcibus, &error_fatal);
 
     x86ms->rtc = ISA_DEVICE(object_resolve_path_component(OBJECT(lpc), "rtc"));
 
-    isa_bus = ISA_BUS(qdev_get_child_bus(lpc_dev, "isa.0"));
+    isa_bus = ISA_BUS(qdev_get_child_bus(dev, "isa.0"));
 
     if (x86ms->pic == ON_OFF_AUTO_ON || x86ms->pic == ON_OFF_AUTO_AUTO) {
         pc_i8259_create(isa_bus, gsi_state->i8259_irq);
@@ -254,6 +252,7 @@ static void pc_q35_init(MachineState *machine)
     if (pcms->sata_enabled) {
         PCIDevice *pdev;
         AHCIPCIState *ich9;
+        DriveInfo *hd[MAX_SATA_PORTS];
 
         /* ahci and SATA device, for q35 1 ahci controller is built-in */
         pdev = pci_create_simple_multifunction(pcms->pcibus,
@@ -273,17 +272,10 @@ static void pc_q35_init(MachineState *machine)
         ehci_create_ich9_with_companions(pcms->pcibus, 0x1d);
     }
 
-    if (pcms->smbus_enabled) {
-        PCIDevice *smb;
-
-        smb = pci_create_simple_multifunction(pcms->pcibus,
-                                              PCI_DEVFN(ICH9_SMB_DEV,
-                                                        ICH9_SMB_FUNC),
-                                              TYPE_ICH9_SMB_DEVICE);
-        pcms->smbus = I2C_BUS(qdev_get_child_bus(DEVICE(smb), "i2c"));
-    }
-
     if (x86_machine_is_acpi_enabled(x86ms)) {
+        bool acpi_pcihp;
+        bool keep_pci_slot_hpc;
+
         qdev_connect_gpio_out_named(DEVICE(lpc), "smi-irq", 0, x86ms->smi_irq);
 
         object_property_add_link(OBJECT(machine), PC_MACHINE_ACPI_DEVICE_PROP,
@@ -307,6 +299,16 @@ static void pc_q35_init(MachineState *machine)
                                        "x-do-not-expose-native-hotplug-cap",
                                        "true", true);
         }
+    }
+
+    if (pcms->smbus_enabled) {
+        PCIDevice *smb;
+
+        smb = pci_create_simple_multifunction(pcms->pcibus,
+                                              PCI_DEVFN(ICH9_SMB_DEV,
+                                                        ICH9_SMB_FUNC),
+                                              TYPE_ICH9_SMB_DEVICE);
+        pcms->smbus = I2C_BUS(qdev_get_child_bus(DEVICE(smb), "i2c"));
     }
 
     /* init basic PC hardware */

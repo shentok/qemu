@@ -105,17 +105,18 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     PCMachineClass *pcmc = PC_MACHINE_GET_CLASS(pcms);
     X86MachineState *x86ms = X86_MACHINE(machine);
     MachineClass *mc = MACHINE_GET_CLASS(machine);
-    MemoryRegion *system_memory = get_system_memory();
-    MemoryRegion *system_io = get_system_io();
     Object *phb = NULL;
     ISABus *isa_bus;
     Object *piix4_pm = NULL;
     GSIState *gsi_state;
+    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_io = get_system_io();
     MemoryRegion *ram_memory;
     MemoryRegion *pci_memory = NULL;
     MemoryRegion *rom_memory = system_memory;
+    int i;
     ram_addr_t lowmem;
-    uint64_t hole64_size = 0;
+    uint64_t pci_hole64_size = 0;
 
     /*
      * Calculate ram split, for memory below and above 4G.  It's a bit
@@ -214,14 +215,14 @@ static void pc_init1(MachineState *machine, const char *pci_type)
                          xen_enabled() ? xen_pci_slot_get_pirq
                                        : pc_pci_slot_get_pirq);
 
-        hole64_size = object_property_get_uint(phb,
-                                               PCI_HOST_PROP_PCI_HOLE64_SIZE,
-                                               &error_abort);
+        pci_hole64_size = object_property_get_uint(phb,
+                                                   PCI_HOST_PROP_PCI_HOLE64_SIZE,
+                                                   &error_abort);
     }
 
     /* allocate ram and load rom/bios */
     if (!xen_enabled()) {
-        pc_memory_init(pcms, system_memory, rom_memory, hole64_size);
+        pc_memory_init(pcms, system_memory, rom_memory, pci_hole64_size);
     } else {
         assert(machine->ram_size == x86ms->below_4g_mem_size +
                                     x86ms->above_4g_mem_size);
@@ -233,12 +234,12 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         }
     }
 
+    /* irq lines */
     gsi_state = pc_gsi_create(&x86ms->gsi, pcmc->pci_enabled);
 
     if (pcmc->pci_enabled) {
         PCIDevice *pci_dev;
         DeviceState *dev;
-        size_t i;
 
         pci_dev = pci_new_multifunction(-1, pcms->south_bridge);
         object_property_set_bool(OBJECT(pci_dev), "has-usb",
@@ -310,7 +311,6 @@ static void pc_init1(MachineState *machine, const char *pci_type)
 #ifdef CONFIG_IDE_ISA
     if (!pcmc->pci_enabled) {
         DriveInfo *hd[MAX_IDE_BUS * MAX_IDE_DEVS];
-        int i;
 
         ide_drive_get(hd, ARRAY_SIZE(hd));
         for (i = 0; i < MAX_IDE_BUS; i++) {
