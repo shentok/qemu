@@ -103,18 +103,19 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     PCMachineState *pcms = PC_MACHINE(machine);
     PCMachineClass *pcmc = PC_MACHINE_GET_CLASS(pcms);
     X86MachineState *x86ms = X86_MACHINE(machine);
-    MemoryRegion *system_memory = get_system_memory();
-    MemoryRegion *system_io = get_system_io();
+    MachineClass *mc = MACHINE_GET_CLASS(machine);
     Object *phb;
     ISABus *isa_bus;
     Object *piix4_pm = NULL;
     qemu_irq smi_irq;
-    GSIState *gsi_state;
-    MemoryRegion *ram_memory;
-    ram_addr_t lowmem;
     PCIDevice *pci_dev;
     DeviceState *dev;
-    size_t i;
+    GSIState *gsi_state;
+    MemoryRegion *system_memory = get_system_memory();
+    MemoryRegion *system_io = get_system_io();
+    MemoryRegion *ram_memory;
+    int i;
+    ram_addr_t lowmem;
 
     assert(pcmc->pci_enabled);
 
@@ -187,6 +188,7 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         kvmclock_create(pcmc->kvmclock_create_always);
     }
 
+    /* create pci host bus */
     phb = OBJECT(qdev_new(TYPE_I440FX_PCI_HOST_BRIDGE));
     object_property_add_child(OBJECT(machine), "phb", phb);
     object_property_set_link(phb, PCI_HOST_PROP_RAM_MEM,
@@ -203,6 +205,7 @@ static void pc_init1(MachineState *machine, const char *pci_type)
                             &error_fatal);
     sysbus_realize_and_unref(SYS_BUS_DEVICE(phb), &error_fatal);
 
+    /* pci */
     pcms->pcibus = PCI_BUS(qdev_get_child_bus(DEVICE(phb), "pci.0"));
     pci_bus_map_irqs(pcms->pcibus,
                      xen_enabled() ? xen_pci_slot_get_pirq
@@ -229,6 +232,7 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         }
     }
 
+    /* irq lines */
     gsi_state = pc_gsi_create(&x86ms->gsi, true);
 
     pci_dev = pci_new_multifunction(-1, pcms->south_bridge);
@@ -301,8 +305,8 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     }
 
     /* init basic PC hardware */
-    pc_basic_device_init(pcms, isa_bus, x86ms->gsi, x86ms->rtc,
-                         !MACHINE_CLASS(pcmc)->no_floppy, 0x4);
+    pc_basic_device_init(pcms, isa_bus, x86ms->gsi, x86ms->rtc, !mc->no_floppy,
+                         0x4);
 
 #if defined(CONFIG_IGVM)
     /* Apply guest state from IGVM if supplied */
