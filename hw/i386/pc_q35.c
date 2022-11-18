@@ -236,28 +236,6 @@ static void pc_q35_init(MachineState *machine)
 
     x86ms->rtc = ISA_DEVICE(object_resolve_path_component(OBJECT(lpc), "rtc"));
 
-    object_property_add_link(OBJECT(machine), PC_MACHINE_ACPI_DEVICE_PROP,
-                             TYPE_HOTPLUG_HANDLER,
-                             (Object **)&x86ms->acpi_dev,
-                             object_property_allow_set_link,
-                             OBJ_PROP_LINK_STRONG);
-    object_property_set_link(OBJECT(machine), PC_MACHINE_ACPI_DEVICE_PROP,
-                             OBJECT(lpc), &error_abort);
-
-    acpi_pcihp = object_property_get_bool(OBJECT(lpc),
-                                          ACPI_PM_PROP_ACPI_PCIHP_BRIDGE,
-                                          NULL);
-
-    keep_pci_slot_hpc = object_property_get_bool(OBJECT(lpc),
-                                                 "x-keep-pci-slot-hpc",
-                                                 NULL);
-
-    if (!keep_pci_slot_hpc && acpi_pcihp) {
-        object_register_sugar_prop(TYPE_PCIE_SLOT,
-                                   "x-do-not-expose-native-hotplug-cap",
-                                   "true", true);
-    }
-
     isa_bus = ISA_BUS(qdev_get_child_bus(lpc_dev, "isa.0"));
 
     if (x86ms->pic == ON_OFF_AUTO_ON || x86ms->pic == ON_OFF_AUTO_AUTO) {
@@ -300,6 +278,30 @@ static void pc_q35_init(MachineState *machine)
                                                         ICH9_SMB_FUNC),
                                               TYPE_ICH9_SMB_DEVICE);
         pcms->smbus = I2C_BUS(qdev_get_child_bus(DEVICE(smb), "i2c"));
+    }
+
+    if (x86_machine_is_acpi_enabled(x86ms)) {
+        object_property_add_link(OBJECT(machine), PC_MACHINE_ACPI_DEVICE_PROP,
+                                 TYPE_HOTPLUG_HANDLER,
+                                 (Object **)&x86ms->acpi_dev,
+                                 object_property_allow_set_link,
+                                 OBJ_PROP_LINK_STRONG);
+        object_property_set_link(OBJECT(machine), PC_MACHINE_ACPI_DEVICE_PROP,
+                                 OBJECT(lpc), &error_abort);
+
+        acpi_pcihp = object_property_get_bool(OBJECT(lpc),
+                                              ACPI_PM_PROP_ACPI_PCIHP_BRIDGE,
+                                              NULL);
+
+        keep_pci_slot_hpc = object_property_get_bool(OBJECT(lpc),
+                                                     "x-keep-pci-slot-hpc",
+                                                     NULL);
+
+        if (!keep_pci_slot_hpc && acpi_pcihp) {
+            object_register_sugar_prop(TYPE_PCIE_SLOT,
+                                       "x-do-not-expose-native-hotplug-cap",
+                                       "true", true);
+        }
     }
 
     /* init basic PC hardware */
