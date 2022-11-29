@@ -728,7 +728,7 @@ static int booke206_initial_map_tsize(uint64_t size)
 
     /* Our initial TLB entry needs to cover everything from 0 to
        the device tree top */
-    ps = booke206_page_size_to_tlb(size) + 1;
+    ps = booke206_page_size_to_tlb(size);
     if (ps & 1) {
         /* e500v2 can only do even TLB size bits */
         ps++;
