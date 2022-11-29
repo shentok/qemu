@@ -720,9 +720,12 @@ int ppcmas_tlb_check(CPUPPCState *env, ppcmas_tlb_t *tlb, hwaddr *raddrp,
     mask = ~(booke206_tlb_to_page_size(env, tlb) - 1);
      qemu_log_mask(CPU_LOG_MMU, "%s: TLB ADDR=0x" TARGET_FMT_lx
                    " PID=0x%x MAS1=0x%x MAS2=0x%" PRIx64 " mask=0x%"
-                   HWADDR_PRIx " MAS7_3=0x%" PRIx64 " MAS8=0x%" PRIx32 "\n",
+                   HWADDR_PRIx " MAS7_3=0x%" PRIx64 " MAS8=0x%" PRIx32
+                   " address & mask=0x%" PRIx32
+                   ", tlb->mas2 & MAS2_EPN_MASK=0x%" PRIx32 "\n",
                    __func__, address, pid, tlb->mas1, tlb->mas2, mask,
-                   tlb->mas7_3, tlb->mas8);
+                   tlb->mas7_3, tlb->mas8, (uint32_t)(address & mask),
+                   (uint32_t)(tlb->mas2 & MAS2_EPN_MASK));
 
     /* Check PID */
     tlb_pid = (tlb->mas1 & MAS1_TID_MASK) >> MAS1_TID_SHIFT;
