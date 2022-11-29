@@ -741,6 +741,26 @@ static uint64_t mmubooke_initial_mapsize(uint64_t size)
     return (1ULL << 10 << tsize);
 }
 
+/* Create reset TLB entries for BookE, mapping only the flash memory. */
+static void mmubooke_create_initial_mapping_uboot(CPUPPCState *env)
+{
+    ppcmas_tlb_t *tlb = booke206_get_tlbm(env, 1, env->nip, 0);
+    hwaddr start = 4 * GiB - 4 * KiB;
+    hwaddr size;
+    int ps;
+
+    ps = booke206_initial_map_tsize(4 * KiB);
+    size = (ps << MAS1_TSIZE_SHIFT);
+    tlb->mas1 = MAS1_VALID | size;
+    tlb->mas2 = (start & TARGET_PAGE_MASK) | MAS2_M;
+    tlb->mas7_3 = start & TARGET_PAGE_MASK;
+    tlb->mas7_3 |= MAS3_UR | MAS3_UW | MAS3_UX | MAS3_SR | MAS3_SW | MAS3_SX;
+
+#ifdef CONFIG_KVM
+    env->tlb_dirty = true;
+#endif
+}
+
 /* Create -kernel TLB entries for BookE. */
 static void mmubooke_create_initial_mapping(CPUPPCState *env)
 {
@@ -783,15 +803,19 @@ static void ppce500_cpu_reset(void *opaque)
     /* Set initial guest state. */
     cs->halted = 0;
     env->gpr[1] = (16 * MiB) - 8;
-    env->gpr[3] = bi->dt_base;
+    env->gpr[3] = bi ? bi->dt_base : 0;
     env->gpr[4] = 0;
     env->gpr[5] = 0;
     env->gpr[6] = EPAPR_MAGIC;
-    env->gpr[7] = mmubooke_initial_mapsize(bi->size);
+    env->gpr[7] = mmubooke_initial_mapsize(bi ? bi->size : 4 * KiB);
     env->gpr[8] = 0;
     env->gpr[9] = 0;
-    env->nip = bi->entry;
-    mmubooke_create_initial_mapping(env);
+    if (bi) {
+        env->nip = bi->entry;
+        mmubooke_create_initial_mapping(env);
+    } else {
+        mmubooke_create_initial_mapping_uboot(env);
+    }
 }
 
 static DeviceState *ppce500_init_mpic_qemu(PPCE500MachineState *pms,
@@ -897,18 +921,17 @@ void ppce500_init(MachineState *machine)
     const PPCE500MachineClass *pmc = PPCE500_MACHINE_GET_CLASS(machine);
     MachineClass *mc = MACHINE_CLASS(pmc);
     PCIBus *pci_bus;
-    uint64_t loadaddr;
+    uint64_t loadaddr = 0;
     hwaddr kernel_base = -1LL;
     int kernel_size = 0;
     hwaddr dt_base = 0;
     hwaddr initrd_base = 0;
     int initrd_size = 0;
     hwaddr cur_base = 0;
-    char *filename;
     const char *payload_name;
     bool kernel_as_payload;
     hwaddr bios_entry = 0;
-    target_long payload_size;
+    target_long payload_size = 0;
     int dt_size;
     int i;
     unsigned int smp_cpus = machine->smp.cpus;
@@ -1166,6 +1189,8 @@ void ppce500_init(MachineState *machine)
         if (machine->kernel_filename) {
             payload_name = machine->kernel_filename;
             kernel_as_payload = true;
+        } else if (dinfo) {
+            payload_name = NULL;
         } else {
             payload_name = "u-boot.e500";
         }
@@ -1173,30 +1198,34 @@ void ppce500_init(MachineState *machine)
         payload_name = machine->firmware;
     }
 
-    filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, payload_name);
-    if (!filename) {
-        error_report("could not find firmware/kernel file '%s'", payload_name);
-        exit(1);
-    }
+    if (payload_name) {
+        char *filename;
 
-    payload_size = load_elf(filename, NULL, NULL, NULL,
-                            &bios_entry, &loadaddr, NULL, NULL,
-                            1, PPC_ELF_MACHINE, 0, 0);
-    if (payload_size < 0) {
-        /*
-         * Hrm. No ELF image? Try a uImage, maybe someone is giving us an
-         * ePAPR compliant kernel
-         */
-        loadaddr = LOAD_UIMAGE_LOADADDR_INVALID;
-        payload_size = load_uimage(filename, &bios_entry, &loadaddr, NULL,
-                                   NULL, NULL);
-        if (payload_size < 0) {
-            error_report("could not load firmware '%s'", filename);
+        filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, payload_name);
+        if (!filename) {
+            error_report("could not find firmware/kernel file '%s'", payload_name);
             exit(1);
         }
-    }
 
-    g_free(filename);
+        payload_size = load_elf(filename, NULL, NULL, NULL,
+                                &bios_entry, &loadaddr, NULL, NULL,
+                                1, PPC_ELF_MACHINE, 0, 0);
+        if (payload_size < 0) {
+            /*
+             * Hrm. No ELF image? Try a uImage, maybe someone is giving us an
+             * ePAPR compliant kernel
+             */
+            loadaddr = LOAD_UIMAGE_LOADADDR_INVALID;
+            payload_size = load_uimage(filename, &bios_entry, &loadaddr, NULL,
+                                       NULL, NULL);
+            if (payload_size < 0) {
+                error_report("could not load firmware '%s'", filename);
+                exit(1);
+            }
+        }
+
+        g_free(filename);
+    }
 
     if (kernel_as_payload) {
         kernel_base = loadaddr;
@@ -1266,7 +1295,7 @@ void ppce500_init(MachineState *machine)
     pms->boot_info.entry = bios_entry;
     pms->boot_info.dt_base = dt_base;
     pms->boot_info.size = dt_base + dt_size;
-    firstenv->load_info = &pms->boot_info;
+    firstenv->load_info = payload_name ? &pms->boot_info : NULL;
 }
 
 static void e500_ccsr_initfn(Object *obj)
