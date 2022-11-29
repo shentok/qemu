@@ -7,7 +7,7 @@
 
 typedef struct boot_info {
     uint32_t dt_base;
-    uint32_t dt_size;
+    uint32_t size;
     uint32_t entry;
 } boot_info;
 

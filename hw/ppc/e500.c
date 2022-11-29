@@ -719,16 +719,13 @@ hwaddr booke206_page_size_to_tlb(uint64_t size)
     return 63 - clz64(size / KiB);
 }
 
-static int booke206_initial_map_tsize(CPUPPCState *env)
+static int booke206_initial_map_tsize(uint64_t size)
 {
-    struct boot_info *bi = env->load_info;
-    hwaddr dt_end;
     int ps;
 
     /* Our initial TLB entry needs to cover everything from 0 to
        the device tree top */
-    dt_end = bi->dt_base + bi->dt_size;
-    ps = booke206_page_size_to_tlb(dt_end) + 1;
+    ps = booke206_page_size_to_tlb(size) + 1;
     if (ps & 1) {
         /* e500v2 can only do even TLB size bits */
         ps++;
@@ -736,11 +733,11 @@ static int booke206_initial_map_tsize(CPUPPCState *env)
     return ps;
 }
 
-static uint64_t mmubooke_initial_mapsize(CPUPPCState *env)
+static uint64_t mmubooke_initial_mapsize(uint64_t size)
 {
     int tsize;
 
-    tsize = booke206_initial_map_tsize(env);
+    tsize = booke206_initial_map_tsize(size);
     return (1ULL << 10 << tsize);
 }
 
@@ -748,10 +745,11 @@ static uint64_t mmubooke_initial_mapsize(CPUPPCState *env)
 static void mmubooke_create_initial_mapping(CPUPPCState *env)
 {
     ppcmas_tlb_t *tlb = booke206_get_tlbm(env, 1, 0, 0);
+    struct boot_info *bi = env->load_info;
     hwaddr size;
     int ps;
 
-    ps = booke206_initial_map_tsize(env);
+    ps = booke206_initial_map_tsize(bi->size);
     size = (ps << MAS1_TSIZE_SHIFT);
     tlb->mas1 = MAS1_VALID | size;
     tlb->mas2 = 0;
@@ -789,7 +787,7 @@ static void ppce500_cpu_reset(void *opaque)
     env->gpr[4] = 0;
     env->gpr[5] = 0;
     env->gpr[6] = EPAPR_MAGIC;
-    env->gpr[7] = mmubooke_initial_mapsize(env);
+    env->gpr[7] = mmubooke_initial_mapsize(bi->size);
     env->gpr[8] = 0;
     env->gpr[9] = 0;
     env->nip = bi->entry;
@@ -1267,7 +1265,7 @@ void ppce500_init(MachineState *machine)
 
     pms->boot_info.entry = bios_entry;
     pms->boot_info.dt_base = dt_base;
-    pms->boot_info.dt_size = dt_size;
+    pms->boot_info.size = dt_base + dt_size;
     firstenv->load_info = &pms->boot_info;
 }
 
