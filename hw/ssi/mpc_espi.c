@@ -288,7 +288,7 @@ static void mpc_espi_flush_txfifo(MPCESPIState *s)
             }
         }
     } else {
-        for (; s->rx_skip > 0; s->rx_skip--) {
+        for (; s->rx_skip > 0 && !fifo8_is_empty(&s->tx_fifo); s->rx_skip--) {
             uint32_t tx = mpc_espi_tx_fifo_pop(s);
 
             /* We need to write one byte at a time */
