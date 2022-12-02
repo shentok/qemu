@@ -11,6 +11,7 @@ the basics if you are adding new files and targets to the build.
    build-system
    kconfig
    testing
+   testing-acceptance
    acpi-bits
    qtest
    ci
