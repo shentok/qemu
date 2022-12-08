@@ -221,6 +221,8 @@ static void kvm_apic_reset(APICCommonState *s)
     /* Not used by KVM, which uses the CPU mp_state instead.  */
     s->wait_for_sipi = 0;
 
+    apic_reset_irq_delivered();
+
     run_on_cpu(CPU(s->cpu), kvm_apic_put, RUN_ON_CPU_HOST_PTR(s));
 }
 
