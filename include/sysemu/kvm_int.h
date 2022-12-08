@@ -128,4 +128,6 @@ void kvm_set_max_memslot_size(hwaddr max_slot_size);
  * Return: None.
  */
 void kvm_hwpoison_page_add(ram_addr_t ram_addr);
+
+void kvm_report_irq_delivered(int delivered);
 #endif

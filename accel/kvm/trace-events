@@ -26,3 +26,7 @@ kvm_dirty_ring_reap(uint64_t count, int64_t t) "reaped %"PRIu64" pages (took %"P
 kvm_dirty_ring_reaper_kick(const char *reason) "%s"
 kvm_dirty_ring_flush(int finished) "%d"
 
+# coalescing
+kvm_report_irq_delivered(int apic_irq_delivered) "coalescing %d"
+kvm_reset_irq_delivered(int apic_irq_delivered) "old coalescing %d"
+kvm_get_irq_delivered(int apic_irq_delivered) "returning coalescing %d"

@@ -14,9 +14,9 @@
 #include "hw/isa/i8259_internal.h"
 #include "hw/intc/i8259.h"
 #include "qemu/module.h"
-#include "hw/i386/apic_internal.h"
 #include "hw/irq.h"
 #include "sysemu/kvm.h"
+#include "sysemu/kvm_int.h"
 #include "qom/object.h"
 
 #define TYPE_KVM_I8259 "kvm-i8259"
@@ -117,7 +117,7 @@ static void kvm_pic_set_irq(void *opaque, int irq, int level)
 
     pic_stat_update_irq(irq, level);
     delivered = kvm_set_irq(kvm_state, irq, level);
-    apic_report_irq_delivered(delivered);
+    kvm_report_irq_delivered(delivered);
 }
 
 static void kvm_pic_realize(DeviceState *dev, Error **errp)

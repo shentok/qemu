@@ -226,6 +226,8 @@ int kvm_has_pit_state2(void);
 int kvm_has_many_ioeventfds(void);
 int kvm_has_gsi_routing(void);
 int kvm_has_intx_set_mask(void);
+void kvm_reset_irq_delivered(void);
+int kvm_get_irq_delivered(void);
 
 /**
  * kvm_arm_supports_user_irq

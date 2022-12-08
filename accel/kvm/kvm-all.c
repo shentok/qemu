@@ -104,6 +104,7 @@ bool kvm_has_guest_debug;
 static int kvm_sstep_flags;
 static bool kvm_immediate_exit;
 static hwaddr kvm_max_slot_size = ~0;
+static int apic_irq_delivered;
 
 static const KVMCapabilityInfo kvm_required_capabilites[] = {
     KVM_CAP_INFO(USER_MEMORY),
@@ -133,6 +134,33 @@ static QemuMutex kml_slots_lock;
 
 #define kvm_slots_lock()    qemu_mutex_lock(&kml_slots_lock)
 #define kvm_slots_unlock()  qemu_mutex_unlock(&kml_slots_lock)
+
+void kvm_report_irq_delivered(int delivered)
+{
+    apic_irq_delivered += delivered;
+
+    trace_kvm_report_irq_delivered(apic_irq_delivered);
+}
+
+void kvm_reset_irq_delivered(void)
+{
+    /*
+     * Copy this into a local variable to encourage gcc to emit a plain
+     * register for a sys/sdt.h marker.  For details on this workaround, see:
+     * https://sourceware.org/bugzilla/show_bug.cgi?id=13296
+     */
+    volatile int a_i_d = apic_irq_delivered;
+    trace_kvm_reset_irq_delivered(a_i_d);
+
+    apic_irq_delivered = 0;
+}
+
+int kvm_get_irq_delivered(void)
+{
+    trace_kvm_get_irq_delivered(apic_irq_delivered);
+
+    return apic_irq_delivered;
+}
 
 static void kvm_slot_init_dirty_bitmap(KVMSlot *mem);
 
