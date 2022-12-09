@@ -26,6 +26,7 @@ struct PPCE500MachineState {
     PPCE500ELbcState elbc;
 
     MemoryRegion sram;
+    MemoryRegion cpld;
 };
 
 struct PPCE500MachineClass {

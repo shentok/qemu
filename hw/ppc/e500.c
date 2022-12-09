@@ -1096,6 +1096,11 @@ void ppce500_init(MachineState *machine)
                            512 * KiB, &error_fatal);
     memory_region_add_subregion(address_space_mem, pmc->sram_base, &pms->sram);
 
+    memory_region_init_ram(&pms->cpld, OBJECT(dev), "e500 CPLD",
+                           1 * MiB, &error_fatal);
+    memory_region_add_subregion(address_space_mem, 0xffa00000,
+                                &pms->cpld);
+
     /* General Utility device */
     dev = qdev_new("mpc8544-guts");
     s = SYS_BUS_DEVICE(dev);
