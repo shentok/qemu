@@ -3,6 +3,7 @@
 
 #include "hw/boards.h"
 #include "hw/platform-bus.h"
+#include "exec/memory.h"
 #include "qom/object.h"
 
 typedef struct boot_info {
@@ -21,6 +22,8 @@ struct PPCE500MachineState {
      * board supports dynamic sysbus devices
      */
     PlatformBusDevice *pbus_dev;
+
+    MemoryRegion sram;
 };
 
 struct PPCE500MachineClass {
@@ -45,6 +48,7 @@ struct PPCE500MachineClass {
     hwaddr pci_mmio_base;
     hwaddr pci_mmio_bus_base;
     hwaddr spin_base;
+    hwaddr sram_base;
 };
 
 void ppce500_init(MachineState *machine);
