@@ -62,6 +62,12 @@
 
 /* TODO: parameterize */
 #define MPC8544_CCSRBAR_SIZE       0x00100000ULL
+#define MPC8XXX_DDR_REGS_OFFSET    0x2000ULL
+#define MPC8XXX_DDR_REGS_SIZE      0x1000ULL
+#define MPC85XX_DUART_OFFSET       0x4000ULL
+#define MPC85XX_DUART_SIZE         0x1000ULL
+#define MPC8XXX_SRAM_REGS_OFFSET   0x20000ULL
+#define MPC8XXX_SRAM_REGS_SIZE     0x1000ULL
 #define MPC8544_MPIC_REGS_OFFSET   0x40000ULL
 #define MPC8544_MSI_REGS_OFFSET   0x41600ULL
 #define MPC8544_SERIAL0_REGS_OFFSET 0x4500ULL
@@ -1137,6 +1143,25 @@ void ppce500_init(MachineState *machine)
         poweroff_irq = qemu_allocate_irq(ppce500_power_off, NULL, 0);
         qdev_connect_gpio_out(dev, 0, poweroff_irq);
     }
+
+    /* DDR */
+    dev = qdev_new(TYPE_UNIMPLEMENTED_DEVICE);
+    qdev_prop_set_string(dev, "name", "e500 DDR control registers");
+    qdev_prop_set_uint64(dev, "size", MPC8XXX_DDR_REGS_SIZE);
+    s = SYS_BUS_DEVICE(dev);
+    sysbus_realize_and_unref(s, &error_fatal);
+    memory_region_add_subregion(ccsr_addr_space, MPC8XXX_DDR_REGS_OFFSET,
+                                sysbus_mmio_get_region(s, 0));
+
+    /* L2 Cache/SRAM */
+    dev = qdev_new(TYPE_UNIMPLEMENTED_DEVICE);
+    qdev_prop_set_string(dev, "name",
+                         "e500 L2 Look-Aside Cache/SRAM control registers");
+    qdev_prop_set_uint64(dev, "size", MPC8XXX_SRAM_REGS_SIZE);
+    s = SYS_BUS_DEVICE(dev);
+    sysbus_realize_and_unref(s, &error_fatal);
+    memory_region_add_subregion(ccsr_addr_space, MPC8XXX_SRAM_REGS_OFFSET,
+                                sysbus_mmio_get_region(s, 0));
 
     /* eLBC */
     object_initialize_child(OBJECT(pms), "elbc", &pms->elbc, TYPE_E500_ELBC);
