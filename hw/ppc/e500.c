@@ -1082,6 +1082,10 @@ void ppce500_init(MachineState *machine)
                                     sysbus_mmio_get_region(s, 0));
     }
 
+    memory_region_init_ram(&pms->sram, NULL, "e500 L2 Look-Aside Cache/SRAM",
+                           512 * KiB, &error_fatal);
+    memory_region_add_subregion(address_space_mem, pmc->sram_base, &pms->sram);
+
     /* General Utility device */
     dev = qdev_new("mpc8544-guts");
     s = SYS_BUS_DEVICE(dev);
