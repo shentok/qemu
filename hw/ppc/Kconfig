@@ -146,6 +146,7 @@ config MAC_NEWWORLD
 config E500
     bool
     imply AT24C
+    imply SPARSE_MEM
     imply VIRTIO_PCI
     select ETSEC
     select GPIO_MPC8XXX

@@ -11,14 +11,13 @@
  */
 
 #include "qemu/osdep.h"
-#include "qemu/error-report.h"
 
 #include "hw/qdev-properties.h"
 #include "hw/sysbus.h"
 #include "qapi/error.h"
 #include "qemu/units.h"
-#include "system/qtest.h"
 #include "hw/mem/sparse-mem.h"
+#include "system/address-spaces.h"
 
 #define SPARSE_MEM(obj) OBJECT_CHECK(SparseMemState, (obj), TYPE_SPARSE_MEM)
 #define SPARSE_BLOCK_SIZE 0x1000
@@ -30,6 +29,7 @@ typedef struct SparseMemState {
     uint64_t length;
     uint64_t size_used;
     uint64_t maxsize;
+    int priority;
     GHashTable *mapped;
 } SparseMemState;
 
@@ -102,6 +102,7 @@ static const Property sparse_mem_properties[] = {
     DEFINE_PROP_UINT64("length", SparseMemState, length, UINT64_MAX),
     /* Max amount of actual memory that can be used to back the sparse memory */
     DEFINE_PROP_UINT64("maxsize", SparseMemState, maxsize, 10 * MiB),
+    DEFINE_PROP_INT32("priority", SparseMemState, priority, -10000),
 };
 
 MemoryRegion *sparse_mem_init(uint64_t addr, uint64_t length)
@@ -112,20 +113,12 @@ MemoryRegion *sparse_mem_init(uint64_t addr, uint64_t length)
     qdev_prop_set_uint64(dev, "baseaddr", addr);
     qdev_prop_set_uint64(dev, "length", length);
     sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
-    sysbus_mmio_map_overlap(SYS_BUS_DEVICE(dev), 0, addr, -10000);
     return &SPARSE_MEM(dev)->mmio;
 }
 
 static void sparse_mem_realize(DeviceState *dev, Error **errp)
 {
     SparseMemState *s = SPARSE_MEM(dev);
-    SysBusDevice *sbd = SYS_BUS_DEVICE(dev);
-
-    if (!qtest_enabled()) {
-        error_setg(errp, "sparse_mem device should only be used "
-                         "for testing with QTest");
-        return;
-    }
 
     assert(s->baseaddr + s->length > s->baseaddr);
 
@@ -133,7 +126,8 @@ static void sparse_mem_realize(DeviceState *dev, Error **errp)
                                       (GDestroyNotify)g_free);
     memory_region_init_io(&s->mmio, OBJECT(s), &sparse_mem_ops, s,
                           "sparse-mem", s->length);
-    sysbus_init_mmio(sbd, &s->mmio);
+    memory_region_add_subregion_overlap(get_system_memory(), s->baseaddr,
+                                        &s->mmio, s->priority);
 }
 
 static void sparse_mem_class_init(ObjectClass *klass, const void *data)
@@ -145,6 +139,7 @@ static void sparse_mem_class_init(ObjectClass *klass, const void *data)
 
     dc->desc = "Sparse Memory Device";
     dc->realize = sparse_mem_realize;
+    dc->user_creatable = true;
 
     rc->phases.enter = sparse_mem_enter_reset;
 }
