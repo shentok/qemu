@@ -23,7 +23,7 @@
 static void e500plat_fixup_devtree(void *fdt)
 {
     const char model[] = "QEMU ppce500";
-    const char compatible[] = "men,cb30\0fsl,qemu-e500";
+    const char compatible[] = "fsl,qemu-e500";
 
     qemu_fdt_setprop(fdt, "/", "model", model, sizeof(model));
     qemu_fdt_setprop(fdt, "/", "compatible", compatible,
@@ -89,10 +89,10 @@ static void e500plat_machine_class_init(ObjectClass *oc, void *data)
     pmc->platform_bus_first_irq = 5;
     pmc->platform_bus_num_irqs = 10;
     pmc->ccsrbar_base = 0xFF700000ULL;
-    pmc->pci_pio_base = 0xE1000000ULL;
-    pmc->pci_mmio_base = 0xC0000000ULL;
-    pmc->pci_mmio_bus_base = 0xC0000000ULL;
-    pmc->spin_base = 0xEF000000ULL;
+    pmc->pci_pio_base = 0xFE1000000ULL;
+    pmc->pci_mmio_base = 0xC00000000ULL;
+    pmc->pci_mmio_bus_base = 0xE0000000ULL;
+    pmc->spin_base = 0xFEF000000ULL;
     pmc->sram_base = 0xFFD00000ULL;
 
     mc->desc = "generic paravirt e500 platform";
