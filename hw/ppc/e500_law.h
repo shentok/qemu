@@ -8,6 +8,13 @@
 #define MPC85XX_LAW_OFFSET         0x0ULL
 #define MPC85XX_LAW_SIZE           0x1000ULL
 
+typedef struct {
+    uint32_t bar;
+    uint32_t attributes;
+
+    MemoryRegion mr;
+} LawInfo;
+
 struct PPCE500LAWState {
     /*< private >*/
     SysBusDevice parent;
@@ -16,6 +23,8 @@ struct PPCE500LAWState {
     MemoryRegion mmio;
     MemoryRegion law_ops;
     MemoryRegion *ccsr;
+    MemoryRegion *system_memory;
+    LawInfo law_info[12];
 
     Notifier ccsrbar_changed_notifier;
 };
