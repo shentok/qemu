@@ -1178,6 +1178,7 @@ void ppce500_init(MachineState *machine)
     dev = qdev_new(TYPE_E500_LAW);
     law = E500_LAW(dev);
     law->ccsr = ccsr_addr_space;
+    law->system_memory = address_space_mem;
     sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
     law->ccsrbar_changed_notifier.notify = ppce500_handle_ccsrbar_changed;
     memory_region_add_subregion(ccsr_addr_space, MPC85XX_LAW_OFFSET,

@@ -141,6 +141,10 @@ ppc_dcr_write(uint32_t addr, uint32_t val) "DRCN[0x%x] <- 0x%x"
 
 ppce500_ccsr_base_read(uint32_t val, uint64_t base) "-> val=0x%08x (base: 0x%09" PRIx64 ")"
 ppce500_ccsr_base_write(uint32_t val, uint64_t base) "<- val=0x%08x (base: 0x%09" PRIx64 ")"
+ppce500_law_bar_read(uint32_t index, uint32_t val, uint64_t base) "bar[%d] -> 0x%08x (base: 0x%09" PRIx64 ")"
+ppce500_law_bar_write(uint32_t index, uint32_t val, uint64_t base) "bar[%d] <- 0x%08x (base: 0x%09" PRIx64 ")"
+ppce500_law_attr_read(uint32_t index, uint32_t val, const char *target_id, uint64_t size) "attr[%d] -> 0x%08x (id: %s, size: 0x%09" PRIx64 ")"
+ppce500_law_attr_write(uint32_t index, uint32_t val, const char *target_id, uint64_t size) "attr[%d] <- 0x%08x (id: %s, size: 0x%09" PRIx64 ")"
 
 ppce500_elbc_br_read(uint32_t index, uint32_t val, uint32_t base, const char *ps, const char *msel) "br[%d] -> 0x%08x (base address: 0x%08x, width: %s, if: %s)"
 ppce500_elbc_br_write(uint32_t index, uint32_t val, uint32_t base, const char *ps, const char *msel) "br[%d] <- 0x%08x (base address: 0x%08x, width: %s, if: %s)"
