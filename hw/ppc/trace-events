@@ -139,6 +139,9 @@ ppc_irq_cpu(const char *action) "%s"
 ppc_dcr_read(uint32_t addr, uint32_t val) "DRCN[0x%x] -> 0x%x"
 ppc_dcr_write(uint32_t addr, uint32_t val) "DRCN[0x%x] <- 0x%x"
 
+ppce500_ccsr_base_read(uint32_t val, uint64_t base) "-> val=0x%08x (base: 0x%09" PRIx64 ")"
+ppce500_ccsr_base_write(uint32_t val, uint64_t base) "<- val=0x%08x (base: 0x%09" PRIx64 ")"
+
 # prep_systemio.c
 prep_systemio_read(uint32_t addr, uint32_t val) "read addr=0x%x val=0x%x"
 prep_systemio_write(uint32_t addr, uint32_t val) "write addr=0x%x val=0x%x"

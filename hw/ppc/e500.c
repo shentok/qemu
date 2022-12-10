@@ -20,6 +20,7 @@
 #include "qemu/guest-random.h"
 #include "qapi/error.h"
 #include "e500.h"
+#include "e500_law.h"
 #include "net/net.h"
 #include "qemu/config-file.h"
 #include "hw/block/flash.h"
@@ -359,6 +360,7 @@ static int ppce500_load_device_tree(PPCE500MachineState *pms,
     uint32_t mpic_ph;
     uint32_t msi_ph;
     char *gutil;
+    char *law;
     char *pci;
     char *msi;
     uint32_t *pci_map = NULL;
@@ -612,6 +614,15 @@ static int ppce500_load_device_tree(PPCE500MachineState *pms,
     if (pmc->has_mpc8xxx_gpio) {
         create_dt_mpc8xxx_gpio(fdt, soc, mpic);
     }
+
+    law = g_strdup_printf("%s/ecm-law@%llx", soc,
+                          pmc->ccsrbar_base + MPC85XX_LAW_OFFSET);
+    qemu_fdt_add_subnode(fdt, law);
+    qemu_fdt_setprop_cell(fdt, law, "fsl,num-laws", 12);
+    qemu_fdt_setprop_cells(fdt, law, "reg", MPC85XX_LAW_OFFSET,
+                           MPC85XX_LAW_SIZE);
+    qemu_fdt_setprop_string(fdt, law, "compatible", "fsl,ecm-law");
+    g_free(law);
 
     qemu_fdt_setprop_phandle(fdt, soc, "interrupt-parent", mpic);
 
@@ -906,6 +917,14 @@ static void ppce500_power_off(void *opaque, int line, int on)
     }
 }
 
+static void ppce500_handle_ccsrbar_changed(Notifier *notifier, void *opaque)
+{
+    MemoryRegion *ccsr = opaque;
+    CPUPPCState *env = &POWERPC_CPU(first_cpu)->env;
+
+    env->mpic_iack = ccsr->addr + MPC8544_MPIC_REGS_OFFSET + 0xa0;
+}
+
 void ppce500_init(MachineState *machine)
 {
     MemoryRegion *address_space_mem = get_system_memory();
@@ -936,6 +955,7 @@ void ppce500_init(MachineState *machine)
     CPUPPCState *firstenv = NULL;
     MemoryRegion *ccsr_addr_space;
     SysBusDevice *s;
+    PPCE500LAWState *law;
     I2CBus *i2c;
 
     irqs = g_new0(IrqLines, smp_cpus);
@@ -971,7 +991,6 @@ void ppce500_init(MachineState *machine)
         irqs[i].irq[OPENPIC_OUTPUT_CINT] =
             qdev_get_gpio_in(DEVICE(cpu), PPCE500_INPUT_CINT);
         env->spr_cb[SPR_BOOKE_PIR].default_value = cs->cpu_index = i;
-        env->mpic_iack = pmc->ccsrbar_base + MPC8544_MPIC_REGS_OFFSET + 0xa0;
 
         ppc_booke_timers_init(cpu, PLATFORM_CLK_FREQ_HZ, PPC_TIMER_E500);
 
@@ -1110,6 +1129,15 @@ void ppce500_init(MachineState *machine)
         poweroff_irq = qemu_allocate_irq(ppce500_power_off, NULL, 0);
         qdev_connect_gpio_out(dev, 0, poweroff_irq);
     }
+
+    /* LAW */
+    dev = qdev_new(TYPE_E500_LAW);
+    law = E500_LAW(dev);
+    law->ccsr = ccsr_addr_space;
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
+    law->ccsrbar_changed_notifier.notify = ppce500_handle_ccsrbar_changed;
+    memory_region_add_subregion(ccsr_addr_space, MPC85XX_LAW_OFFSET,
+                                &law->law_ops);
 
     dinfo = drive_get(IF_PFLASH, 0, 0);
     if (dinfo) {
@@ -1283,7 +1311,13 @@ void ppce500_init(MachineState *machine)
 
 void ppce500_reset(MachineState *machine, ShutdownCause reason)
 {
+    PPCE500MachineState *pms = PPCE500_MACHINE(machine);
+    const PPCE500MachineClass *pmc = PPCE500_MACHINE_GET_CLASS(machine);
+
     qemu_devices_reset(reason);
+
+    memory_region_set_address(&pms->pbus_dev->mmio, pmc->ccsrbar_base);
+    ppce500_handle_ccsrbar_changed(NULL, &pms->pbus_dev->mmio);
 }
 
 static const TypeInfo ppce500_info = {
