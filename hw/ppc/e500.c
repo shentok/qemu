@@ -22,6 +22,7 @@
 #include "qapi/error.h"
 #include "e500.h"
 #include "ppce500_ccsr.h"
+#include "ppce500_law.h"
 #include "net/net.h"
 #include "qemu/config-file.h"
 #include "hw/block/flash.h"
@@ -60,7 +61,7 @@
 #define RAM_SIZES_ALIGN            (64 * MiB)
 
 /* TODO: parameterize */
-#define MPC8544_MPIC_REGS_OFFSET   0x40000ULL
+#define MPC8544_LAW_REGS_OFFSET   0x0
 #define MPC8544_MSI_REGS_OFFSET   0x41600ULL
 #define MPC8544_SERIAL0_REGS_OFFSET 0x4500ULL
 #define MPC8544_SERIAL1_REGS_OFFSET 0x4600ULL
@@ -942,7 +943,6 @@ void ppce500_init(MachineState *machine)
         irqs[i].irq[OPENPIC_OUTPUT_CINT] =
             qdev_get_gpio_in(DEVICE(cpu), PPCE500_INPUT_CINT);
         env->spr_cb[SPR_BOOKE_PIR].default_value = cs->cpu_index = i;
-        env->mpic_iack = pmc->ccsrbar_base + MPC8544_MPIC_REGS_OFFSET + 0xa0;
 
         ppc_booke_timers_init(cpu, PLATFORM_CLK_FREQ_HZ, PPC_TIMER_E500);
 
@@ -975,6 +975,15 @@ void ppce500_init(MachineState *machine)
 
     mpicdev = ppce500_init_mpic(pms, ccsr_addr_space, irqs);
     g_free(irqs);
+
+    dev = qdev_new(TYPE_E500_LAW);
+    s = SYS_BUS_DEVICE(dev);
+    if (machine->firmware == NULL) {
+        qdev_prop_set_uint64(dev, "ccsrbar-reset", pmc->ccsrbar_base);
+    }
+    sysbus_realize_and_unref(s, &error_fatal);
+    memory_region_add_subregion(ccsr_addr_space, MPC8544_LAW_REGS_OFFSET,
+                                sysbus_mmio_get_region(s, 0));
 
     /* Serial */
     if (serial_hd(0)) {

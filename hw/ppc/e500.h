@@ -5,6 +5,8 @@
 #include "hw/platform-bus.h"
 #include "qom/object.h"
 
+#define MPC8544_MPIC_REGS_OFFSET   0x40000ULL
+
 struct boot_info {
     uint32_t dt_base;
     uint32_t dt_size;
