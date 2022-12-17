@@ -1282,10 +1282,11 @@ void ppce500_init(MachineState *machine)
             loadaddr = LOAD_UIMAGE_LOADADDR_INVALID;
             payload_size = load_uimage(filename, &bios_entry, &loadaddr, NULL,
                                        NULL, NULL);
-            if (payload_size < 0) {
-                error_report("could not load firmware '%s'", filename);
-                exit(1);
-            }
+        }
+
+        if (payload_size < 0) {
+            error_report("could not load firmware '%s'", filename);
+            exit(1);
         }
 
         g_free(filename);
