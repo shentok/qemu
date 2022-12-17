@@ -1284,6 +1284,13 @@ void ppce500_init(MachineState *machine)
         }
 
         if (payload_size < 0) {
+            int64_t size = get_image_size(filename);
+            bios_entry = boot_info->size - size;
+
+            payload_size = load_image_targphys(filename, bios_entry, size);
+        }
+
+        if (payload_size < 0) {
             error_report("could not load firmware '%s'", filename);
             exit(1);
         }
