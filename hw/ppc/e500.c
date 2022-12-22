@@ -303,17 +303,19 @@ static void create_devtree_flash(Object *obj, void *fdt,
     qemu_fdt_setprop_cell(fdt, name, "bank-width", bank_width);
 }
 
-static void platform_bus_create_devtree(PPCE500MachineState *pms, void *fdt)
+static void local_bus_create_devtree(PPCE500MachineState *pms, void *fdt)
 {
+    MemoryRegion *mr = sysbus_mmio_get_region(&pms->elbc.parent, 0);
     const PPCE500MachineClass *pmc = PPCE500_MACHINE_GET_CLASS(pms);
-    gchar *node = g_strdup_printf("/platform@%"PRIx64, pmc->platform_bus_base);
-    const char platcomp[] = "qemu,platform\0simple-bus";
+    gchar *node = g_strdup_printf("/localbus@%"PRIx64,
+                                  mr->addr + MPC85XX_ELBC_OFFSET);
+    const char platcomp[] = "fsl,elbc";
     uint64_t addr = pmc->platform_bus_base;
     uint64_t size = pmc->platform_bus_size;
     Object *obj;
     bool ambiguous;
 
-    /* Create a /platform node that we can put all devices into */
+    /* Create a /localbus node that we can put all devices into */
 
     qemu_fdt_add_subnode(fdt, node);
     qemu_fdt_setprop(fdt, node, "compatible", platcomp, sizeof(platcomp));
@@ -323,6 +325,8 @@ static void platform_bus_create_devtree(PPCE500MachineState *pms, void *fdt)
     qemu_fdt_setprop_cells(fdt, node, "#size-cells", 1);
     qemu_fdt_setprop_cells(fdt, node, "#address-cells", 1);
     qemu_fdt_setprop_cells(fdt, node, "ranges", 0, addr >> 32, addr, size);
+    qemu_fdt_setprop_cells(fdt, node, "reg", mr->addr >> 32, mr->addr,
+                           0, memory_region_size(mr));
 
     obj = object_resolve_path_type("", TYPE_PFLASH_CFI01, &ambiguous);
 
@@ -641,7 +645,7 @@ static int ppce500_load_device_tree(PPCE500MachineState *pms,
     g_free(mpic);
     g_free(soc);
 
-    platform_bus_create_devtree(pms, fdt);
+    local_bus_create_devtree(pms, fdt);
 
     pmc->fixup_devtree(fdt);
 
@@ -1134,6 +1138,12 @@ void ppce500_init(MachineState *machine)
         qdev_connect_gpio_out(dev, 0, poweroff_irq);
     }
 
+    /* eLBC */
+    object_initialize_child(OBJECT(pms), "elbc", &pms->elbc, TYPE_E500_ELBC);
+    sysbus_realize_and_unref(&pms->elbc.parent, &error_fatal);
+    memory_region_add_subregion(ccsr_addr_space, MPC85XX_ELBC_OFFSET,
+                                &pms->elbc.ops);
+
     /* LAW */
     dev = qdev_new(TYPE_E500_LAW);
     law = E500_LAW(dev);
@@ -1143,22 +1153,32 @@ void ppce500_init(MachineState *machine)
     memory_region_add_subregion(ccsr_addr_space, MPC85XX_LAW_OFFSET,
                                 &law->law_ops);
 
-    dinfo = drive_get(IF_PFLASH, 0, 0);
-    if (dinfo) {
-        BlockBackend *blk = blk_by_legacy_dinfo(dinfo);
-        BlockDriverState *bs = blk_bs(blk);
-        uint64_t size = bdrv_getlength(bs);
+    for (i = 0; i <= ARRAY_SIZE(pms->elbc.chip_selects); i++) {
+        DriveInfo *elbc_dinfo = drive_get(IF_PFLASH, 0, i);
+        BlockBackend *blk;
+        BlockDriverState *bs;
+        uint64_t size ;
         uint32_t sector_len = 64 * KiB;
+
+        if (!elbc_dinfo) {
+            continue;
+        }
+
+        blk = blk_by_legacy_dinfo(elbc_dinfo);
+        bs = blk_bs(blk);
+        size = bdrv_getlength(bs);
 
         if (!is_power_of_2(size)) {
             error_report("Size of pflash file must be a power of two.");
             exit(1);
         }
 
-        if (size > pmc->platform_bus_size) {
-            error_report("Size of pflash file must not be bigger than %" PRIu64
-                         " bytes.", pmc->platform_bus_size);
-            exit(1);
+        if (i == 0) {
+            if (size > pmc->platform_bus_size) {
+                error_report("Size of pflash file must not be bigger than %"
+                             PRIu64 " bytes.", pmc->platform_bus_size);
+                exit(1);
+            }
         }
 
         if (!QEMU_IS_ALIGNED(size, sector_len)) {
@@ -1180,8 +1200,7 @@ void ppce500_init(MachineState *machine)
         qdev_prop_set_string(dev, "name", "e500.flash");
         sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
 
-        memory_region_add_subregion(address_space_mem, pmc->platform_bus_base,
-                                    pflash_cfi01_get_memory(PFLASH_CFI01(dev)));
+        pms->elbc.chip_selects[i].dev = pflash_cfi01_get_memory(PFLASH_CFI01(dev));
     }
 
     /*
@@ -1317,8 +1336,24 @@ void ppce500_reset(MachineState *machine, ShutdownCause reason)
 {
     PPCE500MachineState *pms = PPCE500_MACHINE(machine);
     const PPCE500MachineClass *pmc = PPCE500_MACHINE_GET_CLASS(machine);
+    MemoryRegion *mr = pms->elbc.chip_selects[0].dev;
+    MemoryRegion *address_space_mem = get_system_memory();
 
     qemu_devices_reset(reason);
+
+    if (mr) {
+        Int128 size = mr->size > 8 * MiB ? 8 * MiB : mr->size;
+
+        /* fixme: Remove this statement */
+        memory_region_add_subregion(address_space_mem, pmc->platform_bus_base,
+                                    mr);
+
+        memory_region_init_alias(&pms->elbc.boot_page, OBJECT(&pms->elbc),
+                                 "e500.boot_page", mr, mr->size - size, size);
+
+        memory_region_add_subregion_overlap(address_space_mem, 4 * GiB - size,
+                                    &pms->elbc.boot_page, -10);
+    }
 
     memory_region_set_address(&pms->pbus_dev->mmio, pmc->ccsrbar_base);
     ppce500_handle_ccsrbar_changed(NULL, &pms->pbus_dev->mmio);
