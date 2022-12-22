@@ -153,6 +153,15 @@ ppce500_l2cache_io_write(uint32_t addr, uint32_t val, int len) "addr 0x%x val 0x
 ppce500_ccsr_base_read(uint32_t val, uint64_t base) "-> val=0x%08x (base: 0x%09" PRIx64 ")"
 ppce500_ccsr_base_write(uint32_t val, uint64_t base) "<- val=0x%08x (base: 0x%09" PRIx64 ")"
 
+ppce500_elbc_read(uint32_t index, uint32_t val, uint8_t size) "[0x%" PRIx32 "] -> 0x%08x (size: 0x%" PRIu8 ")"
+ppce500_elbc_write(uint32_t index, uint32_t val, uint8_t size) "[0x%" PRIx32 "] <- 0x%08x (size: 0x%" PRIu8 ")"
+ppce500_elbc_br_read(uint32_t index, uint32_t val, uint32_t base, const char *ps, const char *msel) "br[%d] -> 0x%08x (base address: 0x%08x, width: %s, if: %s)"
+ppce500_elbc_br_write(uint32_t index, uint32_t val, uint32_t base, const char *ps, const char *msel) "br[%d] <- 0x%08x (base address: 0x%08x, width: %s, if: %s)"
+ppce500_elbc_or_read(uint32_t index, uint32_t val, uint32_t mask) "or[%d] -> 0x%08x (base address mask: 0x%08x)"
+ppce500_elbc_or_write(uint32_t index, uint32_t val, uint32_t mask) "or[%d] <- 0x%08x (base address mask: 0x%08x)"
+ppce500_elbc_lbcr_read(uint32_t val) "lbcr -> 0x%08x"
+ppce500_elbc_lbcr_write(uint32_t val) "lbcr <- 0x%08x"
+
 # prep_systemio.c
 prep_systemio_read(uint32_t addr, uint32_t val) "read addr=0x%x val=0x%x"
 prep_systemio_write(uint32_t addr, uint32_t val) "write addr=0x%x val=0x%x"
