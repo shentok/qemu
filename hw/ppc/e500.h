@@ -3,6 +3,7 @@
 
 #include "hw/boards.h"
 #include "hw/platform-bus.h"
+#include "e500_elbc.h"
 #include "exec/memory.h"
 #include "qom/object.h"
 
@@ -22,6 +23,7 @@ struct PPCE500MachineState {
      * board supports dynamic sysbus devices
      */
     PlatformBusDevice *pbus_dev;
+    PPCE500ELbcState elbc;
 
     MemoryRegion sram;
 };
