@@ -1129,8 +1129,6 @@ void helper_booke206_tlbwe(CPUPPCState *env)
     }
 
     flush_page(env, tlb);
-
-    dump_mmu(env);
 }
 
 static inline void booke206_tlb_to_mas(CPUPPCState *env, ppcmas_tlb_t *tlb)
