@@ -77,6 +77,7 @@ ppc_ss.add(when: 'CONFIG_E500PLAT', if_true: files('e500plat.c'))
 ppc_ss.add(when: 'CONFIG_MPC8544DS', if_true: files('mpc8544ds.c'))
 ppc_ss.add(when: 'CONFIG_E500', if_true: files(
   'e500.c',
+  'e500_elbc.c',
   'mpc8544_guts.c',
   'ppce500_ccsr.c',
   'ppce500_ddr.c',
