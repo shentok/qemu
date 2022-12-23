@@ -248,6 +248,8 @@ static void ppce500_elbc_init(Object *obj)
         memory_region_init_io(&cs->mr, obj, &ppce500_elbc_cs_ops, cs,
                               "eLBC chip select", 0);
     }
+
+    memory_region_init(&s->address_space, obj, "eLBC", 4 * GiB);
 }
 
 static void ppce500_elbc_reset(DeviceState *dev)

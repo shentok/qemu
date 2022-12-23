@@ -103,6 +103,11 @@ static MemoryRegion *check_update_unimplemented(PPCE500LAWState *s)
     return NULL;
 }
 
+static MemoryRegion *check_update_local_bus(PPCE500LAWState *s)
+{
+    return s->elbc;
+}
+
 typedef MemoryRegion *(*ppce500_check_update_fn)(PPCE500LAWState *s);
 
 static ppce500_check_update_fn ppce500_check_update_fns[32] = {
@@ -110,7 +115,7 @@ static ppce500_check_update_fn ppce500_check_update_fns[32] = {
     [1] = check_update_unimplemented,
     [2] = check_update_unimplemented,
     [3] = check_update_unimplemented,
-    [4] = check_update_unimplemented,
+    [4] = check_update_local_bus,
     [15] = check_update_unimplemented,
 };
 
@@ -296,6 +301,12 @@ static void ppce500_ccsr_realize(DeviceState *dev, Error **errp)
 
     if (!s->system_memory) {
         error_setg(errp, "%s: system_memory property must be set",
+                   object_get_typename(OBJECT(dev)));
+        return;
+    }
+
+    if (!s->elbc) {
+        error_setg(errp, "%s: elbc property must be set",
                    object_get_typename(OBJECT(dev)));
         return;
     }

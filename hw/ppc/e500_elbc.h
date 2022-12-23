@@ -21,6 +21,7 @@ struct PPCE500ELbcState {
     SysBusDevice parent;
     /*< public >*/
 
+    MemoryRegion address_space;
     MemoryRegion boot_page;
     MemoryRegion ops;
     ElbcChipSelect chip_selects[8];
