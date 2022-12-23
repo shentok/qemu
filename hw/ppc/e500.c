@@ -1203,14 +1203,6 @@ void ppce500_init(MachineState *machine)
             exit(1);
         }
 
-        if (i == 0) {
-            if (size > pmc->platform_bus_size) {
-                error_report("Size of pflash file must not be bigger than %"
-                             PRIu64 " bytes.", pmc->platform_bus_size);
-                exit(1);
-            }
-        }
-
         if (!QEMU_IS_ALIGNED(size, sector_len)) {
             error_report("Size of pflash file must be a multiple of %" PRIu32
                          ".", sector_len);
