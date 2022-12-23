@@ -12,6 +12,7 @@ typedef struct {
     uint32_t base;
     uint32_t options;
 
+    MemoryRegion mr;
     MemoryRegion *dev;
 } ElbcChipSelect;
 

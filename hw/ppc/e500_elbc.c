@@ -20,6 +20,7 @@
 #include "qemu/osdep.h"
 #include "qemu/log.h"
 #include "qemu/module.h"
+#include "qemu/units.h"
 #include "hw/registerfields.h"
 #include "e500_elbc.h"
 #include "trace.h"
@@ -125,11 +126,48 @@ static uint64_t ppce500_elbc_read(void *opaque, hwaddr addr, unsigned len)
 
 static void elbc_check_update(PPCE500ELbcState *s, size_t index)
 {
+    ElbcChipSelect *cs = &s->chip_selects[index];
+    hwaddr offset = FIELD_EX32(cs->base, ELBC_BR, BA) << 15;
+    uint32_t mask = FIELD_EX32(cs->options, ELBC_OR, AM);
+    uint64_t size = mask == 0 ? 4 * GiB : (1 << (ctz32(mask) + 15));
+
     if (index == 0) {
         if (s->boot_page.container) {
             memory_region_del_subregion(s->boot_page.container, &s->boot_page);
         }
         object_unparent(OBJECT(&s->boot_page));
+    }
+
+    memory_region_set_enabled(&cs->mr, false);
+
+    if (!FIELD_EX32(cs->base, ELBC_BR, V)) {
+        return;
+    }
+
+    if (FIELD_EX32(cs->base, ELBC_BR, MSEL) == 0) {
+        MemoryRegion *container = cs->mr.container;
+
+        if (!container) {
+            return;
+        }
+
+        if (!cs->dev) {
+            return;
+        }
+
+        if (cs->dev->container) {
+            memory_region_del_subregion(cs->dev->container, cs->dev);
+        }
+
+        if (container) {
+            memory_region_del_subregion(container, &cs->mr);
+        }
+        object_unparent(OBJECT(&cs->mr));
+
+        memory_region_init(&cs->mr, OBJECT(s), "eLBC chip select", size);
+        memory_region_add_subregion(container, offset, &cs->mr);
+
+        memory_region_add_subregion(&cs->mr, 0, cs->dev);
     }
 }
 
@@ -196,10 +234,17 @@ static const MemoryRegionOps ppce500_elbc_ops = {
 static void ppce500_elbc_init(Object *obj)
 {
     PPCE500ELbcState *s = E500_ELBC(obj);
+    size_t i;
 
     memory_region_init_io(&s->ops, obj, &ppce500_elbc_ops, s,
                           "e500 eLBC control registers", MPC85XX_ELBC_SIZE);
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->ops);
+
+    for (i = 0; i < ARRAY_SIZE(s->chip_selects); i++) {
+        ElbcChipSelect *cs = &s->chip_selects[i];
+
+        memory_region_init(&cs->mr, obj, "eLBC chip select", 0);
+    }
 }
 
 static void ppce500_elbc_reset(DeviceState *dev)
