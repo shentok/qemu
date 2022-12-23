@@ -24,6 +24,7 @@ struct PPCE500LAWState {
     MemoryRegion law_ops;
     MemoryRegion *ccsr;
     MemoryRegion *system_memory;
+    MemoryRegion *elbc;
     LawInfo law_info[12];
 
     Notifier ccsrbar_changed_notifier;
