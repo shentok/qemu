@@ -5,9 +5,17 @@
 #include "hw/platform-bus.h"
 #include "qom/object.h"
 
+typedef struct boot_info {
+    uint32_t dt_base;
+    uint32_t dt_size;
+    uint32_t entry;
+} boot_info;
+
 struct PPCE500MachineState {
     /*< private >*/
     MachineState parent_obj;
+
+    boot_info boot_info;
 
     /* points to instance of TYPE_PLATFORM_BUS_DEVICE if
      * board supports dynamic sysbus devices
