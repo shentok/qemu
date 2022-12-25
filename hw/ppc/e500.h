@@ -48,6 +48,7 @@ struct PPCE500MachineClass {
 };
 
 void ppce500_init(MachineState *machine);
+void ppce500_reset(MachineState *machine, ShutdownCause reason);
 
 hwaddr booke206_page_size_to_tlb(uint64_t size);
 
