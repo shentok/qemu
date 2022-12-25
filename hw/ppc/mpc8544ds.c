@@ -58,6 +58,7 @@ static void mpc8544ds_machine_class_init(ObjectClass *oc, void *data)
 
     mc->desc = "mpc8544ds";
     mc->init = mpc8544ds_init;
+    mc->reset = ppce500_reset;
     mc->max_cpus = 15;
     mc->default_cpu_type = POWERPC_CPU_TYPE_NAME("e500v2_v30");
     mc->default_ram_id = "mpc8544ds.ram";

@@ -1281,6 +1281,11 @@ void ppce500_init(MachineState *machine)
     firstenv->load_info = payload_name ? &pms->boot_info : NULL;
 }
 
+void ppce500_reset(MachineState *machine, ShutdownCause reason)
+{
+    qemu_devices_reset(reason);
+}
+
 static const TypeInfo ppce500_info = {
     .name          = TYPE_PPCE500_MACHINE,
     .parent        = TYPE_MACHINE,

@@ -96,6 +96,7 @@ static void e500plat_machine_class_init(ObjectClass *oc, void *data)
 
     mc->desc = "generic paravirt e500 platform";
     mc->init = e500plat_init;
+    mc->reset = ppce500_reset;
     mc->max_cpus = 32;
     mc->default_cpu_type = POWERPC_CPU_TYPE_NAME("e500v2_v30");
     mc->default_ram_id = "mpc8544ds.ram";
