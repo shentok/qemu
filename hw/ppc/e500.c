@@ -283,24 +283,19 @@ static void sysbus_device_create_devtree(SysBusDevice *sbdev, void *opaque)
     }
 }
 
-static void create_devtree_flash(SysBusDevice *sbdev,
-                                 PlatformDevtreeData *data)
+static void create_devtree_flash(Object *obj, void *fdt,
+                                 const char *parent_node)
 {
     g_autofree char *name = NULL;
-    uint64_t num_blocks = object_property_get_uint(OBJECT(sbdev),
-                                                   "num-blocks",
+    uint64_t num_blocks = object_property_get_uint(obj, "num-blocks",
                                                    &error_fatal);
-    uint64_t sector_length = object_property_get_uint(OBJECT(sbdev),
-                                                      "sector-length",
+    uint64_t sector_length = object_property_get_uint(obj, "sector-length",
                                                       &error_fatal);
-    uint64_t bank_width = object_property_get_uint(OBJECT(sbdev),
-                                                   "width",
-                                                   &error_fatal);
+    uint64_t bank_width = object_property_get_uint(obj, "width", &error_fatal);
     hwaddr flashbase = 0;
     hwaddr flashsize = num_blocks * sector_length;
-    void *fdt = data->fdt;
 
-    name = g_strdup_printf("%s/nor@%" PRIx64, data->node, flashbase);
+    name = g_strdup_printf("%s/nor@%" PRIx64, parent_node, flashbase);
     qemu_fdt_add_subnode(fdt, name);
     qemu_fdt_setprop_string(fdt, name, "compatible", "cfi-flash");
     qemu_fdt_setprop_sized_cells(fdt, name, "reg",
@@ -317,7 +312,7 @@ static void platform_bus_create_devtree(PPCE500MachineState *pms,
     uint64_t addr = pmc->platform_bus_base;
     uint64_t size = pmc->platform_bus_size;
     int irq_start = pmc->platform_bus_first_irq;
-    SysBusDevice *sbdev;
+    Object *obj;
     bool ambiguous;
 
     /* Create a /platform node that we can put all devices into */
@@ -345,11 +340,11 @@ static void platform_bus_create_devtree(PPCE500MachineState *pms,
     /* Loop through all dynamic sysbus devices and create nodes for them */
     foreach_dynamic_sysbus_device(sysbus_device_create_devtree, &data);
 
-    sbdev = SYS_BUS_DEVICE(object_resolve_path_type("", TYPE_PFLASH_CFI01,
-                                                    &ambiguous));
-    if (sbdev) {
+    obj = object_resolve_path_type("", TYPE_PFLASH_CFI01, &ambiguous);
+
+    if (obj) {
         assert(!ambiguous);
-        create_devtree_flash(sbdev, &data);
+        create_devtree_flash(obj, fdt, node);
     }
 
     g_free(node);
