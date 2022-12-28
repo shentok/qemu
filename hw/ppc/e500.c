@@ -20,7 +20,6 @@
 #include "qemu/guest-random.h"
 #include "qapi/error.h"
 #include "e500.h"
-#include "e500-ccsr.h"
 #include "net/net.h"
 #include "qemu/config-file.h"
 #include "hw/block/flash.h"
@@ -303,8 +302,7 @@ static void create_devtree_flash(Object *obj, void *fdt,
     qemu_fdt_setprop_cell(fdt, name, "bank-width", bank_width);
 }
 
-static void platform_bus_create_devtree(PPCE500MachineState *pms,
-                                        void *fdt, const char *mpic)
+static void platform_bus_create_devtree(PPCE500MachineState *pms, void *fdt)
 {
     const PPCE500MachineClass *pmc = PPCE500_MACHINE_GET_CLASS(pms);
     gchar *node = g_strdup_printf("/platform@%"PRIx64, pmc->platform_bus_base);
@@ -324,20 +322,6 @@ static void platform_bus_create_devtree(PPCE500MachineState *pms,
     qemu_fdt_setprop_cells(fdt, node, "#size-cells", 1);
     qemu_fdt_setprop_cells(fdt, node, "#address-cells", 1);
     qemu_fdt_setprop_cells(fdt, node, "ranges", 0, addr >> 32, addr, size);
-
-    qemu_fdt_setprop_phandle(fdt, node, "interrupt-parent", mpic);
-
-    /* Create dt nodes for dynamic devices */
-    PlatformDevtreeData data = {
-        .fdt = fdt,
-        .mpic = mpic,
-        .irq_start = pmc->platform_bus_first_irq,
-        .node = node,
-        .pbus = pms->pbus_dev,
-    };
-
-    /* Loop through all dynamic sysbus devices and create nodes for them */
-    foreach_dynamic_sysbus_device(sysbus_device_create_devtree, &data);
 
     obj = object_resolve_path_type("", TYPE_PFLASH_CFI01, &ambiguous);
 
@@ -628,11 +612,25 @@ static int ppce500_load_device_tree(PPCE500MachineState *pms,
     if (pmc->has_mpc8xxx_gpio) {
         create_dt_mpc8xxx_gpio(fdt, soc, mpic);
     }
-    g_free(soc);
 
-    platform_bus_create_devtree(pms, fdt, mpic);
+    qemu_fdt_setprop_phandle(fdt, soc, "interrupt-parent", mpic);
+
+    /* Create dt nodes for dynamic devices */
+    PlatformDevtreeData data = {
+        .fdt = fdt,
+        .mpic = mpic,
+        .irq_start = pmc->platform_bus_first_irq,
+        .node = soc,
+        .pbus = pms->pbus_dev,
+    };
+
+    /* Loop through all dynamic sysbus devices and create nodes for them */
+    foreach_dynamic_sysbus_device(sysbus_device_create_devtree, &data);
 
     g_free(mpic);
+    g_free(soc);
+
+    platform_bus_create_devtree(pms, fdt);
 
     pmc->fixup_devtree(fdt);
 
@@ -938,7 +936,6 @@ void ppce500_init(MachineState *machine)
     CPUPPCState *firstenv = NULL;
     MemoryRegion *ccsr_addr_space;
     SysBusDevice *s;
-    PPCE500CCSRState *ccsr;
     I2CBus *i2c;
 
     irqs = g_new0(IrqLines, smp_cpus);
@@ -996,16 +993,27 @@ void ppce500_init(MachineState *machine)
     /* Register Memory */
     memory_region_add_subregion(address_space_mem, 0, machine->ram);
 
-    dev = qdev_new("e500-ccsr");
+    /* CCSR */
+    dev = qdev_new(TYPE_PLATFORM_BUS_DEVICE);
     object_property_add_child(OBJECT(machine), "e500-ccsr", OBJECT(dev));
+    qdev_prop_set_uint32(dev, "num_irqs", pmc->platform_bus_num_irqs);
+    qdev_prop_set_uint32(dev, "mmio_size", MPC8544_CCSRBAR_SIZE);
     sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
-    ccsr = CCSR(dev);
-    ccsr_addr_space = &ccsr->ccsr_space;
+    pms->pbus_dev = PLATFORM_BUS_DEVICE(dev);
+    ccsr_addr_space = &pms->pbus_dev->mmio;
+    g_free((char *)ccsr_addr_space->name);
+    ccsr_addr_space->name = g_strdup("CCSR");
     memory_region_add_subregion(address_space_mem, pmc->ccsrbar_base,
                                 ccsr_addr_space);
 
     mpicdev = ppce500_init_mpic(pms, ccsr_addr_space, irqs);
     g_free(irqs);
+
+    s = SYS_BUS_DEVICE(pms->pbus_dev);
+    for (i = 0; i < pmc->platform_bus_num_irqs; i++) {
+        int irqn = pmc->platform_bus_first_irq + i;
+        sysbus_connect_irq(s, i, qdev_get_gpio_in(mpicdev, irqn));
+    }
 
     /* Serial */
     if (serial_hd(0)) {
@@ -1103,29 +1111,10 @@ void ppce500_init(MachineState *machine)
         qdev_connect_gpio_out(dev, 0, poweroff_irq);
     }
 
-    /* Platform Bus Device */
-    dev = qdev_new(TYPE_PLATFORM_BUS_DEVICE);
-    dev->id = g_strdup(TYPE_PLATFORM_BUS_DEVICE);
-    qdev_prop_set_uint32(dev, "num_irqs", pmc->platform_bus_num_irqs);
-    qdev_prop_set_uint32(dev, "mmio_size", pmc->platform_bus_size);
-    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
-    pms->pbus_dev = PLATFORM_BUS_DEVICE(dev);
-
-    s = SYS_BUS_DEVICE(pms->pbus_dev);
-    for (i = 0; i < pmc->platform_bus_num_irqs; i++) {
-        int irqn = pmc->platform_bus_first_irq + i;
-        sysbus_connect_irq(s, i, qdev_get_gpio_in(mpicdev, irqn));
-    }
-
-    memory_region_add_subregion(address_space_mem,
-                                pmc->platform_bus_base,
-                                &pms->pbus_dev->mmio);
-
     dinfo = drive_get(IF_PFLASH, 0, 0);
     if (dinfo) {
         BlockBackend *blk = blk_by_legacy_dinfo(dinfo);
         BlockDriverState *bs = blk_bs(blk);
-        uint64_t mmio_size = memory_region_size(&pms->pbus_dev->mmio);
         uint64_t size = bdrv_getlength(bs);
         uint32_t sector_len = 64 * KiB;
 
@@ -1134,9 +1123,9 @@ void ppce500_init(MachineState *machine)
             exit(1);
         }
 
-        if (size > mmio_size) {
+        if (size > pmc->platform_bus_size) {
             error_report("Size of pflash file must not be bigger than %" PRIu64
-                         " bytes.", mmio_size);
+                         " bytes.", pmc->platform_bus_size);
             exit(1);
         }
 
@@ -1159,7 +1148,7 @@ void ppce500_init(MachineState *machine)
         qdev_prop_set_string(dev, "name", "e500.flash");
         sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
 
-        memory_region_add_subregion(&pms->pbus_dev->mmio, 0,
+        memory_region_add_subregion(address_space_mem, pmc->platform_bus_base,
                                     pflash_cfi01_get_memory(PFLASH_CFI01(dev)));
     }
 
@@ -1292,20 +1281,6 @@ void ppce500_init(MachineState *machine)
     firstenv->load_info = payload_name ? &pms->boot_info : NULL;
 }
 
-static void e500_ccsr_initfn(Object *obj)
-{
-    PPCE500CCSRState *ccsr = CCSR(obj);
-    memory_region_init(&ccsr->ccsr_space, obj, "e500-ccsr",
-                       MPC8544_CCSRBAR_SIZE);
-}
-
-static const TypeInfo e500_ccsr_info = {
-    .name          = TYPE_CCSR,
-    .parent        = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(PPCE500CCSRState),
-    .instance_init = e500_ccsr_initfn,
-};
-
 static const TypeInfo ppce500_info = {
     .name          = TYPE_PPCE500_MACHINE,
     .parent        = TYPE_MACHINE,
@@ -1316,7 +1291,6 @@ static const TypeInfo ppce500_info = {
 
 static void e500_register_types(void)
 {
-    type_register_static(&e500_ccsr_info);
     type_register_static(&ppce500_info);
 }
 
