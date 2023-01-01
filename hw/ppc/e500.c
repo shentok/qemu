@@ -1194,6 +1194,9 @@ void ppce500_init(MachineState *machine)
             continue;
         }
 
+        memory_region_add_subregion(address_space_mem, 0,
+                                    &pms->elbc.chip_selects[i].mr);
+
         blk = blk_by_legacy_dinfo(elbc_dinfo);
         bs = blk_bs(blk);
         size = bdrv_getlength(bs);
@@ -1223,6 +1226,8 @@ void ppce500_init(MachineState *machine)
         sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
 
         pms->elbc.chip_selects[i].dev = pflash_cfi01_get_memory(PFLASH_CFI01(dev));
+        memory_region_add_subregion(&pms->elbc.chip_selects[i].mr, 0,
+                                    pms->elbc.chip_selects[i].dev);
     }
 
     /*
@@ -1359,22 +1364,22 @@ void ppce500_reset(MachineState *machine, ShutdownCause reason)
 {
     PPCE500MachineState *pms = PPCE500_MACHINE(machine);
     const PPCE500MachineClass *pmc = PPCE500_MACHINE_GET_CLASS(machine);
-    MemoryRegion *mr = pms->elbc.chip_selects[0].dev;
-    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *dev = pms->elbc.chip_selects[0].dev;
 
     qemu_devices_reset(reason);
 
-    if (mr) {
-        Int128 size = mr->size > 8 * MiB ? 8 * MiB : mr->size;
+    if (dev) {
+        MemoryRegion *mr = &pms->elbc.chip_selects[0].mr;
+        Int128 size = dev->size > 8 * MiB ? 8 * MiB : dev->size;
 
         /* fixme: Remove this statement */
-        memory_region_add_subregion(address_space_mem, pmc->platform_bus_base,
-                                    mr);
+        memory_region_set_address(mr, pmc->platform_bus_base);
+        memory_region_set_size(mr, pmc->platform_bus_size);
 
         memory_region_init_alias(&pms->elbc.boot_page, OBJECT(&pms->elbc),
-                                 "e500.boot_page", mr, mr->size - size, size);
+                                 "e500.boot_page", dev, dev->size - size, size);
 
-        memory_region_add_subregion_overlap(address_space_mem, 4 * GiB - size,
+        memory_region_add_subregion_overlap(mr->container, 4 * GiB - size,
                                     &pms->elbc.boot_page, -10);
     }
 

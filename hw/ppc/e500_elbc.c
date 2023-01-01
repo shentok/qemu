@@ -138,37 +138,9 @@ static void elbc_check_update(PPCE500ELbcState *s, size_t index)
         object_unparent(OBJECT(&s->boot_page));
     }
 
-    memory_region_set_enabled(&cs->mr, false);
-
-    if (!FIELD_EX32(cs->base, ELBC_BR, V)) {
-        return;
-    }
-
-    if (FIELD_EX32(cs->base, ELBC_BR, MSEL) == 0) {
-        MemoryRegion *container = cs->mr.container;
-
-        if (!container) {
-            return;
-        }
-
-        if (!cs->dev) {
-            return;
-        }
-
-        if (cs->dev->container) {
-            memory_region_del_subregion(cs->dev->container, cs->dev);
-        }
-
-        if (container) {
-            memory_region_del_subregion(container, &cs->mr);
-        }
-        object_unparent(OBJECT(&cs->mr));
-
-        memory_region_init(&cs->mr, OBJECT(s), "eLBC chip select", size);
-        memory_region_add_subregion(container, offset, &cs->mr);
-
-        memory_region_add_subregion(&cs->mr, 0, cs->dev);
-    }
+    memory_region_set_enabled(&cs->mr, FIELD_EX32(cs->base, ELBC_BR, V));
+    memory_region_set_size(&cs->mr, size);
+    memory_region_set_address(&cs->mr, offset);
 }
 
 static void ppce500_elbc_write(void *opaque, hwaddr addr, uint64_t value,
