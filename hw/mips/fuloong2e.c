@@ -32,6 +32,7 @@
 #include "hw/mips/bootloader.h"
 #include "hw/mips/cpudevs.h"
 #include "hw/pci/pci.h"
+#include "hw/pci-host/bonito.h"
 #include "hw/loader.h"
 #include "hw/ide/pci.h"
 #include "hw/qdev-properties.h"
@@ -199,6 +200,27 @@ static void main_cpu_reset(void *opaque)
     }
 }
 
+/* Map the original irq (0~3) to bonito irq (16~47, but 16~31 are unused) */
+static int pci_fuloong2e_map_irq(PCIDevice *pci_dev, int irq_num)
+{
+    int slot;
+
+    slot = PCI_SLOT(pci_dev->devfn);
+
+    switch (slot) {
+    case 5:   /* FULOONG2E_VIA_SLOT, SouthBridge, IDE, USB, ACPI, AC97, MC97 */
+        return irq_num % 4 + BONITO_IRQ_BASE;
+    case 6:   /* FULOONG2E_ATI_SLOT, VGA */
+        return 4 + BONITO_IRQ_BASE;
+    case 7:   /* FULOONG2E_RTL_SLOT, RTL8139 */
+        return 5 + BONITO_IRQ_BASE;
+    case 8 ... 12: /* PCI slot 1 to 4 */
+        return (slot - 8 + irq_num) + 6 + BONITO_IRQ_BASE;
+    default:  /* Unknown device, don't do any translation */
+        return irq_num;
+    }
+}
+
 /* Network support */
 static void network_init(PCIBus *pci_bus)
 {
@@ -293,6 +315,7 @@ static void mips_fuloong2e_init(MachineState *machine)
 
     /* North bridge, Bonito --> IP2 */
     pci_bus = bonito_init((qemu_irq *)&(env->irq[2]));
+    pci_bus_map_irqs(pci_bus, pci_fuloong2e_map_irq);
 
     /* South bridge -> IP5 */
     pci_dev = pci_create_simple_multifunction(pci_bus,
