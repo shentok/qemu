@@ -231,6 +231,36 @@ static const MemoryRegionOps ppce500_elbc_ops = {
     .valid.max_access_size = 4,
 };
 
+static MemTxResult ppce500_elbc_cs_read(void *opaque, hwaddr addr,
+                                        uint64_t *value, unsigned len,
+                                        MemTxAttrs attrs)
+{
+    ElbcChipSelect *cs = opaque;
+    addr = addr % memory_region_size(cs->dev);
+
+    return memory_region_dispatch_read(cs->dev, addr, value, size_memop(len),
+                                       attrs);
+}
+
+static MemTxResult ppce500_elbc_cs_write(void *opaque, hwaddr addr,
+                                         uint64_t value, unsigned len,
+                                         MemTxAttrs attrs)
+{
+    ElbcChipSelect *cs = opaque;
+    addr = addr % memory_region_size(cs->dev);
+
+    return memory_region_dispatch_write(cs->dev, addr, value, size_memop(len),
+                                       attrs);
+}
+
+static const MemoryRegionOps ppce500_elbc_cs_ops = {
+    .read_with_attrs = ppce500_elbc_cs_read,
+    .write_with_attrs = ppce500_elbc_cs_write,
+    .endianness = DEVICE_BIG_ENDIAN,
+    .valid.min_access_size = 4,
+    .valid.max_access_size = 4,
+};
+
 static void ppce500_elbc_init(Object *obj)
 {
     PPCE500ELbcState *s = E500_ELBC(obj);
@@ -243,7 +273,8 @@ static void ppce500_elbc_init(Object *obj)
     for (i = 0; i < ARRAY_SIZE(s->chip_selects); i++) {
         ElbcChipSelect *cs = &s->chip_selects[i];
 
-        memory_region_init(&cs->mr, obj, "eLBC chip select", 0);
+        memory_region_init_io(&cs->mr, obj, &ppce500_elbc_cs_ops, cs,
+                              "eLBC chip select", 0);
     }
 }
 
