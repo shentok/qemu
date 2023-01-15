@@ -133,15 +133,6 @@ void ich9_pm_iospace_update(ICH9LPCPMRegs *pm, uint32_t pm_io_base)
     memory_region_transaction_commit();
 }
 
-static int ich9_pm_post_load(void *opaque, int version_id)
-{
-    ICH9LPCPMRegs *pm = opaque;
-    uint32_t pm_io_base = pm->pm_io_base;
-    pm->pm_io_base = 0;
-    ich9_pm_iospace_update(pm, pm_io_base);
-    return 0;
-}
-
 #define VMSTATE_GPE_ARRAY(_field, _state)                            \
  {                                                                   \
      .name       = (stringify(_field)),                              \
@@ -238,7 +229,6 @@ const VMStateDescription vmstate_ich9_pm = {
     .name = "ich9_pm",
     .version_id = 1,
     .minimum_version_id = 1,
-    .post_load = ich9_pm_post_load,
     .fields = (VMStateField[]) {
         VMSTATE_UINT16(acpi_regs.pm1.evt.sts, ICH9LPCPMRegs),
         VMSTATE_UINT16(acpi_regs.pm1.evt.en, ICH9LPCPMRegs),
