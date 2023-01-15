@@ -292,10 +292,10 @@ void ich9_pm_init(PCIDevice *lpc_pci, ICH9LPCPMRegs *pm, qemu_irq sci_irq)
     acpi_pm1_cnt_init(&pm->acpi_regs, &pm->io, pm->disable_s3, pm->disable_s4,
                       pm->s4_val, !pm->smm_compat && !pm->smm_enabled);
 
-    acpi_gpe_init(&pm->acpi_regs, ICH9_PMIO_GPE0_LEN);
     memory_region_init_io(&pm->io_gpe, OBJECT(lpc_pci), &ich9_gpe_ops, pm,
                           "acpi-gpe0", ICH9_PMIO_GPE0_LEN);
     memory_region_add_subregion(&pm->io, ICH9_PMIO_GPE0_STS, &pm->io_gpe);
+    acpi_gpe_init(&pm->acpi_regs, memory_region_size(&pm->io_gpe));
 
     memory_region_init_io(&pm->io_smi, OBJECT(lpc_pci), &ich9_smi_ops, pm,
                           "acpi-smi", 8);
@@ -427,7 +427,6 @@ static void ich9_pm_set_keep_pci_slot_hpc(Object *obj, bool value, Error **errp)
 
 void ich9_pm_add_properties(Object *obj, ICH9LPCPMRegs *pm)
 {
-    static const uint32_t gpe0_len = ICH9_PMIO_GPE0_LEN;
     pm->acpi_memory_hotplug.is_enabled = true;
     pm->cpu_hotplug_legacy = true;
     pm->disable_s3 = 0;
@@ -442,8 +441,8 @@ void ich9_pm_add_properties(Object *obj, ICH9LPCPMRegs *pm)
     object_property_add(obj, ACPI_PM_PROP_GPE0_BLK, "uint64",
                         ich9_pm_get_gpe0_blk,
                         NULL, NULL, pm);
-    object_property_add_uint32_ptr(obj, ACPI_PM_PROP_GPE0_BLK_LEN,
-                                   &gpe0_len, OBJ_PROP_FLAG_READ);
+    object_property_add_uint8_ptr(obj, ACPI_PM_PROP_GPE0_BLK_LEN,
+                                  &pm->acpi_regs.gpe.len, OBJ_PROP_FLAG_READ);
     object_property_add_bool(obj, "memory-hotplug-support",
                              ich9_pm_get_memory_hotplug_support,
                              ich9_pm_set_memory_hotplug_support);
