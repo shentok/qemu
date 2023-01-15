@@ -126,10 +126,9 @@ void ich9_pm_iospace_update(ICH9LPCPMRegs *pm, uint32_t pm_io_base)
 
     assert((pm_io_base & ICH9_PMIO_MASK) == 0);
 
-    pm->pm_io_base = pm_io_base;
     memory_region_transaction_begin();
-    memory_region_set_enabled(&pm->io, pm->pm_io_base != 0);
-    memory_region_set_address(&pm->io, pm->pm_io_base);
+    memory_region_set_enabled(&pm->io, pm_io_base != 0);
+    memory_region_set_address(&pm->io, pm_io_base);
     memory_region_transaction_commit();
 }
 
@@ -332,13 +331,23 @@ void ich9_pm_init(PCIDevice *lpc_pci, ICH9LPCPMRegs *pm, qemu_irq sci_irq)
     }
 }
 
+static void ich9_pm_get_io_base(Object *obj, Visitor *v, const char *name,
+                                void *opaque, Error **errp)
+{
+    ICH9LPCPMRegs *pm = opaque;
+    uint64_t value = memory_region_to_absolute_addr(&pm->io, 0);
+
+    visit_type_uint64(v, name, &value, errp);
+}
+
 static void ich9_pm_get_gpe0_blk(Object *obj, Visitor *v, const char *name,
                                  void *opaque, Error **errp)
 {
     ICH9LPCPMRegs *pm = opaque;
-    uint32_t value = pm->pm_io_base + ICH9_PMIO_GPE0_STS;
+    uint64_t value = memory_region_to_absolute_addr(&pm->io,
+                                                    ICH9_PMIO_GPE0_STS);
 
-    visit_type_uint32(v, name, &value, errp);
+    visit_type_uint64(v, name, &value, errp);
 }
 
 static bool ich9_pm_get_memory_hotplug_support(Object *obj, Error **errp)
@@ -428,9 +437,9 @@ void ich9_pm_add_properties(Object *obj, ICH9LPCPMRegs *pm)
     pm->keep_pci_slot_hpc = true;
     pm->enable_tco = true;
 
-    object_property_add_uint32_ptr(obj, ACPI_PM_PROP_PM_IO_BASE,
-                                   &pm->pm_io_base, OBJ_PROP_FLAG_READ);
-    object_property_add(obj, ACPI_PM_PROP_GPE0_BLK, "uint32",
+    object_property_add(obj, ACPI_PM_PROP_PM_IO_BASE, "uint64",
+                        ich9_pm_get_io_base, NULL, NULL, pm);
+    object_property_add(obj, ACPI_PM_PROP_GPE0_BLK, "uint64",
                         ich9_pm_get_gpe0_blk,
                         NULL, NULL, pm);
     object_property_add_uint32_ptr(obj, ACPI_PM_PROP_GPE0_BLK_LEN,
