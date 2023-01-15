@@ -61,6 +61,7 @@ OBJECT_DECLARE_SIMPLE_TYPE(ViaPMState, VIA_PM)
 #define ACPI_ENABLE 0xf1
 #define ACPI_DISABLE 0xf0
 
+#define QEMU_GPE_BASE 0xafe0
 #define VIA_PM_GPE_LEN 4
 
 #define VIA_PM_SCI_SELECT_OFS 0x42
@@ -79,6 +80,8 @@ struct ViaPMState {
     PMSMBus smb;
 
     MemoryRegion hw_io;
+
+    MemoryRegion io_gpe_qemu;
 
     Notifier powerdown_notifier;
 
@@ -367,6 +370,37 @@ static void via_pm_powerdown_req(Notifier *n, void *opaque)
     acpi_pm1_evt_power_down(&s->ar);
 }
 
+static uint64_t via_pm_gpe_qemu_readb(void *opaque, hwaddr addr, unsigned width)
+{
+    ViaPMState *s = opaque;
+    uint32_t val = acpi_gpe_ioport_readb(&s->ar, addr);
+
+    return val;
+}
+
+static void via_pm_gpe_qemu_writeb(void *opaque, hwaddr addr, uint64_t val,
+                                   unsigned width)
+{
+    ViaPMState *s = opaque;
+
+    acpi_gpe_ioport_writeb(&s->ar, addr, val);
+    acpi_update_sci(&s->ar, s->sci_irq);
+}
+
+static const MemoryRegionOps via_pm_gpe_qemu_ops = {
+    .read = via_pm_gpe_qemu_readb,
+    .write = via_pm_gpe_qemu_writeb,
+    .impl = {
+        .min_access_size = 1,
+        .max_access_size = 1,
+    },
+    .valid = {
+        .min_access_size = 1,
+        .max_access_size = 4,
+    },
+    .endianness = DEVICE_LITTLE_ENDIAN,
+};
+
 static void via_pm_get_prop_smi_cmd_port(Object *obj, Visitor *v,
                                          const char *name, void *opaque,
                                          Error **errp)
@@ -382,17 +416,15 @@ static void via_pm_add_properties(ViaPMState *s)
     static const uint8_t acpi_enable_cmd = ACPI_ENABLE;
     static const uint8_t acpi_disable_cmd = ACPI_DISABLE;
     static const uint16_t sci_int = 9;
-    static const uint16_t gpe0_blk; /* = 0 */
-    static const uint8_t gpe0_len; /* = 0 */
 
     object_property_add_uint8_ptr(OBJECT(s), ACPI_PM_PROP_ACPI_ENABLE_CMD,
                                   &acpi_enable_cmd, OBJ_PROP_FLAG_READ);
     object_property_add_uint8_ptr(OBJECT(s), ACPI_PM_PROP_ACPI_DISABLE_CMD,
                                   &acpi_disable_cmd, OBJ_PROP_FLAG_READ);
-    object_property_add_uint16_ptr(OBJECT(s), ACPI_PM_PROP_GPE0_BLK,
-                                   &gpe0_blk, OBJ_PROP_FLAG_READ);
+    object_property_add_alias(OBJECT(s), ACPI_PM_PROP_GPE0_BLK,
+                              OBJECT(&s->io_gpe_qemu), "addr");
     object_property_add_uint8_ptr(OBJECT(s), ACPI_PM_PROP_GPE0_BLK_LEN,
-                                  &gpe0_len, OBJ_PROP_FLAG_READ);
+                                  &s->ar.gpe.len, OBJ_PROP_FLAG_READ);
     object_property_add(OBJECT(s), ACPI_PM_PROP_SMI_CMD_PORT, "uint64",
                         via_pm_get_prop_smi_cmd_port, NULL, NULL, s);
     object_property_add_uint16_ptr(OBJECT(s), ACPI_PM_PROP_SCI_INT,
@@ -420,6 +452,11 @@ static void via_pm_realize(PCIDevice *dev, Error **errp)
                           128);
     memory_region_add_subregion(pci_address_space_io(dev), 0, &s->hw_io);
     memory_region_set_enabled(&s->hw_io, false);
+
+    memory_region_init_io(&s->io_gpe_qemu, OBJECT(s), &via_pm_gpe_qemu_ops, s,
+                          "acpi-gpe-qemu", VIA_PM_GPE_LEN);
+    memory_region_add_subregion(pci_address_space_io(dev), QEMU_GPE_BASE,
+                                &s->io_gpe_qemu);
 
     acpi_pm_tmr_init(&s->ar, pm_tmr_timer, &s->io);
     acpi_pm1_evt_init(&s->ar, pm_tmr_timer, &s->io);
