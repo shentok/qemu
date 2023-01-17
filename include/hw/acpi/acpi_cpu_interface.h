@@ -20,7 +20,7 @@ struct AcpiCpuAmlIfClass {
     InterfaceClass parent_class;
 
     /* <public> */
-    void (*madt_cpu)(int uid, const CPUArchIdList *apic_ids, GArray *entry,
+    void (*madt_cpu)(int uid, const CPUArchId *apic_id, GArray *entry,
                      bool force_enabled);
 };
 #endif

@@ -668,7 +668,7 @@ void build_cpus_aml(Aml *table, const CPUArchIdList *arch_ids,
 
             /* build _MAT object */
             assert(acpuac && acpuac->madt_cpu);
-            acpuac->madt_cpu(i, arch_ids, madt_buf,
+            acpuac->madt_cpu(i, &arch_ids->cpus[i], madt_buf,
                              true); /* set enabled flag */
             aml_append(dev, aml_name_decl("_MAT",
                 aml_buffer(madt_buf->len, (uint8_t *)madt_buf->data)));

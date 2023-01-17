@@ -7109,12 +7109,12 @@ static const struct SysemuCPUOps i386_sysemu_ops = {
     .legacy_vmsd = &vmstate_x86_cpu,
 };
 
-static void x86_madt_cpu_entry(int uid, const CPUArchIdList *apic_ids,
+static void x86_madt_cpu_entry(int uid, const CPUArchId *arch_id,
                                GArray *entry, bool force_enabled)
 {
-    uint32_t apic_id = apic_ids->cpus[uid].arch_id;
+    uint32_t apic_id = arch_id->arch_id;
     /* Flags – Local APIC Flags */
-    uint32_t flags = apic_ids->cpus[uid].cpu != NULL || force_enabled ?
+    uint32_t flags = arch_id->cpu != NULL || force_enabled ?
                      1 /* Enabled */ : 0;
 
     /*

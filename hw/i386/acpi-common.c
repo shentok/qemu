@@ -80,7 +80,7 @@ void acpi_build_madt(GArray *table_data, BIOSLinker *linker,
     for (i = 0; i < apic_ids->len; i++) {
         ObjectClass *oc = object_class_by_name(apic_ids->cpus[i].type);
         AcpiCpuAmlIfClass *acpuac = ACPI_CPU_AML_IF_CLASS(oc);
-        acpuac->madt_cpu(i, apic_ids, table_data, false);
+        acpuac->madt_cpu(i, &apic_ids->cpus[i], table_data, false);
         if (apic_ids->cpus[i].arch_id > 254) {
             x2apic_mode = true;
         }
