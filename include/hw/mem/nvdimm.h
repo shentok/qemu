@@ -24,9 +24,9 @@
 #define QEMU_NVDIMM_H
 
 #include "hw/mem/pc-dimm.h"
+#include "hw/acpi/acpi-defs.h"
 #include "hw/acpi/bios-linker-loader.h"
 #include "qemu/uuid.h"
-#include "hw/acpi/aml-build.h"
 #include "qom/object.h"
 
 /*
