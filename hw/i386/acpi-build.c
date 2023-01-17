@@ -2467,8 +2467,8 @@ void acpi_build(AcpiBuildTables *tables, MachineState *machine)
         build_srat(tables_blob, tables->linker, machine);
         if (machine->numa_state->have_numa_distance) {
             acpi_add_table(table_offsets, tables_blob);
-            build_slit(tables_blob, tables->linker, machine, x86ms->oem_id,
-                       x86ms->oem_table_id);
+            build_slit(tables_blob, tables->linker, machine->numa_state,
+                       x86ms->oem_id, x86ms->oem_table_id);
         }
         if (machine->numa_state->hmat_enabled) {
             acpi_add_table(table_offsets, tables_blob);

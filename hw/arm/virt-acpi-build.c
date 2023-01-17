@@ -985,7 +985,7 @@ void virt_acpi_build(VirtMachineState *vms, AcpiBuildTables *tables)
         build_srat(tables_blob, tables->linker, vms);
         if (ms->numa_state->have_numa_distance) {
             acpi_add_table(table_offsets, tables_blob);
-            build_slit(tables_blob, tables->linker, ms, vms->oem_id,
+            build_slit(tables_blob, tables->linker, ms->numa_state, vms->oem_id,
                        vms->oem_table_id);
         }
 

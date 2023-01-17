@@ -1942,11 +1942,11 @@ void build_srat_memory(GArray *table_data, uint64_t base,
  * ACPI spec 5.2.17 System Locality Distance Information Table
  * (Revision 2.0 or later)
  */
-void build_slit(GArray *table_data, BIOSLinker *linker, MachineState *ms,
+void build_slit(GArray *table_data, BIOSLinker *linker, NumaState *numa_state,
                 const char *oem_id, const char *oem_table_id)
 {
     int i, j;
-    int nb_numa_nodes = ms->numa_state->num_nodes;
+    int nb_numa_nodes = numa_state->num_nodes;
     AcpiTable table = { .sig = "SLIT", .rev = 1,
                         .oem_id = oem_id, .oem_table_id = oem_table_id };
 
@@ -1955,9 +1955,9 @@ void build_slit(GArray *table_data, BIOSLinker *linker, MachineState *ms,
     build_append_int_noprefix(table_data, nb_numa_nodes, 8);
     for (i = 0; i < nb_numa_nodes; i++) {
         for (j = 0; j < nb_numa_nodes; j++) {
-            assert(ms->numa_state->nodes[i].distance[j]);
+            assert(numa_state->nodes[i].distance[j]);
             build_append_int_noprefix(table_data,
-                                      ms->numa_state->nodes[i].distance[j],
+                                      numa_state->nodes[i].distance[j],
                                       1);
         }
     }
