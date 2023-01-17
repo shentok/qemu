@@ -34,8 +34,6 @@
 #include "qapi/error.h"
 #include "qemu/range.h"
 #include "hw/acpi/pcihp.h"
-#include "hw/acpi/cpu_hotplug.h"
-#include "hw/acpi/cpu.h"
 #include "hw/hotplug.h"
 #include "hw/mem/pc-dimm.h"
 #include "hw/mem/nvdimm.h"
