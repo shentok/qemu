@@ -33,6 +33,8 @@
 #define TYPE_PIIX4_PM "PIIX4_PM"
 OBJECT_DECLARE_SIMPLE_TYPE(PIIX4PMState, PIIX4_PM)
 
+#define PIIX4_CPU_HOTPLUG_IO_BASE 0xaf00
+
 struct PIIX4PMState {
     /*< private >*/
     PCIDevice parent_obj;

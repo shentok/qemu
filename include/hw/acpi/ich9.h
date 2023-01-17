@@ -29,6 +29,7 @@
 #include "hw/acpi/ich9_tco.h"
 
 #define ACPI_PCIHP_ADDR_ICH9 0x0cc0
+#define ICH9_CPU_HOTPLUG_IO_BASE 0x0cd8
 
 typedef struct ICH9LPCPMRegs {
     /*
