@@ -342,8 +342,8 @@ const VMStateDescription vmstate_cpu_hotplug = {
 #define CPU_EJECT_EVENT   "CEJ0"
 #define CPU_FW_EJECT_EVENT "CEJF"
 
-void build_cpus_aml(Aml *table, MachineState *machine, CPUHotplugFeatures opts,
-                    hwaddr io_base,
+void build_cpus_aml(Aml *table, const CPUArchIdList *arch_ids,
+                    CPUHotplugFeatures opts, hwaddr io_base,
                     const char *res_root,
                     const char *event_handler_method)
 {
@@ -355,8 +355,6 @@ void build_cpus_aml(Aml *table, MachineState *machine, CPUHotplugFeatures opts,
     Aml *zero = aml_int(0);
     Aml *one = aml_int(1);
     Aml *sb_scope = aml_scope("_SB");
-    MachineClass *mc = MACHINE_GET_CLASS(machine);
-    const CPUArchIdList *arch_ids = mc->possible_cpu_arch_ids(machine);
     char *cphp_res_path = g_strdup_printf("%s." CPUHP_RES_DEVICE, res_root);
 
     cpu_ctrl_dev = aml_device("%s", cphp_res_path);

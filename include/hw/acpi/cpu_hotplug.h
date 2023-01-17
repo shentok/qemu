@@ -76,8 +76,8 @@ typedef struct CPUHotplugFeatures {
     const char *smi_path;
 } CPUHotplugFeatures;
 
-void build_cpus_aml(Aml *table, MachineState *machine, CPUHotplugFeatures opts,
-                    hwaddr io_base,
+void build_cpus_aml(Aml *table, const CPUArchIdList *arch_ids,
+                    CPUHotplugFeatures opts, hwaddr io_base,
                     const char *res_root,
                     const char *event_handler_method);
 
