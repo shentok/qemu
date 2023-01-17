@@ -1819,16 +1819,15 @@ build_tpm_tcpa(GArray *table_data, BIOSLinker *linker, GArray *tcpalog,
  * 5.2.15 System Resource Affinity Table (SRAT)
  */
 static void
-build_srat(GArray *table_data, BIOSLinker *linker, MachineState *machine)
+build_srat(GArray *table_data, BIOSLinker *linker, const NumaState *numa_state,
+           const CPUArchIdList *apic_ids, MachineState *machine)
 {
     int i;
     int numa_mem_start, slots;
     uint64_t mem_len, mem_base, next_base;
-    MachineClass *mc = MACHINE_GET_CLASS(machine);
     X86MachineState *x86ms = X86_MACHINE(machine);
-    const CPUArchIdList *apic_ids = mc->possible_cpu_arch_ids(machine);
-    int nb_numa_nodes = machine->numa_state->num_nodes;
-    NodeInfo *numa_info = machine->numa_state->nodes;
+    int nb_numa_nodes = numa_state->num_nodes;
+    const NodeInfo *numa_info = numa_state->nodes;
     ram_addr_t hotpluggable_address_space_size =
         object_property_get_int(OBJECT(machine), PC_MACHINE_DEVMEM_REGION_SIZE,
                                 NULL);
@@ -2464,7 +2463,8 @@ void acpi_build(AcpiBuildTables *tables, MachineState *machine)
 #endif
     if (machine->numa_state->num_nodes) {
         acpi_add_table(table_offsets, tables_blob);
-        build_srat(tables_blob, tables->linker, machine);
+        build_srat(tables_blob, tables->linker, machine->numa_state,
+                   machine->possible_cpus, machine);
         if (machine->numa_state->have_numa_distance) {
             acpi_add_table(table_offsets, tables_blob);
             build_slit(tables_blob, tables->linker, machine->numa_state,
