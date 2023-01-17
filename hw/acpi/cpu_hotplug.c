@@ -18,7 +18,6 @@
 #include "hw/core/cpu.h"
 #include "hw/i386/pc.h"
 #include "hw/pci/pci.h"
-#include "hw/boards.h"
 #include "migration/vmstate.h"
 #include "qemu/error-report.h"
 #include "sysemu/numa.h"
@@ -801,8 +800,8 @@ void acpi_switch_to_modern_cphp(AcpiCpuHotplug *gpe_cpu,
     cpu_hotplug_hw_init(parent, gpe_cpu->device, cpuhp_state, io_port);
 }
 
-void build_legacy_cpu_hotplug_aml(Aml *ctx, MachineState *machine,
-                                  uint16_t io_base)
+void build_legacy_cpu_hotplug_aml(Aml *ctx,const CPUArchIdList *apic_ids,
+                                  unsigned apic_id_limit, uint16_t io_base)
 {
     Aml *dev;
     Aml *crs;
@@ -821,9 +820,6 @@ void build_legacy_cpu_hotplug_aml(Aml *ctx, MachineState *machine,
     Aml *cpus_map = aml_name(CPU_ON_BITMAP);
     Aml *zero = aml_int(0);
     Aml *one = aml_int(1);
-    MachineClass *mc = MACHINE_GET_CLASS(machine);
-    const CPUArchIdList *apic_ids = mc->possible_cpu_arch_ids(machine);
-    X86MachineState *x86ms = X86_MACHINE(machine);
 
     /*
      * _MAT method - creates an madt apic buffer
@@ -931,9 +927,9 @@ void build_legacy_cpu_hotplug_aml(Aml *ctx, MachineState *machine,
     /* The current AML generator can cover the APIC ID range [0..255],
      * inclusive, for VCPU hotplug. */
     QEMU_BUILD_BUG_ON(ACPI_CPU_HOTPLUG_ID_LIMIT > 256);
-    if (x86ms->apic_id_limit > ACPI_CPU_HOTPLUG_ID_LIMIT) {
+    if (apic_id_limit > ACPI_CPU_HOTPLUG_ID_LIMIT) {
         error_report("max_cpus is too large. APIC ID of last CPU is %u",
-                     x86ms->apic_id_limit - 1);
+                     apic_id_limit - 1);
         exit(1);
     }
 
@@ -1010,8 +1006,8 @@ void build_legacy_cpu_hotplug_aml(Aml *ctx, MachineState *machine,
      * ith up to 255 elements. Windows guests up to win2k8 fail when
      * VarPackageOp is used.
      */
-    pkg = x86ms->apic_id_limit <= 255 ? aml_package(x86ms->apic_id_limit) :
-                                        aml_varpackage(x86ms->apic_id_limit);
+    pkg = apic_id_limit <= 255 ? aml_package(apic_id_limit) :
+                                 aml_varpackage(apic_id_limit);
 
     for (i = 0, apic_idx = 0; i < apic_ids->len; i++) {
         int apic_id = apic_ids->cpus[i].arch_id;

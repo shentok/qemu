@@ -1325,6 +1325,7 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
     CrsRangeEntry *entry;
     Aml *dsdt, *sb_scope, *scope, *dev, *method, *field, *pkg, *crs;
     CrsRangeSet crs_range_set;
+    MachineClass *mc = MACHINE_GET_CLASS(machine);
     PCMachineState *pcms = PC_MACHINE(machine);
     PCMachineClass *pcmc = PC_MACHINE_GET_CLASS(machine);
     X86MachineState *x86ms = X86_MACHINE(machine);
@@ -1430,7 +1431,8 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
     aml_append(dsdt, scope);
 
     if (pcmc->legacy_cpu_hotplug) {
-        build_legacy_cpu_hotplug_aml(dsdt, machine, pm->cpu_hp_io_base);
+        build_legacy_cpu_hotplug_aml(dsdt, mc->possible_cpu_arch_ids(machine),
+                                     x86ms->apic_id_limit, pm->cpu_hp_io_base);
     } else {
         CPUHotplugFeatures opts = {
             .acpi_1_compatible = true, .has_legacy_cphp = true,

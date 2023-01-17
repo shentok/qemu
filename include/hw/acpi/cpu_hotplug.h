@@ -17,6 +17,7 @@
 #include "hw/acpi/aml-build.h"
 #include "hw/hotplug.h"
 #include "hw/qdev-core.h"
+#include "hw/boards.h"
 #include "qapi/qapi-types-acpi.h"
 #include "exec/memory.h"
 
@@ -92,8 +93,8 @@ void acpi_switch_to_modern_cphp(AcpiCpuHotplug *gpe_cpu,
                                 CPUHotplugState *cpuhp_state,
                                 uint16_t io_port);
 
-void build_legacy_cpu_hotplug_aml(Aml *ctx, MachineState *machine,
-                                  uint16_t io_base);
+void build_legacy_cpu_hotplug_aml(Aml *ctx, const CPUArchIdList *apic_ids,
+                                  unsigned apic_id_limit, uint16_t io_base);
 
 extern const VMStateDescription vmstate_cpu_hotplug;
 #define VMSTATE_CPU_HOTPLUG(cpuhp, state) \
