@@ -439,7 +439,7 @@ static void piix4_pm_get_gpe0_blk(Object *obj, Visitor *v, const char *name,
                                   void *opaque, Error **errp)
 {
     PIIX4PMState *s = opaque;
-    uint64_t value = memory_region_to_absolute_addr(&s->io_gpe, 0);
+    uint64_t value = memory_region_to_absolute_addr(&s->io_gpe_qemu, 0);
 
     visit_type_uint64(v, name, &value, errp);
 }
@@ -579,9 +579,9 @@ static void piix4_set_cpu_hotplug_legacy(Object *obj, bool value, Error **errp)
 static void piix4_acpi_system_hot_add_init(MemoryRegion *parent,
                                            PCIBus *bus, PIIX4PMState *s)
 {
-    memory_region_init_io(&s->io_gpe, OBJECT(s), &piix4_gpe_ops, s,
+    memory_region_init_io(&s->io_gpe_qemu, OBJECT(s), &piix4_gpe_ops, s,
                           "acpi-gpe0", GPE_LEN);
-    memory_region_add_subregion(parent, GPE_BASE, &s->io_gpe);
+    memory_region_add_subregion(parent, GPE_BASE, &s->io_gpe_qemu);
 
     if (s->acpi_pci_hotplug.use_acpi_hotplug_bridge ||
         s->acpi_pci_hotplug.use_acpi_root_pci_hotplug) {
