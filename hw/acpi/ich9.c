@@ -344,8 +344,7 @@ static void ich9_pm_get_gpe0_blk(Object *obj, Visitor *v, const char *name,
                                  void *opaque, Error **errp)
 {
     ICH9LPCPMRegs *pm = opaque;
-    uint64_t value = memory_region_to_absolute_addr(&pm->io,
-                                                    ICH9_PMIO_GPE0_STS);
+    uint64_t value = memory_region_to_absolute_addr(&pm->io_gpe, 0);
 
     visit_type_uint64(v, name, &value, errp);
 }
