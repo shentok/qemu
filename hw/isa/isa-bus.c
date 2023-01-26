@@ -129,8 +129,6 @@ int isa_register_portio_list(ISADevice *dev,
                              const MemoryRegionPortio *pio_start,
                              void *opaque, const char *name)
 {
-    assert(piolist && !piolist->owner);
-
     if (!isabus) {
         return -ENODEV;
     }
@@ -140,8 +138,8 @@ int isa_register_portio_list(ISADevice *dev,
        actually handled e.g. the FDC device.  */
     isa_init_ioport(dev, start);
 
-    portio_list_init(piolist, OBJECT(dev), pio_start, opaque, name);
-    portio_list_add(piolist, isa_address_space_io(dev), start);
+    portio_list_init(piolist, OBJECT(dev), pio_start, opaque, name,
+                     isa_address_space_io(dev), start);
 
     return 0;
 }
