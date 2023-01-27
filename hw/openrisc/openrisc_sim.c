@@ -53,7 +53,6 @@ typedef struct Or1ksimState {
 
     /*< public >*/
     void *fdt;
-    int fdt_size;
 
 } Or1ksimState;
 
@@ -111,11 +110,11 @@ static void openrisc_create_fdt(Or1ksimState *state,
                                 const char *cmdline)
 {
     void *fdt;
-    int cpu;
+    int cpu, fdt_size;
     char *nodename;
     int pic_ph;
 
-    fdt = state->fdt = create_device_tree(&state->fdt_size);
+    fdt = state->fdt = create_device_tree(&fdt_size);
     if (!fdt) {
         error_report("create_device_tree() failed");
         exit(1);
