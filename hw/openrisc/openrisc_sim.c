@@ -51,9 +51,6 @@ typedef struct Or1ksimState {
     /*< private >*/
     MachineState parent_obj;
 
-    /*< public >*/
-    void *fdt;
-
 } Or1ksimState;
 
 enum {
@@ -104,7 +101,7 @@ static qemu_irq get_cpu_irq(OpenRISCCPU *cpus[], int cpunum, int irq_pin)
     return qdev_get_gpio_in_named(DEVICE(cpus[cpunum]), "IRQ", irq_pin);
 }
 
-static void openrisc_create_fdt(Or1ksimState *state,
+static void openrisc_create_fdt(MachineState *state,
                                 const struct MemmapEntry *memmap,
                                 int num_cpus, uint64_t mem_size,
                                 const char *cmdline)
@@ -167,7 +164,7 @@ static void openrisc_create_fdt(Or1ksimState *state,
     qemu_fdt_add_subnode(fdt, "/aliases");
 }
 
-static void openrisc_sim_net_init(Or1ksimState *state, hwaddr base, hwaddr size,
+static void openrisc_sim_net_init(MachineState *state, hwaddr base, hwaddr size,
                                   int num_cpus, OpenRISCCPU *cpus[],
                                   int irq_pin, NICInfo *nd)
 {
@@ -208,7 +205,7 @@ static void openrisc_sim_net_init(Or1ksimState *state, hwaddr base, hwaddr size,
     g_free(nodename);
 }
 
-static void openrisc_sim_ompic_init(Or1ksimState *state, hwaddr base,
+static void openrisc_sim_ompic_init(MachineState *state, hwaddr base,
                                     hwaddr size, int num_cpus,
                                     OpenRISCCPU *cpus[], int irq_pin)
 {
@@ -239,7 +236,7 @@ static void openrisc_sim_ompic_init(Or1ksimState *state, hwaddr base,
     g_free(nodename);
 }
 
-static void openrisc_sim_serial_init(Or1ksimState *state, hwaddr base,
+static void openrisc_sim_serial_init(MachineState *state, hwaddr base,
                                      hwaddr size, int num_cpus,
                                      OpenRISCCPU *cpus[], int irq_pin,
                                      int uart_idx)
@@ -286,7 +283,6 @@ static void openrisc_sim_init(MachineState *machine)
     ram_addr_t ram_size = machine->ram_size;
     const char *kernel_filename = machine->kernel_filename;
     OpenRISCCPU *cpus[OR1KSIM_CPUS_MAX] = {};
-    Or1ksimState *state = OR1KSIM_MACHINE(machine);
     MemoryRegion *ram;
     hwaddr load_addr;
     int n;
@@ -309,24 +305,24 @@ static void openrisc_sim_init(MachineState *machine)
     memory_region_init_ram(ram, NULL, "openrisc.ram", ram_size, &error_fatal);
     memory_region_add_subregion(get_system_memory(), 0, ram);
 
-    openrisc_create_fdt(state, or1ksim_memmap, smp_cpus, machine->ram_size,
+    openrisc_create_fdt(machine, or1ksim_memmap, smp_cpus, machine->ram_size,
                         machine->kernel_cmdline);
 
     if (nd_table[0].used) {
-        openrisc_sim_net_init(state, or1ksim_memmap[OR1KSIM_ETHOC].base,
+        openrisc_sim_net_init(machine, or1ksim_memmap[OR1KSIM_ETHOC].base,
                               or1ksim_memmap[OR1KSIM_ETHOC].size,
                               smp_cpus, cpus,
                               OR1KSIM_ETHOC_IRQ, nd_table);
     }
 
     if (smp_cpus > 1) {
-        openrisc_sim_ompic_init(state, or1ksim_memmap[OR1KSIM_OMPIC].base,
+        openrisc_sim_ompic_init(machine, or1ksim_memmap[OR1KSIM_OMPIC].base,
                                 or1ksim_memmap[OR1KSIM_OMPIC].size,
                                 smp_cpus, cpus, OR1KSIM_OMPIC_IRQ);
     }
 
     for (n = 0; n < OR1KSIM_UART_COUNT; ++n)
-        openrisc_sim_serial_init(state, or1ksim_memmap[OR1KSIM_UART].base +
+        openrisc_sim_serial_init(machine, or1ksim_memmap[OR1KSIM_UART].base +
                                         or1ksim_memmap[OR1KSIM_UART].size * n,
                                  or1ksim_memmap[OR1KSIM_UART].size,
                                  smp_cpus, cpus, OR1KSIM_UART_IRQ, n);
@@ -335,11 +331,11 @@ static void openrisc_sim_init(MachineState *machine)
                                      &boot_info.bootstrap_pc);
     if (load_addr > 0) {
         if (machine->initrd_filename) {
-            load_addr = openrisc_load_initrd(state->fdt,
+            load_addr = openrisc_load_initrd(machine->fdt,
                                              machine->initrd_filename,
                                              load_addr, machine->ram_size);
         }
-        boot_info.fdt_addr = openrisc_load_fdt(state->fdt, load_addr,
+        boot_info.fdt_addr = openrisc_load_fdt(machine->fdt, load_addr,
                                                machine->ram_size);
     }
 }
