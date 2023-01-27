@@ -41,10 +41,6 @@
 typedef struct OR1KVirtState {
     /*< private >*/
     MachineState parent_obj;
-
-    /*< public >*/
-    void *fdt;
-
 } OR1KVirtState;
 
 enum {
@@ -121,7 +117,7 @@ static qemu_irq get_per_cpu_irq(OpenRISCCPU *cpus[], int num_cpus, int irq_pin)
     }
 }
 
-static void openrisc_create_fdt(OR1KVirtState *state,
+static void openrisc_create_fdt(MachineState *state,
                                 const struct MemmapEntry *memmap,
                                 int num_cpus, uint64_t mem_size,
                                 const char *cmdline,
@@ -195,7 +191,7 @@ static void openrisc_create_fdt(OR1KVirtState *state,
     qemu_fdt_add_subnode(fdt, "/aliases");
 }
 
-static void openrisc_virt_ompic_init(OR1KVirtState *state, hwaddr base,
+static void openrisc_virt_ompic_init(MachineState *state, hwaddr base,
                                     hwaddr size, int num_cpus,
                                     OpenRISCCPU *cpus[], int irq_pin)
 {
@@ -226,7 +222,7 @@ static void openrisc_virt_ompic_init(OR1KVirtState *state, hwaddr base,
     g_free(nodename);
 }
 
-static void openrisc_virt_serial_init(OR1KVirtState *state, hwaddr base,
+static void openrisc_virt_serial_init(MachineState *state, hwaddr base,
                                      hwaddr size, int num_cpus,
                                      OpenRISCCPU *cpus[], int irq_pin)
 {
@@ -252,7 +248,7 @@ static void openrisc_virt_serial_init(OR1KVirtState *state, hwaddr base,
     g_free(nodename);
 }
 
-static void openrisc_virt_test_init(OR1KVirtState *state, hwaddr base,
+static void openrisc_virt_test_init(MachineState *state, hwaddr base,
                                    hwaddr size)
 {
     void *fdt = state->fdt;
@@ -290,7 +286,7 @@ static void openrisc_virt_test_init(OR1KVirtState *state, hwaddr base,
 
 }
 
-static void openrisc_virt_rtc_init(OR1KVirtState *state, hwaddr base,
+static void openrisc_virt_rtc_init(MachineState *state, hwaddr base,
                                    hwaddr size, int num_cpus,
                                    OpenRISCCPU *cpus[], int irq_pin)
 {
@@ -363,7 +359,7 @@ static void create_pcie_irq_map(void *fdt, char *nodename, int irq_base,
                            0x1800, 0, 0, 0x7);
 }
 
-static void openrisc_virt_pcie_init(OR1KVirtState *state,
+static void openrisc_virt_pcie_init(MachineState *state,
                                     hwaddr ecam_base, hwaddr ecam_size,
                                     hwaddr pio_base, hwaddr pio_size,
                                     hwaddr mmio_base, hwaddr mmio_size,
@@ -439,7 +435,7 @@ static void openrisc_virt_pcie_init(OR1KVirtState *state,
     g_free(nodename);
 }
 
-static void openrisc_virt_virtio_init(OR1KVirtState *state, hwaddr base,
+static void openrisc_virt_virtio_init(MachineState *state, hwaddr base,
                                       hwaddr size, int num_cpus,
                                       OpenRISCCPU *cpus[], int irq_pin)
 {
@@ -471,7 +467,6 @@ static void openrisc_virt_init(MachineState *machine)
     ram_addr_t ram_size = machine->ram_size;
     const char *kernel_filename = machine->kernel_filename;
     OpenRISCCPU *cpus[VIRT_CPUS_MAX] = {};
-    OR1KVirtState *state = VIRT_MACHINE(machine);
     MemoryRegion *ram;
     hwaddr load_addr;
     int n;
@@ -495,27 +490,27 @@ static void openrisc_virt_init(MachineState *machine)
     memory_region_init_ram(ram, NULL, "openrisc.ram", ram_size, &error_fatal);
     memory_region_add_subregion(get_system_memory(), 0, ram);
 
-    openrisc_create_fdt(state, virt_memmap, smp_cpus, machine->ram_size,
+    openrisc_create_fdt(machine, virt_memmap, smp_cpus, machine->ram_size,
                         machine->kernel_cmdline, &pic_phandle);
 
     if (smp_cpus > 1) {
-        openrisc_virt_ompic_init(state, virt_memmap[VIRT_OMPIC].base,
+        openrisc_virt_ompic_init(machine, virt_memmap[VIRT_OMPIC].base,
                                  virt_memmap[VIRT_OMPIC].size,
                                  smp_cpus, cpus, VIRT_OMPIC_IRQ);
     }
 
-    openrisc_virt_serial_init(state, virt_memmap[VIRT_UART].base,
+    openrisc_virt_serial_init(machine, virt_memmap[VIRT_UART].base,
                               virt_memmap[VIRT_UART].size,
                               smp_cpus, cpus, VIRT_UART_IRQ);
 
-    openrisc_virt_test_init(state, virt_memmap[VIRT_TEST].base,
+    openrisc_virt_test_init(machine, virt_memmap[VIRT_TEST].base,
                             virt_memmap[VIRT_TEST].size);
 
-    openrisc_virt_rtc_init(state, virt_memmap[VIRT_RTC].base,
+    openrisc_virt_rtc_init(machine, virt_memmap[VIRT_RTC].base,
                            virt_memmap[VIRT_RTC].size, smp_cpus, cpus,
                            VIRT_RTC_IRQ);
 
-    openrisc_virt_pcie_init(state, virt_memmap[VIRT_ECAM].base,
+    openrisc_virt_pcie_init(machine, virt_memmap[VIRT_ECAM].base,
                             virt_memmap[VIRT_ECAM].size,
                             virt_memmap[VIRT_PIO].base,
                             virt_memmap[VIRT_PIO].size,
@@ -525,7 +520,7 @@ static void openrisc_virt_init(MachineState *machine)
                             VIRT_PCI_IRQ_BASE, pic_phandle);
 
     for (n = 0; n < VIRTIO_COUNT; n++) {
-        openrisc_virt_virtio_init(state, virt_memmap[VIRT_VIRTIO].base
+        openrisc_virt_virtio_init(machine, virt_memmap[VIRT_VIRTIO].base
                                          + n * virt_memmap[VIRT_VIRTIO].size,
                                   virt_memmap[VIRT_VIRTIO].size,
                                   smp_cpus, cpus, VIRT_VIRTIO_IRQ + n);
@@ -535,11 +530,11 @@ static void openrisc_virt_init(MachineState *machine)
                                      &boot_info.bootstrap_pc);
     if (load_addr > 0) {
         if (machine->initrd_filename) {
-            load_addr = openrisc_load_initrd(state->fdt,
+            load_addr = openrisc_load_initrd(machine->fdt,
                                              machine->initrd_filename,
                                              load_addr, machine->ram_size);
         }
-        boot_info.fdt_addr = openrisc_load_fdt(state->fdt, load_addr,
+        boot_info.fdt_addr = openrisc_load_fdt(machine->fdt, load_addr,
                                                machine->ram_size);
     }
 }
