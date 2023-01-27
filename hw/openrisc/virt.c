@@ -36,12 +36,9 @@
 
 #define TYPE_VIRT_MACHINE MACHINE_TYPE_NAME("virt")
 #define VIRT_MACHINE(obj) \
-    OBJECT_CHECK(OR1KVirtState, (obj), TYPE_VIRT_MACHINE)
+    OBJECT_CHECK(MachineState, (obj), TYPE_VIRT_MACHINE)
 
-typedef struct OR1KVirtState {
-    /*< private >*/
-    MachineState parent_obj;
-} OR1KVirtState;
+typedef struct MachineState OR1KVirtState;
 
 enum {
     VIRT_DRAM,
