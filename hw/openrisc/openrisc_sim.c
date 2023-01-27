@@ -45,13 +45,9 @@
 
 #define TYPE_OR1KSIM_MACHINE MACHINE_TYPE_NAME("or1k-sim")
 #define OR1KSIM_MACHINE(obj) \
-    OBJECT_CHECK(Or1ksimState, (obj), TYPE_OR1KSIM_MACHINE)
+    OBJECT_CHECK(MachineState, (obj), TYPE_OR1KSIM_MACHINE)
 
-typedef struct Or1ksimState {
-    /*< private >*/
-    MachineState parent_obj;
-
-} Or1ksimState;
+typedef struct MachineState Or1ksimState;
 
 enum {
     OR1KSIM_DRAM,
