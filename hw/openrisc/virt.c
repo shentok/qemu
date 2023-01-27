@@ -44,7 +44,6 @@ typedef struct OR1KVirtState {
 
     /*< public >*/
     void *fdt;
-    int fdt_size;
 
 } OR1KVirtState;
 
@@ -129,11 +128,11 @@ static void openrisc_create_fdt(OR1KVirtState *state,
                                 int32_t *pic_phandle)
 {
     void *fdt;
-    int cpu;
+    int cpu, fdt_size;
     char *nodename;
     uint8_t rng_seed[32];
 
-    fdt = state->fdt = create_device_tree(&state->fdt_size);
+    fdt = state->fdt = create_device_tree(&fdt_size);
     if (!fdt) {
         error_report("create_device_tree() failed");
         exit(1);
