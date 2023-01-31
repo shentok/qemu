@@ -26,8 +26,8 @@
 
 #include "qemu/osdep.h"
 #include "hw/pci/pci.h"
-#include "hw/pci/pci_host.h"
-#include "hw/pci-host/i440fx.h"
+#include "hw/xen/xen.h"
+#include "hw/xen/xen_pt.h"
 #include "qapi/error.h"
 
 typedef struct {
@@ -77,12 +77,16 @@ static void host_pci_config_read(int pos, int len, uint32_t *val, Error **errp)
     g_free(path);
 }
 
-static void igd_pt_i440fx_realize(PCIDevice *pci_dev, Error **errp)
+void xen_pt_igd_setup(PCIDevice *pci_dev, Error **errp)
 {
     ERRP_GUARD();
     uint32_t val = 0;
     size_t i;
     int pos, len;
+
+    if (!xen_igd_gfx_pt_enabled()) {
+        return;
+    }
 
     for (i = 0; i < ARRAY_SIZE(igd_host_bridge_infos); i++) {
         pos = igd_host_bridge_infos[i].offset;
@@ -94,26 +98,3 @@ static void igd_pt_i440fx_realize(PCIDevice *pci_dev, Error **errp)
         pci_default_write_config(pci_dev, pos, val, len);
     }
 }
-
-static void igd_passthrough_i440fx_class_init(ObjectClass *klass, void *data)
-{
-    DeviceClass *dc = DEVICE_CLASS(klass);
-    PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
-
-    k->realize = igd_pt_i440fx_realize;
-    dc->desc = "IGD Passthrough Host bridge";
-}
-
-static const TypeInfo igd_passthrough_i440fx_info = {
-    .name          = TYPE_IGD_PASSTHROUGH_I440FX_PCI_DEVICE,
-    .parent        = TYPE_I440FX_PCI_DEVICE,
-    .instance_size = sizeof(PCII440FXState),
-    .class_init    = igd_passthrough_i440fx_class_init,
-};
-
-static void igd_pt_i440fx_register_types(void)
-{
-    type_register_static(&igd_passthrough_i440fx_info);
-}
-
-type_init(igd_pt_i440fx_register_types)

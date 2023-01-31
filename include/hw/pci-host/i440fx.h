@@ -13,6 +13,7 @@
 
 #include "hw/pci/pci_device.h"
 #include "hw/pci-host/pam.h"
+#include "exec/memory.h"
 #include "qom/object.h"
 
 #define I440FX_PAM 0x59
@@ -38,8 +39,8 @@ struct PCII440FXState {
     PAMMemoryRegion pam_regions[PAM_REGIONS_COUNT];
     MemoryRegion smram_region;
     MemoryRegion low_smram;
+    uint64_t below_4g_mem_size;
+    uint64_t above_4g_mem_size;
 };
-
-#define TYPE_IGD_PASSTHROUGH_I440FX_PCI_DEVICE "igd-passthrough-i440FX"
 
 #endif

@@ -87,8 +87,7 @@ static int pc_pci_slot_get_pirq(PCIDevice *pci_dev, int pci_intx)
 }
 
 /* PC hardware initialisation */
-static void pc_init1(MachineState *machine,
-                     const char *host_type, const char *pci_type)
+static void pc_init1(MachineState *machine, const char *host_type)
 {
     PCMachineState *pcms = PC_MACHINE(machine);
     PCMachineClass *pcmc = PC_MACHINE_GET_CLASS(pcms);
@@ -200,7 +199,6 @@ static void pc_init1(MachineState *machine,
                                  x86ms->below_4g_mem_size, &error_fatal);
         object_property_set_uint(phb, PCI_HOST_ABOVE_4G_MEM_SIZE,
                                  x86ms->above_4g_mem_size, &error_fatal);
-        object_property_set_str(phb, "pci-type", pci_type, &error_fatal);
         sysbus_realize_and_unref(SYS_BUS_DEVICE(phb), &error_fatal);
 
         pci_bus = PCI_BUS(qdev_get_child_bus(DEVICE(phb), "pci.0"));
@@ -212,6 +210,14 @@ static void pc_init1(MachineState *machine,
         hole64_size = object_property_get_uint(phb,
                                                PCI_HOST_PROP_PCI_HOLE64_SIZE,
                                                &error_abort);
+
+        if (xen_enabled()) {
+            PCIDevice *pci_dev;
+
+            pci_dev = PCI_DEVICE(object_resolve_path_component(OBJECT(phb),
+                                                               "pci"));
+            xen_pt_igd_setup(pci_dev, &error_fatal);
+        }
     } else {
         pci_memory = NULL;
         rom_memory = system_memory;
@@ -410,21 +416,11 @@ static void pc_compat_1_4_fn(MachineState *machine)
 #ifdef CONFIG_ISAPC
 static void pc_init_isa(MachineState *machine)
 {
-    pc_init1(machine, TYPE_I440FX_PCI_HOST_BRIDGE, TYPE_I440FX_PCI_DEVICE);
+    pc_init1(machine, TYPE_I440FX_PCI_HOST_BRIDGE);
 }
 #endif
 
 #ifdef CONFIG_XEN
-static void pc_xen_hvm_init_pci(MachineState *machine)
-{
-    const char *pci_type = xen_igd_gfx_pt_enabled() ?
-                TYPE_IGD_PASSTHROUGH_I440FX_PCI_DEVICE : TYPE_I440FX_PCI_DEVICE;
-
-    pc_init1(machine,
-             TYPE_I440FX_PCI_HOST_BRIDGE,
-             pci_type);
-}
-
 static void pc_xen_hvm_init(MachineState *machine)
 {
     PCMachineState *pcms = PC_MACHINE(machine);
@@ -434,7 +430,7 @@ static void pc_xen_hvm_init(MachineState *machine)
         exit(1);
     }
 
-    pc_xen_hvm_init_pci(machine);
+    pc_init1(machine, TYPE_I440FX_PCI_HOST_BRIDGE);
     pci_create_simple(pcms->bus, -1, "xen-platform");
 }
 #endif
@@ -446,8 +442,7 @@ static void pc_xen_hvm_init(MachineState *machine)
         if (compat) { \
             compat(machine); \
         } \
-        pc_init1(machine, TYPE_I440FX_PCI_HOST_BRIDGE, \
-                 TYPE_I440FX_PCI_DEVICE); \
+        pc_init1(machine, TYPE_I440FX_PCI_HOST_BRIDGE); \
     } \
     DEFINE_PC_MACHINE(suffix, name, pc_init_##suffix, optionfn)
 

@@ -9,11 +9,6 @@
 #include "hw/xen/xen_pt.h"
 #include "qapi/error.h"
 
-bool xen_igd_gfx_pt_enabled(void)
-{
-    return false;
-}
-
 void xen_igd_gfx_pt_set(bool value, Error **errp)
 {
     if (value) {

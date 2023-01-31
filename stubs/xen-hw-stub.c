@@ -42,6 +42,11 @@ void xen_register_framebuffer(MemoryRegion *mr)
 {
 }
 
+void xen_pt_igd_setup(PCIDevice *pci_dev, Error **errp)
+{
+    return;
+}
+
 void xen_hvm_init_pc(PCMachineState *pcms, MemoryRegion **ram_memory)
 {
 }

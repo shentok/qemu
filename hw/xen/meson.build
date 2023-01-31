@@ -14,6 +14,7 @@ if have_xen_pci_passthrough
     'xen_pt.c',
     'xen_pt_config_init.c',
     'xen_pt_graphics.c',
+    'xen_pt_igd.c',
     'xen_pt_load_rom.c',
     'xen_pt_msi.c',
   ))

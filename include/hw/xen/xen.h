@@ -32,4 +32,6 @@ void xenstore_store_pv_console_info(int i, Chardev *chr);
 
 void xen_register_framebuffer(struct MemoryRegion *mr);
 
+void xen_pt_igd_setup(PCIDevice *pci_dev, Error **errp);
+
 #endif /* QEMU_HW_XEN_H */
