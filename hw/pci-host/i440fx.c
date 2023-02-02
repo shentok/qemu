@@ -54,10 +54,13 @@ struct I440FXState {
     MemoryRegion *ram_memory;
     MemoryRegion *smram;
     Range pci_hole;
+    uint64_t below_4g_mem_size;
+    uint64_t above_4g_mem_size;
     uint64_t pci_hole64_size;
     bool pci_hole64_fix;
     uint32_t short_root_bus;
 
+    char *pci_type;
     PCII440FXState pci;
 };
 
@@ -258,19 +261,43 @@ static void i440fx_pcihost_get_pci_hole64_end(Object *obj, Visitor *v,
 
 static void i440fx_pcihost_initfn(Object *obj)
 {
+    I440FXState *s = I440FX_PCI_HOST_BRIDGE(obj);
     PCIHostState *phb = PCI_HOST_BRIDGE(obj);
 
     memory_region_init_io(&phb->conf_mem, obj, &pci_host_conf_le_ops, phb,
                           "pci-conf-idx", 4);
     memory_region_init_io(&phb->data_mem, obj, &pci_host_data_le_ops, phb,
                           "pci-conf-data", 4);
+
+    object_property_add_link(obj, I440FX_HOST_PROP_RAM_MEM, TYPE_MEMORY_REGION,
+                             (Object **) &s->ram_memory,
+                             qdev_prop_allow_set_link_before_realize, 0);
+
+    object_property_add_link(obj, I440FX_HOST_PROP_SMRAM_MEM, TYPE_MEMORY_REGION,
+                             (Object **) &s->smram,
+                             qdev_prop_allow_set_link_before_realize, 0);
+
+    object_property_add_link(obj, I440FX_HOST_PROP_PCI_MEM, TYPE_MEMORY_REGION,
+                             (Object **) &s->pci_address_space,
+                             qdev_prop_allow_set_link_before_realize, 0);
+
+    object_property_add_link(obj, I440FX_HOST_PROP_SYSTEM_MEM, TYPE_MEMORY_REGION,
+                             (Object **) &s->system_memory,
+                             qdev_prop_allow_set_link_before_realize, 0);
+
+    object_property_add_link(obj, I440FX_HOST_PROP_IO_MEM, TYPE_MEMORY_REGION,
+                             (Object **) &s->address_space_io,
+                             qdev_prop_allow_set_link_before_realize, 0);
 }
 
 static void i440fx_pcihost_realize(DeviceState *dev, Error **errp)
 {
+    ERRP_GUARD();
     I440FXState *s = I440FX_PCI_HOST_BRIDGE(dev);
     PCIHostState *phb = PCI_HOST_BRIDGE(dev);
     SysBusDevice *sbd = SYS_BUS_DEVICE(dev);
+    PCIDevice *d;
+    unsigned i;
 
     memory_region_add_subregion(s->address_space_io, 0xcf8, &phb->conf_mem);
     sysbus_init_ioports(sbd, 0xcf8, 4);
@@ -281,43 +308,20 @@ static void i440fx_pcihost_realize(DeviceState *dev, Error **errp)
     /* register i440fx 0xcf8 port as coalesced pio */
     memory_region_set_flush_coalesced(&phb->data_mem);
     memory_region_add_coalescing(&phb->conf_mem, 0, 4);
-}
-
-PCIBus *i440fx_init(const char *pci_type,
-                    DeviceState *dev,
-                    MemoryRegion *address_space_mem,
-                    MemoryRegion *address_space_io,
-                    ram_addr_t ram_size,
-                    ram_addr_t below_4g_mem_size,
-                    ram_addr_t above_4g_mem_size,
-                    MemoryRegion *pci_address_space,
-                    MemoryRegion *ram_memory,
-                    MemoryRegion *smram)
-{
-    I440FXState *s = I440FX_PCI_HOST_BRIDGE(dev);
-    PCIHostState *phb = PCI_HOST_BRIDGE(dev);
-    PCIDevice *d;
-    unsigned i;
-
-    s->system_memory = address_space_mem;
-    s->address_space_io = address_space_io;
-    s->pci_address_space = pci_address_space;
-    s->ram_memory = ram_memory;
-    s->smram = smram;
 
     phb->bus = pci_root_bus_new(dev, NULL, s->pci_address_space,
                                 s->address_space_io, 0, TYPE_PCI_BUS);
-    object_property_add_child(qdev_get_machine(), "i440fx", OBJECT(dev));
-    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
 
-    object_initialize_child(OBJECT(s), "pci", &s->pci, pci_type);
+    object_initialize_child(OBJECT(s), "pci", &s->pci, s->pci_type);
     qdev_prop_set_int32(DEVICE(&s->pci), "addr", PCI_DEVFN(0, 0));
     qdev_prop_set_bit(DEVICE(&s->pci), "multifunction", false);
-    qdev_realize(DEVICE(&s->pci), BUS(phb->bus), &error_fatal);
+    if (!qdev_realize(DEVICE(&s->pci), BUS(phb->bus), errp)) {
+        return;
+    }
 
     d = PCI_DEVICE(&s->pci);
 
-    range_set_bounds(&s->pci_hole, below_4g_mem_size,
+    range_set_bounds(&s->pci_hole, s->below_4g_mem_size,
                      IO_APIC_DEFAULT_ADDRESS - 1);
 
     /* setup pci memory mapping */
@@ -344,6 +348,7 @@ PCIBus *i440fx_init(const char *pci_type,
                  PAM_EXPAN_BASE + i * PAM_EXPAN_SIZE, PAM_EXPAN_SIZE);
     }
 
+    ram_addr_t ram_size = s->below_4g_mem_size + s->above_4g_mem_size;
     ram_size = ram_size / 8 / 1024 / 1024;
     if (ram_size > 255) {
         ram_size = 255;
@@ -351,8 +356,6 @@ PCIBus *i440fx_init(const char *pci_type,
     d->config[I440FX_COREBOOT_RAM_SIZE] = ram_size;
 
     i440fx_update_memory_mappings(&s->pci);
-
-    return phb->bus;
 }
 
 static const char *i440fx_pcihost_root_bus_path(PCIHostState *host_bridge,
@@ -371,7 +374,12 @@ static Property i440fx_pcihost_props[] = {
     DEFINE_PROP_SIZE(PCI_HOST_PROP_PCI_HOLE64_SIZE, I440FXState,
                      pci_hole64_size, I440FX_PCI_HOST_HOLE64_SIZE_DEFAULT),
     DEFINE_PROP_UINT32("short_root_bus", I440FXState, short_root_bus, 0),
+    DEFINE_PROP_SIZE(PCI_HOST_BELOW_4G_MEM_SIZE, I440FXState,
+                     below_4g_mem_size, 0),
+    DEFINE_PROP_SIZE(PCI_HOST_ABOVE_4G_MEM_SIZE, I440FXState,
+                     above_4g_mem_size, 0),
     DEFINE_PROP_BOOL("x-pci-hole64-fix", I440FXState, pci_hole64_fix, true),
+    DEFINE_PROP_STRING("pci-type", I440FXState, pci_type),
     DEFINE_PROP_END_OF_LIST(),
 };
 

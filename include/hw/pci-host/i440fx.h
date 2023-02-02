@@ -19,6 +19,12 @@
 #define I440FX_PAM_SIZE 7
 #define I440FX_SMRAM 0x72
 
+#define I440FX_HOST_PROP_RAM_MEM "ram-mem"
+#define I440FX_HOST_PROP_SMRAM_MEM "smram-mem"
+#define I440FX_HOST_PROP_PCI_MEM "pci-mem"
+#define I440FX_HOST_PROP_SYSTEM_MEM "system-mem"
+#define I440FX_HOST_PROP_IO_MEM "io-mem"
+
 #define TYPE_I440FX_PCI_HOST_BRIDGE "i440FX-pcihost"
 #define TYPE_I440FX_PCI_DEVICE "i440FX"
 
@@ -35,16 +41,5 @@ struct PCII440FXState {
 };
 
 #define TYPE_IGD_PASSTHROUGH_I440FX_PCI_DEVICE "igd-passthrough-i440FX"
-
-PCIBus *i440fx_init(const char *pci_type,
-                    DeviceState *dev,
-                    MemoryRegion *address_space_mem,
-                    MemoryRegion *address_space_io,
-                    ram_addr_t ram_size,
-                    ram_addr_t below_4g_mem_size,
-                    ram_addr_t above_4g_mem_size,
-                    MemoryRegion *pci_memory,
-                    MemoryRegion *ram_memory,
-                    MemoryRegion *smram);
 
 #endif
