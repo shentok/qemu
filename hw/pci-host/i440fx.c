@@ -69,6 +69,19 @@ struct I440FXState {
  */
 #define I440FX_COREBOOT_RAM_SIZE 0x57
 
+/*
+ * I440FX PCI function 0
+ */
+
+static void i440fx_realize(PCIDevice *dev, Error **errp)
+{
+    dev->config[I440FX_SMRAM] = 0x02;
+
+    if (object_property_get_bool(qdev_get_machine(), "iommu", NULL)) {
+        warn_report("i440fx doesn't support emulated iommu");
+    }
+}
+
 static void i440fx_update_memory_mappings(PCII440FXState *d)
 {
     int i;
@@ -122,6 +135,42 @@ static const VMStateDescription vmstate_i440fx = {
         VMSTATE_END_OF_LIST()
     }
 };
+
+static void i440fx_class_init(ObjectClass *klass, void *data)
+{
+    DeviceClass *dc = DEVICE_CLASS(klass);
+    PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
+
+    k->realize = i440fx_realize;
+    k->config_write = i440fx_write_config;
+    k->vendor_id = PCI_VENDOR_ID_INTEL;
+    k->device_id = PCI_DEVICE_ID_INTEL_82441;
+    k->revision = 0x02;
+    k->class_id = PCI_CLASS_BRIDGE_HOST;
+    dc->desc = "Host bridge";
+    dc->vmsd = &vmstate_i440fx;
+    /*
+     * PCI-facing part of the host bridge, not usable without the
+     * host-facing part, which can't be device_add'ed, yet.
+     */
+    dc->user_creatable = false;
+    dc->hotpluggable   = false;
+}
+
+static const TypeInfo i440fx_info = {
+    .name          = TYPE_I440FX_PCI_DEVICE,
+    .parent        = TYPE_PCI_DEVICE,
+    .instance_size = sizeof(PCII440FXState),
+    .class_init    = i440fx_class_init,
+    .interfaces = (InterfaceInfo[]) {
+        { INTERFACE_CONVENTIONAL_PCI_DEVICE },
+        { },
+    },
+};
+
+/*
+ * I440FX PCI host bridge
+ */
 
 static void i440fx_pcihost_get_pci_hole_start(Object *obj, Visitor *v,
                                               const char *name, void *opaque,
@@ -234,15 +283,6 @@ static void i440fx_pcihost_realize(DeviceState *dev, Error **errp)
     memory_region_add_coalescing(&phb->conf_mem, 0, 4);
 }
 
-static void i440fx_realize(PCIDevice *dev, Error **errp)
-{
-    dev->config[I440FX_SMRAM] = 0x02;
-
-    if (object_property_get_bool(qdev_get_machine(), "iommu", NULL)) {
-        warn_report("i440fx doesn't support emulated iommu");
-    }
-}
-
 PCIBus *i440fx_init(const char *pci_type,
                     DeviceState *dev,
                     MemoryRegion *address_space_mem,
@@ -314,38 +354,6 @@ PCIBus *i440fx_init(const char *pci_type,
 
     return phb->bus;
 }
-
-static void i440fx_class_init(ObjectClass *klass, void *data)
-{
-    DeviceClass *dc = DEVICE_CLASS(klass);
-    PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
-
-    k->realize = i440fx_realize;
-    k->config_write = i440fx_write_config;
-    k->vendor_id = PCI_VENDOR_ID_INTEL;
-    k->device_id = PCI_DEVICE_ID_INTEL_82441;
-    k->revision = 0x02;
-    k->class_id = PCI_CLASS_BRIDGE_HOST;
-    dc->desc = "Host bridge";
-    dc->vmsd = &vmstate_i440fx;
-    /*
-     * PCI-facing part of the host bridge, not usable without the
-     * host-facing part, which can't be device_add'ed, yet.
-     */
-    dc->user_creatable = false;
-    dc->hotpluggable   = false;
-}
-
-static const TypeInfo i440fx_info = {
-    .name          = TYPE_I440FX_PCI_DEVICE,
-    .parent        = TYPE_PCI_DEVICE,
-    .instance_size = sizeof(PCII440FXState),
-    .class_init    = i440fx_class_init,
-    .interfaces = (InterfaceInfo[]) {
-        { INTERFACE_CONVENTIONAL_PCI_DEVICE },
-        { },
-    },
-};
 
 static const char *i440fx_pcihost_root_bus_path(PCIHostState *host_bridge,
                                                 PCIBus *rootbus)
