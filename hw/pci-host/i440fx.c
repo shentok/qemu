@@ -76,7 +76,7 @@ static void i440fx_update_memory_mappings(PCII440FXState *d)
     }
     memory_region_set_enabled(&d->smram_region,
                               !(pd->config[I440FX_SMRAM] & SMRAM_D_OPEN));
-    memory_region_set_enabled(d->smram,
+    memory_region_set_enabled(&d->low_smram,
                               pd->config[I440FX_SMRAM] & SMRAM_G_SMRAME);
     memory_region_transaction_commit();
 }
