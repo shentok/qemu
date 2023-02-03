@@ -57,6 +57,8 @@ struct I440FXState {
     uint64_t pci_hole64_size;
     bool pci_hole64_fix;
     uint32_t short_root_bus;
+
+    PCII440FXState pci;
 };
 
 /* Keep it 2G to comply with older win32 guests */
@@ -256,7 +258,6 @@ PCIBus *i440fx_init(const char *pci_type,
     PCIHostState *phb = PCI_HOST_BRIDGE(dev);
     PCIBus *b;
     PCIDevice *d;
-    PCII440FXState *f;
     unsigned i;
 
     s->system_memory = address_space_mem;
@@ -271,8 +272,12 @@ PCIBus *i440fx_init(const char *pci_type,
     object_property_add_child(qdev_get_machine(), "i440fx", OBJECT(dev));
     sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
 
-    d = pci_create_simple(b, 0, pci_type);
-    f = I440FX_PCI_DEVICE(d);
+    object_initialize_child(OBJECT(s), "pci", &s->pci, pci_type);
+    qdev_prop_set_int32(DEVICE(&s->pci), "addr", PCI_DEVFN(0, 0));
+    qdev_prop_set_bit(DEVICE(&s->pci), "multifunction", false);
+    qdev_realize(DEVICE(&s->pci), BUS(phb->bus), &error_fatal);
+
+    d = PCI_DEVICE(&s->pci);
 
     range_set_bounds(&s->pci_hole, below_4g_mem_size,
                      IO_APIC_DEFAULT_ADDRESS - 1);
@@ -281,22 +286,22 @@ PCIBus *i440fx_init(const char *pci_type,
     pc_pci_as_mapping_init(s->system_memory, s->pci_address_space);
 
     /* if *disabled* show SMRAM to all CPUs */
-    memory_region_init_alias(&f->smram_region, OBJECT(s), "smram-region",
+    memory_region_init_alias(&s->pci.smram_region, OBJECT(s), "smram-region",
                              s->pci_address_space, SMRAM_C_BASE, SMRAM_C_SIZE);
     memory_region_add_subregion_overlap(s->system_memory, SMRAM_C_BASE,
-                                        &f->smram_region, 1);
-    memory_region_set_enabled(&f->smram_region, true);
+                                        &s->pci.smram_region, 1);
+    memory_region_set_enabled(&s->pci.smram_region, true);
 
     /* smram, as seen by SMM CPUs */
-    memory_region_init_alias(&f->low_smram, OBJECT(s), "smram-low",
+    memory_region_init_alias(&s->pci.low_smram, OBJECT(s), "smram-low",
                              s->ram_memory, SMRAM_C_BASE, SMRAM_C_SIZE);
-    memory_region_set_enabled(&f->low_smram, true);
-    memory_region_add_subregion(s->smram, SMRAM_C_BASE, &f->low_smram);
+    memory_region_set_enabled(&s->pci.low_smram, true);
+    memory_region_add_subregion(s->smram, SMRAM_C_BASE, &s->pci.low_smram);
 
-    init_pam(&f->pam_regions[0], OBJECT(s), s->ram_memory, s->system_memory,
+    init_pam(&s->pci.pam_regions[0], OBJECT(s), s->ram_memory, s->system_memory,
              s->pci_address_space, PAM_BIOS_BASE, PAM_BIOS_SIZE);
-    for (i = 0; i < ARRAY_SIZE(f->pam_regions) - 1; ++i) {
-        init_pam(&f->pam_regions[i + 1], OBJECT(s), s->ram_memory,
+    for (i = 0; i < ARRAY_SIZE(s->pci.pam_regions) - 1; ++i) {
+        init_pam(&s->pci.pam_regions[i + 1], OBJECT(s), s->ram_memory,
                  s->system_memory, s->pci_address_space,
                  PAM_EXPAN_BASE + i * PAM_EXPAN_SIZE, PAM_EXPAN_SIZE);
     }
@@ -307,7 +312,7 @@ PCIBus *i440fx_init(const char *pci_type,
     }
     d->config[I440FX_COREBOOT_RAM_SIZE] = ram_size;
 
-    i440fx_update_memory_mappings(f);
+    i440fx_update_memory_mappings(&s->pci);
 
     return b;
 }
