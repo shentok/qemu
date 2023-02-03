@@ -78,8 +78,6 @@ struct I440FXState {
 
 static void i440fx_realize(PCIDevice *dev, Error **errp)
 {
-    dev->config[I440FX_SMRAM] = 0x02;
-
     if (object_property_get_bool(qdev_get_machine(), "iommu", NULL)) {
         warn_report("i440fx doesn't support emulated iommu");
     }
@@ -102,6 +100,23 @@ static void i440fx_update_memory_mappings(PCII440FXState *d)
     memory_region_transaction_commit();
 }
 
+static void i440fx_reset(DeviceState *dev)
+{
+    PCII440FXState *s = I440FX_PCI_DEVICE(dev);
+    PCIDevice *d = PCI_DEVICE(dev);
+    I440FXState *f = container_of(s, I440FXState, pci);
+
+    d->config[I440FX_SMRAM] = 0x02;
+
+    ram_addr_t ram_size = f->below_4g_mem_size + f->above_4g_mem_size;
+    ram_size = ram_size / 8 / 1024 / 1024;
+    if (ram_size > 255) {
+        ram_size = 255;
+    }
+    d->config[I440FX_COREBOOT_RAM_SIZE] = ram_size;
+
+    i440fx_update_memory_mappings(s);
+}
 
 static void i440fx_write_config(PCIDevice *dev,
                                 uint32_t address, uint32_t val, int len)
@@ -146,6 +161,7 @@ static void i440fx_class_init(ObjectClass *klass, void *data)
 
     k->realize = i440fx_realize;
     k->config_write = i440fx_write_config;
+    dc->reset = i440fx_reset;
     k->vendor_id = PCI_VENDOR_ID_INTEL;
     k->device_id = PCI_DEVICE_ID_INTEL_82441;
     k->revision = 0x02;
@@ -296,7 +312,6 @@ static void i440fx_pcihost_realize(DeviceState *dev, Error **errp)
     I440FXState *s = I440FX_PCI_HOST_BRIDGE(dev);
     PCIHostState *phb = PCI_HOST_BRIDGE(dev);
     SysBusDevice *sbd = SYS_BUS_DEVICE(dev);
-    PCIDevice *d;
     unsigned i;
 
     memory_region_add_subregion(s->address_space_io, 0xcf8, &phb->conf_mem);
@@ -318,8 +333,6 @@ static void i440fx_pcihost_realize(DeviceState *dev, Error **errp)
     if (!qdev_realize(DEVICE(&s->pci), BUS(phb->bus), errp)) {
         return;
     }
-
-    d = PCI_DEVICE(&s->pci);
 
     range_set_bounds(&s->pci_hole, s->below_4g_mem_size,
                      IO_APIC_DEFAULT_ADDRESS - 1);
@@ -347,15 +360,6 @@ static void i440fx_pcihost_realize(DeviceState *dev, Error **errp)
                  s->system_memory, s->pci_address_space,
                  PAM_EXPAN_BASE + i * PAM_EXPAN_SIZE, PAM_EXPAN_SIZE);
     }
-
-    ram_addr_t ram_size = s->below_4g_mem_size + s->above_4g_mem_size;
-    ram_size = ram_size / 8 / 1024 / 1024;
-    if (ram_size > 255) {
-        ram_size = 255;
-    }
-    d->config[I440FX_COREBOOT_RAM_SIZE] = ram_size;
-
-    i440fx_update_memory_mappings(&s->pci);
 }
 
 static const char *i440fx_pcihost_root_bus_path(PCIHostState *host_bridge,
