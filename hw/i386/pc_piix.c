@@ -107,7 +107,6 @@ static void pc_init1(MachineState *machine,
     MemoryRegion *rom_memory;
     ram_addr_t lowmem;
     uint64_t hole64_size;
-    Object *i440fx_host;
 
     /*
      * Calculate ram split, for memory below and above 4G.  It's a bit
@@ -179,17 +178,44 @@ static void pc_init1(MachineState *machine,
     }
 
     if (pcmc->pci_enabled) {
+        Object *phb;
+
         pci_memory = g_new(MemoryRegion, 1);
         memory_region_init(pci_memory, NULL, "pci", UINT64_MAX);
         rom_memory = pci_memory;
-        i440fx_host = OBJECT(qdev_new(host_type));
-        hole64_size = object_property_get_uint(i440fx_host,
+
+        phb = OBJECT(qdev_new(host_type));
+        object_property_add_child(OBJECT(machine), "i440fx", phb);
+        object_property_set_link(phb, I440FX_HOST_PROP_RAM_MEM,
+                                 OBJECT(ram_memory), &error_fatal);
+        object_property_set_link(phb, I440FX_HOST_PROP_SMRAM_MEM,
+                                 OBJECT(&x86ms->smram), &error_fatal);
+        object_property_set_link(phb, I440FX_HOST_PROP_PCI_MEM,
+                                 OBJECT(pci_memory), &error_fatal);
+        object_property_set_link(phb, I440FX_HOST_PROP_SYSTEM_MEM,
+                                 OBJECT(system_memory), &error_fatal);
+        object_property_set_link(phb, I440FX_HOST_PROP_IO_MEM,
+                                 OBJECT(system_io), &error_fatal);
+        object_property_set_uint(phb, PCI_HOST_BELOW_4G_MEM_SIZE,
+                                 x86ms->below_4g_mem_size, &error_fatal);
+        object_property_set_uint(phb, PCI_HOST_ABOVE_4G_MEM_SIZE,
+                                 x86ms->above_4g_mem_size, &error_fatal);
+        object_property_set_str(phb, "pci-type", pci_type, &error_fatal);
+        sysbus_realize_and_unref(SYS_BUS_DEVICE(phb), &error_fatal);
+
+        pci_bus = PCI_BUS(qdev_get_child_bus(DEVICE(phb), "pci.0"));
+        pci_bus_map_irqs(pci_bus,
+                         xen_enabled() ? xen_pci_slot_get_pirq
+                                       : pc_pci_slot_get_pirq);
+        pcms->bus = pci_bus;
+
+        hole64_size = object_property_get_uint(phb,
                                                PCI_HOST_PROP_PCI_HOLE64_SIZE,
                                                &error_abort);
     } else {
         pci_memory = NULL;
         rom_memory = system_memory;
-        i440fx_host = NULL;
+        pci_bus = NULL;
         hole64_size = 0;
     }
 
@@ -223,38 +249,12 @@ static void pc_init1(MachineState *machine,
         const char *type = xen_enabled() ? TYPE_PIIX3_XEN_DEVICE
                                          : TYPE_PIIX3_DEVICE;
 
-        object_property_add_child(OBJECT(machine), "i440fx", i440fx_host);
-        object_property_set_link(i440fx_host, I440FX_HOST_PROP_RAM_MEM,
-                                 OBJECT(ram_memory), &error_fatal);
-        object_property_set_link(i440fx_host, I440FX_HOST_PROP_SMRAM_MEM,
-                                 OBJECT(&x86ms->smram), &error_fatal);
-        object_property_set_link(i440fx_host, I440FX_HOST_PROP_PCI_MEM,
-                                 OBJECT(pci_memory), &error_fatal);
-        object_property_set_link(i440fx_host, I440FX_HOST_PROP_SYSTEM_MEM,
-                                 OBJECT(system_memory), &error_fatal);
-        object_property_set_link(i440fx_host, I440FX_HOST_PROP_IO_MEM,
-                                 OBJECT(system_io), &error_fatal);
-        object_property_set_uint(i440fx_host, PCI_HOST_BELOW_4G_MEM_SIZE,
-                                 x86ms->below_4g_mem_size, &error_fatal);
-        object_property_set_uint(i440fx_host, PCI_HOST_ABOVE_4G_MEM_SIZE,
-                                 x86ms->above_4g_mem_size, &error_fatal);
-        object_property_set_str(i440fx_host, "pci-type",
-                                pci_type, &error_fatal);
-        sysbus_realize_and_unref(SYS_BUS_DEVICE(i440fx_host), &error_fatal);
-
-        pci_bus = PCI_BUS(qdev_get_child_bus(DEVICE(i440fx_host), "pci.0"));
-        pci_bus_map_irqs(pci_bus,
-                         xen_enabled() ? xen_pci_slot_get_pirq
-                                       : pc_pci_slot_get_pirq);
-        pcms->bus = pci_bus;
-
         pci_dev = pci_create_simple_multifunction(pci_bus, -1, true, type);
         piix3 = PIIX3_PCI_DEVICE(pci_dev);
         piix3->pic = x86ms->gsi;
         piix3_devfn = piix3->dev.devfn;
         isa_bus = ISA_BUS(qdev_get_child_bus(DEVICE(piix3), "isa.0"));
     } else {
-        pci_bus = NULL;
         isa_bus = isa_bus_new(NULL, system_memory, system_io,
                               &error_abort);
         i8257_dma_init(isa_bus, 0);
