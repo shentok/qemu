@@ -40,10 +40,6 @@ struct MCHPCIState {
     PCIDevice parent_obj;
     /*< public >*/
 
-    MemoryRegion *ram_memory;
-    MemoryRegion *pci_address_space;
-    MemoryRegion *system_memory;
-    MemoryRegion *address_space_io;
     PAMMemoryRegion pam_regions[PAM_REGIONS_COUNT];
     MemoryRegion smram_region, open_high_smram;
     MemoryRegion smram, low_smram, high_smram;
@@ -60,6 +56,10 @@ struct Q35PCIHost {
     PCIExpressHost parent_obj;
     /*< public >*/
 
+    MemoryRegion *ram_memory;
+    MemoryRegion *pci_address_space;
+    MemoryRegion *system_memory;
+    MemoryRegion *address_space_io;
     Range pci_hole;
     uint64_t pci_hole64_size;
     bool pci_hole64_fix;
