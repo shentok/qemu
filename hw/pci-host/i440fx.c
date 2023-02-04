@@ -256,7 +256,6 @@ PCIBus *i440fx_init(const char *pci_type,
 {
     I440FXState *s = I440FX_PCI_HOST_BRIDGE(dev);
     PCIHostState *phb = PCI_HOST_BRIDGE(dev);
-    PCIBus *b;
     PCIDevice *d;
     unsigned i;
 
@@ -266,9 +265,8 @@ PCIBus *i440fx_init(const char *pci_type,
     s->ram_memory = ram_memory;
     s->smram = smram;
 
-    b = pci_root_bus_new(dev, NULL, pci_address_space,
-                         address_space_io, 0, TYPE_PCI_BUS);
-    phb->bus = b;
+    phb->bus = pci_root_bus_new(dev, NULL, s->pci_address_space,
+                                s->address_space_io, 0, TYPE_PCI_BUS);
     object_property_add_child(qdev_get_machine(), "i440fx", OBJECT(dev));
     sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
 
@@ -314,7 +312,7 @@ PCIBus *i440fx_init(const char *pci_type,
 
     i440fx_update_memory_mappings(&s->pci);
 
-    return b;
+    return phb->bus;
 }
 
 static void i440fx_class_init(ObjectClass *klass, void *data)
