@@ -26,7 +26,6 @@
 #include "qemu/range.h"
 #include "hw/i386/pc.h"
 #include "hw/pci/pci.h"
-#include "hw/pci/pci_bus.h"
 #include "hw/pci/pci_host.h"
 #include "hw/pci-host/i440fx.h"
 #include "hw/qdev-properties.h"
@@ -50,6 +49,7 @@ struct I440FXState {
     /*< public >*/
 
     MemoryRegion *system_memory;
+    MemoryRegion *address_space_io;
     MemoryRegion *pci_address_space;
     MemoryRegion *ram_memory;
     MemoryRegion *smram;
@@ -217,14 +217,14 @@ static void i440fx_pcihost_initfn(Object *obj)
 
 static void i440fx_pcihost_realize(DeviceState *dev, Error **errp)
 {
+    I440FXState *s = I440FX_PCI_HOST_BRIDGE(dev);
     PCIHostState *phb = PCI_HOST_BRIDGE(dev);
     SysBusDevice *sbd = SYS_BUS_DEVICE(dev);
-    PCIBus *b = phb->bus;
 
-    memory_region_add_subregion(b->address_space_io, 0xcf8, &phb->conf_mem);
+    memory_region_add_subregion(s->address_space_io, 0xcf8, &phb->conf_mem);
     sysbus_init_ioports(sbd, 0xcf8, 4);
 
-    memory_region_add_subregion(b->address_space_io, 0xcfc, &phb->data_mem);
+    memory_region_add_subregion(s->address_space_io, 0xcfc, &phb->data_mem);
     sysbus_init_ioports(sbd, 0xcfc, 4);
 
     /* register i440fx 0xcf8 port as coalesced pio */
@@ -260,6 +260,7 @@ PCIBus *i440fx_init(const char *pci_type,
     unsigned i;
 
     s->system_memory = address_space_mem;
+    s->address_space_io = address_space_io;
     s->pci_address_space = pci_address_space;
     s->ram_memory = ram_memory;
     s->smram = smram;
