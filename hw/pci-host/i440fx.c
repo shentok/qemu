@@ -272,22 +272,22 @@ PCIBus *i440fx_init(const char *pci_type,
     pc_pci_as_mapping_init(f->system_memory, f->pci_address_space);
 
     /* if *disabled* show SMRAM to all CPUs */
-    memory_region_init_alias(&f->smram_region, OBJECT(d), "smram-region",
+    memory_region_init_alias(&f->smram_region, OBJECT(s), "smram-region",
                              f->pci_address_space, SMRAM_C_BASE, SMRAM_C_SIZE);
     memory_region_add_subregion_overlap(f->system_memory, SMRAM_C_BASE,
                                         &f->smram_region, 1);
     memory_region_set_enabled(&f->smram_region, true);
 
     /* smram, as seen by SMM CPUs */
-    memory_region_init_alias(&f->low_smram, OBJECT(d), "smram-low",
+    memory_region_init_alias(&f->low_smram, OBJECT(s), "smram-low",
                              f->ram_memory, SMRAM_C_BASE, SMRAM_C_SIZE);
     memory_region_set_enabled(&f->low_smram, true);
     memory_region_add_subregion(f->smram, SMRAM_C_BASE, &f->low_smram);
 
-    init_pam(&f->pam_regions[0], OBJECT(d), f->ram_memory, f->system_memory,
+    init_pam(&f->pam_regions[0], OBJECT(s), f->ram_memory, f->system_memory,
              f->pci_address_space, PAM_BIOS_BASE, PAM_BIOS_SIZE);
     for (i = 0; i < ARRAY_SIZE(f->pam_regions) - 1; ++i) {
-        init_pam(&f->pam_regions[i + 1], OBJECT(d), f->ram_memory,
+        init_pam(&f->pam_regions[i + 1], OBJECT(s), f->ram_memory,
                  f->system_memory, f->pci_address_space,
                  PAM_EXPAN_BASE + i * PAM_EXPAN_SIZE, PAM_EXPAN_SIZE);
     }
