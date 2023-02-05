@@ -80,6 +80,14 @@
 #define SMRAM_C_BASE_SEG_MASK  ((uint8_t)0x7)
 #define SMRAM_C_BASE_SEG       ((uint8_t)0x2)  /* hardwired to b010 */
 
+#define SMRAM_DEFAULT          SMRAM_C_BASE_SEG
+#define SMRAM_WMASK             \
+    (SMRAM_D_OPEN |             \
+     SMRAM_D_CLS |              \
+     SMRAM_D_LCK |              \
+     SMRAM_G_SMRAME)
+#define SMRAM_WMASK_LCK        SMRAM_D_CLS
+
 #define PAM_REGIONS_COUNT       13
 
 typedef struct PAMMemoryRegion {

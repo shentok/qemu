@@ -93,6 +93,13 @@ static void i440fx_update_memory_mappings(PCII440FXState *d)
         pam_update(&d->pam_regions[i], i,
                    pd->config[I440FX_PAM + DIV_ROUND_UP(i, 2)]);
     }
+
+    /* implement SMRAM.D_LCK */
+    if (pd->config[I440FX_SMRAM] & SMRAM_D_LCK) {
+        pd->config[I440FX_SMRAM] &= ~SMRAM_D_OPEN;
+        pd->wmask[I440FX_SMRAM] = SMRAM_WMASK_LCK;
+    }
+
     memory_region_set_enabled(&d->smram_region,
                               !(pd->config[I440FX_SMRAM] & SMRAM_D_OPEN));
     memory_region_set_enabled(&d->low_smram,
@@ -106,7 +113,8 @@ static void i440fx_reset(DeviceState *dev)
     PCIDevice *d = PCI_DEVICE(dev);
     I440FXState *f = container_of(s, I440FXState, pci);
 
-    d->config[I440FX_SMRAM] = 0x02;
+    d->config[I440FX_SMRAM] = SMRAM_DEFAULT;
+    d->wmask[I440FX_SMRAM] = SMRAM_WMASK;
 
     ram_addr_t ram_size = f->below_4g_mem_size + f->above_4g_mem_size;
     ram_size = ram_size / 8 / 1024 / 1024;
@@ -123,7 +131,6 @@ static void i440fx_write_config(PCIDevice *dev,
 {
     PCII440FXState *d = I440FX_PCI_DEVICE(dev);
 
-    /* XXX: implement SMRAM.D_LOCK */
     pci_default_write_config(dev, address, val, len);
     if (ranges_overlap(address, len, I440FX_PAM, I440FX_PAM_SIZE) ||
         range_covers_byte(address, len, I440FX_SMRAM)) {
