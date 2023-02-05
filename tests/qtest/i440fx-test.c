@@ -101,13 +101,13 @@ static void test_i440fx_defaults(gconstpointer opaque)
     g_assert_cmpint(qpci_config_readb(dev, 0x58), ==, 0x10); /* DRAMT */
 #endif
     /* 3.2.18 */
-    g_assert_cmpint(qpci_config_readb(dev, 0x59), ==, 0x00); /* PAM0 */
-    g_assert_cmpint(qpci_config_readb(dev, 0x5A), ==, 0x00); /* PAM1 */
-    g_assert_cmpint(qpci_config_readb(dev, 0x5B), ==, 0x00); /* PAM2 */
-    g_assert_cmpint(qpci_config_readb(dev, 0x5C), ==, 0x00); /* PAM3 */
-    g_assert_cmpint(qpci_config_readb(dev, 0x5D), ==, 0x00); /* PAM4 */
-    g_assert_cmpint(qpci_config_readb(dev, 0x5E), ==, 0x00); /* PAM5 */
-    g_assert_cmpint(qpci_config_readb(dev, 0x5F), ==, 0x00); /* PAM6 */
+    g_assert_cmpint(qpci_config_readb(dev, I440FX_PAM + 0), ==, 0x00); /* PAM0 */
+    g_assert_cmpint(qpci_config_readb(dev, I440FX_PAM + 1), ==, 0x00); /* PAM1 */
+    g_assert_cmpint(qpci_config_readb(dev, I440FX_PAM + 2), ==, 0x00); /* PAM2 */
+    g_assert_cmpint(qpci_config_readb(dev, I440FX_PAM + 3), ==, 0x00); /* PAM3 */
+    g_assert_cmpint(qpci_config_readb(dev, I440FX_PAM + 4), ==, 0x00); /* PAM4 */
+    g_assert_cmpint(qpci_config_readb(dev, I440FX_PAM + 5), ==, 0x00); /* PAM5 */
+    g_assert_cmpint(qpci_config_readb(dev, I440FX_PAM + 6), ==, 0x00); /* PAM6 */
 #ifndef BROKEN
     /* 3.2.19 */
     g_assert_cmpint(qpci_config_readb(dev, 0x60), ==, 0x01); /* DRB0 */
@@ -146,7 +146,7 @@ static void test_i440fx_defaults(gconstpointer opaque)
 
 static void pam_set(QPCIDevice *dev, int index, int flags)
 {
-    int regno = 0x59 + (index / 2);
+    int regno = I440FX_PAM + (index / 2);
     uint8_t reg;
 
     reg = qpci_config_readb(dev, regno);
@@ -278,6 +278,72 @@ static void test_i440fx_pam(gconstpointer opaque)
     g_free(dev);
     qpci_free_pc(bus);
     qtest_end();
+}
+
+static void smram_set_bit(QPCIDevice *pcidev, uint8_t mask, bool enabled)
+{
+    uint8_t smram;
+
+    smram = qpci_config_readb(pcidev, I440FX_SMRAM);
+    if (enabled) {
+        smram |= mask;
+    } else {
+        smram &= ~mask;
+    }
+    qpci_config_writeb(pcidev, I440FX_SMRAM, smram);
+}
+
+static bool smram_test_bit(QPCIDevice *pcidev, uint8_t mask)
+{
+    uint8_t smram;
+
+    smram = qpci_config_readb(pcidev, I440FX_SMRAM);
+    return smram & mask;
+}
+
+static void test_smram_lock(void)
+{
+    QPCIBus *pcibus;
+    QPCIDevice *pcidev;
+    QDict *response;
+    QTestState *qts;
+
+    qts = qtest_init("-M pc");
+
+    pcibus = qpci_new_pc(qts, NULL);
+    g_assert(pcibus != NULL);
+
+    pcidev = qpci_device_find(pcibus, 0);
+    g_assert(pcidev != NULL);
+
+    /* check open is settable */
+    smram_set_bit(pcidev, SMRAM_D_OPEN, false);
+    g_assert(smram_test_bit(pcidev, SMRAM_D_OPEN) == false);
+    smram_set_bit(pcidev, SMRAM_D_OPEN, true);
+    g_assert(smram_test_bit(pcidev, SMRAM_D_OPEN) == true);
+
+    /* lock, check open is cleared & not settable */
+    smram_set_bit(pcidev, SMRAM_D_LCK, true);
+    g_assert(smram_test_bit(pcidev, SMRAM_D_OPEN) == false);
+    smram_set_bit(pcidev, SMRAM_D_OPEN, true);
+    g_assert(smram_test_bit(pcidev, SMRAM_D_OPEN) == false);
+
+    /* reset */
+    response = qtest_qmp(qts, "{'execute': 'system_reset', 'arguments': {} }");
+    g_assert(response);
+    g_assert(!qdict_haskey(response, "error"));
+    qobject_unref(response);
+
+    /* check open is settable again */
+    smram_set_bit(pcidev, SMRAM_D_OPEN, false);
+    g_assert(smram_test_bit(pcidev, SMRAM_D_OPEN) == false);
+    smram_set_bit(pcidev, SMRAM_D_OPEN, true);
+    g_assert(smram_test_bit(pcidev, SMRAM_D_OPEN) == true);
+
+    g_free(pcidev);
+    qpci_free_pc(pcibus);
+
+    qtest_quit(qts);
 }
 
 #define SMRAM_TEST_PATTERN 0x32
@@ -493,6 +559,7 @@ int main(int argc, char **argv)
 
     qtest_add_data_func("i440fx/defaults", &data, test_i440fx_defaults);
     qtest_add_data_func("i440fx/pam", &data, test_i440fx_pam);
+    qtest_add_func("/i440fx/smram/lock", test_smram_lock);
     qtest_add_func("/i440fx/smram/smbase_lock", test_smram_smbase_lock);
     qtest_add_func("/i440fx/smram/legacy_smbase", test_without_smram_base);
     add_firmware_test("i440fx/firmware/bios", request_bios);
