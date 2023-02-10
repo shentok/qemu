@@ -975,7 +975,7 @@ void pc_memory_init(PCMachineState *pcms,
     memory_region_add_subregion_overlap(rom_memory,
                                         PC_ROM_MIN_VGA,
                                         option_rom_mr,
-                                        1);
+                                        -1);
 
     fw_cfg = fw_cfg_arch_create(machine,
                                 x86ms->boot_cpus, x86ms->apic_id_limit);
