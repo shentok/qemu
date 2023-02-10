@@ -92,4 +92,27 @@ and a VIA VT82C686B south bridge. It can be emulated as follows:
 .. parsed-literal::
 
    |qemu_system_x86| \
-   -M pc,x-south-bridge=vt82c686b-isa,x-north-bridge=vt82c694t,usb=on
+   -M pc,x-south-bridge=vt82c686b-isa,x-north-bridge=vt82c694t
+
+BIOS Support
+''''''''''''
+
+Bootable BIOSes can be found under:
+
+- https://theretroweb.com/motherboards/s/chaintech-ct-6via6t
+- https://theretroweb.com/motherboards/s/chaintech-ct-6via5t
+- https://theretroweb.com/motherboards/s/dfi-ca64-tc
+- https://theretroweb.com/motherboards/s/lucky-star-6va694t
+- https://theretroweb.com/motherboards/s/qdi-p6v694t-a10t-advance-10t
+- https://theretroweb.com/motherboards/s/pcpartner-ap133ms3-b921c-35-c921
+
+Visit one of the above links, go to the "Downloads" tab and download a bios
+image. To extract it, run ``binwalk -eM`` on the file with ``unrar`` installed
+under Linux. Look for a .bin file and pass it as the ``-bios`` option to QEMU:
+
+.. parsed-literal::
+
+   qemu-system-i386 \
+   -M pc,x-south-bridge=vt82c686b-isa,x-north-bridge=vt82c694t,x-south-bridge-slot=7,usb=on \
+   -cpu pentium 3 \
+   -drive if=pflash,format=raw,snapshot=on,file=<bios>.bin
