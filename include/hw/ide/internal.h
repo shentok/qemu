@@ -476,6 +476,33 @@ struct IDEDMA {
     BlockAIOCB *aiocb;
 };
 
+typedef struct BMDMAState {
+    IDEDMA dma;
+    uint8_t cmd;
+    uint8_t status;
+    uint32_t addr;
+
+    IDEBus *bus;
+    /* current transfer state */
+    uint32_t cur_addr;
+    uint32_t cur_prd_last;
+    uint32_t cur_prd_addr;
+    uint32_t cur_prd_len;
+    BlockCompletionFunc *dma_cb;
+    MemoryRegion addr_ioport;
+    MemoryRegion extra_io;
+    qemu_irq irq;
+
+    /* Bit 0-2 and 7:   BM status register
+     * Bit 3-6:         bus->error_status */
+    uint8_t migration_compat_status;
+    uint8_t migration_retry_unit;
+    int64_t migration_retry_sector_num;
+    uint32_t migration_retry_nsector;
+
+    struct PCIIDEState *pci_dev;
+} BMDMAState;
+
 struct IDEBus {
     BusState qbus;
     IDEDevice *master;
@@ -617,6 +644,7 @@ int ide_init_drive(IDEState *s, BlockBackend *blk, IDEDriveKind kind,
                    uint64_t wwn,
                    uint32_t cylinders, uint32_t heads, uint32_t secs,
                    int chs_trans, Error **errp);
+void ide_init_bmdma(IDEBus *bus, BMDMAState *dma);
 void ide_exit(IDEState *s);
 void ide_bus_init_output_irq(IDEBus *bus, qemu_irq irq_out, IDEDMA *dma);
 void ide_init_ioport(IDEBus *bus, ISADevice *isa, int iobase, int iobase2);

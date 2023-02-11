@@ -189,12 +189,12 @@ static void via_ide_realize(PCIDevice *dev, Error **errp)
     pci_register_bar(dev, 4, PCI_BASE_ADDRESS_SPACE_IO, &d->bmdma_bar);
 
     qdev_init_gpio_in(ds, via_ide_set_irq, ARRAY_SIZE(d->bus));
-    for (i = 0; i < ARRAY_SIZE(d->bus); i++) {
-        ide_bus_init(&d->bus[i], sizeof(d->bus[i]), ds, i, MAX_IDE_DEVS);
-        ide_bus_init_output_irq(&d->bus[i], qdev_get_gpio_in(ds, i),
-                                &ide_dma_nop);
+    for (i = 0; i < 2; i++) {
+        bmdma_init(&d->bmdma[i], qdev_get_gpio_in(ds, i), d);
 
-        bmdma_init(&d->bmdma[i], &d->bus[i], d);
+        ide_bus_init(&d->bus[i], sizeof(d->bus[i]), ds, i, 2);
+        ide_init_bmdma(&d->bus[i], &d->bmdma[i]);
+
         d->bmdma[i].bus = &d->bus[i];
         ide_bus_register_restart_cb(&d->bus[i]);
     }

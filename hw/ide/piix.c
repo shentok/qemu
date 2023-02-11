@@ -131,14 +131,13 @@ static void pci_piix_init_bus(PCIIDEState *d, unsigned i, ISABus *isa_bus)
         {0x170, 0x376, 15},
     };
 
-    ide_bus_init(&d->bus[i], sizeof(d->bus[i]), DEVICE(d), i, 2);
-    ide_init_ioport(&d->bus[i], NULL,
-                    port_info[i].iobase, port_info[i].iobase2);
-    ide_bus_init_output_irq(&d->bus[i],
-                            isa_bus_get_irq(isa_bus, port_info[i].isairq),
-                            &ide_dma_nop);
+    bmdma_init(&d->bmdma[i], isa_bus_get_irq(isa_bus, port_info[i].isairq), d);
 
-    bmdma_init(&d->bmdma[i], &d->bus[i], d);
+    ide_bus_init(&d->bus[i], sizeof(d->bus[i]), DEVICE(d), i, 2);
+    ide_init_ioport(&d->bus[i], NULL, port_info[i].iobase,
+                    port_info[i].iobase2);
+    ide_init_bmdma(&d->bus[i], &d->bmdma[i]);
+
     d->bmdma[i].bus = &d->bus[i];
     ide_bus_register_restart_cb(&d->bus[i]);
 }

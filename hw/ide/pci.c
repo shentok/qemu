@@ -279,22 +279,6 @@ static void bmdma_reset(const IDEDMA *dma)
     bm->cur_prd_len = 0;
 }
 
-static void bmdma_irq(void *opaque, int n, int level)
-{
-    BMDMAState *bm = opaque;
-
-    if (!level) {
-        /* pass through lower */
-        qemu_set_irq(bm->irq, level);
-        return;
-    }
-
-    bm->status |= BM_STATUS_INT;
-
-    /* trigger the real irq */
-    qemu_set_irq(bm->irq, level);
-}
-
 void bmdma_cmd_writeb(BMDMAState *bm, uint32_t val)
 {
     trace_bmdma_cmd_writeb(val);
@@ -492,18 +476,11 @@ static const struct IDEDMAOps bmdma_ops = {
     .reset = bmdma_reset,
 };
 
-void bmdma_init(BMDMAState *bm, IDEBus *bus, PCIIDEState *d)
+void bmdma_init(BMDMAState *bm, qemu_irq irq, PCIIDEState *d)
 {
-    if (bus->dma == &bm->dma) {
-        return;
-    }
-
     bm->pci_dev = d;
     bm->dma.ops = &bmdma_ops;
-    bm->irq = bus->irq;
-
-    bus->dma = &bm->dma;
-    bus->irq = qemu_allocate_irq(bmdma_irq, bm, 0);
+    bm->irq = irq;
 }
 
 static const TypeInfo pci_ide_type_info = {

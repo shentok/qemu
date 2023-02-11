@@ -42,6 +42,7 @@
 #include "sysemu/replay.h"
 #include "sysemu/runstate.h"
 #include "hw/ide/internal.h"
+#include "hw/ide/pci.h"
 #include "trace.h"
 
 /* These values were based on a Seagate ST3500418AS but have been modified
@@ -2788,6 +2789,28 @@ void ide_bus_set_irq(IDEBus *bus)
     if (!(bus->cmd & IDE_CTRL_DISABLE_IRQ)) {
         qemu_irq_raise(bus->irq);
     }
+}
+
+static void bmdma_irq(void *opaque, int n, int level)
+{
+    BMDMAState *bm = opaque;
+
+    if (!level) {
+        /* pass through lower */
+        qemu_set_irq(bm->irq, level);
+        return;
+    }
+
+    bm->status |= BM_STATUS_INT;
+
+    /* trigger the real irq */
+    qemu_set_irq(bm->irq, level);
+}
+
+void ide_init_bmdma(IDEBus *bus, BMDMAState *dma)
+{
+    ide_bus_init_output_irq(bus, qemu_allocate_irq(bmdma_irq, dma, 0),
+                            &dma->dma);
 }
 
 void ide_exit(IDEState *s)
