@@ -498,11 +498,12 @@ void bmdma_init(BMDMAState *bm, IDEBus *bus, PCIIDEState *d)
         return;
     }
 
-    bm->dma.ops = &bmdma_ops;
-    bus->dma = &bm->dma;
-    bm->irq = bus->irq;
-    bus->irq = qemu_allocate_irq(bmdma_irq, bm, 0);
     bm->pci_dev = d;
+    bm->dma.ops = &bmdma_ops;
+    bm->irq = bus->irq;
+
+    bus->dma = &bm->dma;
+    bus->irq = qemu_allocate_irq(bmdma_irq, bm, 0);
 }
 
 static const TypeInfo pci_ide_type_info = {
