@@ -294,7 +294,8 @@ static void pci_cmd646_ide_realize(PCIDevice *dev, Error **errp)
     qdev_init_gpio_in(ds, cmd646_set_irq, 2);
     for (i = 0; i < 2; i++) {
         ide_bus_init(&d->bus[i], sizeof(d->bus[i]), ds, i, 2);
-        ide_bus_init_output_irq(&d->bus[i], qdev_get_gpio_in(ds, i));
+        ide_bus_init_output_irq(&d->bus[i], qdev_get_gpio_in(ds, i),
+                                &ide_dma_nop);
 
         bmdma_init(&d->bmdma[i], &d->bus[i], d);
         d->bmdma[i].bus = &d->bus[i];

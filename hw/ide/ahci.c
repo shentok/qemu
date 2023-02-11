@@ -1554,11 +1554,10 @@ void ahci_realize(AHCIState *s, DeviceState *qdev, AddressSpace *as, int ports)
         AHCIDevice *ad = &s->dev[i];
 
         ide_bus_init(&ad->port, sizeof(ad->port), qdev, i, 1);
-        ide_bus_init_output_irq(&ad->port, irqs[i]);
+        ide_bus_init_output_irq(&ad->port, irqs[i], &ad->dma);
 
         ad->hba = s;
         ad->port_no = i;
-        ad->port.dma = &ad->dma;
         ad->port.dma->ops = &ahci_dma_ops;
         ide_bus_register_restart_cb(&ad->port);
     }

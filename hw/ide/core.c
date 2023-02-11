@@ -2766,12 +2766,12 @@ void ide_bus_register_restart_cb(IDEBus *bus)
     }
 }
 
-static IDEDMA ide_dma_nop = {
+IDEDMA ide_dma_nop = {
     .ops = &ide_dma_nop_ops,
     .aiocb = NULL,
 };
 
-void ide_bus_init_output_irq(IDEBus *bus, qemu_irq irq_out)
+void ide_bus_init_output_irq(IDEBus *bus, qemu_irq irq_out, IDEDMA *dma)
 {
     int i;
 
@@ -2780,7 +2780,7 @@ void ide_bus_init_output_irq(IDEBus *bus, qemu_irq irq_out)
         ide_reset(&bus->ifs[i]);
     }
     bus->irq = irq_out;
-    bus->dma = &ide_dma_nop;
+    bus->dma = dma;
 }
 
 void ide_bus_set_irq(IDEBus *bus)

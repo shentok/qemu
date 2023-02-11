@@ -581,6 +581,7 @@ extern const VMStateDescription vmstate_ide_bus;
     VMSTATE_STRUCT_ARRAY(_field, _state, _num, 1, vmstate_ide_bus, IDEBus)
 
 extern const VMStateDescription vmstate_ide_drive;
+extern IDEDMA ide_dma_nop;
 
 #define VMSTATE_IDE_DRIVES(_field, _state) \
     VMSTATE_STRUCT_ARRAY(_field, _state, 2, 3, vmstate_ide_drive, IDEState)
@@ -617,7 +618,7 @@ int ide_init_drive(IDEState *s, BlockBackend *blk, IDEDriveKind kind,
                    uint32_t cylinders, uint32_t heads, uint32_t secs,
                    int chs_trans, Error **errp);
 void ide_exit(IDEState *s);
-void ide_bus_init_output_irq(IDEBus *bus, qemu_irq irq_out);
+void ide_bus_init_output_irq(IDEBus *bus, qemu_irq irq_out, IDEDMA *dma);
 void ide_init_ioport(IDEBus *bus, ISADevice *isa, int iobase, int iobase2);
 void ide_bus_set_irq(IDEBus *bus);
 void ide_bus_register_restart_cb(IDEBus *bus);

@@ -420,11 +420,10 @@ static void macio_ide_realizefn(DeviceState *dev, Error **errp)
 {
     MACIOIDEState *s = MACIO_IDE(dev);
 
-    ide_bus_init_output_irq(&s->bus, s->ide_irq);
+    ide_bus_init_output_irq(&s->bus, s->ide_irq, &s->dma);
 
     /* Register DMA callbacks */
     s->dma.ops = &dbdma_ops;
-    s->bus.dma = &s->dma;
 }
 
 static void pmac_ide_irq(void *opaque, int n, int level)

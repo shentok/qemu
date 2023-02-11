@@ -135,7 +135,8 @@ static void pci_piix_init_bus(PCIIDEState *d, unsigned i, ISABus *isa_bus)
     ide_init_ioport(&d->bus[i], NULL,
                     port_info[i].iobase, port_info[i].iobase2);
     ide_bus_init_output_irq(&d->bus[i],
-                            isa_bus_get_irq(isa_bus, port_info[i].isairq));
+                            isa_bus_get_irq(isa_bus, port_info[i].isairq),
+                            &ide_dma_nop);
 
     bmdma_init(&d->bmdma[i], &d->bus[i], d);
     d->bmdma[i].bus = &d->bus[i];
