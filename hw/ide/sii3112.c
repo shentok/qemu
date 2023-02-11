@@ -286,7 +286,7 @@ static void sii3112_pci_realize(PCIDevice *dev, Error **errp)
         ide_bus_init(&s->bus[i], sizeof(s->bus[i]), ds, i, 1);
         ide_bus_init_output_irq(&s->bus[i], qdev_get_gpio_in(ds, i));
 
-        bmdma_init(&s->bus[i], &s->bmdma[i], s);
+        bmdma_init(&s->bmdma[i], &s->bus[i], s);
         s->bmdma[i].bus = &s->bus[i];
         ide_bus_register_restart_cb(&s->bus[i]);
     }

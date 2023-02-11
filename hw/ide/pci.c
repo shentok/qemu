@@ -492,7 +492,7 @@ static const struct IDEDMAOps bmdma_ops = {
     .reset = bmdma_reset,
 };
 
-void bmdma_init(IDEBus *bus, BMDMAState *bm, PCIIDEState *d)
+void bmdma_init(BMDMAState *bm, IDEBus *bus, PCIIDEState *d)
 {
     if (bus->dma == &bm->dma) {
         return;

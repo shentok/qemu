@@ -56,7 +56,7 @@ struct PCIIDEState {
     MemoryRegion data_bar[2];
 };
 
-void bmdma_init(IDEBus *bus, BMDMAState *bm, PCIIDEState *d);
+void bmdma_init(BMDMAState *bm, IDEBus *bus, PCIIDEState *d);
 void bmdma_cmd_writeb(BMDMAState *bm, uint32_t val);
 extern MemoryRegionOps bmdma_addr_ioport_ops;
 
