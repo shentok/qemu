@@ -154,7 +154,6 @@ static void kvm_i8259_class_init(ObjectClass *klass, void *data)
 static const TypeInfo kvm_i8259_info = {
     .name = TYPE_KVM_I8259,
     .parent = TYPE_PIC_COMMON,
-    .instance_size = sizeof(PICCommonState),
     .class_init = kvm_i8259_class_init,
     .class_size = sizeof(KVMPICClass),
 };
