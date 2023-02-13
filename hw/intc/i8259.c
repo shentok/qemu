@@ -410,30 +410,25 @@ qemu_irq *i8259_init(ISABus *bus, qemu_irq parent_irq)
 {
     qemu_irq *irq_set;
     DeviceState *dev;
-    ISADevice *isadev;
     int i;
 
     irq_set = g_new0(qemu_irq, ISA_NUM_IRQS);
 
-    isadev = i8259_init_chip(TYPE_I8259, bus, true);
-    dev = DEVICE(isadev);
+    isa_pic = i8259_init_chip(TYPE_I8259, bus, true);
+    dev = DEVICE(isa_pic);
 
     qdev_connect_gpio_out(dev, 0, parent_irq);
     for (i = 0 ; i < 8; i++) {
         irq_set[i] = qdev_get_gpio_in(dev, i);
     }
 
-    isa_pic = PIC_COMMON(dev);
-
-    isadev = i8259_init_chip(TYPE_I8259, bus, false);
-    dev = DEVICE(isadev);
+    slave_pic = i8259_init_chip(TYPE_I8259, bus, false);
+    dev = DEVICE(slave_pic);
 
     qdev_connect_gpio_out(dev, 0, irq_set[2]);
     for (i = 0 ; i < 8; i++) {
         irq_set[i + 8] = qdev_get_gpio_in(dev, i);
     }
-
-    slave_pic = PIC_COMMON(dev);
 
     return irq_set;
 }
