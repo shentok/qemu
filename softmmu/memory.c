@@ -406,7 +406,7 @@ static inline uint64_t memory_region_shift_write_access(uint64_t *value,
     return tmp;
 }
 
-static hwaddr memory_region_to_absolute_addr(MemoryRegion *mr, hwaddr offset)
+hwaddr memory_region_to_absolute_addr(MemoryRegion *mr, hwaddr offset)
 {
     MemoryRegion *root;
     hwaddr abs_addr = offset;

@@ -1624,6 +1624,14 @@ Object *memory_region_owner(MemoryRegion *mr);
 uint64_t memory_region_size(MemoryRegion *mr);
 
 /**
+ * memory_region_to_absolute_addr: get the absolute address of a memory offset.
+ *
+ * @mr: the memory region being queried.
+ * @offset: an offset within the memory region being queried.
+ */
+hwaddr memory_region_to_absolute_addr(MemoryRegion *mr, hwaddr offset);
+
+/**
  * memory_region_is_ram: check whether a memory region is random access
  *
  * Returns %true if a memory region is random access.
