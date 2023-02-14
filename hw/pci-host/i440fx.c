@@ -278,16 +278,16 @@ PCIBus *i440fx_init(const char *pci_type,
 
     /* if *disabled* show SMRAM to all CPUs */
     memory_region_init_alias(&f->smram_region, OBJECT(d), "smram-region",
-                             f->pci_address_space, 0xa0000, 0x20000);
-    memory_region_add_subregion_overlap(f->system_memory, 0xa0000,
+                             f->pci_address_space, SMRAM_C_BASE, SMRAM_C_SIZE);
+    memory_region_add_subregion_overlap(f->system_memory, SMRAM_C_BASE,
                                         &f->smram_region, 1);
     memory_region_set_enabled(&f->smram_region, true);
 
     /* smram, as seen by SMM CPUs */
     memory_region_init_alias(&f->low_smram, OBJECT(d), "smram-low",
-                             f->ram_memory, 0xa0000, 0x20000);
+                             f->ram_memory, SMRAM_C_BASE, SMRAM_C_SIZE);
     memory_region_set_enabled(&f->low_smram, true);
-    memory_region_add_subregion(f->smram, 0xa0000, &f->low_smram);
+    memory_region_add_subregion(f->smram, SMRAM_C_BASE, &f->low_smram);
 
     init_pam(&f->pam_regions[0], OBJECT(d), f->ram_memory, f->system_memory,
              f->pci_address_space, PAM_BIOS_BASE, PAM_BIOS_SIZE);
