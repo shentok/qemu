@@ -366,25 +366,16 @@ static void test_smram_smbase_lock(void)
     g_assert(pcidev != NULL);
 
     /* check that SMRAM is disabled by default */
-    g_assert(qpci_config_readb(pcidev, I440FX_SMRAM) == 0x2);
+    g_assert(qpci_config_readb(pcidev, I440FX_SMRAM) == SMRAM_DEFAULT);
     qtest_writeb(qts, SMRAM_C_BASE, SMRAM_TEST_PATTERN);
-    g_assert_cmpint(qtest_readb(qts, SMRAM_C_BASE), ==, SMRAM_TEST_PATTERN);
-
-    /*
-     * check that writing junk to I440FX_SMRAM before before negotiating is
-     * ignored
-     */
-    for (i = 0; i < 0xff; i++) {
-        qpci_config_writeb(pcidev, I440FX_SMRAM, i);
-        g_assert(qpci_config_readb(pcidev, I440FX_SMRAM) == 0);
-    }
+    g_assert_cmpint(qtest_readb(qts, SMRAM_C_BASE), ==, 0);
 
     /* enable SMRAM at SMRAM_C_BASE */
-    qpci_config_writeb(pcidev, I440FX_SMRAM, 0xff);
-    g_assert(qpci_config_readb(pcidev, I440FX_SMRAM) == 0x01);
+    smram_set_bit(pcidev, SMRAM_G_SMRAME, true);
+    g_assert(qpci_config_readb(pcidev, I440FX_SMRAM) == (SMRAM_G_SMRAME | SMRAM_C_BASE_SEG));
     /* lock SMRAM at SMRAM_C_BASE */
-    qpci_config_writeb(pcidev, I440FX_SMRAM, 0x02);
-    g_assert(qpci_config_readb(pcidev, I440FX_SMRAM) == 0x02);
+    smram_set_bit(pcidev, SMRAM_D_LCK, true);
+    g_assert(qpci_config_readb(pcidev, I440FX_SMRAM) == (SMRAM_D_LCK | SMRAM_G_SMRAME | SMRAM_C_BASE_SEG));
 
     /* check that SMRAM at SMRAM_C_BASE is locked and can't be unlocked */
     g_assert_cmpint(qtest_readb(qts, SMRAM_C_BASE), ==, 0xff);
