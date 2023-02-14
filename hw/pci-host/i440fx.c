@@ -52,10 +52,6 @@ struct I440FXState {
     uint32_t short_root_bus;
 };
 
-#define I440FX_PAM      0x59
-#define I440FX_PAM_SIZE 7
-#define I440FX_SMRAM    0x72
-
 /* Keep it 2G to comply with older win32 guests */
 #define I440FX_PCI_HOST_HOLE64_SIZE_DEFAULT (1ULL << 31)
 

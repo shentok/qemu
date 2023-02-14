@@ -18,6 +18,8 @@
 #include "libqos/pci.h"
 #include "libqos/pci-pc.h"
 #include "hw/pci/pci_regs.h"
+#include "hw/pci-host/i440fx.h"
+#include "hw/pci-host/pam.h"
 
 #define BROKEN 1
 
@@ -278,6 +280,111 @@ static void test_i440fx_pam(gconstpointer opaque)
     qtest_end();
 }
 
+#define SMRAM_TEST_PATTERN 0x32
+#define SMRAM_TEST_RESET_PATTERN 0x23
+
+static void test_smram_smbase_lock(void)
+{
+    QPCIBus *pcibus;
+    QPCIDevice *pcidev;
+    QDict *response;
+    QTestState *qts;
+    int i;
+
+    qts = qtest_init("-M pc");
+
+    pcibus = qpci_new_pc(qts, NULL);
+    g_assert(pcibus != NULL);
+
+    pcidev = qpci_device_find(pcibus, 0);
+    g_assert(pcidev != NULL);
+
+    /* check that SMRAM is disabled by default */
+    g_assert(qpci_config_readb(pcidev, I440FX_SMRAM) == 0x2);
+    qtest_writeb(qts, SMRAM_C_BASE, SMRAM_TEST_PATTERN);
+    g_assert_cmpint(qtest_readb(qts, SMRAM_C_BASE), ==, SMRAM_TEST_PATTERN);
+
+    /*
+     * check that writing junk to I440FX_SMRAM before before negotiating is
+     * ignored
+     */
+    for (i = 0; i < 0xff; i++) {
+        qpci_config_writeb(pcidev, I440FX_SMRAM, i);
+        g_assert(qpci_config_readb(pcidev, I440FX_SMRAM) == 0);
+    }
+
+    /* enable SMRAM at SMRAM_C_BASE */
+    qpci_config_writeb(pcidev, I440FX_SMRAM, 0xff);
+    g_assert(qpci_config_readb(pcidev, I440FX_SMRAM) == 0x01);
+    /* lock SMRAM at SMRAM_C_BASE */
+    qpci_config_writeb(pcidev, I440FX_SMRAM, 0x02);
+    g_assert(qpci_config_readb(pcidev, I440FX_SMRAM) == 0x02);
+
+    /* check that SMRAM at SMRAM_C_BASE is locked and can't be unlocked */
+    g_assert_cmpint(qtest_readb(qts, SMRAM_C_BASE), ==, 0xff);
+    for (i = 0; i <= 0xff; i++) {
+        /* make sure register is immutable */
+        qpci_config_writeb(pcidev, I440FX_SMRAM, i);
+        g_assert(qpci_config_readb(pcidev, I440FX_SMRAM) == 0x02);
+
+        /* RAM access should go into black hole */
+        qtest_writeb(qts, SMRAM_C_BASE, SMRAM_TEST_PATTERN);
+        g_assert_cmpint(qtest_readb(qts, SMRAM_C_BASE), ==, 0xff);
+    }
+
+    /* reset */
+    response = qtest_qmp(qts, "{'execute': 'system_reset', 'arguments': {} }");
+    g_assert(response);
+    g_assert(!qdict_haskey(response, "error"));
+    qobject_unref(response);
+
+    /* check RAM at SMRAM_C_BASE is available after reset */
+    g_assert_cmpint(qtest_readb(qts, SMRAM_C_BASE), ==, SMRAM_TEST_PATTERN);
+    g_assert(qpci_config_readb(pcidev, I440FX_SMRAM) == 0);
+    qtest_writeb(qts, SMRAM_C_BASE, SMRAM_TEST_RESET_PATTERN);
+    g_assert_cmpint(qtest_readb(qts, SMRAM_C_BASE), ==, SMRAM_TEST_RESET_PATTERN);
+
+    g_free(pcidev);
+    qpci_free_pc(pcibus);
+
+    qtest_quit(qts);
+}
+
+static void test_without_smram_base(void)
+{
+    QPCIBus *pcibus;
+    QPCIDevice *pcidev;
+    QTestState *qts;
+    int i;
+
+    qts = qtest_init("-M pc");
+
+    pcibus = qpci_new_pc(qts, NULL);
+    g_assert(pcibus != NULL);
+
+    pcidev = qpci_device_find(pcibus, 0);
+    g_assert(pcidev != NULL);
+
+    /* check that RAM is accessible */
+    qtest_writeb(qts, SMRAM_C_BASE, SMRAM_TEST_PATTERN);
+    g_assert_cmpint(qtest_readb(qts, SMRAM_C_BASE), ==, SMRAM_TEST_PATTERN);
+
+    /* check that writing to I440FX_SMRAM succeeds */
+    for (i = 0; i <= 0xff; i++) {
+        qpci_config_writeb(pcidev, I440FX_SMRAM, i);
+        g_assert(qpci_config_readb(pcidev, I440FX_SMRAM) == i);
+    }
+
+    /* check that RAM is still accessible */
+    qtest_writeb(qts, SMRAM_C_BASE, SMRAM_TEST_PATTERN + 1);
+    g_assert_cmpint(qtest_readb(qts, SMRAM_C_BASE), ==, (SMRAM_TEST_PATTERN + 1));
+
+    g_free(pcidev);
+    qpci_free_pc(pcibus);
+
+    qtest_quit(qts);
+}
+
 #define BLOB_SIZE ((size_t)65536)
 #define ISA_BIOS_MAXSZ ((size_t)(128 * 1024))
 
@@ -386,6 +493,8 @@ int main(int argc, char **argv)
 
     qtest_add_data_func("i440fx/defaults", &data, test_i440fx_defaults);
     qtest_add_data_func("i440fx/pam", &data, test_i440fx_pam);
+    qtest_add_func("/i440fx/smram/smbase_lock", test_smram_smbase_lock);
+    qtest_add_func("/i440fx/smram/legacy_smbase", test_without_smram_base);
     add_firmware_test("i440fx/firmware/bios", request_bios);
     add_firmware_test("i440fx/firmware/pflash", request_pflash);
 
