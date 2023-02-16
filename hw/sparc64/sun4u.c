@@ -676,7 +676,8 @@ static void sun4uv_init(MemoryRegion *address_space_mem,
     pci_dev = pci_new(PCI_DEVFN(3, 0), "cmd646-ide");
     qdev_prop_set_uint32(&pci_dev->qdev, "secondary", 1);
     pci_realize_and_unref(pci_dev, pci_busA, &error_fatal);
-    pci_ide_create_devs(pci_dev);
+    ide_bus_create_devs(qdev_get_child_bus(DEVICE(pci_dev), "ide.0"), 0);
+    ide_bus_create_devs(qdev_get_child_bus(DEVICE(pci_dev), "ide.1"), 1);
 
     /* Map NVRAM into I/O (ebus) space */
     dev = qdev_new("sysbus-m48t59");

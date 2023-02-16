@@ -6,4 +6,6 @@
 /* ide/core.c */
 void ide_drive_get(DriveInfo **hd, int max_bus);
 
+void ide_bus_create_devs(BusState *idebus, int no);
+
 #endif /* HW_IDE_H */

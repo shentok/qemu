@@ -136,6 +136,18 @@ IDEDevice *ide_bus_create_drive(IDEBus *bus, int unit, DriveInfo *drive)
     return DO_UPCAST(IDEDevice, qdev, dev);
 }
 
+void ide_bus_create_devs(BusState *idebus, int no)
+{
+    int i;
+
+    for (i = 0; i < 2; i++) {
+        DriveInfo *info = drive_get_by_index(IF_IDE, 2 * no + i);
+        if (info) {
+            ide_bus_create_drive(IDE_BUS(idebus), i, info);
+        }
+    }
+}
+
 int ide_get_geometry(BusState *bus, int unit,
                      int16_t *cyls, int8_t *heads, int8_t *secs)
 {

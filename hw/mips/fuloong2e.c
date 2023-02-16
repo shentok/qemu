@@ -305,7 +305,8 @@ static void mips_fuloong2e_init(MachineState *machine)
     qdev_connect_gpio_out(DEVICE(pci_dev), 0, env->irq[5]);
 
     dev = DEVICE(object_resolve_path_component(OBJECT(pci_dev), "ide"));
-    pci_ide_create_devs(PCI_DEVICE(dev));
+    ide_bus_create_devs(qdev_get_child_bus(dev, "ide.0"), 0);
+    ide_bus_create_devs(qdev_get_child_bus(dev, "ide.1"), 1);
 
     dev = DEVICE(object_resolve_path_component(OBJECT(pci_dev), "pm"));
     smbus = I2C_BUS(qdev_get_child_bus(dev, "i2c"));

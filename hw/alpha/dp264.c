@@ -132,7 +132,8 @@ static void clipper_init(MachineState *machine)
 
     /* IDE disk setup.  */
     pci_dev = pci_create_simple(pci_bus, -1, "cmd646-ide");
-    pci_ide_create_devs(pci_dev);
+    ide_bus_create_devs(qdev_get_child_bus(DEVICE(pci_dev), "ide.0"), 0);
+    ide_bus_create_devs(qdev_get_child_bus(DEVICE(pci_dev), "ide.1"), 1);
 
     /* Load PALcode.  Given that this is not "real" cpu palcode,
        but one explicitly written for the emulation, we might as

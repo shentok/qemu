@@ -113,7 +113,7 @@ static void pegasos2_init(MachineState *machine)
     MemoryRegion *rom = g_new(MemoryRegion, 1);
     PCIBus *pci_bus;
     Object *via;
-    PCIDevice *dev;
+    DeviceState *dev;
     I2CBus *i2c_bus;
     const char *fwname = machine->firmware ?: PROM_FILENAME;
     char *filename;
@@ -185,11 +185,12 @@ static void pegasos2_init(MachineState *machine)
     qdev_connect_gpio_out(DEVICE(via), 0,
                           qdev_get_gpio_in_named(pm->mv, "gpp", 31));
 
-    dev = PCI_DEVICE(object_resolve_path_component(via, "ide"));
-    pci_ide_create_devs(dev);
+    dev = DEVICE(object_resolve_path_component(via, "ide"));
+    ide_bus_create_devs(qdev_get_child_bus(dev, "ide.0"), 0);
+    ide_bus_create_devs(qdev_get_child_bus(dev, "ide.1"), 1);
 
-    dev = PCI_DEVICE(object_resolve_path_component(via, "pm"));
-    i2c_bus = I2C_BUS(qdev_get_child_bus(DEVICE(dev), "i2c"));
+    dev = DEVICE(object_resolve_path_component(via, "pm"));
+    i2c_bus = I2C_BUS(qdev_get_child_bus(dev, "i2c"));
     spd_data = spd_data_generate(DDR, machine->ram_size);
     smbus_eeprom_init_one(i2c_bus, 0x57, spd_data);
 

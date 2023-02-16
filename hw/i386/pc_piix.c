@@ -278,9 +278,10 @@ static void pc_init1(MachineState *machine,
         PCIDevice *dev;
 
         dev = pci_create_simple(pci_bus, piix3_devfn + 1, TYPE_PIIX3_IDE);
-        pci_ide_create_devs(dev);
         idebus[0] = qdev_get_child_bus(&dev->qdev, "ide.0");
         idebus[1] = qdev_get_child_bus(&dev->qdev, "ide.1");
+        ide_bus_create_devs(idebus[0], 0);
+        ide_bus_create_devs(idebus[1], 1);
         pc_cmos_init(pcms, idebus[0], idebus[1], rtc_state);
     }
 #ifdef CONFIG_IDE_ISA
