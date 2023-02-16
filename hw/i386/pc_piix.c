@@ -286,22 +286,20 @@ static void pc_init1(MachineState *machine,
     }
 #ifdef CONFIG_IDE_ISA
     else {
-        DriveInfo *hd[MAX_IDE_BUS * MAX_IDE_DEVS];
         int i;
 
-        ide_drive_get(hd, ARRAY_SIZE(hd));
         for (i = 0; i < MAX_IDE_BUS; i++) {
             ISADevice *dev;
             char busname[] = "ide.0";
             dev = isa_ide_init(isa_bus, ide_iobase[i], ide_iobase2[i],
-                               ide_irq[i],
-                               hd[MAX_IDE_DEVS * i], hd[MAX_IDE_DEVS * i + 1]);
+                               ide_irq[i]);
             /*
              * The ide bus name is ide.0 for the first bus and ide.1 for the
              * second one.
              */
             busname[4] = '0' + i;
             idebus[i] = qdev_get_child_bus(DEVICE(dev), busname);
+            ide_bus_create_devs(idebus[i], 1);
         }
         pc_cmos_init(pcms, idebus[0], idebus[1], rtc_state);
     }
