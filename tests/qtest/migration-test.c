@@ -294,27 +294,6 @@ static void cleanup(const char *filename)
     unlink(path);
 }
 
-static char *SocketAddress_to_str(SocketAddress *addr)
-{
-    switch (addr->type) {
-    case SOCKET_ADDRESS_TYPE_INET:
-        return g_strdup_printf("tcp:%s:%s",
-                               addr->u.inet.host,
-                               addr->u.inet.port);
-    case SOCKET_ADDRESS_TYPE_UNIX:
-        return g_strdup_printf("unix:%s",
-                               addr->u.q_unix.path);
-    case SOCKET_ADDRESS_TYPE_FD:
-        return g_strdup_printf("fd:%s", addr->u.fd.str);
-    case SOCKET_ADDRESS_TYPE_VSOCK:
-        return g_strdup_printf("tcp:%s:%s",
-                               addr->u.vsock.cid,
-                               addr->u.vsock.port);
-    default:
-        return g_strdup("unknown address type");
-    }
-}
-
 static char *migrate_get_socket_address(QTestState *who, const char *parameter)
 {
     QDict *rsp;
@@ -331,7 +310,7 @@ static char *migrate_get_socket_address(QTestState *who, const char *parameter)
     visit_free(iv);
 
     /* we are only using a single address */
-    result = SocketAddress_to_str(addrs->value);
+    result = socket_uri(addrs->value);
 
     qapi_free_SocketAddressList(addrs);
     qobject_unref(rsp);
