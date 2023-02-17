@@ -96,6 +96,7 @@ qtests_i386 = \
    'cpu-plug-test',
    'q35-test',
    'vmgenid-test',
+   'migration-abi-test',
    'migration-test',
    'test-x86-cpuid-compat',
    'numa-test'
@@ -296,6 +297,7 @@ qtests = {
   'dbus-vmstate-test': files('migration-helpers.c') + dbus_vmstate1,
   'erst-test': files('erst-test.c'),
   'ivshmem-test': [rt, '../../contrib/ivshmem-server/ivshmem-server.c'],
+  'migration-abi-test': migration_files,
   'migration-test': migration_files,
   'pxe-test': files('boot-sector.c'),
   'qos-test': [chardev, io, qos_test_ss.apply(config_host, strict: false).sources()],
