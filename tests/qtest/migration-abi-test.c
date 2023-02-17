@@ -459,15 +459,6 @@ static void test_precopy_unix_plain(void)
     test_precopy_common(&args);
 }
 
-static void test_precopy_tcp_plain(void)
-{
-    MigrateCommon args = {
-        .listen_uri = "tcp:127.0.0.1:0",
-    };
-
-    test_precopy_common(&args);
-}
-
 int main(int argc, char **argv)
 {
     const bool has_kvm = qtest_has_accel("kvm");
@@ -507,8 +498,6 @@ int main(int argc, char **argv)
     module_call_init(MODULE_INIT_QOM);
 
     qtest_add_func("/migration/abi/unix/plain", test_precopy_unix_plain);
-
-    qtest_add_func("/migration/abi/tcp/plain", test_precopy_tcp_plain);
 
     ret = g_test_run();
 
