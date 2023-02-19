@@ -311,7 +311,6 @@ static void platform_bus_create_devtree(PPCE500MachineState *pms,
     const char platcomp[] = "qemu,platform\0simple-bus";
     uint64_t addr = pmc->platform_bus_base;
     uint64_t size = pmc->platform_bus_size;
-    int irq_start = pmc->platform_bus_first_irq;
     Object *obj;
     bool ambiguous;
 
@@ -332,7 +331,7 @@ static void platform_bus_create_devtree(PPCE500MachineState *pms,
     PlatformDevtreeData data = {
         .fdt = fdt,
         .mpic = mpic,
-        .irq_start = irq_start,
+        .irq_start = pmc->platform_bus_first_irq,
         .node = node,
         .pbus = pms->pbus_dev,
     };
