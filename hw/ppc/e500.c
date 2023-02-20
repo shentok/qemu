@@ -1223,7 +1223,7 @@ void ppce500_init(MachineState *machine)
         if (machine->kernel_filename) {
             payload_name = machine->kernel_filename;
             kernel_as_payload = true;
-        } else if (dinfo) {
+        } else if (pms->elbc.chip_selects[0].dev) {
             payload_name = NULL;
         } else {
             payload_name = "u-boot.e500";
