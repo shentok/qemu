@@ -25,6 +25,7 @@ OBJECT_DECLARE_SIMPLE_TYPE(ViaAC97State, VIA_AC97);
 
 struct ViaAC97State {
     PCIDevice dev;
+
     AudioBackend *audio_be;
     MemoryRegion sgd;
     MemoryRegion fm;
