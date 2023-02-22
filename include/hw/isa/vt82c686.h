@@ -25,6 +25,7 @@ OBJECT_DECLARE_SIMPLE_TYPE(ViaAC97State, VIA_AC97);
 
 struct ViaAC97State {
     PCIDevice dev;
+
     QEMUSoundCard card;
     MemoryRegion sgd;
     MemoryRegion fm;
