@@ -235,8 +235,8 @@ static void open_voice_out(ViaAC97State *s)
 {
     struct audsettings as = {
         .freq = CODEC_REG(s, AC97_PCM_Front_DAC_Rate),
-        .nchannels = s->aur.type & BIT(4) ? 2 : 1,
-        .fmt = s->aur.type & BIT(5) ? AUDIO_FORMAT_S16 : AUDIO_FORMAT_S8,
+        .nchannels = (s->aur.type & BIT(4)) ? 2 : 1,
+        .fmt = (s->aur.type & BIT(5)) ? AUDIO_FORMAT_S16 : AUDIO_FORMAT_S8,
         .endianness = 0,
     };
     s->vo = AUD_open_out(&s->card, s->vo, "via-ac97.out", s, out_cb, &as);
@@ -255,7 +255,7 @@ static uint64_t sgd_read(void *opaque, hwaddr addr, unsigned size)
         }
         break;
     case 1:
-        val = s->aur.stat & STAT_PAUSED ? BIT(3) : 0;
+        val = (s->aur.stat & STAT_PAUSED) ? BIT(3) : 0;
         break;
     case 2:
         val = s->aur.type;
