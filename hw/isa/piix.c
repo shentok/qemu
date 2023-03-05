@@ -299,14 +299,10 @@ static void pci_piix_realize(PCIDevice *dev, const char *uhci_type,
 {
     PIIXState *d = PIIX_PCI_DEVICE(dev);
     PCIBus *pci_bus = pci_get_bus(dev);
-    ISABus *isa_bus;
     uint32_t irq;
 
-    isa_bus = isa_bus_new(DEVICE(d), pci_address_space(dev),
-                          pci_address_space_io(dev), errp);
-    if (!isa_bus) {
-        return;
-    }
+    d->isa_bus.address_space = pci_address_space(dev);
+    d->isa_bus.address_space_io = pci_address_space_io(dev);
 
     memory_region_init_io(&d->rcr_mem, OBJECT(dev), &rcr_ops, d,
                           "piix-reset-control", 1);
@@ -317,7 +313,7 @@ static void pci_piix_realize(PCIDevice *dev, const char *uhci_type,
     if (d->has_pic) {
         qemu_irq *i8259_out_irq = qemu_allocate_irqs(piix_request_i8259_irq, d,
                                                      1);
-        qemu_irq *i8259 = i8259_init(isa_bus, *i8259_out_irq);
+        qemu_irq *i8259 = i8259_init(&d->isa_bus, *i8259_out_irq);
         size_t i;
 
         for (i = 0; i < ISA_NUM_IRQS; i++) {
@@ -329,18 +325,18 @@ static void pci_piix_realize(PCIDevice *dev, const char *uhci_type,
         qdev_init_gpio_out_named(DEVICE(dev), &d->cpu_intr, "intr", 1);
     }
 
-    isa_bus_register_input_irqs(isa_bus, d->isa_irqs_in);
+    isa_bus_register_input_irqs(&d->isa_bus, d->isa_irqs_in);
 
     /* PIT */
     if (d->has_pit) {
-        i8254_pit_init(isa_bus, 0x40, 0, NULL);
+        i8254_pit_init(&d->isa_bus, 0x40, 0, NULL);
     }
 
-    i8257_dma_init(isa_bus, 0);
+    i8257_dma_init(&d->isa_bus, 0);
 
     /* RTC */
     qdev_prop_set_int32(DEVICE(&d->rtc), "base_year", 2000);
-    if (!qdev_realize(DEVICE(&d->rtc), BUS(isa_bus), errp)) {
+    if (!qdev_realize(DEVICE(&d->rtc), BUS(&d->isa_bus), errp)) {
         return;
     }
     irq = object_property_get_uint(OBJECT(&d->rtc), "irq", &error_fatal);
@@ -404,6 +400,8 @@ static void pci_piix_init(Object *obj)
 
     qdev_init_gpio_out_named(DEVICE(obj), d->isa_irqs_in, "isa-irqs",
                              ISA_NUM_IRQS);
+
+    qbus_init(&d->isa_bus, sizeof(d->isa_bus), TYPE_ISA_BUS, DEVICE(d), NULL);
 
     object_initialize_child(obj, "rtc", &d->rtc, TYPE_MC146818_RTC);
 }
