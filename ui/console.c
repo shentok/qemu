@@ -1913,9 +1913,12 @@ void dpy_mouse_set(QemuConsole *con, int x, int y, int on)
     DisplayState *s = con->ds;
     DisplayChangeListener *dcl;
 
+    trace_console_mouse_set(x, y, on);
+
     con->cursor_x = x;
     con->cursor_y = y;
     con->cursor_on = on;
+
     if (!qemu_console_is_visible(con)) {
         return;
     }
