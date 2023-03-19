@@ -452,6 +452,7 @@ static void gd_mouse_set(DisplayChangeListener *dcl,
 
     if (!gtk_widget_get_realized(vc->gfx.drawing_area) ||
         qemu_input_is_absolute()) {
+        trace_gd_mouse_set_ignored(x, y, visible);
         return;
     }
 
@@ -463,6 +464,8 @@ static void gd_mouse_set(DisplayChangeListener *dcl,
                     x_root, y_root);
     vc->s->last_x = x;
     vc->s->last_y = y;
+
+    trace_gd_mouse_set(x_root, y_root, visible);
 }
 
 static void gd_cursor_define(DisplayChangeListener *dcl,
@@ -894,6 +897,8 @@ static gboolean gd_motion_event(GtkWidget *widget, GdkEventMotion *motion,
 
     x = (motion->x - mx) / vc->gfx.scale_x * ws;
     y = (motion->y - my) / vc->gfx.scale_y * ws;
+
+    trace_gd_motion_event(x, y, mx, my, fbw, fbh, ww, wh, ws);
 
     if (qemu_input_is_absolute()) {
         if (x < 0 || y < 0 ||
