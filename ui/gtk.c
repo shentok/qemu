@@ -865,9 +865,8 @@ static gboolean gd_draw_event(GtkWidget *widget, cairo_t *cr, void *opaque)
 }
 
 static gboolean gd_motion_event(GtkWidget *widget, GdkEventMotion *motion,
-                                void *opaque)
+                                VirtualConsole *vc)
 {
-    VirtualConsole *vc = opaque;
     GtkDisplayState *s = vc->s;
     int x, y;
     int mx, my;
