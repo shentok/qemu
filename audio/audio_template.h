@@ -495,8 +495,9 @@ SW *glue (AUD_open_, TYPE) (
     s = card->state;
     pdo = glue(audio_get_pdo_, TYPE)(s->dev);
 
-    ldebug ("open %s, freq %d, nchannels %d, fmt %d\n",
-            name, as->freq, as->nchannels, as->fmt);
+    glue(trace_audio_open_, TYPE)(card->name, name, as->freq, as->nchannels,
+                                  as->fmt >= 0 && as->fmt < AUDIO_FORMAT__MAX
+                                  ? AudioFormat_str(as->fmt) : "unknown");
 
     if (audio_bug(__func__, audio_validate_settings(as))) {
         audio_print_settings (as);
