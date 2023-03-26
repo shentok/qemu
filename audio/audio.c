@@ -45,7 +45,6 @@
 #define AUDIO_CAP "audio"
 #include "audio_int.h"
 
-/* #define DEBUG_LIVE */
 /* #define DEBUG_OUT */
 /* #define DEBUG_CAPTURE */
 
