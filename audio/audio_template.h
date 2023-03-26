@@ -543,11 +543,12 @@ SW *glue (AUD_open_, TYPE) (
     sw->callback.fn = callback_fn;
     sw->callback.opaque = callback_opaque;
 
-#ifdef DEBUG_AUDIO
-    dolog ("%s\n", name);
-    audio_pcm_print_info ("hw", &sw->hw->info);
-    audio_pcm_print_info ("sw", &sw->info);
-#endif
+    glue(trace_audio_open_info_, TYPE)("sw", card->name, name,
+        sw->info.freq, sw->info.nchannels, sw->info.bits,
+        sw->info.is_signed, sw->info.is_float);
+    glue(trace_audio_open_info_, TYPE)("hw", card->name, name,
+        sw->hw->info.freq, sw->hw->info.nchannels, sw->hw->info.bits,
+        sw->hw->info.is_signed, sw->hw->info.is_float);
 
     return sw;
 

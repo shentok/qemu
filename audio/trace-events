@@ -29,6 +29,8 @@ pw_audio_init(void) "Initialize Pipewire context"
 # audio.c
 audio_open_in(const char *card, const char *name, int freq, int ch, const char *fmt) "%s:%s frequency=%d channels=%d format=%s"
 audio_open_out(const char *card, const char *name, int freq, int ch, const char *fmt) "%s:%s frequency=%d channels=%d format=%s"
+audio_open_info_in(const char *end, const char *card, const char *name, int freq, int ch, int bits, int is_signed, int is_float) "%s: %s:%s frequency=%d channels=%d bits=%d is_signed=%d is_float=%d"
+audio_open_info_out(const char *end, const char *card, const char *name, int freq, int ch, int bits, int is_signed, int is_float) "%s: %s:%s frequency=%d channels=%d bits=%d is_signed=%d is_float=%d"
 audio_timer_start(int interval) "interval %d ms"
 audio_timer_stop(void) ""
 audio_timer_delayed(int interval) "interval %d ms"
