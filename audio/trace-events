@@ -27,6 +27,7 @@ pw_period(uint64_t quantum, uint32_t rate) "period =%" PRIu64 "/%u"
 pw_audio_init(void) "Initialize Pipewire context"
 
 # audio.c
+audio_hw_frames_out(size_t hw_free, size_t hw_written) "hw_free=%zu hw_written=%zu"
 audio_open_in(const char *card, const char *name, int freq, int ch, const char *fmt) "%s:%s frequency=%d channels=%d format=%s"
 audio_open_out(const char *card, const char *name, int freq, int ch, const char *fmt) "%s:%s frequency=%d channels=%d format=%s"
 audio_open_info_in(const char *end, const char *card, const char *name, int freq, int ch, int bits, int is_signed, int is_float) "%s: %s:%s frequency=%d channels=%d bits=%d is_signed=%d is_float=%d"

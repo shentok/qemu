@@ -1206,6 +1206,9 @@ static void audio_run_out (AudioState *s)
             if (hw->pcm_ops->run_buffer_out) {
                 hw->pcm_ops->run_buffer_out(hw);
             }
+            if (hw_free) {
+                trace_audio_hw_frames_out(hw_free, (size_t)0);
+            }
             continue;
         }
 
@@ -1218,9 +1221,7 @@ static void audio_run_out (AudioState *s)
             hw->mix_buf.pos = 0;
         }
 
-#ifdef DEBUG_OUT
-        dolog("played=%zu\n", played);
-#endif
+        trace_audio_hw_frames_out(hw_free, played);
 
         if (played) {
             hw->ts_helper += played;
