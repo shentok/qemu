@@ -779,6 +779,7 @@ static size_t audio_pcm_sw_write(SWVoiceOut *sw, void *buf, size_t buf_len)
         );
 #endif
 
+    sw->total_fe_frames_written += total_in;
     return total_in * sw->info.bytes_per_frame;
 }
 
@@ -1171,6 +1172,9 @@ static void audio_run_out (AudioState *s)
                            - sw->resample_buf.pos;
                     sw->callback.fn(sw->callback.opaque,
                                     free * sw->info.bytes_per_frame);
+                    trace_audio_fe_frames_out(free,
+                                              sw->total_fe_frames_written);
+                    sw->total_fe_frames_written = 0;
                 }
             }
         }

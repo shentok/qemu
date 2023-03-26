@@ -111,6 +111,7 @@ struct SWVoiceOut {
     STSampleBuffer resample_buf;
     void *rate;
     size_t total_hw_samples_mixed;
+    size_t total_fe_frames_written;
     int active;
     int empty;
     HWVoiceOut *hw;
