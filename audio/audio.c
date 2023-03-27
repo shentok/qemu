@@ -902,8 +902,11 @@ void AUD_set_active_out (SWVoiceOut *sw, int on)
     HWVoiceOut *hw;
 
     if (!sw) {
+        trace_audio_set_active_out("(NULL)", "", on);
         return;
     }
+
+    trace_audio_set_active_out(sw->card->name, sw->name, on);
 
     hw = sw->hw;
     if (sw->active != on) {
@@ -950,8 +953,11 @@ void AUD_set_active_in (SWVoiceIn *sw, int on)
     HWVoiceIn *hw;
 
     if (!sw) {
+        trace_audio_set_active_in("(NULL)", "", on);
         return;
     }
+
+    trace_audio_set_active_in(sw->card->name, sw->name, on);
 
     hw = sw->hw;
     if (sw->active != on) {
