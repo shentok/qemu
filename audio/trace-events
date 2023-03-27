@@ -28,6 +28,7 @@ pw_audio_init(void) "Initialize Pipewire context"
 
 # audio.c
 audio_fe_frames_out(size_t fe_free, size_t fe_written) "fe_free=%zu fe_written=%zu"
+audio_hw_frames_in(size_t hw_read) "hw_read=%zu"
 audio_hw_frames_out(size_t hw_free, size_t hw_written) "hw_free=%zu hw_written=%zu"
 audio_open_in(const char *card, const char *name, int freq, int ch, const char *fmt) "%s:%s frequency=%d channels=%d format=%s"
 audio_open_out(const char *card, const char *name, int freq, int ch, const char *fmt) "%s:%s frequency=%d channels=%d format=%s"

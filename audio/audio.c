@@ -1305,6 +1305,7 @@ static void audio_run_in (AudioState *s)
         }
         replay_audio_in(&captured, hw->conv_buf.buffer, &hw->conv_buf.pos,
                         hw->conv_buf.size);
+        trace_audio_hw_frames_in(captured);
 
         min = audio_pcm_hw_find_min_in (hw);
         hw->total_samples_captured += captured - min;
