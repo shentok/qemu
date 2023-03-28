@@ -35,6 +35,7 @@ audio_open_in(const char *card, const char *name, int freq, int ch, const char *
 audio_open_out(const char *card, const char *name, int freq, int ch, const char *fmt) "%s:%s frequency=%d channels=%d format=%s"
 audio_open_info_in(const char *end, const char *card, const char *name, int freq, int ch, int bits, int is_signed, int is_float) "%s: %s:%s frequency=%d channels=%d bits=%d is_signed=%d is_float=%d"
 audio_open_info_out(const char *end, const char *card, const char *name, int freq, int ch, int bits, int is_signed, int is_float) "%s: %s:%s frequency=%d channels=%d bits=%d is_signed=%d is_float=%d"
+audio_run(const char *msg) "%s"
 audio_set_active_in(const char *card, const char *name, int on) "%s:%s on=%d"
 audio_set_active_out(const char *card, const char *name, int on) "%s:%s on=%d"
 audio_timer_start(int interval) "interval %d ms"

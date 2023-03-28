@@ -48,7 +48,6 @@
 /* #define DEBUG_LIVE */
 /* #define DEBUG_OUT */
 /* #define DEBUG_CAPTURE */
-/* #define DEBUG_POLL */
 
 #define SW_NAME(sw) (sw)->name ? (sw)->name : "unknown"
 
@@ -1387,26 +1386,11 @@ static void audio_run_capture (AudioState *s)
 
 void audio_run(AudioState *s, const char *msg)
 {
+    trace_audio_run(msg);
+
     audio_run_out(s);
     audio_run_in(s);
     audio_run_capture(s);
-
-#ifdef DEBUG_POLL
-    {
-        static double prevtime;
-        double currtime;
-        struct timeval tv;
-
-        if (gettimeofday (&tv, NULL)) {
-            perror ("audio_run: gettimeofday");
-            return;
-        }
-
-        currtime = tv.tv_sec + tv.tv_usec * 1e-6;
-        dolog ("Elapsed since last %s: %f\n", msg, currtime - prevtime);
-        prevtime = currtime;
-    }
-#endif
 }
 
 void audio_generic_run_buffer_in(HWVoiceIn *hw)
