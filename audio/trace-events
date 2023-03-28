@@ -27,6 +27,7 @@ pw_period(uint64_t quantum, uint32_t rate) "period =%" PRIu64 "/%u"
 pw_audio_init(void) "Initialize Pipewire context"
 
 # audio.c
+audio_fe_frames_in(size_t fe_avail, size_t fe_read) "fe_avail=%zu fe_read=%zu"
 audio_fe_frames_out(size_t fe_free, size_t fe_written) "fe_free=%zu fe_written=%zu"
 audio_hw_frames_in(size_t hw_read) "hw_read=%zu"
 audio_hw_frames_out(size_t hw_free, size_t hw_written) "hw_free=%zu hw_written=%zu"

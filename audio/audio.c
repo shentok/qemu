@@ -600,6 +600,7 @@ static size_t audio_pcm_sw_read(SWVoiceIn *sw, void *buf, size_t buf_len)
     sw->clip(buf, sw->resample_buf.buffer, total_out);
 
     sw->total_hw_samples_acquired += total_in;
+    sw->total_fe_frames_read += total_out;
     return total_out * sw->info.bytes_per_frame;
 }
 
@@ -1323,6 +1324,8 @@ static void audio_run_in (AudioState *s)
                     avail = MIN(avail, sw->resample_buf.size);
                     sw->callback.fn(sw->callback.opaque,
                                     avail * sw->info.bytes_per_frame);
+                    trace_audio_fe_frames_in(avail, sw->total_fe_frames_read);
+                    sw->total_fe_frames_read = 0;
                 }
             }
         }

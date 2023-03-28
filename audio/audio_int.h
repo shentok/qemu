@@ -128,6 +128,7 @@ struct SWVoiceIn {
     struct audio_pcm_info info;
     void *rate;
     size_t total_hw_samples_acquired;
+    size_t total_fe_frames_read;
     STSampleBuffer resample_buf;
     f_sample *clip;
     HWVoiceIn *hw;
