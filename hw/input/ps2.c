@@ -796,7 +796,7 @@ static void ps2_mouse_event(DeviceState *dev, QemuConsole *src,
         [INPUT_BUTTON_SIDE]   = PS2_MOUSE_BUTTON_SIDE,
         [INPUT_BUTTON_EXTRA]  = PS2_MOUSE_BUTTON_EXTRA,
     };
-    PS2MouseState *s = (PS2MouseState *)dev;
+    PS2MouseState *s = PS2_MOUSE_DEVICE(dev);
     InputMoveEvent *move;
     InputBtnEvent *btn;
 
@@ -843,7 +843,7 @@ static void ps2_mouse_event(DeviceState *dev, QemuConsole *src,
 
 static void ps2_mouse_sync(DeviceState *dev)
 {
-    PS2MouseState *s = (PS2MouseState *)dev;
+    PS2MouseState *s = PS2_MOUSE_DEVICE(dev);
 
     /* do not sync while disabled to prevent stream corruption */
     if (!(s->mouse_status & MOUSE_STATUS_ENABLED)) {
