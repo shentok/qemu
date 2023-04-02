@@ -512,6 +512,8 @@ int qemu_input_scale_axis(int value,
 
 void qemu_input_queue_rel(QemuConsole *src, InputAxis axis, int value)
 {
+    static const char *axis_name[] = { "x", "y" };
+
     InputMoveEvent move = {
         .axis = axis,
         .value = value,
@@ -521,12 +523,15 @@ void qemu_input_queue_rel(QemuConsole *src, InputAxis axis, int value)
         .u.rel.data = &move,
     };
 
+    trace_input_queue_rel(axis_name[axis], value);
     qemu_input_event_send(src, &evt);
 }
 
 void qemu_input_queue_abs(QemuConsole *src, InputAxis axis, int value,
                           int min_in, int max_in)
 {
+    static const char *axis_name[] = { "x", "y" };
+
     InputMoveEvent move = {
         .axis = axis,
         .value = qemu_input_scale_axis(value, min_in, max_in,
@@ -538,6 +543,7 @@ void qemu_input_queue_abs(QemuConsole *src, InputAxis axis, int value,
         .u.abs.data = &move,
     };
 
+    trace_input_queue_abs(axis_name[axis], value, min_in, max_in, move.value);
     qemu_input_event_send(src, &evt);
 }
 

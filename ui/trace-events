@@ -95,6 +95,8 @@ input_event_btn(int conidx, const char *btn, bool down) "con %d, button %s, down
 input_event_rel(int conidx, const char *axis, int value) "con %d, axis %s, value %d"
 input_event_abs(int conidx, const char *axis, int value) "con %d, axis %s, value 0x%x"
 input_event_sync(void) ""
+input_queue_abs(const char *axis, int value, int min, int max, int64_t final_value) "%s: value=%d, min=%d, max=%d -> value=%"PRIi64
+input_queue_rel(const char *axis, int value) "%s: value=%d"
 input_mouse_mode(int absolute) "absolute %d"
 
 # sdl2-input.c
