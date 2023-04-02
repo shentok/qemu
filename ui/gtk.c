@@ -448,7 +448,7 @@ static void gd_mouse_set(DisplayChangeListener *dcl,
 {
     VirtualConsole *vc = container_of(dcl, VirtualConsole, gfx.dcl);
     GdkDisplay *dpy;
-    gint x_root, y_root;
+    gint x_root, y_root, ws;
 
     if (!gtk_widget_get_realized(vc->gfx.drawing_area) ||
         qemu_input_is_absolute()) {
@@ -456,12 +456,13 @@ static void gd_mouse_set(DisplayChangeListener *dcl,
         return;
     }
 
+    ws = gtk_widget_get_scale_factor(vc->gfx.drawing_area);
     dpy = gtk_widget_get_display(vc->gfx.drawing_area);
     gdk_window_get_root_coords(gtk_widget_get_window(vc->gfx.drawing_area),
                                x, y, &x_root, &y_root);
     gdk_device_warp(gd_get_pointer(dpy),
                     gtk_widget_get_screen(vc->gfx.drawing_area),
-                    x_root, y_root);
+                    x_root * ws, y_root * ws);
     vc->s->last_x = x;
     vc->s->last_y = y;
 
@@ -874,7 +875,7 @@ static gboolean gd_motion_event(GtkWidget *widget, GdkEventMotion *motion,
     int x, y;
     int mx, my;
     int fbh, fbw;
-    int ww, wh, ws;
+    int ww, wh;
 
     if (!vc->gfx.ds) {
         return TRUE;
@@ -885,7 +886,6 @@ static gboolean gd_motion_event(GtkWidget *widget, GdkEventMotion *motion,
 
     ww = gtk_widget_get_allocated_width(widget);
     wh = gtk_widget_get_allocated_height(widget);
-    ws = gtk_widget_get_scale_factor(widget);
 
     mx = my = 0;
     if (ww > fbw) {
@@ -895,10 +895,10 @@ static gboolean gd_motion_event(GtkWidget *widget, GdkEventMotion *motion,
         my = (wh - fbh) / 2;
     }
 
-    x = (motion->x - mx) / vc->gfx.scale_x * ws;
-    y = (motion->y - my) / vc->gfx.scale_y * ws;
+    x = (motion->x - mx) / vc->gfx.scale_x;
+    y = (motion->y - my) / vc->gfx.scale_y;
 
-    trace_gd_motion_event(x, y, mx, my, fbw, fbh, ww, wh, ws);
+    trace_gd_motion_event(x, y, mx, my, fbw, fbh, ww, wh);
 
     if (qemu_input_is_absolute()) {
         if (x < 0 || y < 0 ||
