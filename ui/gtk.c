@@ -947,6 +947,7 @@ static gboolean gd_motion_event(GtkWidget *widget, GdkEventMotion *motion,
             x = geometry.x + geometry.width / 2;
             y = geometry.y + geometry.height / 2;
 
+            trace_gd_motion_event_warp(x, y);
             gdk_device_warp(dev, screen, x, y);
             s->last_set = FALSE;
             return FALSE;
