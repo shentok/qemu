@@ -1583,7 +1583,7 @@ static void gd_grab_pointer(VirtualConsole *vc, const char *reason)
                             NULL, &vc->s->grab_x_root, &vc->s->grab_y_root);
     vc->s->ptr_owner = vc;
     gd_update_caption(vc->s);
-    trace_gd_grab(vc->label, "ptr", reason);
+    trace_gd_grab_pointer(vc->label, "ptr", reason, vc->s->grab_x_root, vc->s->grab_y_root);
 }
 
 static void gd_ungrab_pointer(GtkDisplayState *s)
@@ -1602,7 +1602,7 @@ static void gd_ungrab_pointer(GtkDisplayState *s)
                     gtk_widget_get_screen(vc->gfx.drawing_area),
                     vc->s->grab_x_root, vc->s->grab_y_root);
     gd_update_caption(s);
-    trace_gd_ungrab(vc->label, "ptr");
+    trace_gd_ungrab_pointer(vc->label, "ptr", vc->s->grab_x_root, vc->s->grab_x_root);
 }
 
 static void gd_menu_grab_input(GtkMenuItem *item, void *opaque)

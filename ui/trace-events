@@ -26,6 +26,8 @@ gd_update(const char *tab, int x, int y, int w, int h) "tab=%s, x=%d, y=%d, w=%d
 gd_key_event(const char *tab, int gdk_keycode, int qkeycode, const char *action) "tab=%s, translated GDK keycode %d to QKeyCode %d (%s)"
 gd_grab(const char *tab, const char *device, const char *reason) "tab=%s, dev=%s, reason=%s"
 gd_ungrab(const char *tab, const char *device) "tab=%s, dev=%s"
+gd_grab_pointer(const char *tab, const char *device, const char *reason, int x, int y) "tab=%s, dev=%s, reason=%s, x=%d, y=%d"
+gd_ungrab_pointer(const char *tab, const char *device, int x, int y) "tab=%s, dev=%s, x=%d, y=%d"
 gd_keymap_windowing(const char *name) "backend=%s"
 gd_gl_area_create_context(void *ctx, int major, int minor) "ctx=%p, major=%d, minor=%d"
 gd_gl_area_destroy_context(void *ctx, void *current_ctx) "ctx=%p, current_ctx=%p"
