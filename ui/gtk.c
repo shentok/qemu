@@ -458,15 +458,15 @@ static void gd_mouse_set(DisplayChangeListener *dcl,
 
     ws = gtk_widget_get_scale_factor(vc->gfx.drawing_area);
     dpy = gtk_widget_get_display(vc->gfx.drawing_area);
-    gdk_window_get_root_coords(gtk_widget_get_window(vc->gfx.drawing_area),
-                               x, y, &x_root, &y_root);
+    gdk_window_get_origin(gtk_widget_get_window(vc->gfx.drawing_area),
+                          &x_root, &y_root);
     gdk_device_warp(gd_get_pointer(dpy),
                     gtk_widget_get_screen(vc->gfx.drawing_area),
-                    x_root * ws, y_root * ws);
+                    (x_root + x) * ws, (y_root + y) * ws);
     vc->s->last_x = x;
     vc->s->last_y = y;
 
-    trace_gd_mouse_set(x_root, y_root, visible);
+    trace_gd_mouse_set((x_root + x) * ws, (y_root + y) * ws, visible);
 }
 
 static void gd_cursor_define(DisplayChangeListener *dcl,
