@@ -88,15 +88,8 @@ static const MemoryRegionOps piix_bmdma_ops = {
 static void piix_ide_init(Object *obj)
 {
     PCIIDEState *d = PCI_IDE(obj);
-    int i;
 
-    for(i = 0;i < 2; i++) {
-        BMDMAState *bm = &d->bmdma[i];
-
-        memory_region_init_io(&bm->extra_io, OBJECT(d), &piix_bmdma_ops, bm,
-                              "piix-bmdma", 4);
-        memory_region_add_subregion(&d->bmdma_bar, i * 8, &bm->extra_io);
-    }
+    bmdma_init_ops(d, &piix_bmdma_ops);
 }
 
 static void piix_ide_reset(DeviceState *dev)
