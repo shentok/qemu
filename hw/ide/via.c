@@ -29,7 +29,6 @@
 #include "migration/vmstate.h"
 #include "qemu/module.h"
 #include "qemu/range.h"
-#include "sysemu/dma.h"
 #include "hw/isa/vt82c686.h"
 #include "hw/ide/pci.h"
 #include "hw/irq.h"
@@ -90,15 +89,8 @@ static const MemoryRegionOps via_bmdma_ops = {
 static void via_ide_init(Object *obj)
 {
     PCIIDEState *d = PCI_IDE(obj);
-    int i;
 
-    for (i = 0; i < ARRAY_SIZE(d->bmdma); i++) {
-        BMDMAState *bm = &d->bmdma[i];
-
-        memory_region_init_io(&bm->extra_io, OBJECT(d), &via_bmdma_ops, bm,
-                              "via-bmdma", 4);
-        memory_region_add_subregion(&d->bmdma_bar, i * 8, &bm->extra_io);
-    }
+    bmdma_init_ops(d, &via_bmdma_ops);
 }
 
 static void via_ide_set_irq(void *opaque, int n, int level)

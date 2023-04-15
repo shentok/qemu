@@ -613,6 +613,19 @@ void bmdma_init(IDEBus *bus, BMDMAState *bm, PCIIDEState *d)
     bm->pci_dev = d;
 }
 
+void bmdma_init_ops(PCIIDEState *d, const MemoryRegionOps *bmdma_ops)
+{
+    size_t i;
+
+    for (i = 0; i < ARRAY_SIZE(d->bmdma); i++) {
+        BMDMAState *bm = &d->bmdma[i];
+
+        memory_region_init_io(&bm->extra_io, OBJECT(d),
+                              bmdma_ops, bm, "bmdma", 4);
+        memory_region_add_subregion(&d->bmdma_bar, i * 8, &bm->extra_io);
+    }
+}
+
 static void pci_ide_init(Object *obj)
 {
     PCIIDEState *d = PCI_IDE(obj);

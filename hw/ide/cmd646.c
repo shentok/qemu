@@ -164,15 +164,8 @@ static const MemoryRegionOps cmd646_bmdma_ops = {
 static void cmd646_ide_init(Object *obj)
 {
     PCIIDEState *d = PCI_IDE(obj);
-    BMDMAState *bm;
-    int i;
 
-    for(i = 0;i < 2; i++) {
-        bm = &d->bmdma[i];
-        memory_region_init_io(&bm->extra_io, OBJECT(d), &cmd646_bmdma_ops, bm,
-                              "cmd646-bmdma-bus", 4);
-        memory_region_add_subregion(&d->bmdma_bar, i * 8, &bm->extra_io);
-    }
+    bmdma_init_ops(d, &cmd646_bmdma_ops);
 }
 
 static void cmd646_update_irq(PCIDevice *pd)
