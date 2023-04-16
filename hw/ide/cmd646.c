@@ -290,7 +290,6 @@ static void cmd646_ide_class_init(ObjectClass *klass, void *data)
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
 
     dc->reset = cmd646_reset;
-    dc->vmsd = &vmstate_ide_pci;
     k->realize = pci_cmd646_ide_realize;
     k->vendor_id = PCI_VENDOR_ID_CMD;
     k->device_id = PCI_DEVICE_ID_CMD_646;
@@ -299,7 +298,6 @@ static void cmd646_ide_class_init(ObjectClass *klass, void *data)
     k->config_read = cmd646_pci_config_read;
     k->config_write = cmd646_pci_config_write;
     device_class_set_props(dc, cmd646_ide_properties);
-    set_bit(DEVICE_CATEGORY_STORAGE, dc->categories);
 }
 
 static const TypeInfo cmd646_ide_info = {

@@ -557,7 +557,7 @@ static int ide_pci_post_load(void *opaque, int version_id)
     return 0;
 }
 
-const VMStateDescription vmstate_ide_pci = {
+static const VMStateDescription vmstate_ide_pci = {
     .name = "ide",
     .version_id = 3,
     .minimum_version_id = 0,
@@ -654,11 +654,20 @@ static void pci_ide_init(Object *obj)
                              ARRAY_SIZE(d->isa_irq));
 }
 
+static void pci_ide_class_init(ObjectClass *klass, void *data)
+{
+    DeviceClass *dc = DEVICE_CLASS(klass);
+
+    dc->vmsd = &vmstate_ide_pci;
+    set_bit(DEVICE_CATEGORY_STORAGE, dc->categories);
+}
+
 static const TypeInfo pci_ide_type_info = {
     .name = TYPE_PCI_IDE,
     .parent = TYPE_PCI_DEVICE,
     .instance_size = sizeof(PCIIDEState),
     .instance_init = pci_ide_init,
+    .class_init = pci_ide_class_init,
     .abstract = true,
     .interfaces = (InterfaceInfo[]) {
         { INTERFACE_CONVENTIONAL_PCI_DEVICE },
