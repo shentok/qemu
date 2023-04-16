@@ -640,6 +640,16 @@ static void pci_ide_init(Object *obj)
         memory_region_add_subregion(&d->bmdma_bar, i * 8 + 4, &bm->addr_ioport);
     }
 
+    memory_region_init_io(&d->data_bar[0], OBJECT(d), &pci_ide_data_le_ops,
+                          &d->bus[0], "pci-ide0-data", 8);
+    memory_region_init_io(&d->cmd_bar[0], OBJECT(d), &pci_ide_cmd_le_ops,
+                          &d->bus[0], "pci-ide0-cmd", 4);
+
+    memory_region_init_io(&d->data_bar[1], OBJECT(d), &pci_ide_data_le_ops,
+                          &d->bus[1], "pci-ide1-data", 8);
+    memory_region_init_io(&d->cmd_bar[1], OBJECT(d), &pci_ide_cmd_le_ops,
+                          &d->bus[1], "pci-ide1-cmd", 4);
+
     qdev_init_gpio_out_named(DEVICE(d), d->isa_irq, "isa-irq",
                              ARRAY_SIZE(d->isa_irq));
 }
