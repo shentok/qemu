@@ -88,20 +88,8 @@ static uint64_t sii3112_reg_read(void *opaque, hwaddr addr,
         val |= (d->regs[1].confstat & (1UL << 11) ? (1 << 4) : 0);
         val |= (uint32_t)d->i.bmdma[1].status << 16;
         break;
-    case 0x80 ... 0x87:
-        val = pci_ide_data_le_ops.read(&d->i.bus[0], addr - 0x80, size);
-        break;
-    case 0x8a:
-        val = pci_ide_cmd_le_ops.read(&d->i.bus[0], 2, size);
-        break;
     case 0xa0:
         val = d->regs[0].confstat;
-        break;
-    case 0xc0 ... 0xc7:
-        val = pci_ide_data_le_ops.read(&d->i.bus[1], addr - 0xc0, size);
-        break;
-    case 0xca:
-        val = pci_ide_cmd_le_ops.read(&d->i.bus[1], 2, size);
         break;
     case 0xe0:
         val = d->regs[1].confstat;
@@ -168,18 +156,6 @@ static void sii3112_reg_write(void *opaque, hwaddr addr,
         break;
     case 0x0c ... 0x0f:
         bmdma_addr_ioport_ops.write(&d->i.bmdma[1], addr - 12, val, size);
-        break;
-    case 0x80 ... 0x87:
-        pci_ide_data_le_ops.write(&d->i.bus[0], addr - 0x80, val, size);
-        break;
-    case 0x8a:
-        pci_ide_cmd_le_ops.write(&d->i.bus[0], 2, val, size);
-        break;
-    case 0xc0 ... 0xc7:
-        pci_ide_data_le_ops.write(&d->i.bus[1], addr - 0xc0, val, size);
-        break;
-    case 0xca:
-        pci_ide_cmd_le_ops.write(&d->i.bus[1], 2, val, size);
         break;
     case 0x100:
         d->regs[0].scontrol = val & 0xfff;
@@ -281,10 +257,30 @@ static void sii3112_pci_realize(PCIDevice *dev, Error **errp)
 static void sii3112_pci_init(Object *obj)
 {
     SiI3112PCIState *d = SII3112_PCI(obj);
+    PCIIDEState *s = PCI_IDE(d);
     DeviceState *ds = DEVICE(d);
+    MemoryRegion *mr;
 
     memory_region_init_io(&d->mmio, OBJECT(d), &sii3112_reg_ops, d,
                           "sii3112.bar5", 0x200);
+
+    /* BAR0-BAR4 are PCI I/O space aliases into BAR5 */
+    mr = g_new(MemoryRegion, 1);
+    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar0", &s->data_bar[0], 0,
+                             memory_region_size(&s->data_bar[0]));
+    memory_region_add_subregion_overlap(&d->mmio, 0x80, mr, 1);
+    mr = g_new(MemoryRegion, 1);
+    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar1", &s->cmd_bar[0], 0,
+                             memory_region_size(&s->cmd_bar[0]));
+    memory_region_add_subregion_overlap(&d->mmio, 0x88, mr, 1);
+    mr = g_new(MemoryRegion, 1);
+    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar2", &s->data_bar[1], 0,
+                             memory_region_size(&s->data_bar[1]));
+    memory_region_add_subregion_overlap(&d->mmio, 0xc0, mr, 1);
+    mr = g_new(MemoryRegion, 1);
+    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar3", &s->cmd_bar[1], 0,
+                             memory_region_size(&s->cmd_bar[1]));
+    memory_region_add_subregion_overlap(&d->mmio, 0xc8, mr, 1);
 
     qdev_init_gpio_in(ds, sii3112_set_irq, 2);
 }
