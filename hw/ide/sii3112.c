@@ -34,6 +34,62 @@ struct SiI3112PCIState {
     SiI3112Regs regs[2];
 };
 
+static uint64_t sii3112_bmdma_read(void *opaque, hwaddr addr, unsigned int size)
+{
+    BMDMAState *bm = opaque;
+    SiI3112PCIState *d = SII3112_PCI(bm->pci_dev);
+    int i = (bm == &bm->pci_dev->bmdma[0]) ? 0 : 1;
+    uint64_t val;
+
+    switch (addr) {
+    case 0x00:
+        val = bm->cmd;
+        break;
+    case 0x01:
+        val = d->regs[i].swdata;
+        break;
+    case 0x02:
+        val = bm->status;
+        break;
+    case 0x03:
+        val = 0;
+        break;
+    default:
+        val = 0;
+        break;
+    }
+    trace_sii3112_bmdma_read(size, addr, val);
+    return val;
+}
+
+static void sii3112_bmdma_write(void *opaque, hwaddr addr,
+                                uint64_t val, unsigned int size)
+{
+    BMDMAState *bm = opaque;
+    SiI3112PCIState *d = SII3112_PCI(bm->pci_dev);
+    int i = (bm == &bm->pci_dev->bmdma[0]) ? 0 : 1;
+
+    trace_sii3112_bmdma_write(size, addr, val);
+    switch (addr) {
+    case 0x00:
+        bmdma_cmd_writeb(bm, val);
+        break;
+    case 0x01:
+        d->regs[i].swdata = val & 0x3f;
+        break;
+    case 0x02:
+        bmdma_status_writeb(bm, val);
+        break;
+    default:
+        break;
+    }
+}
+
+static const MemoryRegionOps sii3112_bmdma_ops = {
+    .read = sii3112_bmdma_read,
+    .write = sii3112_bmdma_write,
+};
+
 /* The sii3112_reg_read and sii3112_reg_write functions implement the
  * Internal Register Space - BAR5 (section 6.7 of the data sheet).
  */
@@ -227,7 +283,6 @@ static void sii3112_pci_realize(PCIDevice *dev, Error **errp)
     SiI3112PCIState *d = SII3112_PCI(dev);
     PCIIDEState *s = PCI_IDE(dev);
     DeviceState *ds = DEVICE(dev);
-    MemoryRegion *mr;
     int i;
 
     pci_config_set_interrupt_pin(dev->config, 1);
@@ -237,13 +292,8 @@ static void sii3112_pci_realize(PCIDevice *dev, Error **errp)
     pci_register_bar(dev, 1, PCI_BASE_ADDRESS_SPACE_IO, &s->cmd_bar[0]);
     pci_register_bar(dev, 2, PCI_BASE_ADDRESS_SPACE_IO, &s->data_bar[1]);
     pci_register_bar(dev, 3, PCI_BASE_ADDRESS_SPACE_IO, &s->cmd_bar[1]);
-
+    pci_register_bar(dev, 4, PCI_BASE_ADDRESS_SPACE_IO, &s->bmdma_bar);
     pci_register_bar(dev, 5, PCI_BASE_ADDRESS_SPACE_MEMORY, &d->mmio);
-
-    /* BAR0-BAR4 are PCI I/O space aliases into BAR5 */
-    mr = g_new(MemoryRegion, 1);
-    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar4", &d->mmio, 0, 16);
-    pci_register_bar(dev, 4, PCI_BASE_ADDRESS_SPACE_IO, mr);
 
     for (i = 0; i < 2; i++) {
         ide_bus_init(&s->bus[i], sizeof(s->bus[i]), ds, i, 1);
@@ -260,6 +310,8 @@ static void sii3112_pci_init(Object *obj)
     PCIIDEState *s = PCI_IDE(d);
     DeviceState *ds = DEVICE(d);
     MemoryRegion *mr;
+
+    bmdma_init_ops(s, &sii3112_bmdma_ops);
 
     memory_region_init_io(&d->mmio, OBJECT(d), &sii3112_reg_ops, d,
                           "sii3112.bar5", 0x200);
