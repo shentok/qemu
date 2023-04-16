@@ -101,36 +101,6 @@ static uint64_t sii3112_reg_read(void *opaque, hwaddr addr,
     uint64_t val;
 
     switch (addr) {
-    case 0x00:
-        val = d->i.bmdma[0].cmd;
-        break;
-    case 0x01:
-        val = d->regs[0].swdata;
-        break;
-    case 0x02:
-        val = d->i.bmdma[0].status;
-        break;
-    case 0x03:
-        val = 0;
-        break;
-    case 0x04 ... 0x07:
-        val = bmdma_addr_ioport_ops.read(&d->i.bmdma[0], addr - 4, size);
-        break;
-    case 0x08:
-        val = d->i.bmdma[1].cmd;
-        break;
-    case 0x09:
-        val = d->regs[1].swdata;
-        break;
-    case 0x0a:
-        val = d->i.bmdma[1].status;
-        break;
-    case 0x0b:
-        val = 0;
-        break;
-    case 0x0c ... 0x0f:
-        val = bmdma_addr_ioport_ops.read(&d->i.bmdma[1], addr - 12, size);
-        break;
     case 0x10:
         val = d->i.bmdma[0].cmd;
         val |= (d->regs[0].confstat & (1UL << 11) ? (1 << 4) : 0); /*SATAINT0*/
@@ -183,35 +153,23 @@ static void sii3112_reg_write(void *opaque, hwaddr addr,
 
     trace_sii3112_write(size, addr, val);
     switch (addr) {
-    case 0x00:
     case 0x10:
         bmdma_cmd_writeb(&d->i.bmdma[0], val);
         break;
-    case 0x01:
     case 0x11:
         d->regs[0].swdata = val & 0x3f;
         break;
-    case 0x02:
     case 0x12:
         bmdma_status_writeb(&d->i.bmdma[0], val);
         break;
-    case 0x04 ... 0x07:
-        bmdma_addr_ioport_ops.write(&d->i.bmdma[0], addr - 4, val, size);
-        break;
-    case 0x08:
     case 0x18:
         bmdma_cmd_writeb(&d->i.bmdma[1], val);
         break;
-    case 0x09:
     case 0x19:
         d->regs[1].swdata = val & 0x3f;
         break;
-    case 0x0a:
     case 0x1a:
         bmdma_status_writeb(&d->i.bmdma[1], val);
-        break;
-    case 0x0c ... 0x0f:
-        bmdma_addr_ioport_ops.write(&d->i.bmdma[1], addr - 12, val, size);
         break;
     case 0x100:
         d->regs[0].scontrol = val & 0xfff;
@@ -333,6 +291,10 @@ static void sii3112_pci_init(Object *obj)
     memory_region_init_alias(mr, OBJECT(d), "sii3112.bar3", &s->cmd_bar[1], 0,
                              memory_region_size(&s->cmd_bar[1]));
     memory_region_add_subregion_overlap(&d->mmio, 0xc8, mr, 1);
+    mr = g_new(MemoryRegion, 1);
+    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar4", &s->bmdma_bar, 0,
+                             memory_region_size(&s->bmdma_bar));
+    memory_region_add_subregion_overlap(&d->mmio, 0x0, mr, 1);
 
     qdev_init_gpio_in(ds, sii3112_set_irq, 2);
 }
