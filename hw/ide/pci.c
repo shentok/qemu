@@ -622,7 +622,7 @@ void bmdma_init_ops(PCIIDEState *d, const MemoryRegionOps *bmdma_ops)
 
         memory_region_init_io(&bm->extra_io, OBJECT(d),
                               bmdma_ops, bm, "bmdma", 4);
-        memory_region_add_subregion(&d->bmdma_bar, i * 8, &bm->extra_io);
+        memory_region_add_subregion(&d->bmdma_ops, i * 8, &bm->extra_io);
     }
 }
 
@@ -631,23 +631,23 @@ static void pci_ide_init(Object *obj)
     PCIIDEState *d = PCI_IDE(obj);
     size_t i;
 
-    memory_region_init(&d->bmdma_bar, OBJECT(d), "bmdma-container", 16);
+    memory_region_init(&d->bmdma_ops, OBJECT(d), "bmdma-container", 16);
     for (i = 0; i < ARRAY_SIZE(d->bmdma); i++) {
         BMDMAState *bm = &d->bmdma[i];
 
         memory_region_init_io(&bm->addr_ioport, OBJECT(d),
                               &bmdma_addr_ioport_ops, bm, "bmdma-ioport", 4);
-        memory_region_add_subregion(&d->bmdma_bar, i * 8 + 4, &bm->addr_ioport);
+        memory_region_add_subregion(&d->bmdma_ops, i * 8 + 4, &bm->addr_ioport);
     }
 
-    memory_region_init_io(&d->data_bar[0], OBJECT(d), &pci_ide_data_le_ops,
+    memory_region_init_io(&d->data_ops[0], OBJECT(d), &pci_ide_data_le_ops,
                           &d->bus[0], "pci-ide0-data", 8);
-    memory_region_init_io(&d->cmd_bar[0], OBJECT(d), &pci_ide_cmd_le_ops,
+    memory_region_init_io(&d->cmd_ops[0], OBJECT(d), &pci_ide_cmd_le_ops,
                           &d->bus[0], "pci-ide0-cmd", 4);
 
-    memory_region_init_io(&d->data_bar[1], OBJECT(d), &pci_ide_data_le_ops,
+    memory_region_init_io(&d->data_ops[1], OBJECT(d), &pci_ide_data_le_ops,
                           &d->bus[1], "pci-ide1-data", 8);
-    memory_region_init_io(&d->cmd_bar[1], OBJECT(d), &pci_ide_cmd_le_ops,
+    memory_region_init_io(&d->cmd_ops[1], OBJECT(d), &pci_ide_cmd_le_ops,
                           &d->bus[1], "pci-ide1-cmd", 4);
 
     qdev_init_gpio_out_named(DEVICE(d), d->isa_irq, "isa-irq",

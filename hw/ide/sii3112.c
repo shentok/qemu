@@ -246,11 +246,11 @@ static void sii3112_pci_realize(PCIDevice *dev, Error **errp)
     pci_config_set_interrupt_pin(dev->config, 1);
     pci_set_byte(dev->config + PCI_CACHE_LINE_SIZE, 8);
 
-    pci_register_bar(dev, 0, PCI_BASE_ADDRESS_SPACE_IO, &s->data_bar[0]);
-    pci_register_bar(dev, 1, PCI_BASE_ADDRESS_SPACE_IO, &s->cmd_bar[0]);
-    pci_register_bar(dev, 2, PCI_BASE_ADDRESS_SPACE_IO, &s->data_bar[1]);
-    pci_register_bar(dev, 3, PCI_BASE_ADDRESS_SPACE_IO, &s->cmd_bar[1]);
-    pci_register_bar(dev, 4, PCI_BASE_ADDRESS_SPACE_IO, &s->bmdma_bar);
+    pci_register_bar(dev, 0, PCI_BASE_ADDRESS_SPACE_IO, &s->data_ops[0]);
+    pci_register_bar(dev, 1, PCI_BASE_ADDRESS_SPACE_IO, &s->cmd_ops[0]);
+    pci_register_bar(dev, 2, PCI_BASE_ADDRESS_SPACE_IO, &s->data_ops[1]);
+    pci_register_bar(dev, 3, PCI_BASE_ADDRESS_SPACE_IO, &s->cmd_ops[1]);
+    pci_register_bar(dev, 4, PCI_BASE_ADDRESS_SPACE_IO, &s->bmdma_ops);
     pci_register_bar(dev, 5, PCI_BASE_ADDRESS_SPACE_MEMORY, &d->mmio);
 
     for (i = 0; i < 2; i++) {
@@ -276,24 +276,24 @@ static void sii3112_pci_init(Object *obj)
 
     /* BAR0-BAR4 are PCI I/O space aliases into BAR5 */
     mr = g_new(MemoryRegion, 1);
-    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar0", &s->data_bar[0], 0,
-                             memory_region_size(&s->data_bar[0]));
+    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar0", &s->data_ops[0], 0,
+                             memory_region_size(&s->data_ops[0]));
     memory_region_add_subregion_overlap(&d->mmio, 0x80, mr, 1);
     mr = g_new(MemoryRegion, 1);
-    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar1", &s->cmd_bar[0], 0,
-                             memory_region_size(&s->cmd_bar[0]));
+    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar1", &s->cmd_ops[0], 0,
+                             memory_region_size(&s->cmd_ops[0]));
     memory_region_add_subregion_overlap(&d->mmio, 0x88, mr, 1);
     mr = g_new(MemoryRegion, 1);
-    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar2", &s->data_bar[1], 0,
-                             memory_region_size(&s->data_bar[1]));
+    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar2", &s->data_ops[1], 0,
+                             memory_region_size(&s->data_ops[1]));
     memory_region_add_subregion_overlap(&d->mmio, 0xc0, mr, 1);
     mr = g_new(MemoryRegion, 1);
-    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar3", &s->cmd_bar[1], 0,
-                             memory_region_size(&s->cmd_bar[1]));
+    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar3", &s->cmd_ops[1], 0,
+                             memory_region_size(&s->cmd_ops[1]));
     memory_region_add_subregion_overlap(&d->mmio, 0xc8, mr, 1);
     mr = g_new(MemoryRegion, 1);
-    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar4", &s->bmdma_bar, 0,
-                             memory_region_size(&s->bmdma_bar));
+    memory_region_init_alias(mr, OBJECT(d), "sii3112.bar4", &s->bmdma_ops, 0,
+                             memory_region_size(&s->bmdma_ops));
     memory_region_add_subregion_overlap(&d->mmio, 0x0, mr, 1);
 
     qdev_init_gpio_in(ds, sii3112_set_irq, 2);
