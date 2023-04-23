@@ -257,9 +257,6 @@ static void sii3112_pci_realize(PCIDevice *dev, Error **errp)
     pci_config_set_interrupt_pin(dev->config, 1);
     pci_set_byte(dev->config + PCI_CACHE_LINE_SIZE, 8);
 
-    /* BAR5 is in PCI memory space */
-    memory_region_init_io(&d->mmio, OBJECT(d), &sii3112_reg_ops, d,
-                         "sii3112.bar5", 0x200);
     pci_register_bar(dev, 5, PCI_BASE_ADDRESS_SPACE_MEMORY, &d->mmio);
 
     /* BAR0-BAR4 are PCI I/O space aliases into BAR5 */
@@ -279,7 +276,6 @@ static void sii3112_pci_realize(PCIDevice *dev, Error **errp)
     memory_region_init_alias(mr, OBJECT(d), "sii3112.bar4", &d->mmio, 0, 16);
     pci_register_bar(dev, 4, PCI_BASE_ADDRESS_SPACE_IO, mr);
 
-    qdev_init_gpio_in(ds, sii3112_set_irq, 2);
     for (i = 0; i < 2; i++) {
         ide_bus_init(&s->bus[i], sizeof(s->bus[i]), ds, i, 1);
         ide_bus_init_output_irq(&s->bus[i], qdev_get_gpio_in(ds, i));
@@ -287,6 +283,17 @@ static void sii3112_pci_realize(PCIDevice *dev, Error **errp)
         bmdma_init(&s->bus[i], &s->bmdma[i], s);
         ide_bus_register_restart_cb(&s->bus[i]);
     }
+}
+
+static void sii3112_pci_init(Object *obj)
+{
+    SiI3112PCIState *d = SII3112_PCI(obj);
+    DeviceState *ds = DEVICE(d);
+
+    memory_region_init_io(&d->mmio, OBJECT(d), &sii3112_reg_ops, d,
+                          "sii3112.bar5", 0x200);
+
+    qdev_init_gpio_in(ds, sii3112_set_irq, 2);
 }
 
 static void sii3112_pci_class_init(ObjectClass *klass, void *data)
@@ -308,6 +315,7 @@ static const TypeInfo sii3112_pci_info = {
     .name = TYPE_SII3112_PCI,
     .parent = TYPE_PCI_IDE,
     .instance_size = sizeof(SiI3112PCIState),
+    .instance_init = sii3112_pci_init,
     .class_init = sii3112_pci_class_init,
 };
 
