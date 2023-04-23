@@ -161,13 +161,6 @@ static const MemoryRegionOps cmd646_bmdma_ops = {
     .write = bmdma_write,
 };
 
-static void cmd646_ide_init(Object *obj)
-{
-    PCIIDEState *d = PCI_IDE(obj);
-
-    bmdma_init_ops(d, &cmd646_bmdma_ops);
-}
-
 static void cmd646_update_irq(PCIDevice *pd)
 {
     int pci_level;
@@ -194,6 +187,16 @@ static void cmd646_set_irq(void *opaque, int channel, int level)
     }
     cmd646_update_dma_interrupts(pd);
     cmd646_update_irq(pd);
+}
+
+static void cmd646_ide_init(Object *obj)
+{
+    PCIIDEState *d = PCI_IDE(obj);
+    DeviceState *dev = DEVICE(d);
+
+    bmdma_init_ops(d, &cmd646_bmdma_ops);
+
+    qdev_init_gpio_in(dev, cmd646_set_irq, ARRAY_SIZE(d->bus));
 }
 
 static void cmd646_reset(DeviceState *dev)
@@ -267,7 +270,6 @@ static void pci_cmd646_ide_realize(PCIDevice *dev, Error **errp)
     /* TODO: RST# value should be 0 */
     pci_conf[PCI_INTERRUPT_PIN] = 0x01; // interrupt on pin 1
 
-    qdev_init_gpio_in(ds, cmd646_set_irq, 2);
     for (i = 0; i < 2; i++) {
         ide_bus_init(&d->bus[i], sizeof(d->bus[i]), ds, i, 2);
         ide_bus_init_output_irq(&d->bus[i], qdev_get_gpio_in(ds, i));
