@@ -85,8 +85,9 @@ static const MemoryRegionOps piix_bmdma_ops = {
     .write = bmdma_write,
 };
 
-static void bmdma_setup_bar(PCIIDEState *d)
+static void piix_ide_init(Object *obj)
 {
+    PCIIDEState *d = PCI_IDE(obj);
     int i;
 
     memory_region_init(&d->bmdma_bar, OBJECT(d), "piix-bmdma-container", 16);
@@ -155,24 +156,12 @@ static void pci_piix_ide_realize(PCIDevice *dev, Error **errp)
 
     pci_conf[PCI_CLASS_PROG] = 0x80; // legacy ATA mode
 
-    bmdma_setup_bar(d);
     pci_register_bar(dev, 4, PCI_BASE_ADDRESS_SPACE_IO, &d->bmdma_bar);
 
     for (unsigned i = 0; i < 2; i++) {
         if (!pci_piix_init_bus(d, i, errp)) {
             return;
         }
-    }
-}
-
-static void pci_piix_ide_exitfn(PCIDevice *dev)
-{
-    PCIIDEState *d = PCI_IDE(dev);
-    unsigned i;
-
-    for (i = 0; i < 2; ++i) {
-        memory_region_del_subregion(&d->bmdma_bar, &d->bmdma[i].extra_io);
-        memory_region_del_subregion(&d->bmdma_bar, &d->bmdma[i].addr_ioport);
     }
 }
 
@@ -185,7 +174,6 @@ static void piix3_ide_class_init(ObjectClass *klass, void *data)
     dc->reset = piix_ide_reset;
     dc->vmsd = &vmstate_ide_pci;
     k->realize = pci_piix_ide_realize;
-    k->exit = pci_piix_ide_exitfn;
     k->vendor_id = PCI_VENDOR_ID_INTEL;
     k->device_id = PCI_DEVICE_ID_INTEL_82371SB_1;
     k->class_id = PCI_CLASS_STORAGE_IDE;
@@ -196,6 +184,7 @@ static void piix3_ide_class_init(ObjectClass *klass, void *data)
 static const TypeInfo piix3_ide_info = {
     .name          = TYPE_PIIX3_IDE,
     .parent        = TYPE_PCI_IDE,
+    .instance_init = piix_ide_init,
     .class_init    = piix3_ide_class_init,
 };
 
@@ -208,7 +197,6 @@ static void piix4_ide_class_init(ObjectClass *klass, void *data)
     dc->reset = piix_ide_reset;
     dc->vmsd = &vmstate_ide_pci;
     k->realize = pci_piix_ide_realize;
-    k->exit = pci_piix_ide_exitfn;
     k->vendor_id = PCI_VENDOR_ID_INTEL;
     k->device_id = PCI_DEVICE_ID_INTEL_82371AB;
     k->class_id = PCI_CLASS_STORAGE_IDE;
@@ -219,6 +207,7 @@ static void piix4_ide_class_init(ObjectClass *klass, void *data)
 static const TypeInfo piix4_ide_info = {
     .name          = TYPE_PIIX4_IDE,
     .parent        = TYPE_PCI_IDE,
+    .instance_init = piix_ide_init,
     .class_init    = piix4_ide_class_init,
 };
 

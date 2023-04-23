@@ -161,8 +161,9 @@ static const MemoryRegionOps cmd646_bmdma_ops = {
     .write = bmdma_write,
 };
 
-static void bmdma_setup_bar(PCIIDEState *d)
+static void cmd646_ide_init(Object *obj)
 {
+    PCIIDEState *d = PCI_IDE(obj);
     BMDMAState *bm;
     int i;
 
@@ -285,7 +286,6 @@ static void pci_cmd646_ide_realize(PCIDevice *dev, Error **errp)
                           &d->bus[1], "cmd646-cmd1", 4);
     pci_register_bar(dev, 3, PCI_BASE_ADDRESS_SPACE_IO, &d->cmd_bar[1]);
 
-    bmdma_setup_bar(d);
     pci_register_bar(dev, 4, PCI_BASE_ADDRESS_SPACE_IO, &d->bmdma_bar);
 
     /* TODO: RST# value should be 0 */
@@ -298,17 +298,6 @@ static void pci_cmd646_ide_realize(PCIDevice *dev, Error **errp)
 
         bmdma_init(&d->bus[i], &d->bmdma[i], d);
         ide_bus_register_restart_cb(&d->bus[i]);
-    }
-}
-
-static void pci_cmd646_ide_exitfn(PCIDevice *dev)
-{
-    PCIIDEState *d = PCI_IDE(dev);
-    unsigned i;
-
-    for (i = 0; i < 2; ++i) {
-        memory_region_del_subregion(&d->bmdma_bar, &d->bmdma[i].extra_io);
-        memory_region_del_subregion(&d->bmdma_bar, &d->bmdma[i].addr_ioport);
     }
 }
 
@@ -325,7 +314,6 @@ static void cmd646_ide_class_init(ObjectClass *klass, void *data)
     dc->reset = cmd646_reset;
     dc->vmsd = &vmstate_ide_pci;
     k->realize = pci_cmd646_ide_realize;
-    k->exit = pci_cmd646_ide_exitfn;
     k->vendor_id = PCI_VENDOR_ID_CMD;
     k->device_id = PCI_DEVICE_ID_CMD_646;
     k->revision = 0x07;
@@ -339,6 +327,7 @@ static void cmd646_ide_class_init(ObjectClass *klass, void *data)
 static const TypeInfo cmd646_ide_info = {
     .name          = "cmd646-ide",
     .parent        = TYPE_PCI_IDE,
+    .instance_init = cmd646_ide_init,
     .class_init    = cmd646_ide_class_init,
 };
 
