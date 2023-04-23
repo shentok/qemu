@@ -616,6 +616,16 @@ void bmdma_init(IDEBus *bus, BMDMAState *bm, PCIIDEState *d)
 static void pci_ide_init(Object *obj)
 {
     PCIIDEState *d = PCI_IDE(obj);
+    size_t i;
+
+    memory_region_init(&d->bmdma_bar, OBJECT(d), "bmdma-container", 16);
+    for (i = 0; i < ARRAY_SIZE(d->bmdma); i++) {
+        BMDMAState *bm = &d->bmdma[i];
+
+        memory_region_init_io(&bm->addr_ioport, OBJECT(d),
+                              &bmdma_addr_ioport_ops, bm, "bmdma-ioport", 4);
+        memory_region_add_subregion(&d->bmdma_bar, i * 8 + 4, &bm->addr_ioport);
+    }
 
     qdev_init_gpio_out_named(DEVICE(d), d->isa_irq, "isa-irq",
                              ARRAY_SIZE(d->isa_irq));
