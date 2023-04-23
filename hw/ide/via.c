@@ -87,8 +87,9 @@ static const MemoryRegionOps via_bmdma_ops = {
     .write = bmdma_write,
 };
 
-static void bmdma_setup_bar(PCIIDEState *d)
+static void via_ide_init(Object *obj)
 {
+    PCIIDEState *d = PCI_IDE(obj);
     int i;
 
     memory_region_init(&d->bmdma_bar, OBJECT(d), "via-bmdma-container", 16);
@@ -220,7 +221,6 @@ static void via_ide_realize(PCIDevice *dev, Error **errp)
                           &d->bus[1], "via-ide1-cmd", 4);
     pci_register_bar(dev, 3, PCI_BASE_ADDRESS_SPACE_IO, &d->cmd_bar[1]);
 
-    bmdma_setup_bar(d);
     pci_register_bar(dev, 4, PCI_BASE_ADDRESS_SPACE_IO, &d->bmdma_bar);
 
     qdev_init_gpio_in(ds, via_ide_set_irq, ARRAY_SIZE(d->bus));
@@ -230,17 +230,6 @@ static void via_ide_realize(PCIDevice *dev, Error **errp)
 
         bmdma_init(&d->bus[i], &d->bmdma[i], d);
         ide_bus_register_restart_cb(&d->bus[i]);
-    }
-}
-
-static void via_ide_exitfn(PCIDevice *dev)
-{
-    PCIIDEState *d = PCI_IDE(dev);
-    unsigned i;
-
-    for (i = 0; i < ARRAY_SIZE(d->bmdma); ++i) {
-        memory_region_del_subregion(&d->bmdma_bar, &d->bmdma[i].extra_io);
-        memory_region_del_subregion(&d->bmdma_bar, &d->bmdma[i].addr_ioport);
     }
 }
 
@@ -257,7 +246,6 @@ static void via_ide_class_init(ObjectClass *klass, void *data)
     k->config_read = via_ide_cfg_read;
     k->config_write = via_ide_cfg_write;
     k->realize = via_ide_realize;
-    k->exit = via_ide_exitfn;
     k->vendor_id = PCI_VENDOR_ID_VIA;
     k->device_id = PCI_DEVICE_ID_VIA_IDE;
     k->revision = 0x06;
@@ -268,6 +256,7 @@ static void via_ide_class_init(ObjectClass *klass, void *data)
 static const TypeInfo via_ide_info = {
     .name          = TYPE_VIA_IDE,
     .parent        = TYPE_PCI_IDE,
+    .instance_init = via_ide_init,
     .class_init    = via_ide_class_init,
 };
 
