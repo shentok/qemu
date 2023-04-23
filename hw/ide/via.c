@@ -86,13 +86,6 @@ static const MemoryRegionOps via_bmdma_ops = {
     .write = bmdma_write,
 };
 
-static void via_ide_init(Object *obj)
-{
-    PCIIDEState *d = PCI_IDE(obj);
-
-    bmdma_init_ops(d, &via_bmdma_ops);
-}
-
 static void via_ide_set_irq(void *opaque, int n, int level)
 {
     PCIIDEState *s = opaque;
@@ -105,6 +98,16 @@ static void via_ide_set_irq(void *opaque, int n, int level)
     }
 
     qemu_set_irq(s->isa_irq[n], level);
+}
+
+static void via_ide_init(Object *obj)
+{
+    PCIIDEState *d = PCI_IDE(obj);
+    DeviceState *dev = DEVICE(d);
+
+    bmdma_init_ops(d, &via_bmdma_ops);
+
+    qdev_init_gpio_in(dev, via_ide_set_irq, ARRAY_SIZE(d->bus));
 }
 
 static void via_ide_reset(DeviceState *dev)
@@ -199,7 +202,6 @@ static void via_ide_realize(PCIDevice *dev, Error **errp)
     pci_register_bar(dev, 3, PCI_BASE_ADDRESS_SPACE_IO, &d->cmd_bar[1]);
     pci_register_bar(dev, 4, PCI_BASE_ADDRESS_SPACE_IO, &d->bmdma_bar);
 
-    qdev_init_gpio_in(ds, via_ide_set_irq, ARRAY_SIZE(d->bus));
     for (i = 0; i < ARRAY_SIZE(d->bus); i++) {
         ide_bus_init(&d->bus[i], sizeof(d->bus[i]), ds, i, MAX_IDE_DEVS);
         ide_bus_init_output_irq(&d->bus[i], qdev_get_gpio_in(ds, i));
