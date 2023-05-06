@@ -243,18 +243,24 @@ static void pc_init1(MachineState *machine, const char *pci_type)
 
     pci_dev = pci_new_multifunction(pcms->south_bridge_devfn,
                                     pcms->south_bridge);
-    object_property_set_bool(OBJECT(pci_dev), "has-usb",
-                             machine_usb(machine), &error_abort);
-    object_property_set_bool(OBJECT(pci_dev), "has-acpi",
-                             x86_machine_is_acpi_enabled(x86ms),
-                             &error_abort);
+    if (object_property_find(OBJECT(pci_dev), "has_usb")) {
+        object_property_set_bool(OBJECT(pci_dev), "has-usb",
+                                 machine_usb(machine), &error_abort);
+    }
+    if (object_property_find(OBJECT(pci_dev), "has-acpi")) {
+        object_property_set_bool(OBJECT(pci_dev), "has-acpi",
+                                 x86_machine_is_acpi_enabled(x86ms),
+                                 &error_abort);
+    }
     object_property_set_bool(OBJECT(pci_dev), "has-pic", false,
                              &error_abort);
     object_property_set_bool(OBJECT(pci_dev), "has-pit", false,
                              &error_abort);
-    object_property_set_bool(OBJECT(pci_dev), "smm-enabled",
-                             x86_machine_is_smm_enabled(x86ms),
-                             &error_abort);
+    if (object_property_find(OBJECT(pci_dev), "smm-enabled")) {
+        object_property_set_bool(OBJECT(pci_dev), "smm-enabled",
+                                 x86_machine_is_smm_enabled(x86ms),
+                                 &error_abort);
+    }
     dev = DEVICE(object_resolve_path_component(OBJECT(pci_dev), "ac97"));
     if (dev && machine->audiodev) {
         qdev_prop_set_string(dev, "audiodev", machine->audiodev);
@@ -354,6 +360,7 @@ typedef enum PCSouthBridgeOption {
     PC_SOUTH_BRIDGE_OPTION_PIIX4,
     PC_SOUTH_BRIDGE_OPTION_VT82C686B,
     PC_SOUTH_BRIDGE_OPTION_VT8231,
+    PC_SOUTH_BRIDGE_OPTION_I82378,
     PC_SOUTH_BRIDGE_OPTION_MAX,
 } PCSouthBridgeOption;
 
@@ -363,6 +370,7 @@ static const QEnumLookup PCSouthBridgeOption_lookup = {
         [PC_SOUTH_BRIDGE_OPTION_PIIX4] = TYPE_PIIX4_PCI_DEVICE,
         [PC_SOUTH_BRIDGE_OPTION_VT82C686B] = TYPE_VT82C686B_ISA,
         [PC_SOUTH_BRIDGE_OPTION_VT8231] = TYPE_VT8231_ISA,
+        [PC_SOUTH_BRIDGE_OPTION_I82378] = "i82378",
     },
     .size = PC_SOUTH_BRIDGE_OPTION_MAX
 };
