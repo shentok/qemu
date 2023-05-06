@@ -2773,6 +2773,15 @@ static IDEDMA ide_dma_nop = {
     .aiocb = NULL,
 };
 
+void ide_bus_init(IDEBus *idebus, size_t idebus_size, DeviceState *dev,
+                  int bus_id, int max_units)
+{
+    qbus_init(idebus, idebus_size, TYPE_IDE_BUS, dev, NULL);
+    idebus->bus_id = bus_id;
+    idebus->max_units = max_units;
+    idebus->dma = &ide_dma_nop;
+}
+
 void ide_bus_init_output_irq(IDEBus *bus, qemu_irq irq_out)
 {
     int i;
@@ -2782,7 +2791,6 @@ void ide_bus_init_output_irq(IDEBus *bus, qemu_irq irq_out)
         ide_reset(&bus->ifs[i]);
     }
     bus->irq = irq_out;
-    bus->dma = &ide_dma_nop;
 }
 
 void ide_bus_set_irq(IDEBus *bus)

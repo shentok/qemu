@@ -68,14 +68,6 @@ static const TypeInfo ide_bus_info = {
     .class_init = ide_bus_class_init,
 };
 
-void ide_bus_init(IDEBus *idebus, size_t idebus_size, DeviceState *dev,
-                 int bus_id, int max_units)
-{
-    qbus_init(idebus, idebus_size, TYPE_IDE_BUS, dev, NULL);
-    idebus->bus_id = bus_id;
-    idebus->max_units = max_units;
-}
-
 static char *idebus_get_fw_dev_path(DeviceState *dev)
 {
     char path[30];
