@@ -2782,7 +2782,7 @@ void ide_bus_init(IDEBus *idebus, size_t idebus_size, DeviceState *dev,
     idebus->dma = &ide_dma_nop;
 }
 
-void ide_bus_init_output_irq(IDEBus *bus, qemu_irq irq_out)
+void ide_bus_init_output_irq(IDEBus *bus)
 {
     int i;
 
@@ -2790,7 +2790,6 @@ void ide_bus_init_output_irq(IDEBus *bus, qemu_irq irq_out)
         ide_init1(bus, i);
         ide_reset(&bus->ifs[i]);
     }
-    bus->irq = irq_out;
 }
 
 void ide_bus_set_irq(IDEBus *bus)

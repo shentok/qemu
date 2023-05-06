@@ -47,7 +47,6 @@ struct MMIOIDEState {
     IDEBus bus;
 
     uint32_t shift;
-    qemu_irq irq;
     MemoryRegion iomem1, iomem2;
 };
 
@@ -122,7 +121,7 @@ static void mmio_ide_realizefn(DeviceState *dev, Error **errp)
     SysBusDevice *d = SYS_BUS_DEVICE(dev);
     MMIOIDEState *s = MMIO_IDE(dev);
 
-    ide_bus_init_output_irq(&s->bus, s->irq);
+    ide_bus_init_output_irq(&s->bus);
 
     memory_region_init_io(&s->iomem1, OBJECT(s), &mmio_ide_ops, s,
                           "ide-mmio.1", 16 << s->shift);
@@ -138,7 +137,7 @@ static void mmio_ide_initfn(Object *obj)
     MMIOIDEState *s = MMIO_IDE(obj);
 
     ide_bus_init(&s->bus, sizeof(s->bus), DEVICE(obj), 0, 2);
-    sysbus_init_irq(d, &s->irq);
+    sysbus_init_irq(d, &s->bus.irq);
 }
 
 static Property mmio_ide_properties[] = {

@@ -80,7 +80,6 @@ struct MACIOIDEState {
     uint32_t channel;
     qemu_irq real_ide_irq;
     qemu_irq real_dma_irq;
-    qemu_irq ide_irq;
     qemu_irq dma_irq;
 
     MemoryRegion mem;

@@ -420,7 +420,7 @@ static void macio_ide_realizefn(DeviceState *dev, Error **errp)
 {
     MACIOIDEState *s = MACIO_IDE(dev);
 
-    ide_bus_init_output_irq(&s->bus, s->ide_irq);
+    ide_bus_init_output_irq(&s->bus);
 
     /* Register DMA callbacks */
     s->dma.ops = &dbdma_ops;
@@ -457,7 +457,7 @@ static void macio_ide_initfn(Object *obj)
     sysbus_init_irq(d, &s->real_ide_irq);
     sysbus_init_irq(d, &s->real_dma_irq);
     s->dma_irq = qemu_allocate_irq(pmac_ide_irq, s, 0);
-    s->ide_irq = qemu_allocate_irq(pmac_ide_irq, s, 1);
+    s->bus.irq = qemu_allocate_irq(pmac_ide_irq, s, 1);
 
     object_property_add_link(obj, "dbdma", TYPE_MAC_DBDMA,
                              (Object **) &s->dbdma,
