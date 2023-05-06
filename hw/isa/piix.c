@@ -408,6 +408,7 @@ static void pci_piix_init(Object *obj)
 static Property pci_piix_props[] = {
     DEFINE_PROP_UINT32("smb_io_base", PIIXState, smb_io_base, 0),
     DEFINE_PROP_BOOL("has-acpi", PIIXState, has_acpi, true),
+    DEFINE_PROP_BOOL("create-pic", PIIXState, create_pic, true),
     DEFINE_PROP_BOOL("has-usb", PIIXState, has_usb, true),
     DEFINE_PROP_BOOL("smm-enabled", PIIXState, smm_enabled, false),
     DEFINE_PROP_END_OF_LIST(),
@@ -493,9 +494,6 @@ static void piix4_realize(PCIDevice *dev, Error **errp)
     PIIXState *s = PIIX_PCI_DEVICE(dev);
     PCIBus *pci_bus = pci_get_bus(dev);
     ISABus *isa_bus;
-    qemu_irq *i8259_out_irq;
-    qemu_irq *i8259;
-    size_t i;
 
     isa_bus = isa_bus_new(DEVICE(dev), pci_address_space(dev),
                           pci_address_space_io(dev), errp);
@@ -503,23 +501,26 @@ static void piix4_realize(PCIDevice *dev, Error **errp)
         return;
     }
 
-    qdev_init_gpio_out_named(DEVICE(dev), &s->cpu_intr,
-                             "intr", 1);
-
     memory_region_init_io(&s->rcr_mem, OBJECT(dev), &rcr_ops, s,
                           "reset-control", 1);
     memory_region_add_subregion_overlap(pci_address_space_io(dev),
                                         PIIX_RCR_IOPORT, &s->rcr_mem, 1);
 
     /* initialize i8259 pic */
-    i8259_out_irq = qemu_allocate_irqs(piix4_request_i8259_irq, s, 1);
-    i8259 = i8259_init(isa_bus, *i8259_out_irq);
+    if (s->create_pic) {
+        qemu_irq *i8259_out_irq = qemu_allocate_irqs(piix4_request_i8259_irq, s,
+                                                     1);
+        qemu_irq *i8259 = i8259_init(isa_bus, *i8259_out_irq);
+        size_t i;
 
-    for (i = 0; i < ISA_NUM_IRQS; i++) {
-        s->isa_irqs_in[i] = i8259[i];
+        for (i = 0; i < ISA_NUM_IRQS; i++) {
+            s->isa_irqs_in[i] = i8259[i];
+        }
+
+        g_free(i8259);
+
+        qdev_init_gpio_out_named(DEVICE(dev), &s->cpu_intr, "intr", 1);
     }
-
-    g_free(i8259);
 
     /* initialize ISA irqs */
     isa_bus_register_input_irqs(isa_bus, s->isa_irqs_in);

@@ -69,6 +69,7 @@ struct PIIXState {
     MemoryRegion rcr_mem;
 
     bool has_acpi;
+    bool create_pic;
     bool has_usb;
     bool smm_enabled;
 };
