@@ -515,7 +515,7 @@ static const struct IDEDMAOps bmdma_ops = {
     .reset = bmdma_reset,
 };
 
-void bmdma_init(IDEBus *bus, BMDMAState *bm, PCIIDEState *d)
+void bmdma_init(IDEBus *bus, BMDMAState *bm, PCIIDEState *d, qemu_irq irq_out)
 {
     if (bus->dma == &bm->dma) {
         return;
@@ -523,7 +523,7 @@ void bmdma_init(IDEBus *bus, BMDMAState *bm, PCIIDEState *d)
 
     bm->dma.ops = &bmdma_ops;
     bus->dma = &bm->dma;
-    bm->irq = bus->irq;
+    bm->irq = irq_out;
     bus->irq = qemu_allocate_irq(bmdma_irq, bm, 0);
     bm->bus = bus;
     bm->pci_dev = d;

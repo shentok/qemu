@@ -56,7 +56,7 @@ struct PCIIDEState {
     MemoryRegion data_ops[2];
 };
 
-void bmdma_init(IDEBus *bus, BMDMAState *bm, PCIIDEState *d);
+void bmdma_init(IDEBus *bus, BMDMAState *bm, PCIIDEState *d, qemu_irq irq_out);
 void bmdma_init_ops(PCIIDEState *d, const MemoryRegionOps *bmdma_ops);
 void bmdma_cmd_writeb(BMDMAState *bm, uint32_t val);
 void bmdma_status_writeb(BMDMAState *bm, uint32_t val);

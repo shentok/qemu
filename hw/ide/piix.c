@@ -132,9 +132,9 @@ static void pci_piix_init_bus(PCIIDEState *d, unsigned i, ISABus *isa_bus)
     memory_region_add_subregion_overlap(address_space_io, port_info[i].iobase2,
                                         &d->cmd_ops[i], -1);
     ide_bus_init_output_irq(&d->bus[i]);
-    d->bus[i].irq = isa_bus_get_irq(isa_bus, port_info[i].isairq);
 
-    bmdma_init(&d->bus[i], &d->bmdma[i], d);
+    bmdma_init(&d->bus[i], &d->bmdma[i], d,
+               isa_bus_get_irq(isa_bus, port_info[i].isairq));
     ide_bus_register_restart_cb(&d->bus[i]);
 }
 
