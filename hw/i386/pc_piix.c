@@ -248,17 +248,17 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         pci_dev = pci_new_multifunction(pcms->south_bridge_devfn,
                                         pcms->south_bridge);
         object_property_set_bool(OBJECT(pci_dev), "has-usb",
-                                 machine_usb(machine), &error_abort);
+                                 machine_usb(machine), &error_warn);
         object_property_set_bool(OBJECT(pci_dev), "has-acpi",
                                  x86_machine_is_acpi_enabled(x86ms),
-                                 &error_abort);
+                                 &error_warn);
         object_property_set_bool(OBJECT(pci_dev), "has-pic", false,
                                  &error_abort);
         object_property_set_bool(OBJECT(pci_dev), "has-pit", false,
                                  &error_abort);
         object_property_set_bool(OBJECT(pci_dev), "smm-enabled",
                                  x86_machine_is_smm_enabled(x86ms),
-                                 &error_abort);
+                                 &error_warn);
         dev = DEVICE(object_resolve_path_component(OBJECT(pci_dev), "ac97"));
         if (dev && machine->audiodev) {
             qdev_prop_set_string(dev, "audiodev", machine->audiodev);
@@ -288,20 +288,24 @@ static void pc_init1(MachineState *machine, const char *pci_type)
                                                               "rtc"));
         piix4_pm = object_resolve_path_component(OBJECT(pci_dev), "pm");
         dev = DEVICE(object_resolve_path_component(OBJECT(pci_dev), "ide"));
-        pci_ide_create_devs(PCI_DEVICE(dev));
-        pcms->idebus[0] = qdev_get_child_bus(dev, "ide.0");
-        pcms->idebus[1] = qdev_get_child_bus(dev, "ide.1");
+        if (dev) {
+            pci_ide_create_devs(PCI_DEVICE(dev));
+            pcms->idebus[0] = qdev_get_child_bus(dev, "ide.0");
+            pcms->idebus[1] = qdev_get_child_bus(dev, "ide.1");
+        }
     } else {
         isa_bus = isa_bus_new(NULL, system_memory, system_io,
                               &error_abort);
         isa_bus_register_input_irqs(isa_bus, x86ms->gsi);
 
+        i8257_dma_init(OBJECT(machine), isa_bus, 0);
+        pcms->hpet_enabled = false;
+    }
+
+    if (!x86ms->rtc){
         x86ms->rtc = isa_new(TYPE_MC146818_RTC);
         qdev_prop_set_int32(DEVICE(x86ms->rtc), "base_year", 2000);
         isa_realize_and_unref(x86ms->rtc, isa_bus, &error_fatal);
-
-        i8257_dma_init(OBJECT(machine), isa_bus, 0);
-        pcms->hpet_enabled = false;
     }
 
     if (x86ms->pic == ON_OFF_AUTO_ON || x86ms->pic == ON_OFF_AUTO_AUTO) {
@@ -393,6 +397,7 @@ typedef enum PCSouthBridgeOption {
     PC_SOUTH_BRIDGE_OPTION_PIIX4,
     PC_SOUTH_BRIDGE_OPTION_VT82C686B,
     PC_SOUTH_BRIDGE_OPTION_VT8231,
+    PC_SOUTH_BRIDGE_OPTION_I82378,
     PC_SOUTH_BRIDGE_OPTION_MAX,
 } PCSouthBridgeOption;
 
@@ -402,6 +407,7 @@ static const QEnumLookup PCSouthBridgeOption_lookup = {
         [PC_SOUTH_BRIDGE_OPTION_PIIX4] = TYPE_PIIX4_PCI_DEVICE,
         [PC_SOUTH_BRIDGE_OPTION_VT82C686B] = TYPE_VT82C686B_ISA,
         [PC_SOUTH_BRIDGE_OPTION_VT8231] = TYPE_VT8231_ISA,
+        [PC_SOUTH_BRIDGE_OPTION_I82378] = "i82378",
     },
     .size = PC_SOUTH_BRIDGE_OPTION_MAX
 };

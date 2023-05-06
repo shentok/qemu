@@ -22,6 +22,7 @@
 #include "hw/irq.h"
 #include "hw/intc/i8259.h"
 #include "hw/timer/i8254.h"
+#include "hw/qdev-properties.h"
 #include "migration/vmstate.h"
 #include "hw/audio/pcspk.h"
 #include "qom/object.h"
@@ -33,7 +34,10 @@ struct I82378State {
     PCIDevice parent_obj;
 
     qemu_irq cpu_intr;
-    qemu_irq *isa_irqs_in;
+    qemu_irq isa_irqs_in[ISA_NUM_IRQS];
+
+    bool has_pic;
+    bool has_pit;
 };
 
 static const VMStateDescription vmstate_i82378 = {
@@ -66,8 +70,8 @@ static void i82378_realize(PCIDevice *pci, Error **errp)
     I82378State *s = I82378(dev);
     uint8_t *pci_conf;
     ISABus *isabus;
-    ISADevice *pit;
-    ISADevice *pcspk;
+    ISADevice *pit = NULL;
+    PCIBus *pci_bus = pci_get_bus(pci);
 
     pci_conf = pci->config;
     pci_set_word(pci_conf + PCI_COMMAND,
@@ -94,33 +98,54 @@ static void i82378_realize(PCIDevice *pci, Error **errp)
      */
 
     /* 2 82C59 (irq) */
-    s->isa_irqs_in = i8259_init(isabus,
-                                qemu_allocate_irq(i82378_request_out0_irq,
-                                                  s, 0));
+    if (s->has_pic) {
+        qemu_irq *i8259 = i8259_init(isabus,
+                                     qemu_allocate_irq(i82378_request_out0_irq,
+                                                       s, 0));
+        size_t i;
+
+        for (i = 0; i < ISA_NUM_IRQS; i++) {
+            s->isa_irqs_in[i] = i8259[i];
+        }
+
+        g_free(i8259);
+
+        qdev_init_gpio_out(dev, &s->cpu_intr, 1);
+    }
+
     isa_bus_register_input_irqs(isabus, s->isa_irqs_in);
 
     /* 1 82C54 (pit) */
-    pit = i8254_pit_init(isabus, 0x40, 0, NULL);
+    if (s->has_pit) {
+        pit = i8254_pit_init(isabus, 0x40, 0, NULL);
+    }
 
     /* speaker */
-    pcspk = isa_new(TYPE_PC_SPEAKER);
-    object_property_set_link(OBJECT(pcspk), "pit", OBJECT(pit), &error_fatal);
-    if (!isa_realize_and_unref(pcspk, isabus, errp)) {
-        return;
+    if (pit) {
+        ISADevice *pcspk = isa_new(TYPE_PC_SPEAKER);
+        object_property_set_link(OBJECT(pcspk), "pit", OBJECT(pit), &error_fatal);
+        if (!isa_realize_and_unref(pcspk, isabus, errp)) {
+            return;
+        }
     }
 
     /* 2 82C37 (dma) */
     isa_create_simple(isabus, "i82374");
+
+    pci_bus_irqs(pci_bus, i82378_request_pic_irq, s, 16);
 }
 
 static void i82378_init(Object *obj)
 {
     DeviceState *dev = DEVICE(obj);
-    I82378State *s = I82378(obj);
 
-    qdev_init_gpio_out(dev, &s->cpu_intr, 1);
     qdev_init_gpio_in(dev, i82378_request_pic_irq, 16);
 }
+
+static const Property i82378_props[] = {
+    DEFINE_PROP_BOOL("has-pic", I82378State, has_pic, true),
+    DEFINE_PROP_BOOL("has-pit", I82378State, has_pit, true),
+};
 
 static void i82378_class_init(ObjectClass *klass, const void *data)
 {
@@ -134,6 +159,7 @@ static void i82378_class_init(ObjectClass *klass, const void *data)
     k->class_id = PCI_CLASS_BRIDGE_ISA;
     dc->vmsd = &vmstate_i82378;
     set_bit(DEVICE_CATEGORY_BRIDGE, dc->categories);
+    device_class_set_props(dc, i82378_props);
 }
 
 static const TypeInfo i82378_type_info = {
