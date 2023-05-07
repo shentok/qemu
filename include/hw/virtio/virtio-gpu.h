@@ -333,6 +333,9 @@ int virtio_gpu_update_dmabuf(VirtIOGPU *g,
 /* virtio-gpu-3d.c */
 void virtio_gpu_virgl_process_cmd(VirtIOGPU *g,
                                   struct virtio_gpu_ctrl_command *cmd);
+void virtio_gpu_virgl_update_cursor_data(VirtIOGPU *g,
+                                         struct virtio_gpu_scanout *s,
+                                         uint32_t resource_id);
 void virtio_gpu_virgl_fence_poll(VirtIOGPU *g);
 void virtio_gpu_virgl_reset_scanout(VirtIOGPU *g);
 void virtio_gpu_virgl_reset(VirtIOGPU *g);
