@@ -767,6 +767,10 @@ struct ViaISAState {
     ViaAC97State ac97;
     PCIDevice mc97;
 
+    bool has_acpi;
+    bool has_pic;
+    bool has_pit;
+    bool has_usb;
     bool smm_enabled;
 };
 
@@ -823,6 +827,10 @@ static void build_pci_isa_aml(AcpiDevAmlIf *adev, Aml *scope)
 }
 
 static const Property via_isa_props[] = {
+    DEFINE_PROP_BOOL("has-acpi", ViaISAState, has_acpi, true),
+    DEFINE_PROP_BOOL("has-pic", ViaISAState, has_pic, true),
+    DEFINE_PROP_BOOL("has-pit", ViaISAState, has_pit, true),
+    DEFINE_PROP_BOOL("has-usb", ViaISAState, has_usb, true),
     DEFINE_PROP_BOOL("smm-enabled", ViaISAState, smm_enabled, false),
 };
 
@@ -930,13 +938,10 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
     ViaISAState *s = VIA_ISA(d);
     DeviceState *dev = DEVICE(d);
     PCIBus *pci_bus = pci_get_bus(d);
-    qemu_irq *isa_irqs_in;
     ISABus *isa_bus;
     int i;
 
-    qdev_init_gpio_out_named(dev, &s->cpu_intr, "intr", 1);
     qdev_init_gpio_in_named(dev, via_isa_pirq, "pirq", PCI_NUM_PINS);
-    qemu_init_irq(&s->i8259_irq, via_isa_request_i8259_irq, s, 0);
     isa_bus = isa_bus_new(dev, pci_address_space(d), pci_address_space_io(d),
                           errp);
 
@@ -945,14 +950,26 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
     }
 
     /* PIC */
-    isa_irqs_in = i8259_init(isa_bus, &s->i8259_irq);
-    for (i = 0; i < ISA_NUM_IRQS; i++) {
-        s->isa_irqs_in[i] = isa_irqs_in[i];
+    if (s->has_pic) {
+        qemu_init_irq(&s->i8259_irq, via_isa_request_i8259_irq, s, 0);
+        qemu_irq *isa_irqs_in = i8259_init(isa_bus, &s->i8259_irq);
+
+        for (i = 0; i < ISA_NUM_IRQS; i++) {
+            s->isa_irqs_in[i] = isa_irqs_in[i];
+        }
+
+        g_free(isa_irqs_in);
+
+        qdev_init_gpio_out_named(dev, &s->cpu_intr, "intr", 1);
     }
-    g_free(isa_irqs_in);
 
     isa_bus_register_input_irqs(isa_bus, s->isa_irqs_in);
-    i8254_pit_init(isa_bus, 0x40, 0, NULL);
+
+    /* PIT */
+    if (s->has_pit) {
+        i8254_pit_init(isa_bus, 0x40, 0, NULL);
+    }
+
     i8257_dma_init(OBJECT(d), isa_bus, 0);
 
     /* RTC */
@@ -985,17 +1002,25 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
 
     /* Functions 2-3: USB Ports */
     for (i = 0; i < ARRAY_SIZE(s->uhci); i++) {
-        qdev_prop_set_int32(DEVICE(&s->uhci[i]), "addr", d->devfn + 2 + i);
-        if (!qdev_realize(DEVICE(&s->uhci[i]), BUS(pci_bus), errp)) {
-            return;
+        if (s->has_usb) {
+            qdev_prop_set_int32(DEVICE(&s->uhci[i]), "addr", d->devfn + 2 + i);
+            if (!qdev_realize(DEVICE(&s->uhci[i]), BUS(pci_bus), errp)) {
+                return;
+            }
+        } else {
+            object_unparent(OBJECT(&s->uhci[i]));
         }
     }
 
     /* Function 4: Power Management */
-    qdev_prop_set_int32(DEVICE(&s->pm), "addr", d->devfn + 4);
-    qdev_prop_set_bit(DEVICE(&s->pm), "smm-enabled", s->smm_enabled);
-    if (!qdev_realize(DEVICE(&s->pm), BUS(pci_bus), errp)) {
-        return;
+    if (s->has_acpi) {
+        qdev_prop_set_int32(DEVICE(&s->pm), "addr", d->devfn + 4);
+        qdev_prop_set_bit(DEVICE(&s->pm), "smm-enabled", s->smm_enabled);
+        if (!qdev_realize(DEVICE(&s->pm), BUS(pci_bus), errp)) {
+            return;
+        }
+    } else {
+        object_unparent(OBJECT(&s->pm));
     }
 
     /* Function 5: AC97 Audio */
