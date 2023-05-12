@@ -63,6 +63,7 @@ blobs = [
   'efi-vmxnet3.rom',
   'esp32-v3-rom.bin',
   'esp32-v3-rom-app.bin',
+  'esp32c3-rom.bin',
   'qemu-nsis.bmp',
   'multiboot_dma.bin',
   'linuxboot_dma.bin',
