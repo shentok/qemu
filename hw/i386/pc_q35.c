@@ -238,6 +238,10 @@ static void pc_q35_init(MachineState *machine)
                              pcms->default_bus_bypass_iommu, NULL);
     sysbus_realize_and_unref(SYS_BUS_DEVICE(phb), &error_fatal);
 
+    object_property_add_const_link(OBJECT(machine), "smram",
+                                   object_resolve_path_component(phb,
+                                                                 "smram[0]"));
+
     /* pci */
     host_bus = PCI_BUS(qdev_get_child_bus(DEVICE(phb), "pcie.0"));
     pcms->bus = host_bus;

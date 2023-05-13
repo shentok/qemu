@@ -164,9 +164,6 @@ static void q35_host_realize(DeviceState *dev, Error **errp)
     memory_region_add_subregion(&s->smram, MCH_HOST_BRIDGE_SMBASE_ADDR,
                                 &s->mch.smbase_window);
 
-    object_property_add_const_link(qdev_get_machine(), "smram",
-                                   OBJECT(&s->smram));
-
     init_pam(&s->mch.pam_regions[0], OBJECT(s), s->ram_memory,
              s->system_memory, s->pci_address_space,
              PAM_BIOS_BASE, PAM_BIOS_SIZE);
