@@ -42,7 +42,7 @@ struct MCHPCIState {
 
     PAMMemoryRegion pam_regions[PAM_REGIONS_COUNT];
     MemoryRegion smram_region, open_high_smram;
-    MemoryRegion smram, low_smram, high_smram;
+    MemoryRegion low_smram, high_smram;
     MemoryRegion tseg_blackhole, tseg_window;
     MemoryRegion smbase_blackhole, smbase_window;
     bool has_smram_at_smbase;
@@ -60,6 +60,7 @@ struct Q35PCIHost {
     MemoryRegion *pci_address_space;
     MemoryRegion *system_memory;
     MemoryRegion *address_space_io;
+    MemoryRegion smram;
     Range pci_hole;
     uint64_t pci_hole64_size;
     bool pci_hole64_fix;
