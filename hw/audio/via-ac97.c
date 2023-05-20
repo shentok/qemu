@@ -17,10 +17,10 @@
 #include "ac97.h"
 #include "trace.h"
 
-#define CLEN_IS_EOL(x)  ((x)->clen & BIT(31))
-#define CLEN_IS_FLAG(x) ((x)->clen & BIT(30))
-#define CLEN_IS_STOP(x) ((x)->clen & BIT(29))
-#define CLEN_LEN(x)     ((x)->clen & 0xffffff)
+#define CLEN_IS_EOL(x)  ((x)->block_clen & BIT(31))
+#define CLEN_IS_FLAG(x) ((x)->block_clen & BIT(30))
+#define CLEN_IS_STOP(x) ((x)->block_clen & BIT(29))
+#define CLEN_LEN(x)     ((x)->block_clen & 0xffffff)
 
 #define STAT_ACTIVE BIT(7)
 #define STAT_PAUSED BIT(6)
@@ -154,17 +154,17 @@ static void fetch_sgd(ViaAC97SGDChannel *c, PCIDevice *d)
 {
     uint32_t b[2];
 
-    if (c->curr < c->base) {
-        c->curr = c->base;
+    if (c->table_curr < c->table_base) {
+        c->table_curr = c->table_base;
     }
-    if (unlikely(pci_dma_read(d, c->curr, b, sizeof(b)) != MEMTX_OK)) {
+    if (unlikely(pci_dma_read(d, c->table_curr, b, sizeof(b)) != MEMTX_OK)) {
         qemu_log_mask(LOG_GUEST_ERROR,
                       "via-ac97: DMA error reading SGD table\n");
         return;
     }
-    c->addr = le32_to_cpu(b[0]);
-    c->clen = le32_to_cpu(b[1]);
-    trace_via_ac97_sgd_fetch(c->curr, c->addr, CLEN_IS_STOP(c) ? 'S' : '-',
+    c->block_addr = le32_to_cpu(b[0]);
+    c->block_clen = le32_to_cpu(b[1]);
+    trace_via_ac97_sgd_fetch(c->table_curr, c->block_addr, CLEN_IS_STOP(c) ? 'S' : '-',
                              CLEN_IS_EOL(c) ? 'E' : '-',
                              CLEN_IS_FLAG(c) ? 'F' : '-', CLEN_LEN(c));
 }
@@ -182,13 +182,13 @@ static void out_cb(void *opaque, int avail)
     }
     c->stat |= STAT_ACTIVE;
     while (avail && !stop) {
-        if (!c->clen) {
+        if (!c->block_clen) {
             fetch_sgd(c, &s->dev);
         }
         temp = MIN(CLEN_LEN(c), avail);
         while (temp) {
             to_copy = MIN(temp, sizeof(tmpbuf));
-            pci_dma_read(&s->dev, c->addr, tmpbuf, to_copy);
+            pci_dma_read(&s->dev, c->block_addr, tmpbuf, to_copy);
             copied = AUD_write(s->vo, tmpbuf, to_copy);
             if (!copied) {
                 stop = true;
@@ -196,15 +196,15 @@ static void out_cb(void *opaque, int avail)
             }
             temp -= copied;
             avail -= copied;
-            c->addr += copied;
-            c->clen -= copied;
+            c->block_addr += copied;
+            c->block_clen -= copied;
         }
         if (CLEN_LEN(c) == 0) {
-            c->curr += 8;
+            c->table_curr += 8;
             if (CLEN_IS_EOL(c)) {
                 c->stat |= STAT_EOL;
                 if (c->type & CNTL_START) {
-                    c->curr = c->base;
+                    c->table_curr = c->table_base;
                     c->stat |= STAT_PAUSED;
                 } else {
                     c->stat &= ~STAT_ACTIVE;
@@ -225,7 +225,7 @@ static void out_cb(void *opaque, int avail)
                 c->stat |= STAT_STOP;
                 c->stat |= STAT_PAUSED;
             }
-            c->clen = 0;
+            c->block_clen = 0;
             stop = true;
         }
     }
@@ -261,7 +261,7 @@ static uint64_t sgd_read(void *opaque, hwaddr addr, unsigned size)
         val = s->aur.type;
         break;
     case 4:
-        val = s->aur.curr;
+        val = s->aur.table_curr;
         break;
     case 0xc:
         val = CLEN_LEN(&s->aur);
@@ -323,7 +323,7 @@ static void sgd_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         if (val & CNTL_TERM) {
             AUD_set_active_out(s->vo, 0);
             s->aur.stat &= ~(STAT_ACTIVE | STAT_PAUSED);
-            s->aur.clen = 0;
+            s->aur.block_clen = 0;
         }
         if (val & CNTL_PAUSE) {
             AUD_set_active_out(s->vo, 0);
@@ -345,8 +345,8 @@ static void sgd_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         break;
     }
     case 4:
-        s->aur.base = val & ~1ULL;
-        s->aur.curr = s->aur.base;
+        s->aur.table_base = val & ~1ULL;
+        s->aur.table_curr = s->aur.table_base;
         break;
     case 0x80:
         if (val >> 30) {
