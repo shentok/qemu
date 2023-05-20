@@ -190,6 +190,7 @@ static void out_cb(void *opaque, int avail)
         while (temp) {
             to_copy = MIN(temp, sizeof(tmpbuf));
             result = pci_dma_read(&s->dev, c->block_addr, tmpbuf, to_copy);
+            trace_via_ac97_sgd_fetch_pci(c->block_addr, CLEN_LEN(c), to_copy, result);
             if (result != MEMTX_OK) {
                 qemu_log_mask(LOG_GUEST_ERROR,
                               "via-ac97: DMA error reading block\n");
