@@ -174,6 +174,7 @@ static void out_cb(void *opaque, int avail)
     ViaAC97State *s = opaque;
     ViaAC97SGDChannel *c = &s->aur;
     int temp, to_copy, copied;
+    MemTxResult result;
     bool stop = false;
     uint8_t tmpbuf[4096];
 
@@ -188,7 +189,13 @@ static void out_cb(void *opaque, int avail)
         temp = MIN(CLEN_LEN(c), avail);
         while (temp) {
             to_copy = MIN(temp, sizeof(tmpbuf));
-            pci_dma_read(&s->dev, c->block_addr, tmpbuf, to_copy);
+            result = pci_dma_read(&s->dev, c->block_addr, tmpbuf, to_copy);
+            if (result != MEMTX_OK) {
+                qemu_log_mask(LOG_GUEST_ERROR,
+                              "via-ac97: DMA error reading block\n");
+                stop = true;
+                break;
+            }
             copied = AUD_write(s->vo, tmpbuf, to_copy);
             if (!copied) {
                 stop = true;
