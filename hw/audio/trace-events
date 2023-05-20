@@ -30,6 +30,7 @@ pcspk_io_write(uint16_t addr, uint8_t val) "[0x%"PRIx16"] <- 0x%"PRIx8
 #via-ac97.c
 via_ac97_codec_write(uint8_t addr, uint16_t val) "0x%x <- 0x%x"
 via_ac97_sgd_fetch(uint32_t curr, uint32_t addr, char stop, char eol, char flag, uint32_t len) "table_curr=0x%x block_addr=0x%x %c%c%c block_len=%d"
+via_ac97_sgd_fetch_pci(uint32_t addr, uint32_t len, uint32_t to_copy, uint32_t errors) "block_addr=0x%x block_len=%d, to_copy=%d, errors=%d"
 via_ac97_sgd_read(uint64_t addr, unsigned size, uint64_t val) "0x%"PRIx64" %d -> 0x%"PRIx64
 via_ac97_sgd_write(uint64_t addr, unsigned size, uint64_t val) "0x%"PRIx64" %d <- 0x%"PRIx64
 
