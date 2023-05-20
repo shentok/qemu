@@ -3,6 +3,7 @@
 
 #include "hw/pci/pci_device.h"
 #include "audio/audio.h"
+#include <stdint.h>
 
 #define TYPE_VT82C686B_ISA "vt82c686b-isa"
 #define TYPE_VT82C686B_USB_UHCI "vt82c686b-usb-uhci"
@@ -15,10 +16,10 @@
 typedef struct {
     uint8_t stat;
     uint8_t type;
-    uint32_t base;
-    uint32_t curr;
-    uint32_t addr;
-    uint32_t clen;
+    uint32_t table_base;
+    uint32_t table_curr;
+    uint32_t block_addr;
+    uint32_t block_clen;
 } ViaAC97SGDChannel;
 
 OBJECT_DECLARE_SIMPLE_TYPE(ViaAC97State, VIA_AC97);
