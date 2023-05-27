@@ -228,6 +228,7 @@ static void out_cb(void *opaque, int avail)
                     AUD_set_active_out(s->vo, 0);
                 }
                 if (c->type & STAT_EOL) {
+                    trace_via_ac97_int_on_eol();
                     via_isa_set_irq(&s->dev, 0, 1);
                 }
             }
@@ -235,6 +236,7 @@ static void out_cb(void *opaque, int avail)
                 c->stat |= STAT_FLAG;
                 c->stat |= STAT_PAUSED;
                 if (c->type & STAT_FLAG) {
+                    trace_via_ac97_int_on_flag();
                     via_isa_set_irq(&s->dev, 0, 1);
                 }
             }
@@ -279,6 +281,7 @@ static uint64_t sgd_read(void *opaque, hwaddr addr, unsigned size)
         break;
     case 4:
         val = s->aur.table_curr + 8;
+        trace_via_ac97_sgd_read_table_curr(val);
         break;
     case 0xc:
         val = 0;
@@ -364,6 +367,7 @@ static void sgd_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     case 4:
         s->aur.table_base = val & ~1ULL;
         s->aur.table_curr = s->aur.table_base;
+        trace_via_ac97_sgd_write_table_curr(s->aur.table_curr);
         break;
     case 0x80:
         if (val >> 30) {
