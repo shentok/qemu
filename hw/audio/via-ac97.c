@@ -269,7 +269,7 @@ static uint64_t sgd_read(void *opaque, hwaddr addr, unsigned size)
         val = s->aur.type;
         break;
     case 4:
-        val = s->aur.table_curr;
+        val = s->aur.table_curr + 8;
         break;
     case 0xc:
         val = CLEN_LEN(&s->aur);
