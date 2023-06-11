@@ -194,7 +194,7 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         memory_region_init(pci_memory, NULL, "pci", UINT64_MAX);
         rom_memory = pci_memory;
 
-        phb = OBJECT(qdev_new(TYPE_I440FX_PCI_HOST_BRIDGE));
+        phb = OBJECT(qdev_new(pcms->north_bridge));
         object_property_add_child(OBJECT(machine), "i440fx", phb);
         object_property_set_link(phb, PCI_HOST_PROP_RAM_MEM,
                                  OBJECT(ram_memory), &error_fatal);
@@ -418,6 +418,51 @@ static void pc_set_south_bridge(Object *obj, int value, Error **errp)
     pcms->south_bridge = PCSouthBridgeOption_lookup.array[value];
 }
 
+typedef enum PCNorthBridgeOption {
+    PC_NORTH_BRIDGE_OPTION_I440FX,
+    PC_NORTH_BRIDGE_OPTION_MAX,
+} PCNorthBridgeOption;
+
+static const QEnumLookup PCNorthBridgeOption_lookup = {
+    .array = (const char *const[]) {
+        [PC_NORTH_BRIDGE_OPTION_I440FX] = TYPE_I440FX_PCI_HOST_BRIDGE,
+    },
+    .size = PC_NORTH_BRIDGE_OPTION_MAX
+};
+
+static int pc_get_north_bridge(Object *obj, Error **errp)
+{
+    PCMachineState *pcms = PC_MACHINE(obj);
+    int i;
+
+    for (i = 0; i < PCNorthBridgeOption_lookup.size; i++) {
+        if (g_strcmp0(PCNorthBridgeOption_lookup.array[i],
+                      pcms->north_bridge) == 0) {
+            return i;
+        }
+    }
+
+    error_setg(errp, "Invalid north bridge value set");
+    return 0;
+}
+
+static void pc_set_north_bridge(Object *obj, int value, Error **errp)
+{
+    PCMachineState *pcms = PC_MACHINE(obj);
+
+    if (value < 0) {
+        error_setg(errp, "Value can't be negative");
+        return;
+    }
+
+    if (value >= PCNorthBridgeOption_lookup.size) {
+        error_setg(errp, "Value too big");
+        return;
+    }
+
+    pcms->north_bridge = PCNorthBridgeOption_lookup.array[value];
+}
+
 #ifdef CONFIG_ISAPC
 static void pc_init_isa(MachineState *machine)
 {
@@ -465,6 +510,7 @@ static void pc_i440fx_machine_options(MachineClass *m)
     PCMachineClass *pcmc = PC_MACHINE_CLASS(m);
     ObjectClass *oc = OBJECT_CLASS(m);
     pcmc->default_south_bridge = TYPE_PIIX3_DEVICE;
+    pcmc->default_north_bridge = TYPE_I440FX_PCI_HOST_BRIDGE;
     pcmc->pci_root_uid = 0;
     pcmc->default_cpu_version = 1;
 
@@ -486,6 +532,13 @@ static void pc_i440fx_machine_options(MachineClass *m)
                                    pc_set_south_bridge);
     object_class_property_set_description(oc, "x-south-bridge",
                                      "Use a different south bridge than PIIX3");
+
+    object_class_property_add_enum(oc, "x-north-bridge", "PCNorthBridgeOption",
+                                   &PCNorthBridgeOption_lookup,
+                                   pc_get_north_bridge,
+                                   pc_set_north_bridge);
+    object_class_property_set_description(oc, "x-north-bridge",
+                                    "Use a different north bridge than I440FX");
 }
 
 static void pc_i440fx_machine_10_1_options(MachineClass *m)
