@@ -417,8 +417,18 @@
   'data': ['discard', 'delay', 'slew' ] }
 
 ##
+# @PCNorthBridgeOption:
+#     North bridge chipset option for PC i440FX/VIA machines.
+#
+# @i440fx: Intel i440FX (default)
+#
+##
+{ 'enum': 'PCNorthBridgeOption',
+  'data': ['i440fx'] }
+
+##
 # @PCSouthBridgeOption:
-#     South bridge chipset option for PC i440FX machines.
+#     South bridge chipset option for PC i440FX/VIA machines.
 #
 # @piix3: Intel PIIX3 (default)
 #

@@ -84,6 +84,11 @@ static const char *pc_south_bridge_type[] = {
     [PC_SOUTH_BRIDGE_OPTION_VT8231] = TYPE_VT8231_ISA,
 };
 
+static const char *pc_norh_bridge_type[] = {
+    [PC_NORTH_BRIDGE_OPTION_I440FX] = TYPE_I440FX_PCI_HOST_BRIDGE,
+};
+
+
 /*
  * Return the global irq number corresponding to a given device irq
  * pin. We could also use the bus number to have a more precise mapping.
@@ -202,7 +207,7 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     pci_memory = g_new(MemoryRegion, 1);
     memory_region_init(pci_memory, NULL, "pci", UINT64_MAX);
 
-    phb = OBJECT(qdev_new(TYPE_I440FX_PCI_HOST_BRIDGE));
+    phb = OBJECT(qdev_new(pc_norh_bridge_type[pcms->north_bridge]));
     object_property_add_child(OBJECT(machine), "i440fx", phb);
     object_property_set_link(phb, PCI_HOST_PROP_RAM_MEM,
                              OBJECT(ram_memory), &error_fatal);
@@ -344,6 +349,20 @@ static void pc_set_south_bridge(Object *obj, int value, Error **errp)
     pcms->south_bridge = value;
 }
 
+static int pc_get_north_bridge(Object *obj, Error **errp)
+{
+    PCMachineState *pcms = PC_MACHINE(obj);
+
+    return pcms->north_bridge;
+}
+
+static void pc_set_north_bridge(Object *obj, int value, Error **errp)
+{
+    PCMachineState *pcms = PC_MACHINE(obj);
+
+    pcms->north_bridge = value;
+}
+
 #ifdef CONFIG_XEN
 static void pc_xen_hvm_init(MachineState *machine)
 {
@@ -379,6 +398,7 @@ static void pc_i440fx_machine_options(MachineClass *m)
     PCMachineClass *pcmc = PC_MACHINE_CLASS(m);
     ObjectClass *oc = OBJECT_CLASS(m);
     pcmc->default_south_bridge = PC_SOUTH_BRIDGE_OPTION_PIIX3;
+    pcmc->default_north_bridge = PC_NORTH_BRIDGE_OPTION_I440FX;
     pcmc->pci_root_uid = 0;
     pcmc->default_cpu_version = 1;
 
@@ -400,6 +420,11 @@ static void pc_i440fx_machine_options(MachineClass *m)
                                    pc_get_south_bridge, pc_set_south_bridge);
     object_class_property_set_description(oc, "x-south-bridge",
                                      "Use a different south bridge than PIIX3");
+    object_class_property_add_enum(oc, "x-north-bridge", "PCNorthBridgeOption",
+                                   &PCNorthBridgeOption_type_info,
+                                   pc_get_north_bridge, pc_set_north_bridge);
+    object_class_property_set_description(oc, "x-north-bridge",
+                                    "Use a different north bridge than I440FX");
     compat_props_add(m->compat_props,
                      pc_piix_compat_defaults, pc_piix_compat_defaults_len);
 }
