@@ -43,6 +43,7 @@ typedef struct PCMachineState {
     OnOffAuto vmport;
     SmbiosEntryPointType smbios_entry_point_type;
     const char *south_bridge;
+    const char *north_bridge;
 
     bool acpi_build_enabled;
     bool smbus_enabled;
@@ -89,6 +90,7 @@ struct PCMachineClass {
     /* Device configuration: */
     bool pci_enabled;
     const char *default_south_bridge;
+    const char *default_north_bridge;
 
     /* Compat options: */
 

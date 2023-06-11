@@ -80,3 +80,5 @@ It supports the following machine-specific options:
 
 - ``x-south-bridge=PIIX3|piix4-isa|vt82c686b-isa|vt8231-isa`` (Experimental
   option to select a particular south bridge. Default: ``PIIX3``)
+- ``x-north-bridge=i440FX-pcihost`` (Experimental option to select a particular
+  north bridge. Default: ``i440FX-pcihost``)
