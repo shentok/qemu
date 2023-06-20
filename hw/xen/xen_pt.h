@@ -93,6 +93,10 @@ typedef int (*xen_pt_conf_byte_read)
 
 #define XEN_PCI_INTEL_OPREGION 0xfc
 
+#define XEN_PCIE_CAP_ID 0
+#define XEN_PCIE_CAP_LIST_NEXT 2
+#define XEN_PCIE_FAKE_CAP_ID_BASE 0xFE00
+
 #define XEN_PCI_IGD_DOMAIN 0
 #define XEN_PCI_IGD_BUS 0
 #define XEN_PCI_IGD_DEV 2
