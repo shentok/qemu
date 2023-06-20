@@ -99,7 +99,7 @@ static void *acpi_set_bsel(PCIBus *bus, void *opaque)
     return info;
 }
 
-static void acpi_set_pci_info(bool has_bridge_hotplug)
+void acpi_set_pci_info(bool has_bridge_hotplug)
 {
     static bool bsel_is_set;
     Object *host = acpi_get_i386_pci_host();

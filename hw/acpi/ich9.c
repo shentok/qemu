@@ -39,6 +39,8 @@
 #include "hw/southbridge/ich9.h"
 #include "hw/mem/pc-dimm.h"
 #include "hw/mem/nvdimm.h"
+#include "hw/xen/xen.h"
+#include "sysemu/xen.h"
 
 //#define DEBUG
 
@@ -67,6 +69,10 @@ static void ich9_gpe_writeb(void *opaque, hwaddr addr, uint64_t val,
     ICH9LPCPMRegs *pm = opaque;
     acpi_gpe_ioport_writeb(&pm->acpi_regs, addr, val);
     acpi_update_sci(&pm->acpi_regs, pm->irq);
+
+    if (xen_enabled()) {
+        acpi_pcihp_reset(&pm->acpi_pci_hotplug);
+    }
 }
 
 static const MemoryRegionOps ich9_gpe_ops = {
@@ -331,6 +337,10 @@ void ich9_pm_init(PCIDevice *lpc_pci, ICH9LPCPMRegs *pm, qemu_irq sci_irq)
     qemu_register_reset(pm_reset, pm);
     pm->powerdown_notifier.notify = pm_powerdown_req;
     qemu_register_powerdown_notifier(&pm->powerdown_notifier);
+
+    if (xen_enabled()) {
+            acpi_set_pci_info(true);
+    }
 
     legacy_acpi_cpu_hotplug_init(pci_address_space_io(lpc_pci),
         OBJECT(lpc_pci), &pm->gpe_cpu, ICH9_CPU_HOTPLUG_IO_BASE);
