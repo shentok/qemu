@@ -65,6 +65,18 @@
 /* ICH9 AHCI has 6 ports */
 #define MAX_SATA_PORTS     6
 
+static void q35_xen_hvm_init(MachineState *machine)
+{
+    PCMachineState *pcms = PC_MACHINE(machine);
+
+    if (xen_enabled()) {
+        /* check if Xen Platform device is enabled */
+        if (machine->xen_platform_dev) {
+            pci_create_simple(pcms->bus, -1, "xen-platform");
+        }
+    }
+}
+
 struct ehci_companions {
     const char *name;
     int func;
@@ -312,8 +324,12 @@ static void pc_q35_init(MachineState *machine)
     for (i = 0; i < IOAPIC_NUM_PINS; i++) {
         qdev_connect_gpio_out_named(lpc_dev, ICH9_GPIO_GSI, i, x86ms->gsi[i]);
     }
-    isa_bus = ISA_BUS(qdev_get_child_bus(lpc_dev, "isa.0"));
 
+    if (xen_enabled()) {
+        q35_xen_hvm_init(machine);
+    }
+
+    isa_bus = ISA_BUS(qdev_get_child_bus(lpc_dev, "isa.0"));
     if (x86ms->pic == ON_OFF_AUTO_ON || x86ms->pic == ON_OFF_AUTO_AUTO) {
         pc_i8259_create(isa_bus, gsi_state->i8259_irq);
     }
