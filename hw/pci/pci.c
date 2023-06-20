@@ -1816,6 +1816,23 @@ void pci_for_each_device_reverse(PCIBus *bus, int bus_num,
     }
 }
 
+void pci_function_for_one_bus(PCIBus *bus,
+                          void (*fn)(PCIBus *b, PCIDevice *d, void *opaque),
+                          void *opaque)
+{
+    bus = pci_find_bus_nr(bus, 0);
+
+    if (bus) {
+        PCIDevice *d;
+
+        d = bus->devices[PCI_DEVFN(4,0)];
+        if (d) {
+            fn(bus, d, opaque);
+            return;
+        }
+    }
+}
+
 void pci_for_each_device_under_bus(PCIBus *bus,
                                    pci_bus_dev_fn fn, void *opaque)
 {

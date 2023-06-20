@@ -34,6 +34,7 @@
 #include "sysemu/block-backend.h"
 #include "qemu/error-report.h"
 #include "qemu/module.h"
+#include "include/hw/i386/pc.h"
 #include "qom/object.h"
 
 #ifdef CONFIG_XEN
@@ -223,6 +224,12 @@ static void unplug_disks(PCIBus *b, PCIDevice *d, void *opaque)
         if (flags & UNPLUG_NVME_DISKS) {
             object_unparent(OBJECT(d));
         }
+        break;
+
+    case PCI_CLASS_STORAGE_SATA:
+	if (!aux) {
+            object_unparent(OBJECT(d));
+        }
 
     default:
         break;
@@ -231,7 +238,17 @@ static void unplug_disks(PCIBus *b, PCIDevice *d, void *opaque)
 
 static void pci_unplug_disks(PCIBus *bus, uint32_t flags)
 {
-    pci_for_each_device(bus, 0, unplug_disks, &flags);
+    PCIBus *q35 = find_q35();
+    if (q35) {
+        /* When q35 is detected, we will remove the ahci controller
+	 * with the hard disks.  In the libxl config, cdrom devices
+	 * are put on a seperate ahci controller. This allows for 6 cdrom
+	 * devices to be added, and 6 qemu hard disks.
+	 */
+        pci_function_for_one_bus(bus, unplug_disks, &flags);
+    } else {
+        pci_for_each_device(bus, 0, unplug_disks, &flags);
+    }
 }
 
 static void platform_fixed_ioport_writew(void *opaque, uint32_t addr, uint32_t val)
