@@ -580,7 +580,8 @@ static void mch_reset(DeviceState *qdev)
     d->config[MCH_HOST_BRIDGE_F_SMBASE] = 0;
     d->wmask[MCH_HOST_BRIDGE_F_SMBASE] = 0xff;
 
-    mch_update(mch);
+    if (!xen_enabled())
+        mch_update(mch);
 }
 
 static void mch_realize(PCIDevice *d, Error **errp)

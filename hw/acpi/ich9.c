@@ -143,7 +143,8 @@ static int ich9_pm_post_load(void *opaque, int version_id)
 {
     ICH9LPCPMRegs *pm = opaque;
     uint32_t pm_io_base = pm->pm_io_base;
-    pm->pm_io_base = 0;
+    if (!xen_enabled())
+        pm->pm_io_base = 0;
     ich9_pm_iospace_update(pm, pm_io_base);
     return 0;
 }
@@ -274,7 +275,10 @@ static void pm_reset(void *opaque)
     acpi_pm1_evt_reset(&pm->acpi_regs);
     acpi_pm1_cnt_reset(&pm->acpi_regs);
     acpi_pm_tmr_reset(&pm->acpi_regs);
-    acpi_gpe_reset(&pm->acpi_regs);
+    /* Noticed guest freezing in xen when this was reset after S3. */
+    if (!xen_enabled()) {
+        acpi_gpe_reset(&pm->acpi_regs);
+    }
 
     pm->smi_en = 0;
     if (!pm->smm_enabled) {
@@ -322,7 +326,7 @@ void ich9_pm_init(PCIDevice *lpc_pci, ICH9LPCPMRegs *pm, qemu_irq sci_irq)
         acpi_pm_tco_init(&pm->tco_regs, &pm->io);
     }
 
-    if (pm->acpi_pci_hotplug.use_acpi_hotplug_bridge) {
+    if (pm->acpi_pci_hotplug.use_acpi_hotplug_bridge || xen_enabled()) {
         acpi_pcihp_init(OBJECT(lpc_pci),
                         &pm->acpi_pci_hotplug,
                         pci_get_bus(lpc_pci),
@@ -345,7 +349,7 @@ void ich9_pm_init(PCIDevice *lpc_pci, ICH9LPCPMRegs *pm, qemu_irq sci_irq)
     legacy_acpi_cpu_hotplug_init(pci_address_space_io(lpc_pci),
         OBJECT(lpc_pci), &pm->gpe_cpu, ICH9_CPU_HOTPLUG_IO_BASE);
 
-    if (pm->acpi_memory_hotplug.is_enabled) {
+    if (pm->acpi_memory_hotplug.is_enabled || xen_enabled()) {
         acpi_memory_hotplug_init(pci_address_space_io(lpc_pci), OBJECT(lpc_pci),
                                  &pm->acpi_memory_hotplug,
                                  ACPI_MEMORY_HOTPLUG_BASE);
