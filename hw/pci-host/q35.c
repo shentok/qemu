@@ -259,6 +259,15 @@ static void q35_host_initfn(Object *obj)
                              qdev_prop_allow_set_link_before_realize, 0);
 }
 
+PCIBus *find_q35(void)
+{
+    PCIHostState *s = OBJECT_CHECK(PCIHostState,
+                                   object_resolve_path("/machine/q35", NULL),
+                                   TYPE_PCI_HOST_BRIDGE);
+    return s ? s->bus : NULL;
+}
+
+
 static const TypeInfo q35_host_info = {
     .name       = TYPE_Q35_HOST_DEVICE,
     .parent     = TYPE_PCIE_HOST_BRIDGE,
