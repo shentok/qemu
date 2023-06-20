@@ -43,6 +43,7 @@
 #include "hw/qdev-properties.h"
 #include "hw/clock.h"
 #include "hw/boards.h"
+#include "sysemu/xen.h"
 
 /*
  * Aliases were a bad idea from the start.  Let's keep them
@@ -663,7 +664,8 @@ DeviceState *qdev_device_add_from_qdict(const QDict *opts,
         return NULL;
     }
 
-    if (phase_check(PHASE_MACHINE_READY) && bus && !qbus_is_hotpluggable(bus)) {
+    if (phase_check(PHASE_MACHINE_READY) && bus && !qbus_is_hotpluggable(bus)
+        && !xen_enabled()) {
         error_setg(errp, QERR_BUS_NO_HOTPLUG, bus->name);
         return NULL;
     }
