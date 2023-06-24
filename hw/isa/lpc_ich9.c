@@ -688,6 +688,8 @@ static void ich9_lpc_initfn(Object *obj)
     qdev_init_gpio_out_named(DEVICE(lpc), lpc->gsi, ICH9_GPIO_GSI,
                              IOAPIC_NUM_PINS);
 
+    lpc->smi_cmd = ACPI_PORT_SMI_CMD;
+
     ich9_pm_reset_properties(&lpc->pm);
 }
 
@@ -902,6 +904,9 @@ static void ich9_lpc_class_init(ObjectClass *klass, const void *data)
     adevc->send_event = ich9_send_gpe;
     amldevc->build_dev_aml = build_ich9_isa_aml;
 
+    object_class_property_add_uint16_ptr(klass, ACPI_PM_PROP_SMI_CMD_PORT,
+                                         offsetof(ICH9LPCState, smi_cmd),
+                                         OBJ_PROP_FLAG_READ);
     object_class_property_add_uint8_ptr(klass, ACPI_PM_PROP_SCI_INT,
                                         offsetof(ICH9LPCState, sci_gsi),
                                         OBJ_PROP_FLAG_READ);
