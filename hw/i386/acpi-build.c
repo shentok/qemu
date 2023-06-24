@@ -163,7 +163,10 @@ static void init_common_fadt_data(MachineState *ms, Object *o,
         .rtc_century = RTC_CENTURY,
         .plvl2_lat = 0xfff /* C2 state not supported */,
         .plvl3_lat = 0xfff /* C3 state not supported */,
-        .smi_cmd = smm_enabled ? ACPI_PORT_SMI_CMD : 0,
+        .smi_cmd =
+            smm_enabled ?
+            object_property_get_uint(o, ACPI_PM_PROP_SMI_CMD_PORT, NULL) :
+            0,
         .sci_int = object_property_get_uint(o, ACPI_PM_PROP_SCI_INT, NULL),
         .acpi_enable_cmd =
             smm_enabled ?
