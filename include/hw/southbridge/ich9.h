@@ -35,6 +35,7 @@ struct ICH9LPCState {
     APMState apm;
     ICH9LPCPMRegs pm;
     uint32_t sci_level; /* track sci level */
+    uint16_t smi_cmd;
     uint8_t sci_gsi;
 
     /* 2.24 Pin Straps */

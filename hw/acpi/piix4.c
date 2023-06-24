@@ -411,6 +411,7 @@ static void piix4_pm_add_class_properties(ObjectClass *oc)
     static const uint8_t acpi_disable_cmd = ACPI_DISABLE;
     static const uint32_t gpe0_blk = GPE_BASE;
     static const uint32_t gpe0_blk_len = GPE_LEN;
+    static const uint16_t smi_cmd = ACPI_PORT_SMI_CMD;
     static const uint16_t sci_int = 9;
 
     object_class_static_property_add_uint8_ptr(oc,
@@ -428,6 +429,9 @@ static void piix4_pm_add_class_properties(ObjectClass *oc)
     object_class_static_property_add_uint32_ptr(oc,
                                                 ACPI_PM_PROP_GPE0_BLK_LEN,
                                                 &gpe0_blk_len,
+                                                OBJ_PROP_FLAG_READ);
+    object_class_static_property_add_uint16_ptr(oc, ACPI_PM_PROP_SMI_CMD_PORT,
+                                                &smi_cmd,
                                                 OBJ_PROP_FLAG_READ);
     object_class_static_property_add_uint16_ptr(oc,
                                                 ACPI_PM_PROP_SCI_INT,
