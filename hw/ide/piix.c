@@ -155,6 +155,7 @@ static void pci_piix_ide_realize(PCIDevice *dev, Error **errp)
     uint8_t *pci_conf = dev->config;
 
     pci_conf[PCI_CLASS_PROG] = 0x80; // legacy ATA mode
+    pci_set_word(dev->wmask + PCI_COMMAND, PCI_COMMAND_MASTER | PCI_COMMAND_IO);
 
     bmdma_setup_bar(d);
     pci_register_bar(dev, 4, PCI_BASE_ADDRESS_SPACE_IO, &d->bmdma_bar);
