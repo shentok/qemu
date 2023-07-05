@@ -71,7 +71,6 @@
 #include "kvm/kvm-cpu.h"
 
 #define MAX_IDE_BUS 2
-#define XEN_IOAPIC_NUM_PIRQS 128ULL
 
 #ifdef CONFIG_IDE_ISA
 static const int ide_iobase[MAX_IDE_BUS] = { 0x1f0, 0x170 };

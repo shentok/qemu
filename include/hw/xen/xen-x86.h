@@ -10,6 +10,8 @@
 
 #include "hw/i386/pc.h"
 
+#define XEN_IOAPIC_NUM_PIRQS 128ULL
+
 void xen_hvm_init_pc(PCMachineState *pcms, MemoryRegion **ram_memory);
 
 #endif /* QEMU_HW_XEN_X86_H */
