@@ -29,6 +29,7 @@
  */
 
 #include "qemu/osdep.h"
+#include "qemu/log.h"
 #include "qemu/units.h"
 #include "hw/char/parallel-isa.h"
 #include "hw/loader.h"
@@ -57,6 +58,9 @@
 #include "hw/hyperv/vmbus-bridge.h"
 #include "hw/mem/nvdimm.h"
 #include "hw/i386/acpi-build.h"
+#include "hw/xen/xen-x86.h"
+#include "hw/xen/xen.h"
+#include "sysemu/xen.h"
 
 /* ICH9 AHCI has 6 ports */
 #define MAX_SATA_PORTS     6
@@ -112,6 +116,34 @@ static int ehci_create_ich9_with_companions(PCIBus *bus, int slot)
         pci_realize_and_unref(uhci, bus, &error_fatal);
     }
     return 0;
+}
+
+static void lpc_intx_routing_notifier_xen(PCIDevice *dev)
+{
+    int i;
+
+    /* Scan for updates to PCI link routes (0x60-0x6b). */
+    /*
+     * Currently Xen has support for only 4 PCI links. Hvmloader disables PIRQ
+     * routing for PIRQE..PIRQH by writing 80h into corresponding PIRQ[n]_ROUT
+     * registers. Log a warning if a guest still attempts to use PIRQE..PIRQH.
+     */
+    for (i = 0; i < ICH9_LPC_NB_PIRQS; i++) {
+        uint8_t v = dev->config_read(dev, ICH9_LPC_PIRQA_ROUT + i, 1);
+
+        if (ICH9_LPC_PIRQA_ROUT + i <= ICH9_LPC_PIRQD_ROUT) {
+            if (v & 0x80) {
+                v = 0;
+            }
+            v &= 0xf;
+            xen_set_pci_link_route(i, v);
+        } else if ((v & 0x80) == 0) {
+            qemu_log_mask(LOG_GUEST_ERROR,
+                          "guest domain attempted to use PIRQ%c routing which "
+                          "is currently not supported for Xen/Q35\n",
+                          (char)(i - ICH9_LPC_PIRQE_ROUT + 'E'));
+        }
+    }
 }
 
 /* PC hardware initialisation */
@@ -241,6 +273,13 @@ static void pc_q35_init(MachineState *machine)
     qdev_prop_set_bit(DEVICE(lpc), "smm-enabled",
                       x86_machine_is_smm_enabled(x86ms));
     pci_realize_and_unref(lpc, host_bus, &error_fatal);
+
+    if (xen_enabled()) {
+        pci_device_set_intx_routing_notifier(
+            lpc, lpc_intx_routing_notifier_xen);
+        pci_bus_irqs(host_bus, xen_intx_set_irq, lpc, XEN_IOAPIC_NUM_PIRQS);
+        pci_bus_map_irqs(host_bus, xen_pci_slot_get_pirq);
+    }
 
     rtc_state = ISA_DEVICE(object_resolve_path_component(OBJECT(lpc), "rtc"));
 
