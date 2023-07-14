@@ -322,7 +322,8 @@ int main(int argc, char **argv)
     }
 
     if ((access_allowed == 0) || (access_denied == 1)) {
-        fprintf(stderr, "access denied by acl file\n");
+        fprintf(stderr, "access to network bridge \"%s\" denied by acl file\n",
+                bridge);
         ret = EXIT_FAILURE;
         goto cleanup;
     }
@@ -352,7 +353,7 @@ int main(int argc, char **argv)
     }
 
     if (ioctl(fd, TUNSETIFF, &ifr) == -1) {
-        fprintf(stderr, "failed to create tun device: %s\n", strerror(errno));
+        fprintf(stderr, "failed to create tap device: %s\n", strerror(errno));
         ret = EXIT_FAILURE;
         goto cleanup;
     }
