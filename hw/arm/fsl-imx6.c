@@ -28,7 +28,6 @@
 #include "hw/qdev-properties.h"
 #include "system/system.h"
 #include "chardev/char.h"
-#include "qemu/error-report.h"
 #include "qemu/module.h"
 #include "target/arm/cpu-qom.h"
 
