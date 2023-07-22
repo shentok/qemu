@@ -12,6 +12,7 @@
 #include "qemu/osdep.h"
 #include "qemu/bitops.h"
 #include "qemu/module.h"
+#include "system/runstate.h"
 #include "system/watchdog.h"
 #include "migration/vmstate.h"
 #include "hw/core/qdev-properties.h"
@@ -153,6 +154,9 @@ static void imx2_wdt_write(void *opaque, hwaddr addr,
 
     switch (addr) {
     case IMX2_WDT_WCR:
+        if (value == 0x24) {
+            qemu_system_reset_request(SHUTDOWN_CAUSE_GUEST_RESET);
+        }
         if (s->wcr_locked) {
             /* WDZST, WDBG, and WDW are write-once bits */
             value &= ~IMX2_WDT_WCR_LOCK_MASK;
