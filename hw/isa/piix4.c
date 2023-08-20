@@ -51,6 +51,9 @@ struct PIIX4State {
     PCIIDEState ide;
     UHCIState uhci;
     PIIX4PMState pm;
+
+    uint32_t smb_io_base;
+
     /* Reset Control Register */
     MemoryRegion rcr_mem;
     uint8_t rcr;
@@ -258,9 +261,14 @@ static void piix4_init(Object *obj)
     object_initialize_child(obj, "uhci", &s->uhci, TYPE_PIIX4_USB_UHCI);
 
     object_initialize_child(obj, "pm", &s->pm, TYPE_PIIX4_PM);
-    qdev_prop_set_uint32(DEVICE(&s->pm), "smb_io_base", 0x1100);
+    qdev_prop_set_uint32(DEVICE(&s->pm), "smb_io_base", s->smb_io_base);
     qdev_prop_set_bit(DEVICE(&s->pm), "smm-enabled", 0);
 }
+
+static Property piix4_props[] = {
+    DEFINE_PROP_UINT32("smb_io_base", PIIX4State, smb_io_base, 0),
+    DEFINE_PROP_END_OF_LIST(),
+};
 
 static void piix4_class_init(ObjectClass *klass, void *data)
 {
@@ -280,6 +288,7 @@ static void piix4_class_init(ObjectClass *klass, void *data)
      */
     dc->user_creatable = false;
     dc->hotpluggable = false;
+    device_class_set_props(dc, piix4_props);
 }
 
 static const TypeInfo piix4_info = {
