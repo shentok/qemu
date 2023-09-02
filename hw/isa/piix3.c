@@ -347,6 +347,8 @@ static void pci_piix3_init(Object *obj)
 {
     PIIX3State *d = PIIX3_PCI_DEVICE(obj);
 
+    qdev_init_gpio_out_named(DEVICE(obj), d->pic, "isa-irqs", ISA_NUM_IRQS);
+
     object_initialize_child(obj, "rtc", &d->rtc, TYPE_MC146818_RTC);
     object_initialize_child(obj, "ide", &d->ide, TYPE_PIIX3_IDE);
 }
