@@ -295,6 +295,9 @@ static void piix4_pm_reset(DeviceState *dev)
         pci_conf[0x5B] = 0x02;
     }
 
+    pci_set_long(pci_conf + 0x90, 1);
+    pci_set_byte(pci_conf + 0xd2, 0);
+
     acpi_pm1_evt_reset(&s->ar);
     acpi_pm1_cnt_reset(&s->ar);
     acpi_pm_tmr_reset(&s->ar);
@@ -302,6 +305,8 @@ static void piix4_pm_reset(DeviceState *dev)
     acpi_update_sci(&s->ar, s->irq);
 
     pm_io_space_update(s);
+    smbus_io_space_update(s);
+
     if (s->acpi_pci_hotplug.use_acpi_hotplug_bridge ||
         s->acpi_pci_hotplug.use_acpi_root_pci_hotplug) {
         acpi_pcihp_reset(&s->acpi_pci_hotplug);
@@ -468,8 +473,6 @@ static void piix4_pm_realize(PCIDevice *dev, Error **errp)
 
     /* XXX: which specification is used ? The i82731AB has different
        mappings */
-    pci_set_long(pci_conf + 0x90, 1);
-    pci_set_byte(pci_conf + 0xd2, 0);
     pm_smbus_init(DEVICE(dev), &s->smb, true);
     memory_region_set_enabled(&s->smb.io, false);
     memory_region_add_subregion(pci_address_space_io(dev), 0, &s->smb.io);
