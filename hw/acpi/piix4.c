@@ -101,12 +101,12 @@ static void smbus_io_space_update(PIIX4PMState *s)
 {
     PCIDevice *d = PCI_DEVICE(s);
 
-    s->smb_io_base = le32_to_cpu(*(uint32_t *)(d->config + 0x90));
-    s->smb_io_base &= 0xffc0;
+    uint32_t smb_io_base = le32_to_cpu(pci_get_long(d->config + 0x90));
+    smb_io_base &= 0xffc0;
 
     memory_region_transaction_begin();
     memory_region_set_enabled(&s->smb.io, d->config[0xd2] & 1);
-    memory_region_set_address(&s->smb.io, s->smb_io_base);
+    memory_region_set_address(&s->smb.io, smb_io_base);
     memory_region_transaction_commit();
 }
 
@@ -468,13 +468,11 @@ static void piix4_pm_realize(PCIDevice *dev, Error **errp)
 
     /* XXX: which specification is used ? The i82731AB has different
        mappings */
-    pci_conf[0x90] = s->smb_io_base | 1;
-    pci_conf[0x91] = s->smb_io_base >> 8;
-    pci_conf[0xd2] = 0x09;
+    pci_set_long(pci_conf + 0x90, 1);
+    pci_set_byte(pci_conf + 0xd2, 0);
     pm_smbus_init(DEVICE(dev), &s->smb, true);
-    memory_region_set_enabled(&s->smb.io, pci_conf[0xd2] & 1);
-    memory_region_add_subregion(pci_address_space_io(dev),
-                                s->smb_io_base, &s->smb.io);
+    memory_region_set_enabled(&s->smb.io, false);
+    memory_region_add_subregion(pci_address_space_io(dev), 0, &s->smb.io);
 
     memory_region_init(&s->io, OBJECT(s), "piix4-pm", 64);
     memory_region_set_enabled(&s->io, false);
@@ -603,7 +601,6 @@ static void piix4_send_gpe(AcpiDeviceIf *adev, AcpiEventStatusBits ev)
 }
 
 static Property piix4_pm_properties[] = {
-    DEFINE_PROP_UINT32("smb_io_base", PIIX4PMState, smb_io_base, 0),
     DEFINE_PROP_UINT8(ACPI_PM_PROP_S3_DISABLED, PIIX4PMState, disable_s3, 0),
     DEFINE_PROP_UINT8(ACPI_PM_PROP_S4_DISABLED, PIIX4PMState, disable_s4, 0),
     DEFINE_PROP_UINT8(ACPI_PM_PROP_S4_VAL, PIIX4PMState, s4_val, 2),

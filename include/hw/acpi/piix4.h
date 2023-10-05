@@ -47,7 +47,6 @@ struct PIIX4PMState {
     APMState apm;
 
     PMSMBus smb;
-    uint32_t smb_io_base;
 
     qemu_irq irq;
     qemu_irq smi_irq;

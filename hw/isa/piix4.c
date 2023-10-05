@@ -258,7 +258,6 @@ static void piix4_init(Object *obj)
     object_initialize_child(obj, "uhci", &s->uhci, TYPE_PIIX4_USB_UHCI);
 
     object_initialize_child(obj, "pm", &s->pm, TYPE_PIIX4_PM);
-    qdev_prop_set_uint32(DEVICE(&s->pm), "smb_io_base", 0x1100);
     qdev_prop_set_bit(DEVICE(&s->pm), "smm-enabled", 0);
 }
 

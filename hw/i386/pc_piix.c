@@ -365,7 +365,6 @@ static void pc_init1(MachineState *machine,
 
         smi_irq = qemu_allocate_irq(pc_acpi_smi_interrupt, first_cpu, 0);
         piix4_pm = pci_new(piix3_devfn + 3, TYPE_PIIX4_PM);
-        qdev_prop_set_uint32(DEVICE(piix4_pm), "smb_io_base", 0xb100);
         qdev_prop_set_bit(DEVICE(piix4_pm), "smm-enabled",
                           x86_machine_is_smm_enabled(x86ms));
         pci_realize_and_unref(piix4_pm, pci_bus, &error_fatal);
