@@ -92,7 +92,7 @@ void pci_host_config_write_common(PCIDevice *pci_dev, uint32_t addr,
 
     trace_pci_cfg_write(pci_dev->name, pci_dev_bus_num(pci_dev),
                         PCI_SLOT(pci_dev->devfn),
-                        PCI_FUNC(pci_dev->devfn), addr, val);
+                        PCI_FUNC(pci_dev->devfn), addr, len, val);
     pci_dev->config_write(pci_dev, addr, val, MIN(len, limit - addr));
 }
 
@@ -118,7 +118,7 @@ uint32_t pci_host_config_read_common(PCIDevice *pci_dev, uint32_t addr,
     ret = pci_dev->config_read(pci_dev, addr, MIN(len, limit - addr));
     trace_pci_cfg_read(pci_dev->name, pci_dev_bus_num(pci_dev),
                        PCI_SLOT(pci_dev->devfn),
-                       PCI_FUNC(pci_dev->devfn), addr, ret);
+                       PCI_FUNC(pci_dev->devfn), addr, len, ret);
 
     return ret;
 }
@@ -131,7 +131,7 @@ void pci_data_write(PCIBus *s, uint32_t addr, uint32_t val, unsigned len)
     if (!pci_dev) {
         trace_pci_cfg_write("empty", extract32(addr, 16, 8),
                             extract32(addr, 11, 5), extract32(addr, 8, 3),
-                            config_addr, val);
+                            config_addr, len, val);
         return;
     }
 
@@ -147,7 +147,7 @@ uint32_t pci_data_read(PCIBus *s, uint32_t addr, unsigned len)
     if (!pci_dev) {
         trace_pci_cfg_read("empty", extract32(addr, 16, 8),
                            extract32(addr, 11, 5), extract32(addr, 8, 3),
-                           config_addr, ~0x0);
+                           config_addr, len, ~0x0);
         return ~0x0;
     }
 
