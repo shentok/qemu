@@ -59,6 +59,10 @@ typedef struct CPUHotplugFeatures {
     const char *smi_path;
 } CPUHotplugFeatures;
 
+/**
+ * Fill @entry with Interrupt Controller Structure for CPU indexed by @uid in
+ * @apic_ids array.
+ */
 typedef void (*build_madt_cpu_fn)(int uid, const CPUArchIdList *apic_ids,
                                   GArray *entry, bool force_enabled);
 
