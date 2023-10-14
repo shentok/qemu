@@ -38,6 +38,7 @@
 #include "hw/display/ramfb.h"
 #include "hw/firmware/smbios.h"
 #include "hw/pci/pci.h"
+#include "hw/pci/pci_bus.h"
 #include "hw/pci/pci_ids.h"
 #include "hw/usb.h"
 #include "net/net.h"
@@ -88,17 +89,15 @@ static int pc_pci_slot_get_pirq(PCIDevice *pci_dev, int pci_intx)
     return (pci_intx + slot_addend) & 3;
 }
 
-static void piix_intx_routing_notifier_xen(PCIDevice *dev)
+static void pc_intx_routing_notifier_xen(PCIDevice *dev)
 {
+    PCIBus *pci_bus = pci_get_bus(dev);
     int i;
 
-    /* Scan for updates to PCI link routes (0x60-0x63). */
-    for (i = 0; i < PIIX_NUM_PIRQS; i++) {
-        uint8_t v = dev->config_read(dev, PIIX_PIRQCA + i, 1);
-        if (v & 0x80) {
-            v = 0;
-        }
-        v &= 0xf;
+    /* Scan for updates to PCI link routes. */
+    for (i = 0; i < pci_bus->nirq; i++) {
+        const PCIINTxRoute route = pci_device_route_intx_to_irq(dev, i);
+        const uint8_t v = (route.mode != PCI_INTX_DISABLED) ? route.irq : 0;
         xen_set_pci_link_route(i, v);
     }
 }
@@ -284,7 +283,7 @@ static void pc_init1(MachineState *machine,
 
         if (xen_enabled()) {
             pci_device_set_intx_routing_notifier(
-                        pci_dev, piix_intx_routing_notifier_xen);
+                        pci_dev, pc_intx_routing_notifier_xen);
 
             /*
              * Xen supports additional interrupt routes from the PCI devices to
