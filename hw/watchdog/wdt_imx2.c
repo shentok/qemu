@@ -180,6 +180,7 @@ static void imx2_wdt_write(void *opaque, hwaddr addr,
             (!(value & IMX2_WDT_WCR_WT) && (value & IMX2_WDT_WCR_WDE))) {
             watchdog_perform_action();
         }
+        trace_imx2_wdt_status("wcr:", s->wcr);
         s->wcr |= IMX2_WDT_WCR_SRS;
         imx_wdt2_update_timer(s, true);
         break;
