@@ -22,6 +22,7 @@ imx2_wdt_read(uint32_t addr, uint16_t data) "[0x%" PRIx32 "] -> 0x%" PRIx16
 imx2_wdt_write(uint32_t addr, uint16_t data) "[0x%" PRIx32 "] <- 0x%" PRIx16
 imx2_wdt_interrupt(void) ""
 imx2_wdt_expired(void) ""
+imx2_wdt_status(const char *text, uint16_t value) "%s 0x%" PRIx16
 
 # spapr_watchdog.c
 spapr_watchdog_start(uint64_t flags, uint64_t num, uint64_t timeout) "Flags 0x%" PRIx64 " num=%" PRId64 " %" PRIu64 "ms"
