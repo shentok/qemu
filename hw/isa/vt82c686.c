@@ -857,19 +857,32 @@ static const TypeInfo via_isa_info = {
     },
 };
 
-static int via_isa_get_pci_irq(const ViaISAState *s, int pin)
+static PCIINTxRoute via_isa_get_pci_irq(void *opaque, int pin)
 {
+    const ViaISAState *s = opaque;
+    PCIINTxRoute route;
+
     switch (pin) {
     case 0:
-        return s->dev.config[0x55] >> 4;
+        route.irq = s->dev.config[0x55] >> 4;
+        break;
     case 1:
-        return s->dev.config[0x56] & 0xf;
+        route.irq = s->dev.config[0x56] & 0xf;
+        break;
     case 2:
-        return s->dev.config[0x56] >> 4;
+        route.irq = s->dev.config[0x56] >> 4;
+        break;
     case 3:
-        return s->dev.config[0x57] >> 4;
+        route.irq = s->dev.config[0x57] >> 4;
+        break;
+    default:
+        route.irq = 0;
+        break;
     }
-    return 0;
+
+    route.mode = (route.irq == 0) ? PCI_INTX_DISABLED : PCI_INTX_ENABLED;
+
+    return route;
 }
 
 void via_isa_set_irq(PCIDevice *d, int pin, int level)
@@ -881,7 +894,7 @@ void via_isa_set_irq(PCIDevice *d, int pin, int level)
 
     switch (f) {
     case 0: /* PIRQ/PINT inputs */
-        irq = via_isa_get_pci_irq(s, pin);
+        irq = via_isa_get_pci_irq(s, pin).irq;
         f = 8 + pin; /* Use function 8-11 for PCI interrupt inputs */
         break;
     case 4: /* PM */
@@ -1034,6 +1047,8 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
     if (!qdev_realize(DEVICE(&s->mc97), BUS(pci_bus), errp)) {
         return;
     }
+
+    pci_bus_set_route_irq_fn(pci_bus, via_isa_get_pci_irq);
 }
 
 /* TYPE_VT82C686B_ISA */
@@ -1048,6 +1063,8 @@ static void vt82c686b_write_config(PCIDevice *d, uint32_t addr,
     if (addr == 0x85) {
         /* BIT(1): enable or disable superio config io ports */
         via_superio_io_enable(&s->via_sio, val & BIT(1));
+    } else if (ranges_overlap(addr, len, 0x55, 3)) {
+        pci_bus_fire_intx_routing_notifier(pci_get_bus(d));
     }
 }
 
@@ -1117,6 +1134,8 @@ static void vt8231_write_config(PCIDevice *d, uint32_t addr,
     if (addr == 0x50) {
         /* BIT(2): enable or disable superio config io ports */
         via_superio_io_enable(&s->via_sio, val & BIT(2));
+    } else if (ranges_overlap(addr, len, 0x55, 3)) {
+        pci_bus_fire_intx_routing_notifier(pci_get_bus(d));
     }
 }
 
