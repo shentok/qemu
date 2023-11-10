@@ -138,6 +138,7 @@ static void via_ide_reset(DeviceState *dev)
                  PCI_STATUS_DEVSEL_MEDIUM);
 
     pci_set_byte(pci_conf + PCI_INTERRUPT_LINE, 0xe);
+    pd->wmask[PCI_INTERRUPT_LINE] = 0x0;
 
     /* IDE chip enable, IDE configuration 1/2, IDE FIFO Configuration*/
     pci_set_long(pci_conf + 0x40, 0x0a090600);
@@ -187,10 +188,16 @@ static void via_ide_cfg_write(PCIDevice *pd, uint32_t addr,
 {
     PCIIDEState *d = PCI_IDE(pd);
 
+    pd->wmask[PCI_INTERRUPT_LINE] = (pd->config[0x45] & BIT(4)) ? 0 : 0xf;
+
     pci_default_write_config(pd, addr, val, len);
 
     if (range_covers_byte(addr, len, PCI_CLASS_PROG)) {
         pci_ide_update_mode(d);
+    }
+
+    if (range_covers_byte(addr, len, PCI_INTERRUPT_LINE)) {
+        pd->wmask[PCI_INTERRUPT_LINE] = (pd->config[0x45] & BIT(4)) ? 0 : 0xf;
     }
 }
 
@@ -202,7 +209,6 @@ static void via_ide_realize(PCIDevice *dev, Error **errp)
     int i;
 
     pci_set_long(pci_conf + PCI_CAPABILITY_LIST, 0x000000c0);
-    dev->wmask[PCI_INTERRUPT_LINE] = 0;
     dev->wmask[PCI_CLASS_PROG] = 5;
 
     memory_region_init_io(&d->data_bar[0], OBJECT(d), &pci_ide_data_le_ops,
