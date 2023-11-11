@@ -31,6 +31,7 @@
 #include "hw/i386/pc.h"
 #include "hw/i386/apic.h"
 #include "hw/pci-host/i440fx.h"
+#include "hw/pci-host/vt82c694t.h"
 #include "hw/isa/vt82c686.h"
 #include "hw/southbridge/piix.h"
 #include "hw/display/ramfb.h"
@@ -86,8 +87,8 @@ static const char *pc_south_bridge_type[] = {
 
 static const char *pc_norh_bridge_type[] = {
     [PC_NORTH_BRIDGE_OPTION_I440FX] = TYPE_I440FX_PCI_HOST_BRIDGE,
+    [PC_NORTH_BRIDGE_OPTION_VT82C694T] = TYPE_VT82C694T_PCI_HOST_BRIDGE,
 };
-
 
 /*
  * Return the global irq number corresponding to a given device irq
@@ -221,8 +222,10 @@ static void pc_init1(MachineState *machine, const char *pci_type)
                              x86ms->below_4g_mem_size, &error_fatal);
     object_property_set_uint(phb, PCI_HOST_ABOVE_4G_MEM_SIZE,
                              x86ms->above_4g_mem_size, &error_fatal);
-    object_property_set_str(phb, I440FX_HOST_PROP_PCI_TYPE, pci_type,
-                            &error_fatal);
+    if (object_property_find(phb, I440FX_HOST_PROP_PCI_TYPE)) {
+        object_property_set_str(phb, I440FX_HOST_PROP_PCI_TYPE, pci_type,
+                                &error_fatal);
+    }
     sysbus_realize_and_unref(SYS_BUS_DEVICE(phb), &error_fatal);
 
     pcms->pcibus = PCI_BUS(qdev_get_child_bus(DEVICE(phb), "pci.0"));
