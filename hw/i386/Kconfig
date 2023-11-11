@@ -70,6 +70,7 @@ config I440FX
     default y
     depends on I386
     imply E1000_PCI
+    imply PCI_VT82C694T
     imply VMPORT
     imply VMMOUSE
     imply VT82C686

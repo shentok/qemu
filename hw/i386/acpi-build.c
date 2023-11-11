@@ -64,6 +64,7 @@
 #include "hw/pci/pci_bus.h"
 #include "hw/pci-host/i440fx.h"
 #include "hw/pci-host/q35.h"
+#include "hw/pci-host/vt82c694t.h"
 #include "hw/i386/x86-iommu.h"
 
 #include "hw/acpi/aml-build.h"
@@ -1383,6 +1384,10 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
     AcpiTable table = { .sig = "DSDT", .rev = 1, .oem_id = x86ms->oem_id,
                         .oem_table_id = x86ms->oem_table_id };
 
+    if (!i440fx) {
+        i440fx = object_resolve_type_unambiguous(TYPE_VT82C694T_PCI_HOST_BRIDGE,
+                                                 NULL);
+    }
     assert(!!i440fx != !!q35);
 
     acpi_table_begin(&table, table_data);
