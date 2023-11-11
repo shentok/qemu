@@ -2720,6 +2720,12 @@ S: Maintained
 F: hw/isa/piix.c
 F: include/hw/southbridge/piix.h
 
+VIA North Bridge (VT82C694T)
+M: Bernhard Beschow <shentey@gmail.com>
+S: Maintained
+F: hw/pci-host/vt82c694t.c
+F: include/hw/pci-host/vt82c694t.h
+
 VIA South Bridges (VT82C686B, VT8231)
 M: BALATON Zoltan <balaton@eik.bme.hu>
 M: Philippe Mathieu-Daudé <philmd@linaro.org>

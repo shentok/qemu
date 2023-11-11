@@ -211,6 +211,7 @@
 #define PCI_VENDOR_ID_XILINX             0x10ee
 
 #define PCI_VENDOR_ID_VIA                0x1106
+#define PCI_DEVICE_ID_VIA_82C694T_PCI    0x0691
 #define PCI_DEVICE_ID_VIA_82C686B_ISA    0x0686
 #define PCI_DEVICE_ID_VIA_IDE            0x0571
 #define PCI_DEVICE_ID_VIA_UHCI           0x3038
@@ -219,6 +220,7 @@
 #define PCI_DEVICE_ID_VIA_MC97           0x3068
 #define PCI_DEVICE_ID_VIA_8231_ISA       0x8231
 #define PCI_DEVICE_ID_VIA_8231_PM        0x8235
+#define PCI_DEVICE_ID_VIA_82C694T_AGP    0x8598
 
 #define PCI_VENDOR_ID_MARVELL            0x11ab
 #define PCI_DEVICE_ID_MARVELL_MV6436X    0x6460
