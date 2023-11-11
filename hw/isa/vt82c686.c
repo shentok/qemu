@@ -274,6 +274,8 @@ static void via_pm_reset(DeviceState *d)
 
     memset(s->dev.config + PCI_CONFIG_HEADER_SIZE, 0,
            PCI_CONFIG_SPACE_SIZE - PCI_CONFIG_HEADER_SIZE);
+    /* ACPI Interrupt Select */
+    pci_set_byte(s->dev.config + 0x42, BIT(6));
     /* Power Management IO base */
     pci_set_long(s->dev.config + 0x48, 1);
     /* SMBus IO base */
