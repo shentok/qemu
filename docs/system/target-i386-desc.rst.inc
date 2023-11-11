@@ -80,5 +80,16 @@ It supports the following machine-specific options:
 
 - ``x-south-bridge=PIIX3|piix4-isa|vt82c686b-isa|vt8231-isa`` (Experimental
   option to select a particular south bridge. Default: ``PIIX3``)
-- ``x-north-bridge=i440FX-pcihost`` (Experimental option to select a particular
-  north bridge. Default: ``i440FX-pcihost``)
+- ``x-north-bridge=i440FX-pcihost|vt82c694t`` (Experimental option to select a
+  particular north bridge. Default: ``i440FX-pcihost``)
+
+VIA Apollo Pro 133T Chipset
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The VIA Apollo Pro 133T chipset is a combination of a VIA VT82C694T north bridge
+and a VIA VT82C686B south bridge. It can be emulated as follows:
+
+.. parsed-literal::
+
+   |qemu_system_x86| \
+   -M pc,x-south-bridge=vt82c686b-isa,x-north-bridge=vt82c694t,usb=on
