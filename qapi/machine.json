@@ -422,9 +422,11 @@
 #
 # @i440fx: Intel i440FX (default)
 #
+# @vt82c694t: VIA VT82C694T
+#
 ##
 { 'enum': 'PCNorthBridgeOption',
-  'data': ['i440fx'] }
+  'data': ['i440fx', 'vt82c694t'] }
 
 ##
 # @PCSouthBridgeOption:
