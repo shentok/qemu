@@ -21,6 +21,10 @@ smbus_ioport_readb(uint16_t addr, uint8_t data) "[0x%04" PRIx16 "] -> val=0x%02x
 smbus_ioport_writeb(uint16_t addr, uint8_t data) "[0x%04" PRIx16 "] <- val=0x%02x"
 smbus_transaction(uint8_t addr, uint8_t prot) "addr=0x%02x prot=0x%02x"
 
+# smbus_master.c
+
+smbus_read_byte(uint8_t addr, int16_t data) "[0x%02" PRIx8 "] <- data=0x%03x"
+
 # allwinner_i2c.c
 
 allwinner_i2c_read(const char* reg_name, uint64_t offset, uint64_t value) "read %s [0x%" PRIx64 "]: -> 0x%" PRIx64
