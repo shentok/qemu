@@ -53,6 +53,7 @@
 #include "hw/acpi/acpi.h"
 #include "qapi/error.h"
 #include "qemu/error-report.h"
+#include "qemu/host-utils.h"
 #include "sysemu/xen.h"
 #ifdef CONFIG_XEN
 #include <xen/hvm/hvm_info_table.h>
@@ -364,8 +365,9 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     }
 
     if (pcms->smbus) {
-        /* TODO: Populate SPD eeprom data. */
-        smbus_eeprom_init(pcms->smbus, 8, NULL, 0);
+        ram_addr_t size_pow2 = 1ULL << (63 - clz64(machine->ram_size));
+        const uint8_t *spd_data = spd_data_generate(DDR, size_pow2);
+        smbus_eeprom_init(pcms->smbus, 8, spd_data, 256);
     }
 
     if (machine->nvdimms_state->is_enabled) {
