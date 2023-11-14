@@ -438,7 +438,7 @@ static void cmos_ioport_write(void *opaque, hwaddr addr,
     bool update_periodic_timer;
 
     if ((addr & 1) == 0) {
-        s->cmos_index = data & 0x7f;
+        s->cmos_index = data & (addr == 0 ? 0x7f : 0xff);
     } else {
         trace_cmos_ioport_write(s->cmos_index, data);
         switch(s->cmos_index) {
@@ -919,15 +919,16 @@ static void rtc_realizefn(DeviceState *dev, Error **errp)
     s->suspend_notifier.notify = rtc_notify_suspend;
     qemu_register_suspend_notifier(&s->suspend_notifier);
 
-    memory_region_init_io(&s->io, OBJECT(s), &cmos_ops, s, "rtc", 2);
+    memory_region_init_io(&s->io, OBJECT(s), &cmos_ops, s, "rtc", 4);
     isa_register_ioport(isadev, &s->io, s->io_base);
 
-    /* register rtc 0x70 port for coalesced_pio */
+    /* register rtc 0x70 and 0x72 ports for coalesced_pio */
     memory_region_set_flush_coalesced(&s->io);
     memory_region_init_io(&s->coalesced_io, OBJECT(s), &cmos_ops,
                           s, "rtc-index", 1);
     memory_region_add_subregion(&s->io, 0, &s->coalesced_io);
     memory_region_add_coalescing(&s->coalesced_io, 0, 1);
+    memory_region_add_coalescing(&s->coalesced_io, 2, 1);
 
     qdev_set_legacy_instance_id(dev, s->io_base, 3);
 
