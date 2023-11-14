@@ -1029,7 +1029,7 @@ static void via_rtc_write(void *opaque, hwaddr addr, uint64_t data,
     ViaISAState *s = opaque;
 
     if ((addr & 1) == 0) {
-        s->rtc_index = data & 0x7f;
+        s->rtc_index = data & (addr == 0 ? 0x7f : 0xff);
     } else if (s->rtc_index == RTC_REG_D) {
         PCIDevice *d = PCI_DEVICE(&s->pm);
         if (data & 0x80) {
@@ -1099,15 +1099,16 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
     }
     isa_connect_gpio_out(ISA_DEVICE(&s->rtc), 0, s->rtc.isairq);
 
-    memory_region_init_io(&s->rtc_io, OBJECT(s), &via_rtc_ops, s, "rtc", 2);
+    memory_region_init_io(&s->rtc_io, OBJECT(s), &via_rtc_ops, s, "rtc", 4);
     isa_register_ioport(ISA_DEVICE(&s->rtc), &s->rtc_io, s->rtc.io_base);
 
-    /* register rtc 0x70 port for coalesced_pio */
+    /* register rtc 0x70 and 0x72 ports for coalesced_pio */
     memory_region_set_flush_coalesced(&s->rtc_io);
     memory_region_init_io(&s->rtc_coalesced_io, OBJECT(s), &via_rtc_ops,
                           s, "rtc-index", 1);
     memory_region_add_subregion(&s->rtc_io, 0, &s->rtc_coalesced_io);
     memory_region_add_coalescing(&s->rtc_coalesced_io, 0, 1);
+    memory_region_add_coalescing(&s->rtc_coalesced_io, 2, 1);
 
     for (i = 0; i < PCI_CONFIG_HEADER_SIZE; i++) {
         if (i < PCI_COMMAND || i >= PCI_REVISION_ID) {
