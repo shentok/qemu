@@ -1028,7 +1028,7 @@ static void via_rtc_write(void *opaque, hwaddr addr, uint64_t data,
     ViaISAState *s = opaque;
 
     if ((addr & 1) == 0) {
-        s->rtc_index = data & 0x7f;
+        s->rtc_index = data & (addr == 0 ? 0x7f : 0xff);
     } else if (s->rtc_index == RTC_REG_D) {
         PCIDevice *d = PCI_DEVICE(&s->pm);
         if (data & 0x80) {
@@ -1098,7 +1098,7 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
     }
     isa_connect_gpio_out(ISA_DEVICE(&s->rtc), 0, s->rtc.isairq);
 
-    memory_region_init_io(&s->rtc_io, OBJECT(s), &via_rtc_ops, s, "rtc", 2);
+    memory_region_init_io(&s->rtc_io, OBJECT(s), &via_rtc_ops, s, "rtc", 4);
     isa_register_ioport(ISA_DEVICE(&s->rtc), &s->rtc_io, s->rtc.io_base);
 
     for (i = 0; i < PCI_CONFIG_HEADER_SIZE; i++) {
