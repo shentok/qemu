@@ -575,13 +575,19 @@ void acpi_pm1_cnt_update(ACPIREGS *ar,
 static uint64_t acpi_pm_cnt_read(void *opaque, hwaddr addr, unsigned width)
 {
     ACPIREGS *ar = opaque;
-    return ar->pm1.cnt.cnt >> addr * 8;
+    uint16_t val = ar->pm1.cnt.cnt >> addr * 8;
+
+    trace_acpi_cnt_read(addr, val, width);
+
+    return val;
 }
 
 static void acpi_pm_cnt_write(void *opaque, hwaddr addr, uint64_t val,
                               unsigned width)
 {
     ACPIREGS *ar = opaque;
+
+    trace_acpi_cnt_write(addr, val, width);
 
     if (addr == 1) {
         val = val << 8 | (ar->pm1.cnt.cnt & 0xff);
