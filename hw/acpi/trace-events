@@ -22,6 +22,8 @@ acpi_gpe_en_ioport_readb(uint32_t addr, uint8_t val) "addr: 0x%" PRIx32 " ==> 0x
 acpi_gpe_en_ioport_writeb(uint32_t addr, uint8_t val) "addr: 0x%" PRIx32 " <== 0x%02" PRIx8
 acpi_gpe_sts_ioport_readb(uint32_t addr, uint8_t val) "addr: 0x%" PRIx32 " ==> 0x%02" PRIx8
 acpi_gpe_sts_ioport_writeb(uint32_t addr, uint8_t val) "addr: 0x%" PRIx32 " <== 0x%02" PRIx8
+acpi_cnt_read(uint16_t addr, uint16_t val, uint8_t size) "[0x%" PRIx16 "] -> 0x%" PRIx16 " %d"
+acpi_cnt_write(uint16_t addr, uint16_t val, uint8_t size) "[0x%" PRIx16 "] <= 0x%" PRIx16 " %d"
 
 # cpu.c
 cpuhp_acpi_invalid_idx_selected(uint32_t idx) "0x%"PRIx32
