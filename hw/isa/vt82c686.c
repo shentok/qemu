@@ -350,7 +350,7 @@ static void via_pm_realize(PCIDevice *dev, Error **errp)
     pci_set_word(dev->config + PCI_STATUS, PCI_STATUS_FAST_BACK |
                  PCI_STATUS_DEVSEL_MEDIUM);
 
-    pm_smbus_init(DEVICE(s), &s->smb, false);
+    pm_smbus_init(DEVICE(s), &s->smb, true);
     memory_region_add_subregion(pci_address_space_io(dev), 0, &s->smb.io);
     memory_region_set_enabled(&s->smb.io, false);
 
