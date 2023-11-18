@@ -63,6 +63,8 @@
 #define KBD_CCMD_KBD_ENABLE        0xAE
 /* read input port */
 #define KBD_CCMD_READ_INPORT       0xC0
+/* Read mode bits */
+#define KBD_CCMD_READ_MODE_VIA     0xCA
 /* read output port */
 #define KBD_CCMD_READ_OUTPORT      0xD0
 /* write output port */
@@ -336,6 +338,7 @@ static void kbd_write_command(void *opaque, hwaddr addr,
 
     switch (val) {
     case KBD_CCMD_READ_MODE:
+    case KBD_CCMD_READ_MODE_VIA:
         kbd_queue(s, s->mode, 0);
         break;
     case KBD_CCMD_WRITE_MODE:
