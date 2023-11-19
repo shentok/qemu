@@ -557,6 +557,9 @@ struct qemu_plugin_hwaddr;
  */
 QEMU_PLUGIN_API
 unsigned int qemu_plugin_mem_size_shift(qemu_plugin_meminfo_t info);
+
+QEMU_PLUGIN_API
+unsigned int qemu_plugin_mem_size(qemu_plugin_meminfo_t info);
 /**
  * qemu_plugin_mem_is_sign_extended() - was the access sign extended
  * @info: opaque memory transaction handle

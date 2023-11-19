@@ -71,10 +71,11 @@ static void vcpu_mem(unsigned int cpu_index, qemu_plugin_meminfo_t info,
 
     /* If full system emulation log physical address and device name */
     struct qemu_plugin_hwaddr *hwaddr = qemu_plugin_get_hwaddr(info, vaddr);
+    unsigned size = qemu_plugin_mem_size(info);
     if (hwaddr) {
         uint64_t addr = qemu_plugin_hwaddr_phys_addr(hwaddr);
         const char *name = qemu_plugin_hwaddr_device_name(hwaddr);
-        g_string_append_printf(s, ", 0x%08"PRIx64", %s", addr, name);
+        g_string_append_printf(s, ", [0x%08"PRIx64"](%u), %s", addr, size, name);
     } else {
         g_string_append_printf(s, ", 0x%08"PRIx64, vaddr);
     }

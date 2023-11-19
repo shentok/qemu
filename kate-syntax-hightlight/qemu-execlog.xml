@@ -54,8 +54,10 @@
     <contexts>
       <context name="Main" attribute="Normal Text" lineEndContext="#stay">
         <DetectSpaces/>
-        <RegExpr attribute="Standard Classes" context="Main" String="movw \$0x([0123456789abcdefABCDEF]+), %sp" beginRegion="Comment" />
-        <RegExpr attribute="Standard Classes" context="#pop" dynamic="true" String="retw &quot;, load, 0x([0123456789abcdefABCDEF]+), RAM" endRegion="Comment" />
+        <!--RegExpr attribute="Standard Classes" context="Main" String="movw \$0x([0123456789abcdefABCDEF]+), %sp" beginRegion="Comment" /-->
+        <RegExpr attribute="Standard Classes" context="Main" String="&quot;callw " beginRegion="Comment" />
+        <!--RegExpr attribute="Standard Classes" context="#pop" dynamic="true" String="retw &quot;, load, 0x([0123456789abcdefABCDEF]+), RAM" endRegion="Comment" /-->
+        <RegExpr attribute="Standard Classes" context="#pop" dynamic="true" String="&quot;retw &quot;" endRegion="Comment" />
       </context>
 
       <context name="match comments" attribute="Normal Text" lineEndContext="#pop">

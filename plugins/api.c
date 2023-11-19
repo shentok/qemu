@@ -335,6 +335,12 @@ unsigned qemu_plugin_mem_size_shift(qemu_plugin_meminfo_t info)
     return op & MO_SIZE;
 }
 
+unsigned qemu_plugin_mem_size(qemu_plugin_meminfo_t info)
+{
+    MemOp op = get_memop(info);
+    return memop_size(op);
+}
+
 bool qemu_plugin_mem_is_sign_extended(qemu_plugin_meminfo_t info)
 {
     MemOp op = get_memop(info);
