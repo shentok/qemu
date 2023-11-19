@@ -1591,8 +1591,11 @@ bool tlb_plugin_lookup(CPUState *cpu, vaddr addr, int mmu_idx,
         data->is_io = true;
         data->mr = section->mr;
     } else {
+        struct MemoryRegionSection *section =
+            iotlb_to_section(cpu, full->xlat_section & ~TARGET_PAGE_MASK,
+                             full->attrs);
         data->is_io = false;
-        data->mr = NULL;
+        data->mr = section->mr;
     }
     return true;
 }
