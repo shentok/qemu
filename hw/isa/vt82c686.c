@@ -46,6 +46,10 @@
 
 OBJECT_DECLARE_SIMPLE_TYPE(ViaPMState, VIA_PM)
 
+#define VIA_PM_IO_GPSTS 0x20
+#define VIA_PM_IO_GPSCIEN 0x22
+#define VIA_PM_IO_GPSMIEN 0x24
+
 #define VIA_PM_IO_GBLSTS 0x28
 #define VIA_PM_IO_GBLSTS_SW_SMI BIT(6)
 
@@ -60,6 +64,10 @@ OBJECT_DECLARE_SIMPLE_TYPE(ViaPMState, VIA_PM)
 #define VIA_PM_IO_SMI_CMD 0x2f
 #define ACPI_ENABLE 0xf1
 #define ACPI_DISABLE 0xf0
+
+#define VIA_PM_IO_PADSTS 0x30
+#define VIA_PM_IO_GPIVAL 0x48
+#define VIA_PM_IO_GPOVAL 0x4c
 
 #define VIA_PM_GPE_LEN 4
 
@@ -205,8 +213,19 @@ static void pm_io_write(void *op, hwaddr addr, uint64_t data, unsigned size)
     trace_via_pm_io_write(addr, data, size);
 
     switch (addr) {
+    case VIA_PM_IO_GPSTS:
+    case VIA_PM_IO_GPSTS + 1:
+        break;
+    case VIA_PM_IO_GPSCIEN:
+    case VIA_PM_IO_GPSCIEN + 1:
+        break;
+    case VIA_PM_IO_GPSMIEN:
+    case VIA_PM_IO_GPSMIEN + 1:
+        break;
     case VIA_PM_IO_GBLSTS:
         s->gbl_sts &= ~(s->gbl_sts & data);
+        break;
+    case VIA_PM_IO_GBLSTS + 1:
         break;
     case VIA_PM_IO_GBLEN:
         s->gbl_en = (s->gbl_en & 0xff00) | data;
@@ -227,6 +246,20 @@ static void pm_io_write(void *op, hwaddr addr, uint64_t data, unsigned size)
     case VIA_PM_IO_SMI_CMD:
         via_pm_trigger_sw_smi(s, data);
         break;
+    case VIA_PM_IO_PADSTS:
+    case VIA_PM_IO_PADSTS + 1:
+    case VIA_PM_IO_PADSTS + 2:
+    case VIA_PM_IO_PADSTS + 3:
+        break;
+    case VIA_PM_IO_GPOVAL:
+    case VIA_PM_IO_GPOVAL + 1:
+    case VIA_PM_IO_GPOVAL + 2:
+    case VIA_PM_IO_GPOVAL + 3:
+        break;
+    default:
+        qemu_log_mask(LOG_UNIMP, "%s: unimplemented register: 0x%" PRIx64 "\n",
+                      __func__, addr);
+        break;
     }
 }
 
@@ -236,6 +269,15 @@ static uint64_t pm_io_read(void *op, hwaddr addr, unsigned size)
     uint64_t data = 0;
 
     switch (addr) {
+    case VIA_PM_IO_GPSTS:
+    case VIA_PM_IO_GPSTS + 1:
+        break;
+    case VIA_PM_IO_GPSCIEN:
+    case VIA_PM_IO_GPSCIEN + 1:
+        break;
+    case VIA_PM_IO_GPSMIEN:
+    case VIA_PM_IO_GPSMIEN + 1:
+        break;
     case VIA_PM_IO_GBLSTS:
         data = s->gbl_sts & 0xff;
         break;
@@ -256,6 +298,25 @@ static uint64_t pm_io_read(void *op, hwaddr addr, unsigned size)
         break;
     case VIA_PM_IO_SMI_CMD:
         data = s->smi_cmd;
+        break;
+    case VIA_PM_IO_PADSTS:
+    case VIA_PM_IO_PADSTS + 1:
+    case VIA_PM_IO_PADSTS + 2:
+    case VIA_PM_IO_PADSTS + 3:
+        break;
+    case VIA_PM_IO_GPIVAL:
+    case VIA_PM_IO_GPIVAL + 1:
+    case VIA_PM_IO_GPIVAL + 2:
+    case VIA_PM_IO_GPIVAL + 3:
+        break;
+    case VIA_PM_IO_GPOVAL:
+    case VIA_PM_IO_GPOVAL + 1:
+    case VIA_PM_IO_GPOVAL + 2:
+    case VIA_PM_IO_GPOVAL + 3:
+        break;
+    default:
+        qemu_log_mask(LOG_UNIMP, "%s: unimplemented register: 0x%" PRIx64 "\n",
+                      __func__, addr);
         break;
     }
 
