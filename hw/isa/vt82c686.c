@@ -1060,6 +1060,12 @@ static void vt82c686b_write_config(PCIDevice *d, uint32_t addr,
     ViaISAState *s = VIA_ISA(d);
 
     trace_via_isa_write(addr, val, len);
+
+    if (range_covers_byte(addr, len, 0x47)) {
+        if ((d->config[0x47] & BIT(7)) && (val & 1)) {
+            qemu_system_reset_request(SHUTDOWN_CAUSE_GUEST_RESET);
+        }
+    }
     pci_default_write_config(d, addr, val, len);
     if (addr == 0x85) {
         /* BIT(1): enable or disable superio config io ports */
