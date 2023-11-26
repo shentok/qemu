@@ -110,7 +110,7 @@ static int gdb_get_reg(CPUX86State *env, GByteArray *mem_buf, target_ulong val)
             return gdb_get_reg64(mem_buf, val & 0xffffffffUL);
         }
     } else {
-        return gdb_get_reg32(mem_buf, val);
+        return gdb_get_reg32(mem_buf, (env->segs[R_CS].selector << 4) + val);
     }
 }
 
