@@ -6320,7 +6320,7 @@ static const gchar *x86_gdb_arch_name(CPUState *cs)
 #ifdef TARGET_X86_64
     return "i386:x86-64";
 #else
-    return "i386";
+    return "i8086";
 #endif
 }
 

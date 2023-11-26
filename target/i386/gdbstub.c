@@ -144,7 +144,7 @@ int x86_cpu_gdb_read_register(CPUState *cs, GByteArray *mem_buf, int n)
                     return gdb_get_reg64(mem_buf, env->eip & 0xffffffffUL);
                 }
             } else {
-                return gdb_get_reg32(mem_buf, env->eip);
+                return gdb_get_reg32(mem_buf, (env->segs[R_CS].selector << 4) + env->eip);
             }
         case IDX_FLAGS_REG:
             return gdb_get_reg32(mem_buf, env->eflags);
