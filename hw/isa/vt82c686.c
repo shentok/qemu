@@ -1064,6 +1064,11 @@ static void vt82c686b_write_config(PCIDevice *d, uint32_t addr,
     } else if (ranges_overlap(addr, len, 0x55, 3)) {
         pci_bus_fire_intx_routing_notifier(pci_get_bus(d));
     }
+    if (range_covers_byte(addr, len, 0x47)) {
+        if ((d->config[0x47] & 0xa1) == 0xa1) {
+            qemu_system_reset_request(SHUTDOWN_CAUSE_GUEST_RESET);
+        }
+    }
 }
 
 static void vt82c686b_isa_reset(DeviceState *dev)
