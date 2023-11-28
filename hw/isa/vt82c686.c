@@ -77,6 +77,8 @@ struct ViaPMState {
 
     PMSMBus smb;
 
+    MemoryRegion hw_io;
+
     Notifier powerdown_notifier;
 
     qemu_irq sci_irq;
@@ -91,6 +93,16 @@ static void pm_io_space_update(ViaPMState *s)
     memory_region_transaction_begin();
     memory_region_set_address(&s->io, pmbase);
     memory_region_set_enabled(&s->io, s->dev.config[0x41] & BIT(7));
+    memory_region_transaction_commit();
+}
+
+static void pm_hw_io_space_update(ViaPMState *s)
+{
+    uint16_t hwbase = pci_get_word(s->dev.config + 0x70) & 0xff80UL;
+
+    memory_region_transaction_begin();
+    memory_region_set_address(&s->hw_io, hwbase);
+    memory_region_set_enabled(&s->hw_io, s->dev.config[0x74] & BIT(0));
     memory_region_transaction_commit();
 }
 
@@ -109,6 +121,7 @@ static int vmstate_acpi_post_load(void *opaque, int version_id)
     ViaPMState *s = opaque;
 
     pm_io_space_update(s);
+    pm_hw_io_space_update(s);
     smb_io_space_update(s);
     return 0;
 }
@@ -145,6 +158,9 @@ static void pm_write_config(PCIDevice *d, uint32_t addr, uint32_t val, int len)
     }
     if (range_covers_byte(addr, len, 0x41)) {
         pm_io_space_update(s);
+    }
+    if (range_covers_byte(addr, len, 0x74)) {
+        pm_hw_io_space_update(s);
     }
     if (ranges_overlap(addr, len, 0x90, 4)) {
         uint32_t v = pci_get_long(s->dev.config + 0x90);
@@ -257,6 +273,44 @@ static const MemoryRegionOps pm_io_ops = {
     },
 };
 
+static void pm_hw_io_write(void *op, hwaddr addr, uint64_t data, unsigned size)
+{
+    trace_via_pm_hw_io_write(addr, data, size);
+
+    switch (addr) {
+    default:
+        qemu_log_mask(LOG_UNIMP, "%s: unimplemented register: 0x%" PRIx64 "\n",
+                      __func__, addr);
+        break;
+    }
+}
+
+static uint64_t pm_hw_io_read(void *op, hwaddr addr, unsigned size)
+{
+    uint64_t data = 0;
+
+    switch (addr) {
+    default:
+        qemu_log_mask(LOG_UNIMP, "%s: unimplemented register: 0x%" PRIx64 "\n",
+                      __func__, addr);
+        break;
+    }
+
+    trace_via_pm_hw_io_read(addr, data, size);
+
+    return data;
+}
+
+static const MemoryRegionOps pm_hw_io_ops = {
+    .read = pm_hw_io_read,
+    .write = pm_hw_io_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .impl = {
+        .min_access_size = 1,
+        .max_access_size = 1,
+    },
+};
+
 static void via_pm_set_sci_irq(void *opaque, int n, int level)
 {
     via_isa_set_irq(opaque, 0, level);
@@ -301,6 +355,7 @@ static void via_pm_reset(DeviceState *d)
     acpi_update_sci(&s->ar, s->sci_irq);
 
     pm_io_space_update(s);
+    pm_hw_io_space_update(s);
     smb_io_space_update(s);
 }
 
@@ -359,6 +414,11 @@ static void via_pm_realize(PCIDevice *dev, Error **errp)
     memory_region_init_io(&s->io, OBJECT(dev), &pm_io_ops, s, "via-pm", 128);
     memory_region_add_subregion(pci_address_space_io(dev), 0, &s->io);
     memory_region_set_enabled(&s->io, false);
+
+    memory_region_init_io(&s->hw_io, OBJECT(dev), &pm_hw_io_ops, s, "via-pm-hw",
+                          128);
+    memory_region_add_subregion(pci_address_space_io(dev), 0, &s->hw_io);
+    memory_region_set_enabled(&s->hw_io, false);
 
     acpi_pm_tmr_init(&s->ar, pm_tmr_timer, &s->io);
     acpi_pm1_evt_init(&s->ar, pm_tmr_timer, &s->io);
