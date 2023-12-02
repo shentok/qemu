@@ -1071,6 +1071,9 @@ static void vt82c686b_isa_reset(DeviceState *dev)
     ViaISAState *s = VIA_ISA(dev);
     uint8_t *pci_conf = s->dev.config;
 
+    memset(pci_conf + PCI_CONFIG_HEADER_SIZE, 0,
+           PCI_CONFIG_SPACE_SIZE - PCI_CONFIG_HEADER_SIZE);
+
     pci_set_long(pci_conf + PCI_CAPABILITY_LIST, 0x000000c0);
     pci_set_word(pci_conf + PCI_COMMAND, PCI_COMMAND_IO | PCI_COMMAND_MEMORY |
                  PCI_COMMAND_MASTER | PCI_COMMAND_SPECIAL);
@@ -1141,6 +1144,9 @@ static void vt8231_isa_reset(DeviceState *dev)
 {
     ViaISAState *s = VIA_ISA(dev);
     uint8_t *pci_conf = s->dev.config;
+
+    memset(pci_conf + PCI_CONFIG_HEADER_SIZE, 0,
+           PCI_CONFIG_SPACE_SIZE - PCI_CONFIG_HEADER_SIZE);
 
     pci_set_long(pci_conf + PCI_CAPABILITY_LIST, 0x000000c0);
     pci_set_word(pci_conf + PCI_COMMAND, PCI_COMMAND_IO | PCI_COMMAND_MEMORY |
