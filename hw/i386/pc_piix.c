@@ -187,7 +187,7 @@ static void pc_init1(MachineState *machine, const char *pci_type)
 
     if (pcmc->pci_enabled) {
         phb = OBJECT(qdev_new(TYPE_I440FX_PCI_HOST_BRIDGE));
-        object_property_add_child(OBJECT(machine), "i440fx", phb);
+        object_property_add_child(OBJECT(machine), "phb", phb);
         object_property_set_link(phb, PCI_HOST_PROP_RAM_MEM,
                                  OBJECT(ram_memory), &error_fatal);
         object_property_set_link(phb, PCI_HOST_PROP_SYSTEM_MEM,

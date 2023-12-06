@@ -277,10 +277,7 @@ Object *acpi_get_i386_pci_host(void)
 {
     PCIHostState *host;
 
-    host = PCI_HOST_BRIDGE(object_resolve_path("/machine/i440fx", NULL));
-    if (!host) {
-        host = PCI_HOST_BRIDGE(object_resolve_path("/machine/q35", NULL));
-    }
+    host = PCI_HOST_BRIDGE(object_resolve_path("/machine/phb", NULL));
 
     return OBJECT(host);
 }
