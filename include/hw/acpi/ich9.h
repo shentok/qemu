@@ -48,6 +48,7 @@ typedef struct ICH9LPCPMRegs {
     uint32_t smi_sts;
 
     qemu_irq irq;      /* SCI */
+    qemu_irq smi_irq;
 
     uint32_t pm_io_base;
     Notifier powerdown_notifier;

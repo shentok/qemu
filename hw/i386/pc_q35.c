@@ -284,6 +284,8 @@ static void pc_q35_init(MachineState *machine)
     }
 
     if (x86_machine_is_acpi_enabled(x86ms)) {
+        qdev_connect_gpio_out_named(DEVICE(lpc), "smi-irq", 0, x86ms->smi_irq);
+
         object_property_add_link(OBJECT(machine), PC_MACHINE_ACPI_DEVICE_PROP,
                                  TYPE_HOTPLUG_HANDLER,
                                  (Object **)&x86ms->acpi_dev,

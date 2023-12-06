@@ -676,6 +676,7 @@ static void ich9_lpc_initfn(Object *obj)
 
     qdev_init_gpio_out_named(DEVICE(lpc), lpc->gsi, ICH9_GPIO_GSI,
                              IOAPIC_NUM_PINS);
+    qdev_init_gpio_out_named(DEVICE(lpc), &lpc->pm.smi_irq, "smi-irq", 1);
 
     object_property_add_uint8_ptr(obj, ACPI_PM_PROP_SCI_INT,
                                   &lpc->sci_gsi, OBJ_PROP_FLAG_READ);
