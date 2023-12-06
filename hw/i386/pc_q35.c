@@ -135,6 +135,7 @@ static void pc_q35_init(MachineState *machine)
     MachineClass *mc = MACHINE_GET_CLASS(machine);
     Object *phb;
     ISABus *isa_bus;
+    I2CBus *smbus = NULL;
     PCIDevice *lpc;
     DeviceState *dev;
     GSIState *gsi_state;
@@ -306,12 +307,12 @@ static void pc_q35_init(MachineState *machine)
                                               PCI_DEVFN(ICH9_SMB_DEV,
                                                         ICH9_SMB_FUNC),
                                               TYPE_ICH9_SMB_DEVICE);
-        pcms->smbus = I2C_BUS(qdev_get_child_bus(DEVICE(smb), "i2c"));
+        smbus = I2C_BUS(qdev_get_child_bus(DEVICE(smb), "i2c"));
     }
 
     /* init basic PC hardware */
-    pc_basic_device_init(pcms, isa_bus, x86ms->gsi, x86ms->rtc, !mc->no_floppy,
-                         0xff0104);
+    pc_basic_device_init(pcms, isa_bus, smbus, x86ms->gsi, x86ms->rtc,
+                         !mc->no_floppy, 0xff0104);
 
 #if defined(CONFIG_IGVM)
     /* Apply guest state from IGVM if supplied */

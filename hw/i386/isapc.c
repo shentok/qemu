@@ -131,7 +131,7 @@ static void pc_init_isa(MachineState *machine)
     }
 
     /* init basic PC hardware */
-    pc_basic_device_init(pcms, isa_bus, x86ms->gsi, x86ms->rtc,
+    pc_basic_device_init(pcms, isa_bus, NULL, x86ms->gsi, x86ms->rtc,
                          !MACHINE_CLASS(pcmc)->no_floppy, 0x4);
 
     ide_drive_get(hd, ARRAY_SIZE(hd));
