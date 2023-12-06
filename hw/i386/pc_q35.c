@@ -203,7 +203,7 @@ static void pc_q35_init(MachineState *machine)
     memory_region_init(pci_memory, NULL, "pci", UINT64_MAX);
     pc_memory_init(pcms, system_memory, pci_memory, pci_hole64_size);
 
-    object_property_add_child(OBJECT(machine), "q35", phb);
+    object_property_add_child(OBJECT(machine), "phb", phb);
     object_property_set_link(phb, PCI_HOST_PROP_RAM_MEM,
                              OBJECT(machine->ram), NULL);
     object_property_set_link(phb, PCI_HOST_PROP_PCI_MEM,
