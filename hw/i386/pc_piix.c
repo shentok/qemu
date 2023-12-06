@@ -110,7 +110,6 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     Object *phb = NULL;
     ISABus *isa_bus;
     Object *piix4_pm = NULL;
-    qemu_irq smi_irq;
     GSIState *gsi_state;
     MemoryRegion *ram_memory;
     MemoryRegion *pci_memory = NULL;
@@ -331,9 +330,9 @@ static void pc_init1(MachineState *machine, const char *pci_type)
 #endif
 
     if (piix4_pm) {
-        smi_irq = qemu_allocate_irq(pc_acpi_smi_interrupt, first_cpu, 0);
+        qdev_connect_gpio_out_named(DEVICE(piix4_pm), "smi-irq", 0,
+                                    x86ms->smi_irq);
 
-        qdev_connect_gpio_out_named(DEVICE(piix4_pm), "smi-irq", 0, smi_irq);
         pcms->smbus = I2C_BUS(qdev_get_child_bus(DEVICE(piix4_pm), "i2c"));
 
         object_property_add_link(OBJECT(machine), PC_MACHINE_ACPI_DEVICE_PROP,

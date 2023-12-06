@@ -66,6 +66,15 @@
 /* Physical Address of PVH entry point read from kernel ELF NOTE */
 static size_t pvh_start_addr;
 
+static void x86_smi_interrupt(void *opaque, int irq, int level)
+{
+    CPUState *cpu = opaque;
+
+    if (level) {
+        cpu_interrupt(cpu, CPU_INTERRUPT_SMI);
+    }
+}
+
 static void init_topo_info(X86CPUTopoInfo *topo_info,
                            const X86MachineState *x86ms)
 {
@@ -155,6 +164,8 @@ void x86_cpus_init(X86MachineState *x86ms, int default_cpu_version)
     for (i = 0; i < ms->smp.cpus; i++) {
         x86_cpu_new(x86ms, possible_cpus->cpus[i].arch_id, &error_fatal);
     }
+
+    x86ms->smi_irq = qemu_allocate_irq(x86_smi_interrupt, first_cpu, 0);
 }
 
 void x86_rtc_set_cpus_count(ISADevice *s, uint16_t cpus_count)

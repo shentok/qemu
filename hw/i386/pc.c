@@ -643,15 +643,6 @@ static gboolean pc_init_ne2k_isa(ISABus *bus, NICInfo *nd, Error **errp)
     return true;
 }
 
-void pc_acpi_smi_interrupt(void *opaque, int irq, int level)
-{
-    X86CPU *cpu = opaque;
-
-    if (level) {
-        cpu_interrupt(CPU(cpu), CPU_INTERRUPT_SMI);
-    }
-}
-
 static
 void pc_machine_done(Notifier *notifier, void *data)
 {
