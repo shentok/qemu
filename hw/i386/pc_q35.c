@@ -197,10 +197,10 @@ static void pc_q35_init(MachineState *machine)
                              OBJECT(system_memory), NULL);
     object_property_set_link(phb, PCI_HOST_PROP_IO_MEM,
                              OBJECT(system_io), NULL);
-    object_property_set_int(phb, PCI_HOST_BELOW_4G_MEM_SIZE,
-                            x86ms->below_4g_mem_size, NULL);
-    object_property_set_int(phb, PCI_HOST_ABOVE_4G_MEM_SIZE,
-                            x86ms->above_4g_mem_size, NULL);
+    object_property_set_uint(phb, PCI_HOST_BELOW_4G_MEM_SIZE,
+                             x86ms->below_4g_mem_size, NULL);
+    object_property_set_uint(phb, PCI_HOST_ABOVE_4G_MEM_SIZE,
+                             x86ms->above_4g_mem_size, NULL);
     object_property_set_bool(phb, PCI_HOST_BYPASS_IOMMU,
                              pcms->default_bus_bypass_iommu, NULL);
     object_property_set_bool(phb, PCI_HOST_PROP_SMM_RANGES,
