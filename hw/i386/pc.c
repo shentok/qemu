@@ -1155,7 +1155,7 @@ static void pc_superio_init(ISABus *isa_bus, bool create_fdctrl,
 }
 
 void pc_basic_device_init(struct PCMachineState *pcms,
-                          ISABus *isa_bus, qemu_irq *gsi,
+                          ISABus *isa_bus, I2CBus *smbus, qemu_irq *gsi,
                           ISADevice *rtc_state,
                           bool create_fdctrl,
                           uint32_t hpet_irqs)
@@ -1262,9 +1262,9 @@ void pc_basic_device_init(struct PCMachineState *pcms,
     pc_superio_init(isa_bus, create_fdctrl, pcms->i8042_enabled,
                     pcms->vmport != ON_OFF_AUTO_ON, &error_fatal);
 
-    if (pcms->smbus) {
-        /* TODO: Populate SPD eeprom data.  */
-        smbus_eeprom_init(pcms->smbus, 8, NULL, 0);
+    if (smbus) {
+        /* TODO: Populate SPD eeprom data. */
+        smbus_eeprom_init(smbus, 8, NULL, 0);
     }
 
     if (ms->nvdimms_state->is_enabled) {
