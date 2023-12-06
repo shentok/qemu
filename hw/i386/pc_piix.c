@@ -107,6 +107,7 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     MachineClass *mc = MACHINE_GET_CLASS(machine);
     Object *phb = NULL;
     ISABus *isa_bus;
+    I2CBus *smbus = NULL;
     Object *piix4_pm = NULL;
     GSIState *gsi_state;
     MemoryRegion *system_memory = get_system_memory();
@@ -333,7 +334,7 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         qdev_connect_gpio_out_named(DEVICE(piix4_pm), "smi-irq", 0,
                                     x86ms->smi_irq);
 
-        pcms->smbus = I2C_BUS(qdev_get_child_bus(DEVICE(piix4_pm), "i2c"));
+        smbus = I2C_BUS(qdev_get_child_bus(DEVICE(piix4_pm), "i2c"));
 
         object_property_add_link(OBJECT(machine), PC_MACHINE_ACPI_DEVICE_PROP,
                                  TYPE_HOTPLUG_HANDLER,
@@ -345,8 +346,8 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     }
 
     /* init basic PC hardware */
-    pc_basic_device_init(pcms, isa_bus, x86ms->gsi, x86ms->rtc, !mc->no_floppy,
-                         0x4);
+    pc_basic_device_init(pcms, isa_bus, smbus, x86ms->gsi, x86ms->rtc,
+                         !mc->no_floppy, 0x4);
 }
 
 typedef enum PCSouthBridgeOption {
