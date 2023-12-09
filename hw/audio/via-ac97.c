@@ -418,6 +418,9 @@ static void via_ac97_reset(DeviceState *dev)
 {
     ViaAC97State *s = VIA_AC97(dev);
 
+    memset(s->dev.config + PCI_CONFIG_HEADER_SIZE, 0,
+           PCI_CONFIG_SPACE_SIZE - PCI_CONFIG_HEADER_SIZE);
+
     codec_reset(s);
 }
 
