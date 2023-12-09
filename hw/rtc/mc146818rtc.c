@@ -446,6 +446,8 @@ void mc146818rtc_set_cmos_data(MC146818RtcState *s, int cmos_index, int data)
 
     assert(cmos_index >= 0 && cmos_index < ARRAY_SIZE(s->cmos_data));
 
+    trace_cmos_write(cmos_index, data);
+
     switch (cmos_index) {
     case RTC_SECONDS_ALARM:
     case RTC_MINUTES_ALARM:
