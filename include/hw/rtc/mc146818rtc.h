@@ -46,6 +46,7 @@ struct MC146818RtcState {
     Notifier clock_reset_notifier;
     LostTickPolicy lost_tick_policy;
     Notifier suspend_notifier;
+    bool internal_io;
     QLIST_ENTRY(MC146818RtcState) link;
 };
 
