@@ -540,8 +540,10 @@ static void cmos_ioport_write(void *opaque, hwaddr addr,
             check_update_timer(s);
             break;
         case RTC_REG_C:
-        case RTC_REG_D:
             /* cannot write to them */
+            break;
+        case RTC_REG_D:
+            s->vbat = data & 0x80;
             break;
         default:
             s->cmos_data[s->cmos_index] = data;
