@@ -925,15 +925,17 @@ static void rtc_realizefn(DeviceState *dev, Error **errp)
     s->suspend_notifier.notify = rtc_notify_suspend;
     qemu_register_suspend_notifier(&s->suspend_notifier);
 
-    memory_region_init_io(&s->io, OBJECT(s), &cmos_ops, s, "rtc", 2);
-    isa_register_ioport(isadev, &s->io, s->io_base);
+    if (s->internal_io) {
+        memory_region_init_io(&s->io, OBJECT(s), &cmos_ops, s, "rtc", 2);
+        isa_register_ioport(isadev, &s->io, s->io_base);
 
-    /* register rtc 0x70 port for coalesced_pio */
-    memory_region_set_flush_coalesced(&s->io);
-    memory_region_init_io(&s->coalesced_io, OBJECT(s), &cmos_ops,
-                          s, "rtc-index", 1);
-    memory_region_add_subregion(&s->io, 0, &s->coalesced_io);
-    memory_region_add_coalescing(&s->coalesced_io, 0, 1);
+        /* register rtc 0x70 port for coalesced_pio */
+        memory_region_set_flush_coalesced(&s->io);
+        memory_region_init_io(&s->coalesced_io, OBJECT(s), &cmos_ops,
+                              s, "rtc-index", 1);
+        memory_region_add_subregion(&s->io, 0, &s->coalesced_io);
+        memory_region_add_coalescing(&s->coalesced_io, 0, 1);
+    }
 
     object_property_add_tm(OBJECT(s), "date", rtc_get_date);
 
@@ -970,6 +972,7 @@ static const Property mc146818rtc_properties[] = {
     DEFINE_PROP_UINT8("irq", MC146818RtcState, isairq, RTC_ISA_IRQ),
     DEFINE_PROP_LOSTTICKPOLICY("lost_tick_policy", MC146818RtcState,
                                lost_tick_policy, LOST_TICK_POLICY_DISCARD),
+    DEFINE_PROP_BOOL("internal_io", MC146818RtcState, internal_io, true),
 };
 
 static void rtc_reset_enter(Object *obj, ResetType type)
