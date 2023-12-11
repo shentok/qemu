@@ -29,6 +29,7 @@
 #include "hw/usb/hcd-uhci.h"
 #include "hw/timer/i8254.h"
 #include "hw/rtc/mc146818rtc.h"
+#include "hw/rtc/mc146818rtc_regs.h"
 #include "migration/vmstate.h"
 #include "hw/acpi/acpi.h"
 #include "hw/acpi/acpi_aml_interface.h"
@@ -823,6 +824,9 @@ struct ViaISAState {
     uint16_t irq_state[ISA_NUM_IRQS];
     ViaSuperIOState via_sio;
     MC146818RtcState rtc;
+    MemoryRegion rtc_io;
+    MemoryRegion rtc_coalesced_io;
+    uint8_t rtc_index;
     PCIIDEState ide;
     UHCIState uhci[2];
     ViaPMState pm;
@@ -1008,6 +1012,46 @@ static void via_isa_request_i8259_irq(void *opaque, int irq, int level)
     qemu_set_irq(s->cpu_intr, level);
 }
 
+static uint64_t via_rtc_read(void *opaque, hwaddr addr, unsigned size)
+{
+    ViaISAState *s = opaque;
+
+    if ((addr & 1) == 0) {
+        return 0xff;
+    }
+
+    return mc146818rtc_get_cmos_data(&s->rtc, s->rtc_index);
+}
+
+static void via_rtc_write(void *opaque, hwaddr addr, uint64_t data,
+                          unsigned size)
+{
+    ViaISAState *s = opaque;
+
+    if ((addr & 1) == 0) {
+        s->rtc_index = data & 0x7f;
+    } else if (s->rtc_index == RTC_REG_D) {
+        PCIDevice *d = PCI_DEVICE(&s->pm);
+        if (data & 0x80) {
+            d->config[0x42] |= BIT(4);
+        } else {
+            d->config[0x42] &= ~BIT(4);
+        }
+    } else {
+        mc146818rtc_set_cmos_data(&s->rtc, s->rtc_index, data);
+    }
+}
+
+static const MemoryRegionOps via_rtc_ops = {
+    .read = via_rtc_read,
+    .write = via_rtc_write,
+    .impl = {
+        .min_access_size = 1,
+        .max_access_size = 1,
+    },
+    .endianness = DEVICE_LITTLE_ENDIAN,
+};
+
 static void via_isa_realize(PCIDevice *d, Error **errp)
 {
     ViaISAState *s = VIA_ISA(d);
@@ -1049,10 +1093,21 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
 
     /* RTC */
     qdev_prop_set_int32(DEVICE(&s->rtc), "base_year", 2000);
+    qdev_prop_set_bit(DEVICE(&s->rtc), "internal_io", false);
     if (!qdev_realize(DEVICE(&s->rtc), BUS(isa_bus), errp)) {
         return;
     }
     isa_connect_gpio_out(ISA_DEVICE(&s->rtc), 0, s->rtc.isairq);
+
+    memory_region_init_io(&s->rtc_io, OBJECT(s), &via_rtc_ops, s, "rtc", 2);
+    isa_register_ioport(ISA_DEVICE(&s->rtc), &s->rtc_io, s->rtc.io_base);
+
+    /* register rtc 0x70 port for coalesced_pio */
+    memory_region_set_flush_coalesced(&s->rtc_io);
+    memory_region_init_io(&s->rtc_coalesced_io, OBJECT(s), &via_rtc_ops,
+                          s, "rtc-index", 1);
+    memory_region_add_subregion(&s->rtc_io, 0, &s->rtc_coalesced_io);
+    memory_region_add_coalescing(&s->rtc_coalesced_io, 0, 1);
 
     for (i = 0; i < PCI_CONFIG_HEADER_SIZE; i++) {
         if (i < PCI_COMMAND || i >= PCI_REVISION_ID) {
