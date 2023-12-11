@@ -146,6 +146,8 @@ static const VMStateDescription vmstate_acpi = {
     }
 };
 
+static uint32_t pm_read_config(PCIDevice *d, uint32_t addr, int len);
+
 static void pm_write_config(PCIDevice *d, uint32_t addr, uint32_t val, int len)
 {
     ViaPMState *s = VIA_PM(d);
@@ -448,6 +450,7 @@ static void via_pm_class_init(ObjectClass *klass, void *data)
     ViaPMInitInfo *info = data;
 
     k->realize = via_pm_realize;
+    k->config_read = pm_read_config;
     k->config_write = pm_write_config;
     k->vendor_id = PCI_VENDOR_ID_VIA;
     k->device_id = info->device_id;
@@ -832,6 +835,22 @@ struct ViaISAState {
     bool has_usb;
     bool smm_enabled;
 };
+
+static uint32_t pm_read_config(PCIDevice *d, uint32_t addr, int len)
+{
+    ViaPMState *s = VIA_PM(d);
+
+    if (range_covers_byte(addr, len, 0x42)) {
+        ViaISAState *isa = container_of(s, ViaISAState, pm);
+        if (isa->rtc.vbat) {
+            d->config[0x42] |= BIT(4);
+        } else {
+            d->config[0x42] &= ~BIT(4);
+        }
+    }
+
+    return pci_default_read_config(d, addr, len);
+}
 
 static const VMStateDescription vmstate_via = {
     .name = "via-isa",
