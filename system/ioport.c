@@ -124,7 +124,6 @@ void portio_list_init(PortioList *piolist,
     piolist->ports = callbacks;
     piolist->nr = 0;
     piolist->regions = g_new0(MemoryRegion *, n);
-    piolist->address_space = NULL;
     piolist->addr = 0;
     piolist->opaque = opaque;
     piolist->owner = owner;
@@ -216,7 +215,7 @@ static const MemoryRegionOps portio_ops = {
     .impl.unaligned = true,
 };
 
-static void portio_list_add_1(PortioList *piolist,
+static void portio_list_add_1(PortioList *piolist, MemoryRegion *address_space,
                               const MemoryRegionPortio *pio_init,
                               unsigned count, unsigned start,
                               unsigned off_low, unsigned off_high)
@@ -260,8 +259,7 @@ static void portio_list_add_1(PortioList *piolist,
     if (piolist->flush_coalesced_mmio) {
         memory_region_set_flush_coalesced(&mrpio->mr);
     }
-    memory_region_add_subregion(piolist->address_space,
-                                start + off_low, &mrpio->mr);
+    memory_region_add_subregion(address_space, start + off_low, &mrpio->mr);
     piolist->regions[piolist->nr] = &mrpio->mr;
     ++piolist->nr;
 }
@@ -273,7 +271,6 @@ void portio_list_add(PortioList *piolist,
     const MemoryRegionPortio *pio, *pio_start = piolist->ports;
     unsigned int off_low, off_high, off_last, count;
 
-    piolist->address_space = address_space;
     piolist->addr = start;
 
     /* Handle the first entry specially.  */
@@ -288,8 +285,8 @@ void portio_list_add(PortioList *piolist,
 
         /* If we see a hole, break the region.  */
         if (off_last > off_high) {
-            portio_list_add_1(piolist, pio_start, count, start, off_low,
-                              off_high);
+            portio_list_add_1(piolist, address_space, pio_start, count, start,
+                              off_low, off_high);
             /* ... and start collecting anew.  */
             pio_start = pio;
             off_low = off_last;
@@ -301,7 +298,8 @@ void portio_list_add(PortioList *piolist,
     }
 
     /* There will always be an open sub-list.  */
-    portio_list_add_1(piolist, pio_start, count, start, off_low, off_high);
+    portio_list_add_1(piolist, address_space, pio_start, count, start, off_low,
+                      off_high);
 }
 
 void portio_list_del(PortioList *piolist)
@@ -311,7 +309,7 @@ void portio_list_del(PortioList *piolist)
 
     for (i = 0; i < piolist->nr; ++i) {
         mrpio = container_of(piolist->regions[i], MemoryRegionPortioList, mr);
-        memory_region_del_subregion(piolist->address_space, &mrpio->mr);
+        memory_region_del_subregion(mrpio->mr.container, &mrpio->mr);
     }
 }
 
