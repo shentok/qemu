@@ -51,7 +51,6 @@ uint32_t cpu_inl(uint32_t addr);
 typedef struct PortioList {
     const struct MemoryRegionPortio *ports;
     Object *owner;
-    struct MemoryRegion *address_space;
     uint32_t addr;
     unsigned nr;
     struct MemoryRegion **regions;
