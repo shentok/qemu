@@ -19,6 +19,7 @@ class AmigaOneMachine(QemuSystemTest):
         :avocado: tags=arch:ppc
         :avocado: tags=machine:amigaone
         :avocado: tags=device:articia
+        :avocado: tags=device:via686b
         :avocado: tags=accel:tcg
         """
         self.require_accelerator("tcg")
