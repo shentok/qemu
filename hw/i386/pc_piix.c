@@ -245,7 +245,8 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         DeviceState *dev;
         size_t i;
 
-        pci_dev = pci_new_multifunction(-1, pcms->south_bridge);
+        pci_dev = pci_new_multifunction(pcms->south_bridge_devfn,
+                                        pcms->south_bridge);
         object_property_set_bool(OBJECT(pci_dev), "has-usb",
                                  machine_usb(machine), &error_abort);
         object_property_set_bool(OBJECT(pci_dev), "has-acpi",
@@ -371,6 +372,20 @@ static void pc_init1(MachineState *machine, const char *pci_type)
                                x86_nvdimm_acpi_dsmio,
                                x86ms->fw_cfg, OBJECT(pcms));
     }
+}
+
+static void pc_set_south_bridge_slot(Object *obj, Visitor *v,
+                                     const char *name, void *opaque,
+                                     Error **errp)
+{
+    PCMachineState *pcms = PC_MACHINE(obj);
+    int64_t value;
+
+    if (!visit_type_int(v, name, &value, errp)) {
+        return;
+    }
+
+    pcms->south_bridge_devfn = PCI_DEVFN(value, 0);
 }
 
 typedef enum PCSouthBridgeOption {
@@ -533,6 +548,11 @@ static void pc_i440fx_machine_options(MachineClass *m)
     machine_class_allow_dynamic_sysbus_dev(m, TYPE_VMBUS_BRIDGE);
     machine_class_allow_dynamic_sysbus_dev(m, TYPE_UEFI_VARS_X64);
     machine_add_audiodev_property(m);
+
+    object_class_property_add(oc, "x-south-bridge-slot", "int", NULL,
+                              pc_set_south_bridge_slot, NULL, NULL);
+    object_class_property_set_description(oc, "x-south-bridge-slot",
+                                          "Maximum combined firmware size");
 
     object_class_property_add_enum(oc, "x-south-bridge", "PCSouthBridgeOption",
                                    &PCSouthBridgeOption_lookup,
