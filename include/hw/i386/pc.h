@@ -49,6 +49,7 @@ typedef struct PCMachineState {
     SmbiosEntryPointType smbios_entry_point_type;
     PCSouthBridgeOption south_bridge;
     PCNorthBridgeOption north_bridge;
+    int8_t south_bridge_devfn;
 
     bool acpi_build_enabled;
     bool wdat_enabled;
