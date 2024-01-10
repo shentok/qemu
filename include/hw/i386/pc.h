@@ -42,6 +42,7 @@ typedef struct PCMachineState {
     uint64_t max_ram_below_4g;
     OnOffAuto vmport;
     SmbiosEntryPointType smbios_entry_point_type;
+    int8_t south_bridge_devfn;
     const char *south_bridge;
     const char *north_bridge;
 
