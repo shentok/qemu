@@ -254,7 +254,7 @@ static void pc_init1(MachineState *machine, const char *pci_type)
 
     gsi_state = pc_gsi_create(&x86ms->gsi, true);
 
-    pci_dev = pci_new_multifunction(-1,
+    pci_dev = pci_new_multifunction(pcms->south_bridge_devfn,
                                     pc_south_bridge_type[pcms->south_bridge]);
     object_property_set_bool(OBJECT(pci_dev), "has-usb",
                              machine_usb(machine), &error_abort);
@@ -343,6 +343,20 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     }
 }
 
+static void pc_set_south_bridge_slot(Object *obj, Visitor *v,
+                                     const char *name, void *opaque,
+                                     Error **errp)
+{
+    PCMachineState *pcms = PC_MACHINE(obj);
+    int64_t value;
+
+    if (!visit_type_int(v, name, &value, errp)) {
+        return;
+    }
+
+    pcms->south_bridge_devfn = PCI_DEVFN(value, 0);
+}
+
 static int pc_get_south_bridge(Object *obj, Error **errp)
 {
     PCMachineState *pcms = PC_MACHINE(obj);
@@ -422,6 +436,10 @@ static void pc_i440fx_machine_options(MachineClass *m)
     machine_class_allow_dynamic_sysbus_dev(m, TYPE_UEFI_VARS_X64);
     machine_add_audiodev_property(m);
 
+    object_class_property_add(oc, "x-south-bridge-slot", "int", &int_type_info,
+                              NULL, pc_set_south_bridge_slot, NULL, NULL);
+    object_class_property_set_description(oc, "x-south-bridge-slot",
+                                          "IDSel of south bridge");
     object_class_property_add_enum(oc, "x-south-bridge",
                                    "PCSouthBridgeOption",
                                    &PCSouthBridgeOption_type_info,
