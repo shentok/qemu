@@ -32,8 +32,7 @@
 #include "migration/vmstate.h"
 #include "hw/i2c/smbus_eeprom.h"
 #include "qom/object.h"
-
-//#define DEBUG
+#include "trace.h"
 
 #define TYPE_SMBUS_EEPROM "smbus-eeprom"
 
@@ -53,13 +52,11 @@ static uint8_t eeprom_receive_byte(SMBusDevice *dev)
 {
     SMBusEEPROMDevice *eeprom = SMBUS_EEPROM(dev);
     uint8_t *data = eeprom->data;
-    uint8_t val = data[eeprom->offset++];
+    uint8_t offset = eeprom->offset++;
+    uint8_t val = data[offset];
 
     eeprom->accessed = true;
-#ifdef DEBUG
-    printf("eeprom_receive_byte: addr=0x%02x val=0x%02x\n",
-           dev->i2c.address, val);
-#endif
+    trace_eeprom_receive_byte(dev->i2c.address, offset, val);
     return val;
 }
 
@@ -69,10 +66,6 @@ static int eeprom_write_data(SMBusDevice *dev, uint8_t *buf, uint8_t len)
     uint8_t *data = eeprom->data;
 
     eeprom->accessed = true;
-#ifdef DEBUG
-    printf("eeprom_write_byte: addr=0x%02x cmd=0x%02x val=0x%02x\n",
-           dev->i2c.address, buf[0], buf[1]);
-#endif
     /* len is guaranteed to be > 0 */
     eeprom->offset = buf[0];
     buf++;
@@ -80,6 +73,8 @@ static int eeprom_write_data(SMBusDevice *dev, uint8_t *buf, uint8_t len)
 
     for (; len > 0; len--) {
         data[eeprom->offset] = *buf++;
+        trace_eeprom_write_byte(dev->i2c.address, eeprom->offset,
+                                data[eeprom->offset]);
         eeprom->offset = (eeprom->offset + 1) % SMBUS_EEPROM_SIZE;
     }
 
