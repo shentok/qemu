@@ -58,6 +58,10 @@ static int pit_get_count(PITChannelState *s)
                  NANOSECONDS_PER_SECOND);
     switch(s->mode) {
     case 0:
+        if (s->gate == 0) {
+            d = 0;
+        }
+        /* fall through */
     case 1:
     case 4:
     case 5:
@@ -109,9 +113,11 @@ static inline void pit_load_count(PITChannelState *s, int val)
 {
     if (val == 0)
         val = 0x10000;
-    s->count_load_time = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
     s->count = val;
-    pit_irq_timer_update(s, s->count_load_time);
+    if (s->mode != 0 || s->gate) {
+        s->count_load_time = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+        pit_irq_timer_update(s, s->count_load_time);
+    }
 }
 
 /* if already latched, do not latch again */
