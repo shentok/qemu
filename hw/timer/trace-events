@@ -53,6 +53,12 @@ cmsdk_apb_dualtimer_reset(void) "CMSDK APB dualtimer: reset"
 pit_ioport_read(uint8_t addr, uint32_t value) "[0x%" PRIx8 "] -> 0x%" PRIx32
 pit_ioport_write(uint8_t addr, uint32_t value) "[0x%" PRIx8 "] <- 0x%" PRIx32
 
+# imx_gpt.c
+imx_gpt_set_freq(uint32_t clksrc, uint32_t freq) "Setting clksrc %d to %d Hz"
+imx_gpt_read(const char *name, uint32_t value) "%s -> 0x%08x"
+imx_gpt_write(const char *name, uint32_t value) "%s <- 0x%08x"
+imx_gpt_timeout(void) ""
+
 # npcm7xx_timer.c
 npcm7xx_timer_read(const char *id, uint64_t offset, uint64_t value) " %s offset: 0x%04" PRIx64 " value 0x%08" PRIx64
 npcm7xx_timer_write(const char *id, uint64_t offset, uint64_t value) "%s offset: 0x%04" PRIx64 " value 0x%08" PRIx64
