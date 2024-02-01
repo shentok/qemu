@@ -15,6 +15,7 @@
 #include "migration/vmstate.h"
 #include "qemu/log.h"
 #include "qemu/module.h"
+#include "system/runstate.h"
 #include "trace.h"
 
 static const char *imx6_ccm_reg_name(uint32_t reg)
@@ -489,6 +490,12 @@ static void imx6_ccm_write(void *opaque, hwaddr offset, uint64_t value,
      * cannot be written to.
      */
     s->ccm[index] = (uint32_t)value;
+
+    if (index == CCM_CCGR6) {
+        if ((value & 0xff) == 0) {
+            qemu_system_shutdown_request(SHUTDOWN_CAUSE_GUEST_SHUTDOWN);
+        }
+    }
 }
 
 static uint64_t imx6_analog_read(void *opaque, hwaddr offset, unsigned size)
