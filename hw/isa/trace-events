@@ -1,5 +1,13 @@
 # See docs/devel/tracing.rst for syntax documentation.
 
+# fdc37m81x.c
+fdc37m81x_config_io_read(uint32_t addr, uint32_t val) "[0x%x] -> 0x%x"
+fdc37m81x_config_io_write(uint32_t addr, uint32_t val) "[0x%x] <- 0x%x"
+fdc37m81x_data_io_read(uint32_t addr, uint32_t val) "[0x%x] -> 0x%x"
+fdc37m81x_index_data_io_write(uint8_t dev, uint8_t index, uint8_t val) "[%" PRIu8 ":0x%x] <- 0x%x"
+fdc37m81x_index_io_write(uint8_t val) "[0] <- 0x%x"
+fdc37m81x_data_io_write(uint8_t val) "[1] <- 0x%x"
+
 # isa-superio.c
 superio_create_parallel(int id, uint16_t base, unsigned int irq) "id=%d, base 0x%03x, irq %u"
 superio_create_serial(int id, uint16_t base, unsigned int irq) "id=%d, base 0x%03x, irq %u"

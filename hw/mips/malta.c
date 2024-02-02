@@ -30,7 +30,7 @@
 #include "qemu/guest-random.h"
 #include "hw/clock.h"
 #include "hw/southbridge/piix.h"
-#include "hw/isa/superio.h"
+#include "hw/isa/fdc37m81x-superio.h"
 #include "hw/char/serial-mm.h"
 #include "net/net.h"
 #include "hw/boards.h"
@@ -1259,7 +1259,7 @@ void mips_malta_init(MachineState *machine)
     g_free(smbus_eeprom_buf);
 
     /* Super I/O: SMS FDC37M817 */
-    isa_create_simple(isa_bus, TYPE_FDC37M81X_SUPERIO);
+    isa_create_simple(isa_bus, TYPE_FDC37M81X);
 
     /* Network card */
     network_init(pci_bus);
