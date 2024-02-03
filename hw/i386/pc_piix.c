@@ -242,7 +242,7 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         DeviceState *dev;
         size_t i;
 
-        pci_dev = pci_new_multifunction(-1, pcms->south_bridge);
+        pci_dev = pci_new_multifunction(PCI_DEVFN(7, 0), pcms->south_bridge);
         object_property_set_bool(OBJECT(pci_dev), "has-usb",
                                  machine_usb(machine), &error_abort);
         object_property_set_bool(OBJECT(pci_dev), "has-acpi",
