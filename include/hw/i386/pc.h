@@ -294,6 +294,10 @@ extern const size_t pc_compat_2_0_len;
         .name       = namestr TYPE_MACHINE_SUFFIX, \
         .parent     = TYPE_PC_MACHINE, \
         .class_init = pc_machine_##suffix##_class_init, \
+        .interfaces = (InterfaceInfo[]) { \
+            { TYPE_HOTPLUG_HANDLER }, \
+            { } \
+        }, \
     }; \
     static void pc_machine_init_##suffix(void) \
     { \
