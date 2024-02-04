@@ -15,6 +15,7 @@
 #include "hw/pci/pci_device.h"
 #include "hw/acpi/piix4.h"
 #include "hw/ide/pci.h"
+#include "hw/isa/apm.h"
 #include "hw/rtc/mc146818rtc.h"
 #include "hw/usb/hcd-uhci.h"
 
@@ -51,6 +52,7 @@ struct PIIXState {
 
     qemu_irq cpu_intr;
     qemu_irq isa_irqs_in[ISA_NUM_IRQS];
+    qemu_irq smi_irq;
 
     /* This member isn't used. Just for save/load compatibility */
     int32_t pci_irq_levels_vmstate[PIIX_NUM_PIRQS];
@@ -59,6 +61,7 @@ struct PIIXState {
     PCIIDEState ide;
     UHCIState uhci;
     PIIX4PMState pm;
+    APMState apm;
 
     uint32_t smb_io_base;
 
