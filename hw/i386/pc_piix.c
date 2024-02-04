@@ -257,6 +257,9 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         }
         pci_realize_and_unref(pci_dev, pcms->pcibus, &error_fatal);
 
+        smi_irq = qemu_allocate_irq(pc_acpi_smi_interrupt, first_cpu, 0);
+        qdev_connect_gpio_out_named(dev, "smi-irq", 0, smi_irq);
+
         if (xen_enabled()) {
             pci_device_set_intx_routing_notifier(
                         pci_dev, piix_intx_routing_notifier_xen);
@@ -326,9 +329,6 @@ static void pc_init1(MachineState *machine, const char *pci_type)
 #endif
 
     if (piix4_pm) {
-        smi_irq = qemu_allocate_irq(pc_acpi_smi_interrupt, first_cpu, 0);
-
-        qdev_connect_gpio_out_named(DEVICE(piix4_pm), "smi-irq", 0, smi_irq);
         smbus = I2C_BUS(qdev_get_child_bus(DEVICE(piix4_pm), "i2c"));
 
         object_property_add_link(OBJECT(machine), PC_MACHINE_ACPI_DEVICE_PROP,
