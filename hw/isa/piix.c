@@ -38,6 +38,18 @@
 #include "migration/vmstate.h"
 #include "hw/acpi/acpi_aml_interface.h"
 
+static void piix3_isa_write_apmc(uint32_t val, void *arg)
+{
+    PIIXState *s = arg;
+    PCIDevice *d = PCI_DEVICE(s);
+
+    if (d->config[0xa0] & BIT(0) && d->config[0xa2] & BIT(7)) {
+        if (s->smi_irq) {
+            qemu_irq_raise(s->smi_irq);
+        }
+    }
+}
+
 static void piix_set_irq_pic(PIIXState *s, int pic_irq)
 {
     qemu_set_irq(s->isa_irqs_in[pic_irq],
@@ -371,6 +383,10 @@ static void pci_piix_realize(PCIDevice *dev, const char *uhci_type,
             return;
         }
         qdev_connect_gpio_out(DEVICE(&d->pm), 0, d->isa_irqs_in[9]);
+        qdev_pass_gpios(DEVICE(&d->pm), DEVICE(d), "smi-irq");
+    } else {
+        apm_init(dev, &d->apm, piix3_isa_write_apmc, dev);
+        qdev_init_gpio_out_named(DEVICE(dev), &d->smi_irq, "smi-irq", 1);
     }
 
     pci_bus_irqs(pci_bus, piix_set_pci_irq, d, PIIX_NUM_PIRQS);
