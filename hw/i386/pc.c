@@ -25,15 +25,15 @@
 #include "qemu/osdep.h"
 #include "qemu/units.h"
 #include "hw/i386/pc.h"
-#include "hw/char/serial-isa.h"
-#include "hw/char/parallel.h"
 #include "hw/hyperv/hv-balloon.h"
 #include "hw/i386/fw_cfg.h"
 #include "hw/i386/vmport.h"
 #include "sysemu/cpus.h"
 #include "hw/ide/ide-bus.h"
+#include "hw/isa/fdc37m81x-superio.h"
 #include "hw/timer/hpet.h"
 #include "hw/loader.h"
+#include "hw/irq.h"
 #include "hw/rtc/mc146818rtc.h"
 #include "hw/intc/i8259.h"
 #include "hw/timer/i8254.h"
@@ -1084,27 +1084,10 @@ static const MemoryRegionOps ioportF0_io_ops = {
 static void pc_superio_init(ISABus *isa_bus, bool create_fdctrl,
                             bool create_i8042, bool no_vmport, Error **errp)
 {
-    int i;
-    DriveInfo *fd[MAX_FD];
     qemu_irq *a20_line;
     ISADevice *i8042, *port92, *vmmouse;
 
-    serial_hds_isa_init(isa_bus, 0, MAX_ISA_SERIAL_PORTS);
-    parallel_hds_isa_init(isa_bus, MAX_PARALLEL_PORTS);
-
-    for (i = 0; i < MAX_FD; i++) {
-        fd[i] = drive_get(IF_FLOPPY, 0, i);
-        create_fdctrl |= !!fd[i];
-    }
-    if (create_fdctrl) {
-#ifdef CONFIG_FDC_ISA
-        ISADevice *fdc = isa_new(TYPE_ISA_FDC);
-        if (fdc) {
-            isa_realize_and_unref(fdc, isa_bus, &error_fatal);
-            isa_fdc_init_drives(fdc, fd);
-        }
-#endif
-    }
+    isa_create_simple(isa_bus, TYPE_FDC37M81X);
 
     if (!create_i8042) {
         if (!no_vmport) {
