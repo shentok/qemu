@@ -1,5 +1,5 @@
 /*
- * ACPI implementation
+ * QEMU ICH9 SMBus emulation
  *
  * Copyright (c) 2006 Fabrice Bellard
  * Copyright (c) 2009 Isaku Yamahata <yamahata at valinux co jp>
@@ -22,24 +22,13 @@
 
 #include "qemu/osdep.h"
 #include "qemu/range.h"
-#include "hw/i2c/pm_smbus.h"
-#include "hw/pci/pci.h"
+#include "hw/i2c/ich9_smbus.h"
 #include "migration/vmstate.h"
 #include "qemu/module.h"
 
 #include "hw/southbridge/ich9.h"
 #include "qom/object.h"
 #include "hw/acpi/acpi_aml_interface.h"
-
-OBJECT_DECLARE_SIMPLE_TYPE(ICH9SMBState, ICH9_SMB_DEVICE)
-
-struct ICH9SMBState {
-    PCIDevice dev;
-
-    bool irq_enabled;
-
-    PMSMBus smb;
-};
 
 static bool ich9_vmstate_need_smbus(void *opaque, int version_id)
 {
