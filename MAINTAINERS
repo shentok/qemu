@@ -2626,10 +2626,12 @@ M: Marcel Apfelbaum <marcel.apfelbaum@gmail.com>
 S: Supported
 F: hw/acpi/ich9*.c
 F: hw/i2c/smbus_ich9.c
+F: hw/ide/ich9_ahci.c
 F: hw/isa/lpc_ich9.c
 F: hw/southbridge/ich9.c
 F: include/hw/acpi/ich9*.h
 F: include/hw/i2c/ich9_smbus.h
+F: include/hw/ide/ahci-pci.h
 F: include/hw/pci-bridge/ich9_dmi.h
 F: include/hw/southbridge/ich9.h
 

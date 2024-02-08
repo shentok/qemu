@@ -13,22 +13,30 @@
 #include "hw/southbridge/ich9.h"
 #include "hw/pci/pci.h"
 #include "hw/pci-bridge/ich9_dmi.h"
+#include "hw/ide/ahci-pci.h"
+#include "hw/ide/ide-dev.h"
 
 #define ICH9_D2P_DEVFN          PCI_DEVFN(30, 0)
+#define ICH9_SATA1_DEVFN        PCI_DEVFN(31, 2)
+
+#define SATA_PORTS              6
 
 struct ICH9State {
     DeviceState parent_obj;
 
     I82801b11Bridge d2p;
+    AHCIPCIState sata0;
 
     PCIBus *pci_bus;
     bool d2p_enabled;
+    bool sata_enabled;
 };
 
 static Property ich9_props[] = {
     DEFINE_PROP_LINK("mch-pcie-bus", ICH9State, pci_bus,
                      TYPE_PCIE_BUS, PCIBus *),
     DEFINE_PROP_BOOL("d2p-enabled", ICH9State, d2p_enabled, true),
+    DEFINE_PROP_BOOL("sata-enabled", ICH9State, sata_enabled, true),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -52,6 +60,29 @@ static bool ich9_realize_d2p(ICH9State *s, Error **errp)
     return true;
 }
 
+static bool ich9_realize_sata(ICH9State *s, Error **errp)
+{
+    DriveInfo *hd[SATA_PORTS];
+
+    object_initialize_child(OBJECT(s), "sata[0]", &s->sata0, TYPE_ICH9_AHCI);
+    qdev_prop_set_int32(DEVICE(&s->sata0), "addr", ICH9_SATA1_DEVFN);
+    if (!qdev_realize(DEVICE(&s->sata0), BUS(s->pci_bus), errp)) {
+        return false;
+    }
+    for (unsigned i = 0; i < SATA_PORTS; i++) {
+        g_autofree char *portname = g_strdup_printf("ide.%u", i);
+
+        object_property_add_alias(OBJECT(s), portname,
+                                  OBJECT(&s->sata0), portname);
+    }
+
+    g_assert(SATA_PORTS == s->sata0.ahci.ports);
+    ide_drive_get(hd, s->sata0.ahci.ports);
+    ahci_ide_create_devs(&s->sata0.ahci, hd);
+
+    return true;
+}
+
 static void ich9_realize(DeviceState *dev, Error **errp)
 {
     ICH9State *s = ICH9_SOUTHBRIDGE(dev);
@@ -62,6 +93,10 @@ static void ich9_realize(DeviceState *dev, Error **errp)
     }
 
     if (s->d2p_enabled && !ich9_realize_d2p(s, errp)) {
+        return;
+    }
+
+    if (s->sata_enabled && !ich9_realize_sata(s, errp)) {
         return;
     }
 }

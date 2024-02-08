@@ -61,9 +61,6 @@
 #include "hw/i386/acpi-build.h"
 #include "target/i386/cpu.h"
 
-/* ICH9 AHCI has 6 ports */
-#define MAX_SATA_PORTS     6
-
 static GlobalProperty pc_q35_compat_defaults[] = {
     { TYPE_VIRTIO_IOMMU_PCI, "aw-bits", "39" },
 };
@@ -141,7 +138,6 @@ static void pc_q35_init(MachineState *machine)
     ISABus *isa_bus;
     int i;
     ram_addr_t lowmem;
-    DriveInfo *hd[MAX_SATA_PORTS];
     MachineClass *mc = MACHINE_GET_CLASS(machine);
     bool acpi_pcihp;
     bool keep_pci_slot_hpc;
@@ -234,6 +230,7 @@ static void pc_q35_init(MachineState *machine)
     object_property_set_link(OBJECT(ich9), "mch-pcie-bus",
                              OBJECT(pcms->pcibus), &error_abort);
     qdev_prop_set_bit(ich9, "d2p-enabled", false);
+    qdev_prop_set_bit(ich9, "sata-enabled", pcms->sata_enabled);
     qdev_realize_and_unref(ich9, NULL, &error_fatal);
 
     /* create ISA bus */
@@ -294,20 +291,8 @@ static void pc_q35_init(MachineState *machine)
                          0xff0104);
 
     if (pcms->sata_enabled) {
-        PCIDevice *pdev;
-        AHCIPCIState *ich9;
-
-        /* ahci and SATA device, for q35 1 ahci controller is built-in */
-        pdev = pci_create_simple_multifunction(pcms->pcibus,
-                                               PCI_DEVFN(ICH9_SATA1_DEV,
-                                                         ICH9_SATA1_FUNC),
-                                               "ich9-ahci");
-        ich9 = ICH9_AHCI(pdev);
-        pcms->idebus[0] = qdev_get_child_bus(DEVICE(pdev), "ide.0");
-        pcms->idebus[1] = qdev_get_child_bus(DEVICE(pdev), "ide.1");
-        g_assert(MAX_SATA_PORTS == ich9->ahci.ports);
-        ide_drive_get(hd, ich9->ahci.ports);
-        ahci_ide_create_devs(&ich9->ahci, hd);
+        pcms->idebus[0] = qdev_get_child_bus(ich9, "ide.0");
+        pcms->idebus[1] = qdev_get_child_bus(ich9, "ide.1");
     }
 
     if (machine_usb(machine)) {

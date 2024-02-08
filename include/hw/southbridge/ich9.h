@@ -166,10 +166,6 @@ struct ICH9LPCState {
 
 #define ICH9_GPIO_GSI "gsi"
 
-/* D31:F2 SATA Controller #1 */
-#define ICH9_SATA1_DEV                          31
-#define ICH9_SATA1_FUNC                         2
-
 /* D31:F0 power management I/O registers
    offset from the address ICH9_LPC_PMBASE */
 
