@@ -11,6 +11,9 @@
 #include "qemu/notify.h"
 #include "qom/object.h"
 
+#define TYPE_ICH9_SOUTHBRIDGE "ICH9-southbridge"
+OBJECT_DECLARE_SIMPLE_TYPE(ICH9State, ICH9_SOUTHBRIDGE)
+
 #define ICH9_CC_SIZE (16 * 1024) /* 16KB. Chipset configuration registers */
 
 #define TYPE_ICH9_LPC_DEVICE "ICH9-LPC"

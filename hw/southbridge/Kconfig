@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+config ICH9
+    bool
+    depends on PCI_EXPRESS

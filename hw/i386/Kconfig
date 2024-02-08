@@ -100,6 +100,7 @@ config Q35
     select PC_PCI
     select PC_ACPI
     select PCI_EXPRESS_Q35
+    select ICH9
     select LPC_ICH9
     select AHCI_ICH9
     select DIMM

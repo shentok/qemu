@@ -130,6 +130,7 @@ static void pc_q35_init(MachineState *machine)
     PCMachineClass *pcmc = PC_MACHINE_GET_CLASS(pcms);
     X86MachineState *x86ms = X86_MACHINE(machine);
     Object *phb;
+    DeviceState *ich9;
     PCIDevice *lpc;
     Object *lpc_obj;
     DeviceState *lpc_dev;
@@ -227,6 +228,12 @@ static void pc_q35_init(MachineState *machine)
 
     /* irq lines */
     gsi_state = pc_gsi_create(&x86ms->gsi, true);
+
+    ich9 = qdev_new(TYPE_ICH9_SOUTHBRIDGE);
+    object_property_add_child(OBJECT(machine), "ich9", OBJECT(ich9));
+    object_property_set_link(OBJECT(ich9), "mch-pcie-bus",
+                             OBJECT(pcms->pcibus), &error_abort);
+    qdev_realize_and_unref(ich9, NULL, &error_fatal);
 
     /* create ISA bus */
     lpc = pci_new_multifunction(PCI_DEVFN(ICH9_LPC_DEV, ICH9_LPC_FUNC),
