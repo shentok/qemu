@@ -229,6 +229,7 @@ static void pc_q35_init(MachineState *machine)
                              OBJECT(pcms->pcibus), &error_abort);
     qdev_prop_set_bit(ich9, "d2p-enabled", false);
     qdev_prop_set_bit(ich9, "sata-enabled", pcms->sata_enabled);
+    qdev_prop_set_bit(ich9, "smbus-enabled", pcms->smbus_enabled);
     qdev_realize_and_unref(ich9, NULL, &error_fatal);
 
     /* create ISA bus */
@@ -299,15 +300,8 @@ static void pc_q35_init(MachineState *machine)
     }
 
     if (pcms->smbus_enabled) {
-        PCIDevice *smb;
-
+        pcms->smbus = I2C_BUS(qdev_get_child_bus(ich9, "i2c"));
         /* TODO: Populate SPD eeprom data.  */
-        smb = pci_create_simple_multifunction(pcms->pcibus,
-                                              PCI_DEVFN(ICH9_SMB_DEV,
-                                                        ICH9_SMB_FUNC),
-                                              TYPE_ICH9_SMB_DEVICE);
-        pcms->smbus = I2C_BUS(qdev_get_child_bus(DEVICE(smb), "i2c"));
-
         smbus_eeprom_init(pcms->smbus, 8, NULL, 0);
     }
 

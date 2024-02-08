@@ -15,9 +15,11 @@
 #include "hw/pci-bridge/ich9_dmi.h"
 #include "hw/ide/ahci-pci.h"
 #include "hw/ide/ide-dev.h"
+#include "hw/i2c/ich9_smbus.h"
 
 #define ICH9_D2P_DEVFN          PCI_DEVFN(30, 0)
 #define ICH9_SATA1_DEVFN        PCI_DEVFN(31, 2)
+#define ICH9_SMB_DEVFN          PCI_DEVFN(31, 3)
 
 #define SATA_PORTS              6
 
@@ -26,10 +28,12 @@ struct ICH9State {
 
     I82801b11Bridge d2p;
     AHCIPCIState sata0;
+    ICH9SMBState smb;
 
     PCIBus *pci_bus;
     bool d2p_enabled;
     bool sata_enabled;
+    bool smbus_enabled;
 };
 
 static Property ich9_props[] = {
@@ -37,6 +41,7 @@ static Property ich9_props[] = {
                      TYPE_PCIE_BUS, PCIBus *),
     DEFINE_PROP_BOOL("d2p-enabled", ICH9State, d2p_enabled, true),
     DEFINE_PROP_BOOL("sata-enabled", ICH9State, sata_enabled, true),
+    DEFINE_PROP_BOOL("smbus-enabled", ICH9State, smbus_enabled, true),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -83,6 +88,18 @@ static bool ich9_realize_sata(ICH9State *s, Error **errp)
     return true;
 }
 
+static bool ich9_realize_smbus(ICH9State *s, Error **errp)
+{
+    object_initialize_child(OBJECT(s), "smb", &s->smb, TYPE_ICH9_SMB_DEVICE);
+    qdev_prop_set_int32(DEVICE(&s->smb), "addr", ICH9_SMB_DEVFN);
+    if (!qdev_realize(DEVICE(&s->smb), BUS(s->pci_bus), errp)) {
+        return false;
+    }
+    object_property_add_alias(OBJECT(s), "i2c", OBJECT(&s->smb), "i2c");
+
+    return true;
+}
+
 static void ich9_realize(DeviceState *dev, Error **errp)
 {
     ICH9State *s = ICH9_SOUTHBRIDGE(dev);
@@ -97,6 +114,10 @@ static void ich9_realize(DeviceState *dev, Error **errp)
     }
 
     if (s->sata_enabled && !ich9_realize_sata(s, errp)) {
+        return;
+    }
+
+    if (s->smbus_enabled && !ich9_realize_smbus(s, errp)) {
         return;
     }
 }

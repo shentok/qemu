@@ -26,9 +26,36 @@
 #include "migration/vmstate.h"
 #include "qemu/module.h"
 
-#include "hw/southbridge/ich9.h"
 #include "qom/object.h"
 #include "hw/acpi/acpi_aml_interface.h"
+
+/* D31:F3 SMBus controller */
+
+#define ICH9_A2_SMB_REVISION                    0x02
+#define ICH9_SMB_PI                             0x00
+
+#define ICH9_SMB_SMBMBAR0                       0x10
+#define ICH9_SMB_SMBMBAR1                       0x14
+#define ICH9_SMB_SMBM_BAR                       0
+#define ICH9_SMB_SMBM_SIZE                      (1 << 8)
+#define ICH9_SMB_SMB_BASE                       0x20
+#define ICH9_SMB_SMB_BASE_BAR                   4
+#define ICH9_SMB_SMB_BASE_SIZE                  (1 << 5)
+#define ICH9_SMB_HOSTC                          0x40
+#define ICH9_SMB_HOSTC_SSRESET                  ((uint8_t)(1 << 3))
+#define ICH9_SMB_HOSTC_I2C_EN                   ((uint8_t)(1 << 2))
+#define ICH9_SMB_HOSTC_SMB_SMI_EN               ((uint8_t)(1 << 1))
+#define ICH9_SMB_HOSTC_HST_EN                   ((uint8_t)(1 << 0))
+
+/* D31:F3 SMBus I/O and memory mapped I/O registers */
+
+#define ICH9_SMB_HST_STS                        0x00
+#define ICH9_SMB_HST_CNT                        0x02
+#define ICH9_SMB_HST_CMD                        0x03
+#define ICH9_SMB_XMIT_SLVA                      0x04
+#define ICH9_SMB_HST_D0                         0x05
+#define ICH9_SMB_HST_D1                         0x06
+#define ICH9_SMB_HOST_BLOCK_DB                  0x07
 
 static bool ich9_vmstate_need_smbus(void *opaque, int version_id)
 {

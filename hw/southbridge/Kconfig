@@ -5,3 +5,4 @@ config ICH9
     depends on PCI_EXPRESS
     imply I82801B11
     select AHCI_ICH9
+    select ACPI_ICH9
