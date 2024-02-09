@@ -103,11 +103,6 @@ struct ICH9LPCState {
 #define ICH9_PCIE_DEV                           28
 #define ICH9_PCIE_FUNC_MAX                      6
 
-
-/* D29:F0 USB UHCI Controller #1 */
-#define ICH9_USB_UHCI1_DEV                      29
-#define ICH9_USB_UHCI1_FUNC                     0
-
 /* D31:F0 LPC Processor Interface */
 #define ICH9_RST_CNT_IOPORT                     0xCF9
 

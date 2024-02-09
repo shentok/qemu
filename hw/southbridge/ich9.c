@@ -16,12 +16,18 @@
 #include "hw/ide/ahci-pci.h"
 #include "hw/ide/ide-dev.h"
 #include "hw/i2c/ich9_smbus.h"
+#include "hw/usb.h"
+#include "hw/usb/hcd-ehci.h"
+#include "hw/usb/hcd-uhci.h"
 
 #define ICH9_D2P_DEVFN          PCI_DEVFN(30, 0)
 #define ICH9_SATA1_DEVFN        PCI_DEVFN(31, 2)
 #define ICH9_SMB_DEVFN          PCI_DEVFN(31, 3)
+#define ICH9_EHCI_FUNC          7
 
 #define SATA_PORTS              6
+#define EHCI_PER_FN             2
+#define UHCI_PER_FN             3
 
 struct ICH9State {
     DeviceState parent_obj;
@@ -29,11 +35,14 @@ struct ICH9State {
     I82801b11Bridge d2p;
     AHCIPCIState sata0;
     ICH9SMBState smb;
+    EHCIPCIState ehci[EHCI_PER_FN];
+    UHCIState uhci[EHCI_PER_FN * UHCI_PER_FN];
 
     PCIBus *pci_bus;
     bool d2p_enabled;
     bool sata_enabled;
     bool smbus_enabled;
+    uint8_t ehci_count;
 };
 
 static Property ich9_props[] = {
@@ -42,6 +51,7 @@ static Property ich9_props[] = {
     DEFINE_PROP_BOOL("d2p-enabled", ICH9State, d2p_enabled, true),
     DEFINE_PROP_BOOL("sata-enabled", ICH9State, sata_enabled, true),
     DEFINE_PROP_BOOL("smbus-enabled", ICH9State, smbus_enabled, true),
+    DEFINE_PROP_UINT8("ehci-count", ICH9State, ehci_count, 2),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -100,6 +110,46 @@ static bool ich9_realize_smbus(ICH9State *s, Error **errp)
     return true;
 }
 
+static bool ich9_realize_usb(ICH9State *s, Error **errp)
+{
+    if (!module_object_class_by_name(TYPE_ICH9_USB_UHCI(1))
+        || !module_object_class_by_name("ich9-usb-ehci1")) {
+        error_setg(errp, "USB functions not available in this build");
+        return false;
+    }
+    for (unsigned e = 0; e < s->ehci_count; e++) {
+        g_autofree gchar *ename = g_strdup_printf("ich9-usb-ehci%u", e + 1);
+        EHCIPCIState *ehci = &s->ehci[e];
+        const unsigned devid = e ? 0x1a : 0x1d;
+        BusState *masterbus;
+
+        object_initialize_child(OBJECT(s), "ehci[*]", ehci, ename);
+        qdev_prop_set_int32(DEVICE(ehci), "addr", PCI_DEVFN(devid,
+                                                            ICH9_EHCI_FUNC));
+        if (!qdev_realize(DEVICE(ehci), BUS(s->pci_bus), errp)) {
+            return false;
+        }
+        masterbus = QLIST_FIRST(&DEVICE(ehci)->child_bus);
+
+        for (unsigned u = 0; u < UHCI_PER_FN; u++) {
+            unsigned c = UHCI_PER_FN * e + u;
+            UHCIState *uhci = &s->uhci[c];
+            g_autofree gchar *cname = g_strdup_printf("ich9-usb-uhci%u", c + 1);
+
+            object_initialize_child(OBJECT(s), "uhci[*]", uhci, cname);
+            qdev_prop_set_bit(DEVICE(uhci), "multifunction", true);
+            qdev_prop_set_int32(DEVICE(uhci), "addr", PCI_DEVFN(devid, u));
+            qdev_prop_set_string(DEVICE(uhci), "masterbus", masterbus->name);
+            qdev_prop_set_uint32(DEVICE(uhci), "firstport", 2 * u);
+            if (!qdev_realize(DEVICE(uhci), BUS(s->pci_bus), errp)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 static void ich9_realize(DeviceState *dev, Error **errp)
 {
     ICH9State *s = ICH9_SOUTHBRIDGE(dev);
@@ -118,6 +168,10 @@ static void ich9_realize(DeviceState *dev, Error **errp)
     }
 
     if (s->smbus_enabled && !ich9_realize_smbus(s, errp)) {
+        return;
+    }
+
+    if (!ich9_realize_usb(s, errp)) {
         return;
     }
 }

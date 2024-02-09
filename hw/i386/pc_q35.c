@@ -49,8 +49,6 @@
 #include "hw/display/ramfb.h"
 #include "hw/intc/ioapic.h"
 #include "hw/southbridge/ich9.h"
-#include "hw/usb.h"
-#include "hw/usb/hcd-uhci.h"
 #include "qapi/error.h"
 #include "qemu/error-report.h"
 #include "sysemu/numa.h"
@@ -64,59 +62,6 @@ static GlobalProperty pc_q35_compat_defaults[] = {
 };
 static const size_t pc_q35_compat_defaults_len =
     G_N_ELEMENTS(pc_q35_compat_defaults);
-
-struct ehci_companions {
-    const char *name;
-    int func;
-    int port;
-};
-
-static const struct ehci_companions ich9_1d[] = {
-    { .name = TYPE_ICH9_USB_UHCI(1), .func = 0, .port = 0 },
-    { .name = TYPE_ICH9_USB_UHCI(2), .func = 1, .port = 2 },
-    { .name = TYPE_ICH9_USB_UHCI(3), .func = 2, .port = 4 },
-};
-
-static const struct ehci_companions ich9_1a[] = {
-    { .name = TYPE_ICH9_USB_UHCI(4), .func = 0, .port = 0 },
-    { .name = TYPE_ICH9_USB_UHCI(5), .func = 1, .port = 2 },
-    { .name = TYPE_ICH9_USB_UHCI(6), .func = 2, .port = 4 },
-};
-
-static int ehci_create_ich9_with_companions(PCIBus *bus, int slot)
-{
-    const struct ehci_companions *comp;
-    PCIDevice *ehci, *uhci;
-    BusState *usbbus;
-    const char *name;
-    int i;
-
-    switch (slot) {
-    case 0x1d:
-        name = "ich9-usb-ehci1";
-        comp = ich9_1d;
-        break;
-    case 0x1a:
-        name = "ich9-usb-ehci2";
-        comp = ich9_1a;
-        break;
-    default:
-        return -1;
-    }
-
-    ehci = pci_new_multifunction(PCI_DEVFN(slot, 7), name);
-    pci_realize_and_unref(ehci, bus, &error_fatal);
-    usbbus = QLIST_FIRST(&ehci->qdev.child_bus);
-
-    for (i = 0; i < 3; i++) {
-        uhci = pci_new_multifunction(PCI_DEVFN(slot, comp[i].func),
-                                     comp[i].name);
-        qdev_prop_set_string(&uhci->qdev, "masterbus", usbbus->name);
-        qdev_prop_set_uint32(&uhci->qdev, "firstport", comp[i].port);
-        pci_realize_and_unref(uhci, bus, &error_fatal);
-    }
-    return 0;
-}
 
 /* PC hardware initialisation */
 static void pc_q35_init(MachineState *machine)
@@ -230,6 +175,8 @@ static void pc_q35_init(MachineState *machine)
     qdev_prop_set_bit(ich9, "d2p-enabled", false);
     qdev_prop_set_bit(ich9, "sata-enabled", pcms->sata_enabled);
     qdev_prop_set_bit(ich9, "smbus-enabled", pcms->smbus_enabled);
+    /* Should we create 6 UHCI according to ich9 spec? */
+    qdev_prop_set_uint8(ich9, "ehci-count", machine_usb(machine) ? 1 : 0);
     qdev_realize_and_unref(ich9, NULL, &error_fatal);
 
     /* create ISA bus */
@@ -292,11 +239,6 @@ static void pc_q35_init(MachineState *machine)
     if (pcms->sata_enabled) {
         pcms->idebus[0] = qdev_get_child_bus(ich9, "ide.0");
         pcms->idebus[1] = qdev_get_child_bus(ich9, "ide.1");
-    }
-
-    if (machine_usb(machine)) {
-        /* Should we create 6 UHCI according to ich9 spec? */
-        ehci_create_ich9_with_companions(pcms->pcibus, 0x1d);
     }
 
     if (pcms->smbus_enabled) {
