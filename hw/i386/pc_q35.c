@@ -131,6 +131,7 @@ static void pc_q35_init(MachineState *machine)
     X86MachineState *x86ms = X86_MACHINE(machine);
     Object *phb;
     PCIDevice *lpc;
+    Object *lpc_obj;
     DeviceState *lpc_dev;
     MemoryRegion *system_memory = get_system_memory();
     MemoryRegion *system_io = get_system_io();
@@ -230,6 +231,7 @@ static void pc_q35_init(MachineState *machine)
     /* create ISA bus */
     lpc = pci_new_multifunction(PCI_DEVFN(ICH9_LPC_DEV, ICH9_LPC_FUNC),
                                 TYPE_ICH9_LPC_DEVICE);
+    lpc_obj = OBJECT(lpc);
     lpc_dev = DEVICE(lpc);
     qdev_prop_set_bit(lpc_dev, "smm-enabled",
                       x86_machine_is_smm_enabled(x86ms));
@@ -238,7 +240,7 @@ static void pc_q35_init(MachineState *machine)
     }
     pci_realize_and_unref(lpc, pcms->pcibus, &error_fatal);
 
-    x86ms->rtc = ISA_DEVICE(object_resolve_path_component(OBJECT(lpc), "rtc"));
+    x86ms->rtc = ISA_DEVICE(object_resolve_path_component(lpc_obj, "rtc"));
 
     object_property_add_link(OBJECT(machine), PC_MACHINE_ACPI_DEVICE_PROP,
                              TYPE_HOTPLUG_HANDLER,
@@ -246,13 +248,13 @@ static void pc_q35_init(MachineState *machine)
                              object_property_allow_set_link,
                              OBJ_PROP_LINK_STRONG);
     object_property_set_link(OBJECT(machine), PC_MACHINE_ACPI_DEVICE_PROP,
-                             OBJECT(lpc), &error_abort);
+                             lpc_obj, &error_abort);
 
-    acpi_pcihp = object_property_get_bool(OBJECT(lpc),
+    acpi_pcihp = object_property_get_bool(lpc_obj,
                                           ACPI_PM_PROP_ACPI_PCIHP_BRIDGE,
                                           NULL);
 
-    keep_pci_slot_hpc = object_property_get_bool(OBJECT(lpc),
+    keep_pci_slot_hpc = object_property_get_bool(lpc_obj,
                                                  "x-keep-pci-slot-hpc",
                                                  NULL);
 
@@ -262,7 +264,7 @@ static void pc_q35_init(MachineState *machine)
                                    "true", true);
     }
 
-    isa_bus = ISA_BUS(qdev_get_child_bus(lpc_dev, "isa.0"));
+    isa_bus = ISA_BUS(qdev_get_child_bus(DEVICE(lpc_obj), "isa.0"));
 
     if (x86ms->pic == ON_OFF_AUTO_ON || x86ms->pic == ON_OFF_AUTO_AUTO) {
         pc_i8259_create(isa_bus, gsi_state->i8259_irq);
