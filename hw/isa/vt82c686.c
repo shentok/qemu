@@ -22,6 +22,7 @@
 #include "hw/core/qdev-properties.h"
 #include "hw/ide/pci.h"
 #include "hw/isa/isa.h"
+#include "hw/isa/port92.h"
 #include "hw/isa/superio.h"
 #include "hw/intc/i8259.h"
 #include "hw/core/irq.h"
@@ -863,6 +864,7 @@ struct ViaISAState {
     MC146818RtcState rtc;
     MemoryRegion rtc_io;
     uint8_t rtc_index;
+    Port92State port92;
     PCIIDEState ide;
     UHCIState uhci[2];
     ViaPMState pm;
@@ -892,6 +894,7 @@ static void via_isa_init(Object *obj)
     DeviceState *dev = DEVICE(s);
 
     object_initialize_child(obj, "rtc", &s->rtc, TYPE_MC146818_RTC);
+    object_initialize_child(obj, "port92", &s->port92, TYPE_PORT92);
     object_initialize_child(obj, "ide", &s->ide, TYPE_VIA_IDE);
     object_initialize_child(obj, "uhci1", &s->uhci[0], TYPE_VT82C686B_USB_UHCI);
     object_initialize_child(obj, "uhci2", &s->uhci[1], TYPE_VT82C686B_USB_UHCI);
@@ -1137,6 +1140,10 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
 
     memory_region_init_io(&s->rtc_io, OBJECT(s), &via_rtc_ops, s, "rtc", 4);
     isa_register_ioport(ISA_DEVICE(&s->rtc), &s->rtc_io, s->rtc.io_base);
+
+    if (!qdev_realize(DEVICE(&s->port92), BUS(isa_bus), errp)) {
+        return;
+    }
 
     for (i = 0; i < PCI_CONFIG_HEADER_SIZE; i++) {
         if (i < PCI_COMMAND || i >= PCI_REVISION_ID) {
