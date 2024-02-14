@@ -1150,7 +1150,12 @@ static void pc_superio_init(ISABus *isa_bus, bool create_fdctrl,
                                  &error_abort);
         isa_realize_and_unref(vmmouse, isa_bus, &error_fatal);
     }
-    port92 = isa_create_simple(isa_bus, TYPE_PORT92);
+
+    port92 = ISA_DEVICE(object_resolve_path_type("", TYPE_PORT92, &ambig));
+
+    if (!port92) {
+        assert(false);
+    }
 
     a20_line = qemu_allocate_irqs(handle_a20_line_change, first_cpu, 2);
     qdev_connect_gpio_out_named(DEVICE(i8042),

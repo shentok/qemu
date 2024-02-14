@@ -683,6 +683,7 @@ static void ich9_lpc_initfn(Object *obj)
     static const uint16_t smi_cmd = ACPI_PORT_SMI_CMD;
 
     object_initialize_child(obj, "rtc", &lpc->rtc, TYPE_MC146818_RTC);
+    object_initialize_child(obj, "port92", &lpc->port92, TYPE_PORT92);
 
     qdev_init_gpio_out_named(DEVICE(lpc), lpc->gsi, ICH9_GPIO_GSI,
                              IOAPIC_NUM_PINS);
@@ -759,6 +760,10 @@ static void ich9_lpc_realize(PCIDevice *d, Error **errp)
     }
     irq = object_property_get_uint(OBJECT(&lpc->rtc), "irq", &error_fatal);
     isa_connect_gpio_out(ISA_DEVICE(&lpc->rtc), 0, irq);
+
+    if (!qdev_realize(DEVICE(&lpc->port92), BUS(isa_bus), errp)) {
+        return;
+    }
 
     pci_bus_irqs(pci_bus, ich9_lpc_set_irq, d, ICH9_LPC_NB_PIRQS);
     pci_bus_map_irqs(pci_bus, ich9_lpc_map_irq);

@@ -305,6 +305,7 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         isa_bus_register_input_irqs(isa_bus, x86ms->gsi);
 
         i8257_dma_init(OBJECT(machine), isa_bus, 0);
+        isa_create_simple(isa_bus, TYPE_PORT92);
         pcms->hpet_enabled = false;
     }
 

@@ -349,6 +349,11 @@ static void pci_piix_realize(PCIDevice *dev, const char *uhci_type,
     irq = object_property_get_uint(OBJECT(&d->rtc), "irq", &error_fatal);
     isa_connect_gpio_out(ISA_DEVICE(&d->rtc), 0, irq);
 
+    /* Port 92 */
+    if (!qdev_realize(DEVICE(&d->port92), BUS(isa_bus), errp)) {
+        return;
+    }
+
     /* IDE */
     qdev_prop_set_int32(DEVICE(&d->ide), "addr", dev->devfn + 1);
     if (!qdev_realize(DEVICE(&d->ide), BUS(pci_bus), errp)) {
@@ -409,6 +414,7 @@ static void pci_piix_init(Object *obj)
                              ISA_NUM_IRQS);
 
     object_initialize_child(obj, "rtc", &d->rtc, TYPE_MC146818_RTC);
+    object_initialize_child(obj, "port92", &d->port92, TYPE_PORT92);
 }
 
 static const Property pci_piix_props[] = {
