@@ -49,6 +49,10 @@ config PIIX
     select MC146818RTC
     select USB_UHCI
 
+config PORT92
+    bool
+    depends on ISA_BUS
+
 config VT82C686
     bool
     select ISA_BUS
