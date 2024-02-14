@@ -15,6 +15,7 @@
 #include "hw/i386/pc.h"
 #include "hw/ide/isa.h"
 #include "hw/ide/ide-bus.h"
+#include "hw/isa/port92.h"
 #include "system/kvm.h"
 #include "hw/i386/kvm/clock.h"
 #include "hw/xen/xen-x86.h"
@@ -120,6 +121,7 @@ static void pc_init_isa(MachineState *machine)
     isa_connect_gpio_out(ISA_DEVICE(x86ms->rtc), 0, irq);
 
     i8257_dma_init(OBJECT(machine), isa_bus, 0);
+    isa_create_simple(isa_bus, TYPE_PORT92);
     pcms->hpet_enabled = false;
 
     if (x86ms->pic == ON_OFF_AUTO_ON || x86ms->pic == ON_OFF_AUTO_AUTO) {
