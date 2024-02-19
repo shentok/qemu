@@ -37,6 +37,7 @@
 #include "hw/acpi/acpi_dev_interface.h"
 #include "hw/acpi/ich9_tco.h"
 #include "hw/southbridge/ich9.h"
+#include "hw/isa/ich9_lpc.h"
 #include "hw/mem/pc-dimm.h"
 #include "hw/mem/nvdimm.h"
 

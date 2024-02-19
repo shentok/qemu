@@ -2632,6 +2632,7 @@ F: hw/southbridge/ich9.c
 F: include/hw/acpi/ich9*.h
 F: include/hw/i2c/ich9_smbus.h
 F: include/hw/ide/ahci-pci.h
+F: include/hw/isa/ich9_lpc.h
 F: include/hw/pci-bridge/ich9_dmi.h
 F: include/hw/southbridge/ich9.h
 

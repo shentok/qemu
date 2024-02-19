@@ -49,6 +49,7 @@
 #include "hw/display/ramfb.h"
 #include "hw/intc/ioapic.h"
 #include "hw/southbridge/ich9.h"
+#include "hw/isa/ich9_lpc.h"
 #include "qapi/error.h"
 #include "qemu/error-report.h"
 #include "sysemu/numa.h"

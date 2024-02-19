@@ -1,5 +1,5 @@
 /*
- * QEMU ICH9 Emulation
+ * QEMU ICH9 LPC PCI-to-ISA bridge Emulation
  *
  * Copyright (c) 2006 Fabrice Bellard
  * Copyright (c) 2009, 2010, 2011
@@ -41,6 +41,7 @@
 #include "hw/isa/apm.h"
 #include "hw/pci/pci.h"
 #include "hw/southbridge/ich9.h"
+#include "hw/isa/ich9_lpc.h"
 #include "hw/acpi/acpi.h"
 #include "hw/acpi/ich9.h"
 #include "hw/pci/pci_bus.h"
@@ -53,10 +54,35 @@
 #include "hw/acpi/acpi_aml_interface.h"
 #include "trace.h"
 
-/*****************************************************************************/
-/* ICH9 LPC PCI to ISA bridge */
+#define ICH9_A2_LPC_REVISION                    0x2
+#define ICH9_LPC_NB_PIRQS                       8       /* PCI A-H */
 
-/* chipset configuration register
+/* ICH9: Chipset Configuration Registers */
+#define ICH9_CC_ADDR_MASK                       (ICH9_CC_SIZE - 1)
+
+#define ICH9_CC
+#define ICH9_CC_D28IP                           0x310C
+#define ICH9_CC_D28IP_SHIFT                     4
+#define ICH9_CC_D28IP_MASK                      0xf
+#define ICH9_CC_D28IP_DEFAULT                   0x00214321
+#define ICH9_CC_D31IR                           0x3140
+#define ICH9_CC_D30IR                           0x3142
+#define ICH9_CC_D29IR                           0x3144
+#define ICH9_CC_D28IR                           0x3146
+#define ICH9_CC_D27IR                           0x3148
+#define ICH9_CC_D26IR                           0x314C
+#define ICH9_CC_D25IR                           0x3150
+#define ICH9_CC_DIR_DEFAULT                     0x3210
+#define ICH9_CC_D30IR_DEFAULT                   0x0
+#define ICH9_CC_DIR_SHIFT                       4
+#define ICH9_CC_DIR_MASK                        0x7
+#define ICH9_CC_OIC                             0x31FF
+#define ICH9_CC_OIC_AEN                         0x1
+#define ICH9_CC_GCS                             0x3410
+#define ICH9_CC_GCS_DEFAULT                     0x00000020
+#define ICH9_CC_GCS_NO_REBOOT                   (1 << 5)
+
+/*
  * to access chipset configuration registers, pci_[sg]et_{byte, word, long}
  * are used.
  * Although it's not pci configuration space, it's little endian as Intel.

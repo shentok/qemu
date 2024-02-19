@@ -13,6 +13,7 @@
 #include "migration/vmstate.h"
 
 #include "hw/acpi/ich9_tco.h"
+#include "hw/isa/ich9_lpc.h"
 #include "trace.h"
 
 enum {
