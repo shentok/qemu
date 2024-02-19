@@ -1819,12 +1819,7 @@ F: include/hw/pci-host/i440fx.h
 F: include/hw/pci-host/q35.h
 F: include/hw/pci-host/pam.h
 F: hw/isa/piix.c
-F: hw/isa/lpc_ich9.c
-F: hw/i2c/smbus_ich9.c
 F: hw/acpi/piix4.c
-F: hw/acpi/ich9*.c
-F: include/hw/acpi/ich9*.h
-F: include/hw/southbridge/ich9.h
 F: include/hw/southbridge/piix.h
 F: hw/isa/apm.c
 F: include/hw/isa/apm.h
@@ -2624,6 +2619,16 @@ S: Maintained
 F: hw/display/edid*
 F: include/hw/display/edid.h
 F: qemu-edid.c
+
+ICH9 South Bridge (82801i)
+M: Michael S. Tsirkin <mst@redhat.com>
+M: Marcel Apfelbaum <marcel.apfelbaum@gmail.com>
+S: Supported
+F: hw/acpi/ich9*.c
+F: hw/i2c/smbus_ich9.c
+F: hw/isa/lpc_ich9.c
+F: include/hw/acpi/ich9*.h
+F: include/hw/southbridge/ich9.h
 
 PIIX4 South Bridge (i82371AB)
 M: Hervé Poussineau <hpoussin@reactos.org>
