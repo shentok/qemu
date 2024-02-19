@@ -13,6 +13,7 @@
 #include "hw/southbridge/ich9.h"
 #include "hw/pci/pci.h"
 #include "hw/pci-bridge/ich9_dmi.h"
+#include "hw/isa/ich9_lpc.h"
 #include "hw/ide/ahci-pci.h"
 #include "hw/ide/ide-dev.h"
 #include "hw/i2c/ich9_smbus.h"
@@ -21,6 +22,7 @@
 #include "hw/usb/hcd-uhci.h"
 
 #define ICH9_D2P_DEVFN          PCI_DEVFN(30, 0)
+#define ICH9_LPC_DEVFN          PCI_DEVFN(31, 0)
 #define ICH9_SATA1_DEVFN        PCI_DEVFN(31, 2)
 #define ICH9_SMB_DEVFN          PCI_DEVFN(31, 3)
 #define ICH9_EHCI_FUNC          7
@@ -34,6 +36,7 @@ struct ICH9State {
 
     I82801b11Bridge d2p;
     AHCIPCIState sata0;
+    ICH9LPCState lpc;
     ICH9SMBState smb;
     EHCIPCIState ehci[EHCI_PER_FN];
     UHCIState uhci[EHCI_PER_FN * UHCI_PER_FN];
@@ -57,6 +60,14 @@ static Property ich9_props[] = {
 
 static void ich9_init(Object *obj)
 {
+    ICH9State *s = ICH9_SOUTHBRIDGE(obj);
+
+    object_initialize_child(obj, "lpc", &s->lpc, TYPE_ICH9_LPC_DEVICE);
+    qdev_pass_gpios(DEVICE(&s->lpc), DEVICE(s), ICH9_GPIO_GSI);
+    qdev_prop_set_int32(DEVICE(&s->lpc), "addr", ICH9_LPC_DEVFN);
+    qdev_prop_set_bit(DEVICE(&s->lpc), "multifunction", true);
+    object_property_add_alias(obj, "smm-enabled",
+                              OBJECT(&s->lpc), "smm-enabled");
 }
 
 static bool ich9_realize_d2p(ICH9State *s, Error **errp)
@@ -160,6 +171,10 @@ static void ich9_realize(DeviceState *dev, Error **errp)
     }
 
     if (s->d2p_enabled && !ich9_realize_d2p(s, errp)) {
+        return;
+    }
+
+    if (!qdev_realize(DEVICE(&s->lpc), BUS(s->pci_bus), errp)) {
         return;
     }
 

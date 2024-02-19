@@ -8,3 +8,4 @@ config ICH9
     select ACPI_ICH9
     imply USB_EHCI_PCI
     imply USB_UHCI
+    select LPC_ICH9

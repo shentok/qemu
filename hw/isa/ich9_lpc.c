@@ -54,6 +54,9 @@
 #include "hw/acpi/acpi_aml_interface.h"
 #include "trace.h"
 
+#define ICH9_LPC_DEV                            31
+#define ICH9_LPC_FUNC                           0
+
 #define ICH9_A2_LPC_REVISION                    0x2
 #define ICH9_LPC_NB_PIRQS                       8       /* PCI A-H */
 

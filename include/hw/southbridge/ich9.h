@@ -16,10 +16,6 @@ OBJECT_DECLARE_SIMPLE_TYPE(ICH9State, ICH9_SOUTHBRIDGE)
 #define ICH9_PCIE_DEV                           28
 #define ICH9_PCIE_FUNC_MAX                      6
 
-/* D31:F1 LPC controller */
-#define ICH9_LPC_DEV                            31
-#define ICH9_LPC_FUNC                           0
-
 #define ICH9_GPIO_GSI "gsi"
 
 #define ICH9_LPC_SMI_NEGOTIATED_FEAT_PROP "x-smi-negotiated-features"

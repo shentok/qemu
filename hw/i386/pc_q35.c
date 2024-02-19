@@ -49,7 +49,6 @@
 #include "hw/display/ramfb.h"
 #include "hw/intc/ioapic.h"
 #include "hw/southbridge/ich9.h"
-#include "hw/isa/ich9_lpc.h"
 #include "qapi/error.h"
 #include "qemu/error-report.h"
 #include "sysemu/numa.h"
@@ -72,9 +71,7 @@ static void pc_q35_init(MachineState *machine)
     X86MachineState *x86ms = X86_MACHINE(machine);
     Object *phb;
     DeviceState *ich9;
-    PCIDevice *lpc;
     Object *lpc_obj;
-    DeviceState *lpc_dev;
     MemoryRegion *system_memory = get_system_memory();
     MemoryRegion *system_io = get_system_io();
     MemoryRegion *pci_memory = g_new(MemoryRegion, 1);
@@ -173,24 +170,19 @@ static void pc_q35_init(MachineState *machine)
     object_property_add_child(OBJECT(machine), "ich9", OBJECT(ich9));
     object_property_set_link(OBJECT(ich9), "mch-pcie-bus",
                              OBJECT(pcms->pcibus), &error_abort);
+    for (i = 0; i < IOAPIC_NUM_PINS; i++) {
+        qdev_connect_gpio_out_named(ich9, ICH9_GPIO_GSI, i, x86ms->gsi[i]);
+    }
     qdev_prop_set_bit(ich9, "d2p-enabled", false);
+    qdev_prop_set_bit(ich9, "smm-enabled", x86_machine_is_smm_enabled(x86ms));
     qdev_prop_set_bit(ich9, "sata-enabled", pcms->sata_enabled);
     qdev_prop_set_bit(ich9, "smbus-enabled", pcms->smbus_enabled);
     /* Should we create 6 UHCI according to ich9 spec? */
     qdev_prop_set_uint8(ich9, "ehci-count", machine_usb(machine) ? 1 : 0);
     qdev_realize_and_unref(ich9, NULL, &error_fatal);
 
-    /* create ISA bus */
-    lpc = pci_new_multifunction(PCI_DEVFN(ICH9_LPC_DEV, ICH9_LPC_FUNC),
-                                TYPE_ICH9_LPC_DEVICE);
-    lpc_obj = OBJECT(lpc);
-    lpc_dev = DEVICE(lpc);
-    qdev_prop_set_bit(lpc_dev, "smm-enabled",
-                      x86_machine_is_smm_enabled(x86ms));
-    for (i = 0; i < IOAPIC_NUM_PINS; i++) {
-        qdev_connect_gpio_out_named(lpc_dev, ICH9_GPIO_GSI, i, x86ms->gsi[i]);
-    }
-    pci_realize_and_unref(lpc, pcms->pcibus, &error_fatal);
+    /* ISA bus */
+    lpc_obj = object_resolve_path_component(OBJECT(ich9), "lpc");
 
     x86ms->rtc = ISA_DEVICE(object_resolve_path_component(lpc_obj, "rtc"));
 
