@@ -186,7 +186,7 @@ static const VMStateDescription vmstate_tco_io_state = {
     .minimum_version_id = 1,
     .needed = vmstate_test_use_tco,
     .fields = (const VMStateField[]) {
-        VMSTATE_STRUCT(tco_regs, ICH9LPCPMRegs, 1, vmstate_tco_io_sts,
+        VMSTATE_STRUCT(tco_regs, ICH9LPCPMRegs, 1, vmstate_ich9_sm_tco,
                        TCOIORegs),
         VMSTATE_END_OF_LIST()
     }
@@ -317,7 +317,7 @@ void ich9_pm_init(PCIDevice *lpc_pci, ICH9LPCPMRegs *pm, qemu_irq sci_irq)
     memory_region_add_subregion(&pm->io, ICH9_PMIO_SMI_EN, &pm->io_smi);
 
     if (pm->enable_tco) {
-        acpi_pm_tco_init(&pm->tco_regs, &pm->io);
+        ich9_acpi_pm_tco_init(&pm->tco_regs, &pm->io);
     }
 
     if (pm->acpi_pci_hotplug.use_acpi_hotplug_bridge) {

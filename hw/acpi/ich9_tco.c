@@ -224,7 +224,7 @@ static const MemoryRegionOps tco_io_ops = {
     .endianness = DEVICE_LITTLE_ENDIAN,
 };
 
-void acpi_pm_tco_init(TCOIORegs *tr, MemoryRegion *parent)
+void ich9_acpi_pm_tco_init(TCOIORegs *tr, MemoryRegion *parent)
 {
     *tr = (TCOIORegs) {
         .tco = {
@@ -250,7 +250,7 @@ void acpi_pm_tco_init(TCOIORegs *tr, MemoryRegion *parent)
     memory_region_add_subregion(parent, ICH9_PMIO_TCO_RLD, &tr->io);
 }
 
-const VMStateDescription vmstate_tco_io_sts = {
+const VMStateDescription vmstate_ich9_sm_tco = {
     .name = "tco io device status",
     .version_id = 1,
     .minimum_version_id = 1,

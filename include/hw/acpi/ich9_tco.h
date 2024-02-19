@@ -75,9 +75,8 @@ typedef struct TCOIORegs {
     MemoryRegion io;
 } TCOIORegs;
 
-/* tco.c */
-void acpi_pm_tco_init(TCOIORegs *tr, MemoryRegion *parent);
+void ich9_acpi_pm_tco_init(TCOIORegs *tr, MemoryRegion *parent);
 
-extern const VMStateDescription vmstate_tco_io_sts;
+extern const VMStateDescription vmstate_ich9_sm_tco;
 
 #endif /* HW_ACPI_TCO_H */
