@@ -11,8 +11,6 @@
 #include "qemu/notify.h"
 #include "qom/object.h"
 
-void ich9_generate_smi(void);
-
 #define ICH9_CC_SIZE (16 * 1024) /* 16KB. Chipset configuration registers */
 
 #define TYPE_ICH9_LPC_DEVICE "ICH9-LPC"
