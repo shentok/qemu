@@ -12,21 +12,44 @@
 #include "hw/qdev-properties.h"
 #include "hw/southbridge/ich9.h"
 #include "hw/pci/pci.h"
+#include "hw/pci-bridge/ich9_dmi.h"
+
+#define ICH9_D2P_DEVFN          PCI_DEVFN(30, 0)
 
 struct ICH9State {
     DeviceState parent_obj;
 
+    I82801b11Bridge d2p;
+
     PCIBus *pci_bus;
+    bool d2p_enabled;
 };
 
 static Property ich9_props[] = {
     DEFINE_PROP_LINK("mch-pcie-bus", ICH9State, pci_bus,
                      TYPE_PCIE_BUS, PCIBus *),
+    DEFINE_PROP_BOOL("d2p-enabled", ICH9State, d2p_enabled, true),
     DEFINE_PROP_END_OF_LIST(),
 };
 
 static void ich9_init(Object *obj)
 {
+}
+
+static bool ich9_realize_d2p(ICH9State *s, Error **errp)
+{
+    if (!module_object_class_by_name(TYPE_ICH_DMI_PCI_BRIDGE)) {
+        error_setg(errp, "DMI-to-PCI function not available in this build");
+        return false;
+    }
+    object_initialize_child(OBJECT(s), "d2p", &s->d2p, TYPE_ICH_DMI_PCI_BRIDGE);
+    qdev_prop_set_int32(DEVICE(&s->d2p), "addr", ICH9_D2P_DEVFN);
+    if (!qdev_realize(DEVICE(&s->d2p), BUS(s->pci_bus), errp)) {
+        return false;
+    }
+    object_property_add_alias(OBJECT(s), "pci.0", OBJECT(&s->d2p), "pci.0");
+
+    return true;
 }
 
 static void ich9_realize(DeviceState *dev, Error **errp)
@@ -35,6 +58,10 @@ static void ich9_realize(DeviceState *dev, Error **errp)
 
     if (!s->pci_bus) {
         error_setg(errp, "'pcie-bus' property must be set");
+        return;
+    }
+
+    if (s->d2p_enabled && !ich9_realize_d2p(s, errp)) {
         return;
     }
 }

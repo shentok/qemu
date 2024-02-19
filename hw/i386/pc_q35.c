@@ -233,6 +233,7 @@ static void pc_q35_init(MachineState *machine)
     object_property_add_child(OBJECT(machine), "ich9", OBJECT(ich9));
     object_property_set_link(OBJECT(ich9), "mch-pcie-bus",
                              OBJECT(pcms->pcibus), &error_abort);
+    qdev_prop_set_bit(ich9, "d2p-enabled", false);
     qdev_realize_and_unref(ich9, NULL, &error_fatal);
 
     /* create ISA bus */

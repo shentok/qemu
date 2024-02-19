@@ -3,3 +3,4 @@
 config ICH9
     bool
     depends on PCI_EXPRESS
+    imply I82801B11

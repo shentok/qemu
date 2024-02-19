@@ -108,15 +108,6 @@ struct ICH9LPCState {
 #define ICH9_USB_UHCI1_DEV                      29
 #define ICH9_USB_UHCI1_FUNC                     0
 
-/* D30:F0 DMI-to-PCI bridge */
-#define ICH9_D2P_BRIDGE                         "ICH9 D2P BRIDGE"
-#define ICH9_D2P_BRIDGE_SAVEVM_VERSION          0
-
-#define ICH9_D2P_BRIDGE_DEV                     30
-#define ICH9_D2P_BRIDGE_FUNC                    0
-
-#define ICH9_D2P_SECONDARY_DEFAULT              (256 - 8)
-
 /* D31:F0 LPC Processor Interface */
 #define ICH9_RST_CNT_IOPORT                     0xCF9
 
