@@ -114,8 +114,6 @@ struct ICH9LPCState {
 
 #define ICH9_D2P_SECONDARY_DEFAULT              (256 - 8)
 
-#define ICH9_D2P_A2_REVISION                    0x92
-
 /* D31:F0 LPC Processor Interface */
 #define ICH9_RST_CNT_IOPORT                     0xCF9
 

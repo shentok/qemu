@@ -45,7 +45,7 @@
 #include "hw/pci/pci_bridge.h"
 #include "migration/vmstate.h"
 #include "qemu/module.h"
-#include "hw/southbridge/ich9.h"
+#include "hw/pci-bridge/ich9_dmi.h"
 
 /*****************************************************************************/
 /* ICH9 DMI-to-PCI bridge */
@@ -53,11 +53,8 @@
 #define I82801ba_SSVID_SVID     0
 #define I82801ba_SSVID_SSID     0
 
-typedef struct I82801b11Bridge {
-    /*< private >*/
-    PCIBridge parent_obj;
-    /*< public >*/
-} I82801b11Bridge;
+
+#define ICH9_D2P_A2_REVISION                    0x92
 
 static void i82801b11_bridge_realize(PCIDevice *d, Error **errp)
 {
@@ -103,7 +100,7 @@ static void i82801b11_bridge_class_init(ObjectClass *klass, void *data)
 }
 
 static const TypeInfo i82801b11_bridge_info = {
-    .name          = "i82801b11-bridge",
+    .name          = TYPE_ICH_DMI_PCI_BRIDGE,
     .parent        = TYPE_PCI_BRIDGE,
     .instance_size = sizeof(I82801b11Bridge),
     .class_init    = i82801b11_bridge_class_init,
