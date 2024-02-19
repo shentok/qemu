@@ -183,24 +183,6 @@ struct ICH9LPCState {
 /* D31:F0 power management I/O registers
    offset from the address ICH9_LPC_PMBASE */
 
-/* ICH9 LPC PM I/O registers are 128 ports and 128-aligned */
-#define ICH9_PMIO_SIZE                          128
-#define ICH9_PMIO_MASK                          (ICH9_PMIO_SIZE - 1)
-
-#define ICH9_PMIO_PM1_STS                       0x00
-#define ICH9_PMIO_PM1_EN                        0x02
-#define ICH9_PMIO_PM1_CNT                       0x04
-#define ICH9_PMIO_PM1_TMR                       0x08
-#define ICH9_PMIO_GPE0_STS                      0x20
-#define ICH9_PMIO_GPE0_EN                       0x28
-#define ICH9_PMIO_GPE0_LEN                      16
-#define ICH9_PMIO_SMI_EN                        0x30
-#define ICH9_PMIO_SMI_EN_APMC_EN                (1 << 5)
-#define ICH9_PMIO_SMI_EN_TCO_EN                 (1 << 13)
-#define ICH9_PMIO_SMI_STS                       0x34
-#define ICH9_PMIO_TCO_RLD                       0x60
-#define ICH9_PMIO_TCO_LEN                       32
-
 /* FADT ACPI_ENABLE/ACPI_DISABLE */
 #define ICH9_APM_ACPI_ENABLE                    0x2
 #define ICH9_APM_ACPI_DISABLE                   0x3

@@ -49,6 +49,10 @@ do { printf("%s "fmt, __func__, ## __VA_ARGS__); } while (0)
 #define ICH9_DEBUG(fmt, ...)    do { } while (0)
 #endif
 
+/* ICH9 LPC PM I/O registers are 128 ports and 128-aligned */
+#define ICH9_PMIO_SIZE                          128
+#define ICH9_PMIO_MASK                          (ICH9_PMIO_SIZE - 1)
+
 static void ich9_pm_update_sci_fn(ACPIREGS *regs)
 {
     ICH9LPCPMRegs *pm = container_of(regs, ICH9LPCPMRegs, acpi_regs);
