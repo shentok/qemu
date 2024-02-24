@@ -63,7 +63,6 @@
 #include "sysemu/runstate.h"
 #include "sysemu/numa.h"
 #include "hw/hyperv/vmbus-bridge.h"
-#include "hw/mem/nvdimm.h"
 #include "hw/i386/acpi-build.h"
 #include "kvm/kvm-cpu.h"
 #include "target/i386/cpu.h"
@@ -308,10 +307,6 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         x86_register_ferr_irq(x86ms->gsi[13]);
     }
 
-    /* init basic PC hardware */
-    pc_basic_device_init(pcms, isa_bus, x86ms->gsi, x86ms->rtc, true,
-                         0x4);
-
 #ifdef CONFIG_IDE_ISA
     if (!pcmc->pci_enabled) {
         DriveInfo *hd[MAX_IDE_BUS * MAX_IDE_DEVS];
@@ -351,11 +346,8 @@ static void pc_init1(MachineState *machine, const char *pci_type)
                                  piix4_pm, &error_abort);
     }
 
-    if (machine->nvdimms_state->is_enabled) {
-        nvdimm_init_acpi_state(machine->nvdimms_state, system_io,
-                               x86_nvdimm_acpi_dsmio,
-                               x86ms->fw_cfg, OBJECT(pcms));
-    }
+    /* init basic PC hardware */
+    pc_basic_device_init(pcms, isa_bus, x86ms->gsi, x86ms->rtc, true, 0x4);
 }
 
 typedef enum PCSouthBridgeOption {
