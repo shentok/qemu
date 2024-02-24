@@ -1168,6 +1168,7 @@ void pc_basic_device_init(struct PCMachineState *pcms,
     MemoryRegion *ioportF0_io = g_new(MemoryRegion, 1);
     PCMachineClass *pcmc = PC_MACHINE_GET_CLASS(pcms);
     X86MachineState *x86ms = X86_MACHINE(pcms);
+    MachineState *ms = MACHINE(pcms);
 
     memory_region_init_io(ioport80_io, NULL, &ioport80_io_ops, NULL, "ioport80", 1);
     memory_region_add_subregion(isa_bus->address_space_io, 0x80, ioport80_io);
@@ -1259,6 +1260,12 @@ void pc_basic_device_init(struct PCMachineState *pcms,
     /* Super I/O */
     pc_superio_init(isa_bus, create_fdctrl, pcms->i8042_enabled,
                     pcms->vmport != ON_OFF_AUTO_ON, &error_fatal);
+
+    if (ms->nvdimms_state->is_enabled) {
+        nvdimm_init_acpi_state(ms->nvdimms_state, isa_bus->address_space_io,
+                               x86_nvdimm_acpi_dsmio,
+                               x86ms->fw_cfg, OBJECT(pcms));
+    }
 }
 
 void pc_i8259_create(ISABus *isa_bus, qemu_irq *i8259_irqs)
