@@ -61,7 +61,6 @@
 #include "system/runstate.h"
 #include "system/numa.h"
 #include "hw/hyperv/vmbus-bridge.h"
-#include "hw/mem/nvdimm.h"
 #include "hw/uefi/var-service-api.h"
 #include "hw/i386/acpi-build.h"
 #include "target/i386/cpu.h"
@@ -286,10 +285,6 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         x86_register_ferr_irq(x86ms->gsi[13]);
     }
 
-    /* init basic PC hardware */
-    pc_basic_device_init(pcms, isa_bus, x86ms->gsi, x86ms->rtc,
-                         !MACHINE_CLASS(pcmc)->no_floppy, 0x4);
-
     if (piix4_pm) {
         smi_irq = qemu_allocate_irq(pc_acpi_smi_interrupt, first_cpu, 0);
 
@@ -307,11 +302,9 @@ static void pc_init1(MachineState *machine, const char *pci_type)
                                  piix4_pm, &error_abort);
     }
 
-    if (machine->nvdimms_state->is_enabled) {
-        nvdimm_init_acpi_state(machine->nvdimms_state, system_io,
-                               x86_nvdimm_acpi_dsmio,
-                               x86ms->fw_cfg, OBJECT(pcms));
-    }
+    /* init basic PC hardware */
+    pc_basic_device_init(pcms, isa_bus, x86ms->gsi, x86ms->rtc,
+                         !MACHINE_CLASS(pcmc)->no_floppy, 0x4);
 
 #if defined(CONFIG_IGVM)
     /* Apply guest state from IGVM if supplied */

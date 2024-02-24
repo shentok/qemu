@@ -58,7 +58,6 @@
 #include "qemu/error-report.h"
 #include "system/numa.h"
 #include "hw/hyperv/vmbus-bridge.h"
-#include "hw/mem/nvdimm.h"
 #include "hw/uefi/var-service-api.h"
 #include "hw/i386/acpi-build.h"
 #include "target/i386/cpu.h"
@@ -275,10 +274,6 @@ static void pc_q35_init(MachineState *machine)
         x86_register_ferr_irq(x86ms->gsi[13]);
     }
 
-    /* init basic PC hardware */
-    pc_basic_device_init(pcms, isa_bus, x86ms->gsi, x86ms->rtc, !mc->no_floppy,
-                         0xff0104);
-
     if (pcms->sata_enabled) {
         PCIDevice *pdev;
         AHCIPCIState *ich9;
@@ -314,11 +309,9 @@ static void pc_q35_init(MachineState *machine)
         smbus_eeprom_init(pcms->smbus, 8, NULL, 0);
     }
 
-    if (machine->nvdimms_state->is_enabled) {
-        nvdimm_init_acpi_state(machine->nvdimms_state, system_io,
-                               x86_nvdimm_acpi_dsmio,
-                               x86ms->fw_cfg, OBJECT(pcms));
-    }
+    /* init basic PC hardware */
+    pc_basic_device_init(pcms, isa_bus, x86ms->gsi, x86ms->rtc, !mc->no_floppy,
+                         0xff0104);
 
 #if defined(CONFIG_IGVM)
     /* Apply guest state from IGVM if supplied */
