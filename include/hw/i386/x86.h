@@ -139,7 +139,7 @@ typedef struct GSIState {
 
 qemu_irq x86_allocate_cpu_irq(void);
 void gsi_handler(void *opaque, int n, int level);
-void ioapic_init_gsi(GSIState *gsi_state, Object *parent);
+void ioapic_init_primary(qemu_irq *ioapic_irq, Object *parent);
 DeviceState *ioapic_init_secondary(qemu_irq *ioapic2_irq, Object *parent);
 
 /* pc_sysfw.c */

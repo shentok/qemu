@@ -303,7 +303,7 @@ static void pc_init1(MachineState *machine,
     }
 
     if (phb) {
-        ioapic_init_gsi(gsi_state, phb);
+        ioapic_init_primary(gsi_state->ioapic_irq, phb);
     }
 
     if (tcg_enabled()) {

@@ -640,7 +640,7 @@ void gsi_handler(void *opaque, int n, int level)
     }
 }
 
-void ioapic_init_gsi(GSIState *gsi_state, Object *parent)
+void ioapic_init_primary(qemu_irq *ioapic_irq, Object *parent)
 {
     DeviceState *dev;
     SysBusDevice *d;
@@ -658,7 +658,7 @@ void ioapic_init_gsi(GSIState *gsi_state, Object *parent)
     sysbus_mmio_map(d, 0, IO_APIC_DEFAULT_ADDRESS);
 
     for (i = 0; i < IOAPIC_NUM_PINS; i++) {
-        gsi_state->ioapic_irq[i] = qdev_get_gpio_in(dev, i);
+        ioapic_irq[i] = qdev_get_gpio_in(dev, i);
     }
 }
 

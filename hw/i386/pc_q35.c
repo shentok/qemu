@@ -263,7 +263,7 @@ static void pc_q35_init(MachineState *machine)
         pc_i8259_create(isa_bus, gsi_state->i8259_irq);
     }
 
-    ioapic_init_gsi(gsi_state, OBJECT(phb));
+    ioapic_init_primary(gsi_state->ioapic_irq, OBJECT(phb));
 
     if (tcg_enabled()) {
         x86_register_ferr_irq(x86ms->gsi[13]);
