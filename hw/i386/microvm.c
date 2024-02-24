@@ -177,7 +177,8 @@ static void microvm_devices_init(MicrovmMachineState *mms)
 
     ioapic_init_gsi(gsi_state, OBJECT(mms));
     if (ioapics > 1) {
-        x86ms->ioapic2 = ioapic_init_secondary(gsi_state);
+        x86ms->ioapic2 = ioapic_init_secondary(gsi_state->ioapic2_irq,
+                                               OBJECT(mms));
     }
 
     if (kvm_enabled()) {
