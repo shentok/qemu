@@ -417,43 +417,6 @@ static void pc_boot_set(void *opaque, const char *boot_device, Error **errp)
     set_boot_dev(pcms, MC146818_RTC(x86ms->rtc), boot_device, errp);
 }
 
-static void pc_cmos_init_floppy(MC146818RtcState *rtc_state, ISADevice *floppy)
-{
-    int val, nb, i;
-    FloppyDriveType fd_type[2] = { FLOPPY_DRIVE_TYPE_NONE,
-                                   FLOPPY_DRIVE_TYPE_NONE };
-
-    /* floppy type */
-    if (floppy) {
-        for (i = 0; i < 2; i++) {
-            fd_type[i] = isa_fdc_get_drive_type(floppy, i);
-        }
-    }
-    val = (cmos_get_fd_drive_type(fd_type[0]) << 4) |
-        cmos_get_fd_drive_type(fd_type[1]);
-    mc146818rtc_set_cmos_data(rtc_state, 0x10, val);
-
-    val = mc146818rtc_get_cmos_data(rtc_state, REG_EQUIPMENT_BYTE);
-    nb = 0;
-    if (fd_type[0] != FLOPPY_DRIVE_TYPE_NONE) {
-        nb++;
-    }
-    if (fd_type[1] != FLOPPY_DRIVE_TYPE_NONE) {
-        nb++;
-    }
-    switch (nb) {
-    case 0:
-        break;
-    case 1:
-        val |= 0x01; /* 1 drive, ready for boot */
-        break;
-    case 2:
-        val |= 0x41; /* 2 drives, ready for boot */
-        break;
-    }
-    mc146818rtc_set_cmos_data(rtc_state, REG_EQUIPMENT_BYTE, val);
-}
-
 typedef struct check_fdc_state {
     ISADevice *floppy;
     bool multiple;
@@ -565,7 +528,42 @@ static void pc_cmos_init_late(PCMachineState *pcms)
     }
     mc146818rtc_set_cmos_data(s, 0x39, val);
 
-    pc_cmos_init_floppy(s, pc_find_fdc0());
+    {
+        ISADevice *floppy = pc_find_fdc0();
+        int nb;
+        FloppyDriveType fd_type[2] = { FLOPPY_DRIVE_TYPE_NONE,
+                                      FLOPPY_DRIVE_TYPE_NONE };
+
+        /* floppy type */
+        if (floppy) {
+            for (i = 0; i < 2; i++) {
+                fd_type[i] = isa_fdc_get_drive_type(floppy, i);
+            }
+        }
+        val = (cmos_get_fd_drive_type(fd_type[0]) << 4) |
+              cmos_get_fd_drive_type(fd_type[1]);
+        mc146818rtc_set_cmos_data(s, 0x10, val);
+
+        val = mc146818rtc_get_cmos_data(s, REG_EQUIPMENT_BYTE);
+        nb = 0;
+        if (fd_type[0] != FLOPPY_DRIVE_TYPE_NONE) {
+            nb++;
+        }
+        if (fd_type[1] != FLOPPY_DRIVE_TYPE_NONE) {
+            nb++;
+        }
+        switch (nb) {
+        case 0:
+            break;
+        case 1:
+            val |= 0x01; /* 1 drive, ready for boot */
+            break;
+        case 2:
+            val |= 0x41; /* 2 drives, ready for boot */
+            break;
+        }
+        mc146818rtc_set_cmos_data(s, REG_EQUIPMENT_BYTE, val);
+    }
 
     /* various important CMOS locations needed by PC/Bochs bios */
 
