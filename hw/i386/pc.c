@@ -1060,6 +1060,24 @@ static DeviceState *pc_vga_init(ISABus *isa_bus, PCIBus *pci_bus)
     return dev;
 }
 
+void pc_nic_init(PCMachineClass *pcmc, ISABus *isa_bus, PCIBus *pci_bus)
+{
+    MachineClass *mc = MACHINE_CLASS(pcmc);
+    bool default_is_ne2k = g_str_equal(mc->default_nic, TYPE_ISA_NE2000);
+    NICInfo *nd;
+
+    rom_set_order_override(FW_CFG_ORDER_OVERRIDE_NIC);
+
+    while ((nd = qemu_find_nic_info(TYPE_ISA_NE2000, default_is_ne2k, NULL))) {
+        pc_init_ne2k_isa(isa_bus, nd, &error_fatal);
+    }
+
+    /* Anything remaining should be a PCI NIC */
+    pci_init_nic_devices(pci_bus, mc->default_nic);
+
+    rom_reset_order_override();
+}
+
 static const MemoryRegionOps ioport80_io_ops = {
     .write = ioport80_write,
     .read = ioport80_read,
@@ -1238,24 +1256,6 @@ void pc_basic_device_init(struct PCMachineState *pcms,
     /* Super I/O */
     pc_superio_init(isa_bus, create_fdctrl, pcms->i8042_enabled,
                     pcms->vmport != ON_OFF_AUTO_ON, &error_fatal);
-}
-
-void pc_nic_init(PCMachineClass *pcmc, ISABus *isa_bus, PCIBus *pci_bus)
-{
-    MachineClass *mc = MACHINE_CLASS(pcmc);
-    bool default_is_ne2k = g_str_equal(mc->default_nic, TYPE_ISA_NE2000);
-    NICInfo *nd;
-
-    rom_set_order_override(FW_CFG_ORDER_OVERRIDE_NIC);
-
-    while ((nd = qemu_find_nic_info(TYPE_ISA_NE2000, default_is_ne2k, NULL))) {
-        pc_init_ne2k_isa(isa_bus, nd, &error_fatal);
-    }
-
-    /* Anything remaining should be a PCI NIC */
-    pci_init_nic_devices(pci_bus, mc->default_nic);
-
-    rom_reset_order_override();
 }
 
 void pc_i8259_create(ISABus *isa_bus, qemu_irq *i8259_irqs)
