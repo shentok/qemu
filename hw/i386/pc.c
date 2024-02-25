@@ -1056,6 +1056,22 @@ static DeviceState *pc_vga_init(ISABus *isa_bus, PCIBus *pci_bus)
     return dev;
 }
 
+void pc_nic_init(PCMachineClass *pcmc, ISABus *isa_bus, PCIBus *pci_bus)
+{
+    MachineClass *mc = MACHINE_CLASS(pcmc);
+    bool default_is_ne2k = g_str_equal(mc->default_nic, TYPE_ISA_NE2000);
+    NICInfo *nd;
+
+    while ((nd = qemu_find_nic_info(TYPE_ISA_NE2000, default_is_ne2k, NULL))) {
+        pc_init_ne2k_isa(isa_bus, nd, &error_fatal);
+    }
+
+    /* Anything remaining should be a PCI NIC */
+    if (pci_bus) {
+        pci_init_nic_devices(pci_bus, mc->default_nic);
+    }
+}
+
 static const MemoryRegionOps ioport80_io_ops = {
     .write = ioport80_write,
     .read = ioport80_read,
@@ -1236,22 +1252,6 @@ void pc_basic_device_init(struct PCMachineState *pcms,
 
     pcms->machine_done.notify = pc_machine_done;
     qemu_add_machine_init_done_notifier(&pcms->machine_done);
-}
-
-void pc_nic_init(PCMachineClass *pcmc, ISABus *isa_bus, PCIBus *pci_bus)
-{
-    MachineClass *mc = MACHINE_CLASS(pcmc);
-    bool default_is_ne2k = g_str_equal(mc->default_nic, TYPE_ISA_NE2000);
-    NICInfo *nd;
-
-    while ((nd = qemu_find_nic_info(TYPE_ISA_NE2000, default_is_ne2k, NULL))) {
-        pc_init_ne2k_isa(isa_bus, nd, &error_fatal);
-    }
-
-    /* Anything remaining should be a PCI NIC */
-    if (pci_bus) {
-        pci_init_nic_devices(pci_bus, mc->default_nic);
-    }
 }
 
 void pc_i8259_create(ISABus *isa_bus, qemu_irq *i8259_irqs)
