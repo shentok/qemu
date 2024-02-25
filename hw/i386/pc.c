@@ -368,21 +368,6 @@ static uint64_t ioportF0_read(void *opaque, hwaddr addr, unsigned size)
 
 #define REG_EQUIPMENT_BYTE          0x14
 
-static void cmos_init_hd(MC146818RtcState *s, int type_ofs, int info_ofs,
-                         int16_t cylinders, int8_t heads, int8_t sectors)
-{
-    mc146818rtc_set_cmos_data(s, type_ofs, 47);
-    mc146818rtc_set_cmos_data(s, info_ofs, cylinders);
-    mc146818rtc_set_cmos_data(s, info_ofs + 1, cylinders >> 8);
-    mc146818rtc_set_cmos_data(s, info_ofs + 2, heads);
-    mc146818rtc_set_cmos_data(s, info_ofs + 3, 0xff);
-    mc146818rtc_set_cmos_data(s, info_ofs + 4, 0xff);
-    mc146818rtc_set_cmos_data(s, info_ofs + 5, 0xc0 | ((heads > 8) << 3));
-    mc146818rtc_set_cmos_data(s, info_ofs + 6, cylinders);
-    mc146818rtc_set_cmos_data(s, info_ofs + 7, cylinders >> 8);
-    mc146818rtc_set_cmos_data(s, info_ofs + 8, sectors);
-}
-
 /* convert boot_device letter to something recognizable by the bios */
 static int boot_device2nibble(char boot_device)
 {
@@ -539,17 +524,27 @@ static void pc_cmos_init_late(PCMachineState *pcms)
     int i, trans;
 
     val = 0;
-    if (pcms->idebus[0] &&
-        ide_get_geometry(pcms->idebus[0], 0,
-                         &cylinders, &heads, &sectors) >= 0) {
-        cmos_init_hd(s, 0x19, 0x1b, cylinders, heads, sectors);
-        val |= 0xf0;
-    }
-    if (pcms->idebus[0] &&
-        ide_get_geometry(pcms->idebus[0], 1,
-                         &cylinders, &heads, &sectors) >= 0) {
-        cmos_init_hd(s, 0x1a, 0x24, cylinders, heads, sectors);
-        val |= 0x0f;
+    for (i = 0; i < 2 && pcms->idebus[0]; i++) {
+        int type_ofs = i == 0 ? 0x19 : 0x1a;
+        int info_ofs = i == 0 ? 0x1b : 0x24;
+
+        if (ide_get_geometry(pcms->idebus[0], i,
+                             &cylinders, &heads, &sectors) < 0) {
+            continue;
+        }
+
+        mc146818rtc_set_cmos_data(s, type_ofs, 47);
+        mc146818rtc_set_cmos_data(s, info_ofs, cylinders);
+        mc146818rtc_set_cmos_data(s, info_ofs + 1, cylinders >> 8);
+        mc146818rtc_set_cmos_data(s, info_ofs + 2, heads);
+        mc146818rtc_set_cmos_data(s, info_ofs + 3, 0xff);
+        mc146818rtc_set_cmos_data(s, info_ofs + 4, 0xff);
+        mc146818rtc_set_cmos_data(s, info_ofs + 5, 0xc0 | ((heads > 8) << 3));
+        mc146818rtc_set_cmos_data(s, info_ofs + 6, cylinders);
+        mc146818rtc_set_cmos_data(s, info_ofs + 7, cylinders >> 8);
+        mc146818rtc_set_cmos_data(s, info_ofs + 8, sectors);
+
+        val |= i == 0 ? 0xf0 : 0x0f;
     }
     mc146818rtc_set_cmos_data(s, 0x12, val);
 
