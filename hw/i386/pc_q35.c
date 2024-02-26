@@ -173,7 +173,7 @@ static void pc_q35_init(MachineState *machine)
     for (i = 0; i < IOAPIC_NUM_PINS; i++) {
         qdev_connect_gpio_out_named(ich9, ICH9_GPIO_GSI, i, x86ms->gsi[i]);
     }
-    qdev_prop_set_bit(ich9, "d2p-enabled", false);
+    qdev_prop_set_bit(ich9, "dmi2pci-enabled", false);
     qdev_prop_set_bit(ich9, "smm-enabled", x86_machine_is_smm_enabled(x86ms));
     qdev_prop_set_bit(ich9, "sata-enabled", pcms->sata_enabled);
     qdev_prop_set_bit(ich9, "smbus-enabled", pcms->smbus_enabled);

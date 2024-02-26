@@ -42,7 +42,7 @@ struct ICH9State {
     UHCIState uhci[EHCI_PER_FN * UHCI_PER_FN];
 
     PCIBus *pci_bus;
-    bool d2p_enabled;
+    bool dmi2pci_enabled;
     bool sata_enabled;
     bool smbus_enabled;
     uint8_t ehci_count;
@@ -51,7 +51,7 @@ struct ICH9State {
 static Property ich9_props[] = {
     DEFINE_PROP_LINK("mch-pcie-bus", ICH9State, pci_bus,
                      TYPE_PCIE_BUS, PCIBus *),
-    DEFINE_PROP_BOOL("d2p-enabled", ICH9State, d2p_enabled, true),
+    DEFINE_PROP_BOOL("dmi2pci-enabled", ICH9State, dmi2pci_enabled, true),
     DEFINE_PROP_BOOL("sata-enabled", ICH9State, sata_enabled, true),
     DEFINE_PROP_BOOL("smbus-enabled", ICH9State, smbus_enabled, true),
     DEFINE_PROP_UINT8("ehci-count", ICH9State, ehci_count, 2),
@@ -170,7 +170,7 @@ static void ich9_realize(DeviceState *dev, Error **errp)
         return;
     }
 
-    if (s->d2p_enabled && !ich9_realize_d2p(s, errp)) {
+    if (s->dmi2pci_enabled && !ich9_realize_d2p(s, errp)) {
         return;
     }
 
