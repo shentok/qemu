@@ -41,7 +41,6 @@ struct ICH9State {
     EHCIPCIState ehci[EHCI_PER_FN];
     UHCIState uhci[EHCI_PER_FN * UHCI_PER_FN];
 
-    PCIBus *pci_bus;
     bool dmi2pci_enabled;
     bool sata_enabled;
     bool smbus_enabled;
@@ -49,8 +48,6 @@ struct ICH9State {
 };
 
 static Property ich9_props[] = {
-    DEFINE_PROP_LINK("mch-pcie-bus", ICH9State, pci_bus,
-                     TYPE_PCIE_BUS, PCIBus *),
     DEFINE_PROP_BOOL("dmi2pci-enabled", ICH9State, dmi2pci_enabled, true),
     DEFINE_PROP_BOOL("sata-enabled", ICH9State, sata_enabled, true),
     DEFINE_PROP_BOOL("smbus-enabled", ICH9State, smbus_enabled, true),
@@ -78,7 +75,7 @@ static bool ich9_realize_d2p(ICH9State *s, Error **errp)
     }
     object_initialize_child(OBJECT(s), "d2p", &s->d2p, TYPE_ICH_DMI_PCI_BRIDGE);
     qdev_prop_set_int32(DEVICE(&s->d2p), "addr", ICH9_D2P_DEVFN);
-    if (!qdev_realize(DEVICE(&s->d2p), BUS(s->pci_bus), errp)) {
+    if (!qdev_realize(DEVICE(&s->d2p), DEVICE(s)->parent_bus, errp)) {
         return false;
     }
     object_property_add_alias(OBJECT(s), "pci.0", OBJECT(&s->d2p), "pci.0");
@@ -92,7 +89,7 @@ static bool ich9_realize_sata(ICH9State *s, Error **errp)
 
     object_initialize_child(OBJECT(s), "sata[0]", &s->sata0, TYPE_ICH9_AHCI);
     qdev_prop_set_int32(DEVICE(&s->sata0), "addr", ICH9_SATA1_DEVFN);
-    if (!qdev_realize(DEVICE(&s->sata0), BUS(s->pci_bus), errp)) {
+    if (!qdev_realize(DEVICE(&s->sata0), DEVICE(s)->parent_bus, errp)) {
         return false;
     }
     for (unsigned i = 0; i < SATA_PORTS; i++) {
@@ -113,7 +110,7 @@ static bool ich9_realize_smbus(ICH9State *s, Error **errp)
 {
     object_initialize_child(OBJECT(s), "smb", &s->smb, TYPE_ICH9_SMB_DEVICE);
     qdev_prop_set_int32(DEVICE(&s->smb), "addr", ICH9_SMB_DEVFN);
-    if (!qdev_realize(DEVICE(&s->smb), BUS(s->pci_bus), errp)) {
+    if (!qdev_realize(DEVICE(&s->smb), DEVICE(s)->parent_bus, errp)) {
         return false;
     }
     object_property_add_alias(OBJECT(s), "i2c", OBJECT(&s->smb), "i2c");
@@ -137,7 +134,7 @@ static bool ich9_realize_usb(ICH9State *s, Error **errp)
         object_initialize_child(OBJECT(s), "ehci[*]", ehci, ename);
         qdev_prop_set_int32(DEVICE(ehci), "addr", PCI_DEVFN(devid,
                                                             ICH9_EHCI_FUNC));
-        if (!qdev_realize(DEVICE(ehci), BUS(s->pci_bus), errp)) {
+        if (!qdev_realize(DEVICE(ehci), DEVICE(s)->parent_bus, errp)) {
             return false;
         }
         masterbus = QLIST_FIRST(&DEVICE(ehci)->child_bus);
@@ -152,7 +149,7 @@ static bool ich9_realize_usb(ICH9State *s, Error **errp)
             qdev_prop_set_int32(DEVICE(uhci), "addr", PCI_DEVFN(devid, u));
             qdev_prop_set_string(DEVICE(uhci), "masterbus", masterbus->name);
             qdev_prop_set_uint32(DEVICE(uhci), "firstport", 2 * u);
-            if (!qdev_realize(DEVICE(uhci), BUS(s->pci_bus), errp)) {
+            if (!qdev_realize(DEVICE(uhci), DEVICE(s)->parent_bus, errp)) {
                 return false;
             }
         }
@@ -165,7 +162,7 @@ static void ich9_realize(DeviceState *dev, Error **errp)
 {
     ICH9State *s = ICH9_SOUTHBRIDGE(dev);
 
-    if (!s->pci_bus) {
+    if (!DEVICE(s)->parent_bus) {
         error_setg(errp, "'pcie-bus' property must be set");
         return;
     }
@@ -174,7 +171,7 @@ static void ich9_realize(DeviceState *dev, Error **errp)
         return;
     }
 
-    if (!qdev_realize(DEVICE(&s->lpc), BUS(s->pci_bus), errp)) {
+    if (!qdev_realize(DEVICE(&s->lpc), DEVICE(s)->parent_bus, errp)) {
         return;
     }
 
@@ -195,6 +192,7 @@ static void ich9_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
 
+    dc->bus_type = TYPE_PCIE_BUS;
     dc->realize = ich9_realize;
     device_class_set_props(dc, ich9_props);
     set_bit(DEVICE_CATEGORY_BRIDGE, dc->categories);

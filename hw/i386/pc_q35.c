@@ -168,8 +168,6 @@ static void pc_q35_init(MachineState *machine)
 
     ich9 = qdev_new(TYPE_ICH9_SOUTHBRIDGE);
     object_property_add_child(OBJECT(machine), "ich9", OBJECT(ich9));
-    object_property_set_link(OBJECT(ich9), "mch-pcie-bus",
-                             OBJECT(pcms->pcibus), &error_abort);
     for (i = 0; i < IOAPIC_NUM_PINS; i++) {
         qdev_connect_gpio_out_named(ich9, ICH9_GPIO_GSI, i, x86ms->gsi[i]);
     }
@@ -179,7 +177,7 @@ static void pc_q35_init(MachineState *machine)
     qdev_prop_set_bit(ich9, "smbus-enabled", pcms->smbus_enabled);
     /* Should we create 6 UHCI according to ich9 spec? */
     qdev_prop_set_uint8(ich9, "ehci-count", machine_usb(machine) ? 1 : 0);
-    qdev_realize_and_unref(ich9, NULL, &error_fatal);
+    qdev_realize_and_unref(ich9, BUS(pcms->pcibus), &error_fatal);
 
     lpc_obj = object_resolve_path_component(OBJECT(ich9), "lpc");
 
