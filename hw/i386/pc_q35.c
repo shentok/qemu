@@ -188,14 +188,10 @@ static void pc_q35_init(MachineState *machine)
 
     x86ms->rtc = ISA_DEVICE(object_resolve_path_component(lpc_obj, "rtc"));
 
-    if (pcms->sata_enabled) {
-        pcms->idebus[0] = qdev_get_child_bus(ich9, "ide.0");
-        pcms->idebus[1] = qdev_get_child_bus(ich9, "ide.1");
-    }
+    pcms->idebus[0] = qdev_get_child_bus(ich9, "ide.0");
+    pcms->idebus[1] = qdev_get_child_bus(ich9, "ide.1");
 
-    if (pcms->smbus_enabled) {
-        pcms->smbus = I2C_BUS(qdev_get_child_bus(ich9, "i2c"));
-    }
+    pcms->smbus = I2C_BUS(qdev_get_child_bus(ich9, "i2c"));
 
     object_property_add_link(OBJECT(machine), PC_MACHINE_ACPI_DEVICE_PROP,
                              TYPE_HOTPLUG_HANDLER,
