@@ -181,10 +181,21 @@ static void pc_q35_init(MachineState *machine)
     qdev_prop_set_uint8(ich9, "ehci-count", machine_usb(machine) ? 1 : 0);
     qdev_realize_and_unref(ich9, NULL, &error_fatal);
 
-    /* ISA bus */
     lpc_obj = object_resolve_path_component(OBJECT(ich9), "lpc");
 
+    /* ISA bus */
+    isa_bus = ISA_BUS(qdev_get_child_bus(DEVICE(lpc_obj), "isa.0"));
+
     x86ms->rtc = ISA_DEVICE(object_resolve_path_component(lpc_obj, "rtc"));
+
+    if (pcms->sata_enabled) {
+        pcms->idebus[0] = qdev_get_child_bus(ich9, "ide.0");
+        pcms->idebus[1] = qdev_get_child_bus(ich9, "ide.1");
+    }
+
+    if (pcms->smbus_enabled) {
+        pcms->smbus = I2C_BUS(qdev_get_child_bus(ich9, "i2c"));
+    }
 
     object_property_add_link(OBJECT(machine), PC_MACHINE_ACPI_DEVICE_PROP,
                              TYPE_HOTPLUG_HANDLER,
@@ -208,8 +219,6 @@ static void pc_q35_init(MachineState *machine)
                                    "true", true);
     }
 
-    isa_bus = ISA_BUS(qdev_get_child_bus(DEVICE(lpc_obj), "isa.0"));
-
     if (x86ms->pic == ON_OFF_AUTO_ON || x86ms->pic == ON_OFF_AUTO_AUTO) {
         pc_i8259_create(isa_bus, gsi_state->i8259_irq);
     }
@@ -229,13 +238,7 @@ static void pc_q35_init(MachineState *machine)
     pc_basic_device_init(pcms, isa_bus, x86ms->gsi, x86ms->rtc, !mc->no_floppy,
                          0xff0104);
 
-    if (pcms->sata_enabled) {
-        pcms->idebus[0] = qdev_get_child_bus(ich9, "ide.0");
-        pcms->idebus[1] = qdev_get_child_bus(ich9, "ide.1");
-    }
-
-    if (pcms->smbus_enabled) {
-        pcms->smbus = I2C_BUS(qdev_get_child_bus(ich9, "i2c"));
+    if (pcms->smbus) {
         /* TODO: Populate SPD eeprom data.  */
         smbus_eeprom_init(pcms->smbus, 8, NULL, 0);
     }
