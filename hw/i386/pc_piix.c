@@ -39,7 +39,6 @@
 #include "hw/pci/pci.h"
 #include "hw/pci/pci_ids.h"
 #include "hw/usb.h"
-#include "net/net.h"
 #include "hw/ide/isa.h"
 #include "hw/ide/pci.h"
 #include "hw/irq.h"
@@ -312,8 +311,6 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     /* init basic PC hardware */
     pc_basic_device_init(pcms, isa_bus, x86ms->gsi, x86ms->rtc, true,
                          0x4);
-
-    pc_nic_init(pcmc, isa_bus, pcms->pcibus);
 
 #ifdef CONFIG_IDE_ISA
     if (!pcmc->pci_enabled) {
