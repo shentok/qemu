@@ -42,7 +42,7 @@
 #include "system/kvm.h"
 #include "hw/i386/kvm/clock.h"
 #include "hw/core/sysbus.h"
-#include "hw/i2c/smbus_eeprom.h"
+#include "hw/i2c/i2c.h"
 #include "system/memory.h"
 #include "hw/acpi/acpi.h"
 #include "hw/vfio/types.h"
@@ -290,8 +290,6 @@ static void pc_init1(MachineState *machine, const char *pci_type)
 
         qdev_connect_gpio_out_named(DEVICE(piix4_pm), "smi-irq", 0, smi_irq);
         pcms->smbus = I2C_BUS(qdev_get_child_bus(DEVICE(piix4_pm), "i2c"));
-        /* TODO: Populate SPD eeprom data.  */
-        smbus_eeprom_init(pcms->smbus, 8, NULL, 0);
 
         object_property_add_link(OBJECT(machine), PC_MACHINE_ACPI_DEVICE_PROP,
                                  TYPE_HOTPLUG_HANDLER,
