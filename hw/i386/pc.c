@@ -1044,7 +1044,7 @@ uint64_t pc_pci_hole64_start(void)
     return ROUND_UP(hole64_start, 1 * GiB);
 }
 
-DeviceState *pc_vga_init(ISABus *isa_bus, PCIBus *pci_bus)
+static DeviceState *pc_vga_init(ISABus *isa_bus, PCIBus *pci_bus)
 {
     DeviceState *dev = NULL;
 
@@ -1193,6 +1193,8 @@ void pc_basic_device_init(struct PCMachineState *pcms,
 
     object_property_add_alias(OBJECT(pcms), "rtc-time", OBJECT(rtc_state),
                               "date");
+
+    pc_vga_init(isa_bus, pcms->pcibus);
 
 #ifdef CONFIG_XEN_EMU
     if (xen_mode == XEN_EMULATE) {
