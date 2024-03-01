@@ -31,6 +31,7 @@
 #include "hw/i386/fw_cfg.h"
 #include "hw/i386/vmport.h"
 #include "sysemu/cpus.h"
+#include "hw/i2c/smbus_eeprom.h"
 #include "hw/ide/ide-bus.h"
 #include "hw/timer/hpet.h"
 #include "hw/loader.h"
@@ -1260,6 +1261,11 @@ void pc_basic_device_init(struct PCMachineState *pcms,
     /* Super I/O */
     pc_superio_init(isa_bus, create_fdctrl, pcms->i8042_enabled,
                     pcms->vmport != ON_OFF_AUTO_ON, &error_fatal);
+
+    if (pcms->smbus) {
+        /* TODO: Populate SPD eeprom data.  */
+        smbus_eeprom_init(pcms->smbus, 8, NULL, 0);
+    }
 
     if (ms->nvdimms_state->is_enabled) {
         nvdimm_init_acpi_state(ms->nvdimms_state, isa_bus->address_space_io,

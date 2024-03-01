@@ -33,7 +33,7 @@
 #include "hw/acpi/acpi.h"
 #include "hw/char/parallel-isa.h"
 #include "hw/loader.h"
-#include "hw/i2c/smbus_eeprom.h"
+#include "hw/i2c/i2c.h"
 #include "hw/rtc/mc146818rtc.h"
 #include "sysemu/tcg.h"
 #include "sysemu/kvm.h"
@@ -295,14 +295,11 @@ static void pc_q35_init(MachineState *machine)
     if (pcms->smbus_enabled) {
         PCIDevice *smb;
 
-        /* TODO: Populate SPD eeprom data.  */
         smb = pci_create_simple_multifunction(pcms->pcibus,
                                               PCI_DEVFN(ICH9_SMB_DEV,
                                                         ICH9_SMB_FUNC),
                                               TYPE_ICH9_SMB_DEVICE);
         pcms->smbus = I2C_BUS(qdev_get_child_bus(DEVICE(smb), "i2c"));
-
-        smbus_eeprom_init(pcms->smbus, 8, NULL, 0);
     }
 
     /* init basic PC hardware */
