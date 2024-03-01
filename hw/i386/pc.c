@@ -1056,7 +1056,7 @@ static DeviceState *pc_vga_init(ISABus *isa_bus, PCIBus *pci_bus)
     return dev;
 }
 
-void pc_nic_init(PCMachineClass *pcmc, ISABus *isa_bus, PCIBus *pci_bus)
+static void pc_nic_init(PCMachineClass *pcmc, ISABus *isa_bus, PCIBus *pci_bus)
 {
     MachineClass *mc = MACHINE_CLASS(pcmc);
     bool default_is_ne2k = g_str_equal(mc->default_nic, TYPE_ISA_NE2000);
@@ -1161,6 +1161,7 @@ void pc_basic_device_init(struct PCMachineState *pcms,
     MemoryRegion *ioport80_io = g_new(MemoryRegion, 1);
     MemoryRegion *ioportF0_io = g_new(MemoryRegion, 1);
     X86MachineState *x86ms = X86_MACHINE(pcms);
+    PCMachineClass *pcmc = PC_MACHINE_GET_CLASS(pcms);
 
     memory_region_init_io(ioport80_io, NULL, &ioport80_io_ops, NULL, "ioport80", 1);
     memory_region_add_subregion(isa_bus->address_space_io, 0x80, ioport80_io);
@@ -1220,6 +1221,8 @@ void pc_basic_device_init(struct PCMachineState *pcms,
         xen_bus_init();
     }
 #endif
+
+    pc_nic_init(pcmc, isa_bus, pcms->pcibus);
 
     qemu_register_boot_set(pc_boot_set, pcms);
     set_boot_dev(pcms, MC146818_RTC(rtc_state),
