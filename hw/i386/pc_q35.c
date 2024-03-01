@@ -310,9 +310,6 @@ static void pc_q35_init(MachineState *machine)
         smbus_eeprom_init(pcms->smbus, 8, NULL, 0);
     }
 
-    /* the rest devices to which pci devfn is automatically assigned */
-    pc_nic_init(pcmc, isa_bus, pcms->pcibus);
-
     if (machine->nvdimms_state->is_enabled) {
         nvdimm_init_acpi_state(machine->nvdimms_state, system_io,
                                x86_nvdimm_acpi_dsmio,
