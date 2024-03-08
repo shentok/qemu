@@ -78,6 +78,8 @@ struct VT82C694TState {
     PCIHostState parent_obj;
 
     PCIBus pci_bus;
+    AddressSpace ram_as;
+    AddressSpace pci_as;
     MemoryRegion *system_memory;
     MemoryRegion *io_memory;
     MemoryRegion *pci_address_space;
@@ -456,15 +458,18 @@ static void vt82c694t_realize(DeviceState *dev, Error **errp)
     object_property_add_const_link(qdev_get_machine(), "smram",
                                    OBJECT(&f->smram));
 
+    address_space_init(&s->ram_as, s->ram_memory, "ram");
+    address_space_init(&s->pci_as, s->pci_address_space, "pci");
+
     for (i = 0; i < ARRAY_SIZE(f->pam_regions) - 2; ++i) {
-        init_pam(&f->pam_regions[i], OBJECT(d), s->ram_memory,
-                 s->system_memory, s->pci_address_space,
+        init_pam(&f->pam_regions[i], OBJECT(d), &s->ram_as,
+                 s->system_memory, &s->pci_as,
                  PAM_EXPAN_BASE + i * PAM_EXPAN_SIZE, PAM_EXPAN_SIZE);
     }
-    init_pam(&f->pam_regions[8], OBJECT(d), s->ram_memory, s->system_memory,
-             s->pci_address_space, PAM_BIOS_BASE, PAM_BIOS_SIZE);
-    init_pam(&f->pam_regions[9], OBJECT(d), s->ram_memory, s->system_memory,
-             s->pci_address_space, PAM_EXBIOS_BASE, PAM_BIOS_SIZE);
+    init_pam(&f->pam_regions[8], OBJECT(d), &s->ram_as, s->system_memory,
+             &s->pci_as, PAM_BIOS_BASE, PAM_BIOS_SIZE);
+    init_pam(&f->pam_regions[9], OBJECT(d), &s->ram_as, s->system_memory,
+             &s->pci_as, PAM_EXBIOS_BASE, PAM_BIOS_SIZE);
 
     ram_addr_t ram_size = s->below_4g_mem_size + s->above_4g_mem_size;
     ram_size = ram_size / 8 / 1024 / 1024;
