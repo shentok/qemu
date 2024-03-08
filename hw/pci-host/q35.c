@@ -581,12 +581,15 @@ static void mch_realize(PCIDevice *d, Error **errp)
     pc_pci_as_mapping_init(mch->system_memory, mch->pci_address_space);
 
     /* PAM */
-    init_pam(&mch->pam_regions[0], OBJECT(mch), mch->ram_memory,
-             mch->system_memory, mch->pci_address_space,
+    address_space_init(&mch->ram_as, mch->ram_memory, "ram");
+    address_space_init(&mch->pci_as, mch->pci_address_space, "pci");
+
+    init_pam(&mch->pam_regions[0], OBJECT(mch), &mch->ram_as,
+             mch->system_memory, &mch->pci_as,
              PAM_BIOS_BASE, PAM_BIOS_SIZE);
     for (i = 0; i < ARRAY_SIZE(mch->pam_regions) - 1; ++i) {
-        init_pam(&mch->pam_regions[i + 1], OBJECT(mch), mch->ram_memory,
-                 mch->system_memory, mch->pci_address_space,
+        init_pam(&mch->pam_regions[i + 1], OBJECT(mch), &mch->ram_as,
+                 mch->system_memory, &mch->pci_as,
                  PAM_EXPAN_BASE + i * PAM_EXPAN_SIZE, PAM_EXPAN_SIZE);
     }
 

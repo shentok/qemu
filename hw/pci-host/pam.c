@@ -29,25 +29,61 @@
 
 #include "qemu/osdep.h"
 #include "hw/pci-host/pam.h"
+#include "trace.h"
 
-void init_pam(PAMMemoryRegion *mem, Object *owner, MemoryRegion *ram_memory,
-              MemoryRegion *system_memory, MemoryRegion *pci_address_space,
+static MemTxResult pci_ram_ops_read(void *opaque, hwaddr addr, uint64_t *data,
+                                    unsigned size, MemTxAttrs attrs)
+{
+    PAMMemoryRegion *pam = opaque;
+    MemTxResult res = address_space_read(pam->pci_as, pam->pci_mr.alias_offset + addr, attrs, data, size);
+
+    trace_pam_pci_ram_ops_read(pam->pci_mr.alias_offset + addr, *data);
+
+    return res;
+}
+
+static MemTxResult pci_ram_ops_write(void *opaque, hwaddr addr, uint64_t data,
+                                     unsigned size, MemTxAttrs attrs)
+{
+    PAMMemoryRegion *pam = opaque;
+
+    trace_pam_pci_ram_ops_write(pam->ram_mr.alias_offset + addr, data);
+
+    return address_space_write(pam->ram_as, pam->ram_mr.alias_offset + addr, attrs, &data, size);
+}
+
+static const MemoryRegionOps pci_ram_ops = {
+    .read_with_attrs = pci_ram_ops_read,
+    .write_with_attrs = pci_ram_ops_write,
+    .endianness = DEVICE_LITTLE_ENDIAN,
+};
+
+void init_pam(PAMMemoryRegion *mem, Object *owner, AddressSpace *ram_memory,
+              MemoryRegion *system_memory, AddressSpace *pci_address_space,
               uint32_t start, uint32_t size)
 {
     int i;
 
+    mem->pci_as = pci_address_space;
+    mem->ram_as = ram_memory;
+
     /* RAM */
-    memory_region_init_alias(&mem->alias[3], owner, "pam-ram", ram_memory,
+    memory_region_init_alias(&mem->alias[3], owner, "pam-ram", ram_memory->root,
                              start, size);
     /* ROM (XXX: not quite correct) */
-    memory_region_init_alias(&mem->alias[1], owner, "pam-rom", ram_memory,
+    memory_region_init_alias(&mem->alias[1], owner, "pam-rom", ram_memory->root,
                              start, size);
     memory_region_set_readonly(&mem->alias[1], true);
 
-    /* XXX: should distinguish read/write cases */
-    memory_region_init_alias(&mem->alias[0], owner, "pam-pci", pci_address_space,
+    memory_region_init_alias(&mem->alias[0], owner, "pam-pci", pci_address_space->root,
                              start, size);
-    memory_region_init_alias(&mem->alias[2], owner, "pam-pci", ram_memory,
+    memory_region_init_io(&mem->alias[2], owner, &pci_ram_ops, mem, "pam-ram",
+                          size);
+
+    memory_region_init_alias(&mem->ram_mr, owner, "pam-ram-as", ram_memory->root, start,
+                             size);
+
+    memory_region_init_alias(&mem->pci_mr, owner, "pam-pci-as", pci_address_space->root,
                              start, size);
 
     memory_region_transaction_begin();
