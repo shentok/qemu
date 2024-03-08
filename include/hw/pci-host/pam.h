@@ -80,13 +80,13 @@
 #define PAM_REGIONS_COUNT       13
 
 typedef struct PAMMemoryRegion {
-    MemoryRegion alias[4];  /* index = PAM value */
-    unsigned current;
+    MemoryRegion alias[4];  /* index = mode value */
+    uint8_t mode;
 } PAMMemoryRegion;
 
 void init_pam(PAMMemoryRegion *mem, Object *owner, MemoryRegion *ram,
               MemoryRegion *system, MemoryRegion *pci,
               uint32_t start, uint32_t size);
-void pam_update(PAMMemoryRegion *mem, int idx, uint8_t val);
+void pam_update(PAMMemoryRegion *mem, uint8_t mode);
 
 #endif /* QEMU_PAM_H */
