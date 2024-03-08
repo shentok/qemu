@@ -40,6 +40,8 @@ struct MCHPCIState {
     PCIDevice parent_obj;
     /*< public >*/
 
+    AddressSpace ram_as;
+    AddressSpace pci_as;
     MemoryRegion *ram_memory;
     MemoryRegion *pci_address_space;
     MemoryRegion *system_memory;
