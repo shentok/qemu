@@ -84,11 +84,15 @@
 
 typedef struct PAMMemoryRegion {
     MemoryRegion alias[4];  /* index = mode value */
+    MemoryRegion ram_mr;
+    MemoryRegion pci_mr;
+    AddressSpace *ram_as;
+    AddressSpace *pci_as;
     uint8_t mode;
 } PAMMemoryRegion;
 
-void init_pam(PAMMemoryRegion *mem, Object *owner, MemoryRegion *ram,
-              MemoryRegion *system, MemoryRegion *pci,
+void init_pam(PAMMemoryRegion *mem, Object *owner, AddressSpace *ram,
+              MemoryRegion *system, AddressSpace *pci,
               uint32_t start, uint32_t size);
 void pam_update(PAMMemoryRegion *mem, uint8_t mode);
 

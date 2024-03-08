@@ -47,6 +47,8 @@ OBJECT_DECLARE_SIMPLE_TYPE(I440FXState, I440FX_PCI_HOST_BRIDGE)
 struct I440FXState {
     PCIHostState parent_obj;
 
+    AddressSpace ram_as;
+    AddressSpace pci_as;
     MemoryRegion *system_memory;
     MemoryRegion *io_memory;
     MemoryRegion *pci_address_space;
@@ -298,11 +300,14 @@ static void i440fx_pcihost_realize(DeviceState *dev, Error **errp)
     object_property_add_const_link(qdev_get_machine(), "smram",
                                    OBJECT(&f->smram));
 
-    init_pam(&f->pam_regions[0], OBJECT(d), s->ram_memory, s->system_memory,
-             s->pci_address_space, PAM_BIOS_BASE, PAM_BIOS_SIZE);
+    address_space_init(&s->ram_as, s->ram_memory, "ram");
+    address_space_init(&s->pci_as, s->pci_address_space, "pci");
+
+    init_pam(&f->pam_regions[0], OBJECT(d), &s->ram_as, s->system_memory,
+             &s->pci_as, PAM_BIOS_BASE, PAM_BIOS_SIZE);
     for (i = 0; i < ARRAY_SIZE(f->pam_regions) - 1; ++i) {
-        init_pam(&f->pam_regions[i + 1], OBJECT(d), s->ram_memory,
-                 s->system_memory, s->pci_address_space,
+        init_pam(&f->pam_regions[i + 1], OBJECT(d), &s->ram_as,
+                 s->system_memory, &s->pci_as,
                  PAM_EXPAN_BASE + i * PAM_EXPAN_SIZE, PAM_EXPAN_SIZE);
     }
 
