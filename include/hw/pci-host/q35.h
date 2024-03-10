@@ -123,15 +123,6 @@ struct Q35PCIHost {
 #define MCH_HOST_BRIDGE_PAM_EXBIOS_SIZE        0x04000
 #define MCH_HOST_BRIDGE_PAM5                   0x95
 #define MCH_HOST_BRIDGE_PAM6                   0x96
-#define MCH_HOST_BRIDGE_PAM_WE_HI              ((uint8_t)(0x2 << 4))
-#define MCH_HOST_BRIDGE_PAM_RE_HI              ((uint8_t)(0x1 << 4))
-#define MCH_HOST_BRIDGE_PAM_HI_MASK            ((uint8_t)(0x3 << 4))
-#define MCH_HOST_BRIDGE_PAM_WE_LO              ((uint8_t)0x2)
-#define MCH_HOST_BRIDGE_PAM_RE_LO              ((uint8_t)0x1)
-#define MCH_HOST_BRIDGE_PAM_LO_MASK            ((uint8_t)0x3)
-#define MCH_HOST_BRIDGE_PAM_WE                 ((uint8_t)0x2)
-#define MCH_HOST_BRIDGE_PAM_RE                 ((uint8_t)0x1)
-#define MCH_HOST_BRIDGE_PAM_MASK               ((uint8_t)0x3)
 
 #define MCH_HOST_BRIDGE_SMRAM                  0x9d
 #define MCH_HOST_BRIDGE_SMRAM_SIZE             2

@@ -67,9 +67,6 @@
 /* 64KB: Intel 3 series express chipset family p. 58*/
 #define PAM_BIOS_SIZE   0x10000
 
-/* PAM registers: log nibble and high nibble*/
-#define PAM_ATTR_WE     ((uint8_t)2)
-#define PAM_ATTR_RE     ((uint8_t)1)
 #define PAM_ATTR_MASK   ((uint8_t)3)
 
 /* SMRAM register */
