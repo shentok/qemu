@@ -11,6 +11,10 @@ config ARMSSE_MHU
 config ARMSSE_CPU_PWRCTRL
     bool
 
+config ICS94XXX
+    bool
+    depends on SMBUS
+
 config ISA_DEBUG
     bool
     depends on ISA_BUS
