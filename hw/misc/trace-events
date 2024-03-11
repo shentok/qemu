@@ -69,6 +69,13 @@ ecc_diag_mem_readb(uint64_t addr, uint32_t ret) "Read diagnostic %"PRId64"= 0x%0
 # empty_slot.c
 empty_slot_write(uint64_t addr, unsigned width, uint64_t value, unsigned size, const char *name) "wr addr:0x%04"PRIx64" data:0x%0*"PRIx64" size %u [%s]"
 
+# ics94xxx.c
+ics94xxx_event(uint8_t dev, uint8_t event) "device: 0x%02x, event: %" PRIu8
+ics94xxx_receive_byte(uint8_t dev, uint8_t offset, uint8_t data) "device: 0x%02x, [0x%02" PRIx8 "] -> 0x%02" PRIx8
+ics94xxx_write_byte(uint8_t dev, uint8_t offset, uint8_t data) "device: 0x%02x [0x%02" PRIx8 "] <- 0x%02" PRIx8
+ics94xxx_write_data(uint8_t dev, uint8_t command, uint8_t data) "device: 0x%02x, command: 0x%02x <- 0x%02" PRIx8
+ics94xxx_reset(uint8_t dev) "device: 0x%02x"
+
 # slavio_misc.c
 slavio_misc_update_irq_raise(void) "Raise IRQ"
 slavio_misc_update_irq_lower(void) "Lower IRQ"
