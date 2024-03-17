@@ -105,6 +105,7 @@ Bootable BIOSes can be found under:
 - https://theretroweb.com/motherboards/s/lucky-star-6va694t
 - https://theretroweb.com/motherboards/s/qdi-p6v694t-a10t-advance-10t
 - https://theretroweb.com/motherboards/s/pcpartner-ap133ms3-b921c-35-c921
+- https://theretroweb.com/motherboards/s/asus-tuv4x [1]_
 
 Visit one of the above links, go to the "Downloads" tab and download a bios
 image. To extract it, run ``binwalk -eM`` on the file with ``unrar`` installed
@@ -116,3 +117,7 @@ under Linux. Look for a .bin file and pass it as the ``-bios`` option to QEMU:
    -M pc,x-south-bridge=vt82c686b-isa,x-north-bridge=vt82c694t,x-south-bridge-slot=7,usb=on \
    -cpu pentium 3 \
    -drive if=pflash,format=raw,snapshot=on,file=<bios>.bin
+
+.. [1] Requires ``-device device0x48,address=72 -device ics94xxx,address=105``
+       to be added to the command line. Also requires the
+       ``x-south-bridge-slot`` option to be set to ``4`` rather than ``7``.
