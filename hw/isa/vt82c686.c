@@ -419,6 +419,7 @@ static void via_pm_reset(DeviceState *d)
     pm_io_space_update(s);
     pm_hw_io_space_update(s);
     smb_io_space_update(s);
+    s->smb.reset(&s->smb);
 }
 
 static void via_pm_powerdown_req(Notifier *n, void *opaque)
