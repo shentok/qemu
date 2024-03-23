@@ -601,6 +601,10 @@ static bool get_physical_address(CPUX86State *env, vaddr addr,
 
     /* No translation needed. */
     out->paddr = addr & x86_get_a20_mask(env);
+
+    if (out->paddr == 0xffefa000) {
+        out->paddr = addr & x86_get_a20_mask(env);
+    }
     out->prot = PAGE_READ | PAGE_WRITE | PAGE_EXEC;
     out->page_size = TARGET_PAGE_SIZE;
     return true;
