@@ -157,6 +157,9 @@ static void vcpu_insn_exec(unsigned int cpu_index, void *udata)
 {
     CPU *cpu = get_cpu(cpu_index);
 
+    char *foo = udata;
+    udata = foo;
+
     /* Print previous instruction in cache */
     if (cpu->last_exec->len) {
         qemu_plugin_outs(cpu->last_exec->str);
@@ -259,11 +262,8 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
                                                        NULL);
             }
         } else {
-            uint32_t insn_opcode = 0;
-            qemu_plugin_insn_data(insn, &insn_opcode, sizeof(insn_opcode));
-
-            char *output = g_strdup_printf("0x%"PRIx64", 0x%"PRIx32", \"%s\"",
-                                           insn_vaddr, insn_opcode, insn_disas);
+            char *output = g_strdup_printf("0x%"PRIx64", \"%s\"",
+                                           insn_vaddr, insn_disas);
 
             /* Register callback on memory read or write */
             qemu_plugin_register_vcpu_mem_cb(insn, vcpu_mem,
