@@ -41,6 +41,7 @@
 #include "qemu/notify.h"
 #include "qemu/range.h"
 #include "qemu/timer.h"
+#include "qemu/units.h"
 #include "system/runstate.h"
 #include "trace.h"
 
@@ -885,6 +886,7 @@ struct ViaISAState {
     qemu_irq isa_irqs_in[ISA_NUM_IRQS];
     uint16_t irq_state[ISA_NUM_IRQS];
     ViaSuperIOState via_sio;
+    MemoryRegion rom[3];
     MC146818RtcState rtc;
     MemoryRegion rtc_io;
     uint8_t rtc_index;
@@ -1117,6 +1119,7 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
 {
     ViaISAState *s = VIA_ISA(d);
     DeviceState *dev = DEVICE(d);
+    Object *obj = OBJECT(dev);
     PCIBus *pci_bus = pci_get_bus(d);
     ISABus *isa_bus;
     int i;
@@ -1174,6 +1177,19 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
         return;
     }
 
+    memory_region_init_alias(&s->rom[0], obj, "ROM decode 5",
+                             pci_address_space(d), 0, 512 * KiB);
+    memory_region_add_subregion_overlap(pci_address_space(d), 0xfff00000,
+                                        &s->rom[0], 1);
+    memory_region_init_alias(&s->rom[1], obj, "ROM decode 6",
+                             pci_address_space(d), 512 * KiB, 384 * KiB);
+    memory_region_add_subregion_overlap(pci_address_space(d), 0xfff80000,
+                                        &s->rom[1], 1);
+    memory_region_init_alias(&s->rom[2], obj, "ROM decode 7",
+                             pci_address_space(d), 1 * MiB - 128 * KiB, 128 * KiB);
+    memory_region_add_subregion_overlap(pci_address_space(d), 0xfffe0000,
+                                        &s->rom[2], 1);
+
     /* Function 1: IDE */
     qdev_prop_set_int32(DEVICE(&s->ide), "addr", d->devfn + 1);
     if (!qdev_realize(DEVICE(&s->ide), BUS(pci_bus), errp)) {
@@ -1229,6 +1245,7 @@ static void vt82c686b_write_config(PCIDevice *d, uint32_t addr,
                                    uint32_t val, int len)
 {
     ViaISAState *s = VIA_ISA(d);
+    uint8_t *pci_conf = s->dev.config;
 
     trace_via_isa_write(addr, val, len);
 
@@ -1238,12 +1255,16 @@ static void vt82c686b_write_config(PCIDevice *d, uint32_t addr,
         }
     }
     pci_default_write_config(d, addr, val, len);
-    if (ranges_overlap(addr, len, 0x55, 3)) {
+    if (range_covers_byte(addr, len, 0x43)) {
+        for (int i = 0; i < ARRAY_SIZE(s->rom); i++) {
+            memory_region_set_enabled(&s->rom[i], pci_conf[0x43] & BIT(i + 5));
+        }
+    } else if (ranges_overlap(addr, len, 0x55, 3)) {
         pci_bus_fire_intx_routing_notifier(pci_get_bus(d));
     } else if (addr == 0x85) {
         /* BIT(1): enable or disable superio config io ports */
         via_superio_io_enable(&s->via_sio, val & BIT(1));
-    }
+    };
 }
 
 static void vt82c686b_isa_reset(DeviceState *dev)
@@ -1258,6 +1279,10 @@ static void vt82c686b_isa_reset(DeviceState *dev)
     pci_set_word(pci_conf + PCI_COMMAND, PCI_COMMAND_IO | PCI_COMMAND_MEMORY |
                  PCI_COMMAND_MASTER | PCI_COMMAND_SPECIAL);
     pci_set_word(pci_conf + PCI_STATUS, PCI_STATUS_DEVSEL_MEDIUM);
+
+    for (int i = 0; i <  ARRAY_SIZE(s->rom); i++) {
+        memory_region_set_enabled(&s->rom[i], pci_conf[0x43] & BIT(i + 5));
+    }
 
     pci_conf[0x48] = 0x01; /* Miscellaneous Control 3 */
     pci_conf[0x4a] = 0x04; /* IDE interrupt Routing */
