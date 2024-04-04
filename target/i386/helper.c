@@ -124,7 +124,7 @@ void x86_cpu_set_a20(X86CPU *cpu, int a20_state)
         /* when a20 is changed, all the MMU mappings are invalid, so
            we must flush everything */
         tlb_flush(cs);
-/*        env->a20_mask = ~(1 << 20) | (a20_state << 20);*/
+        env->a20_mask = ~(1 << 20) | (a20_state << 20);
     }
 }
 
