@@ -47,8 +47,6 @@
 #include "hw/i386/intel_iommu.h"
 #include "hw/virtio/virtio-iommu.h"
 #include "hw/display/ramfb.h"
-#include "hw/ide/pci.h"
-#include "hw/ide/ahci-pci.h"
 #include "hw/intc/ioapic.h"
 #include "hw/southbridge/ich9.h"
 #include "hw/usb.h"
