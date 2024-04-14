@@ -39,7 +39,7 @@
 #include "target/i386/sev.h"
 #include "kvm/tdx.h"
 
-#define FLASH_SECTOR_SIZE 4096
+#define FLASH_SECTOR_SIZE 128
 
 static void pc_isa_bios_init(PCMachineState *pcms, MemoryRegion *isa_bios,
                              MemoryRegion *rom_memory, MemoryRegion *flash_mem)
@@ -84,6 +84,8 @@ static PFlashCFI01 *pc_pflash_create(PCMachineState *pcms,
 
     qdev_prop_set_uint64(dev, "sector-length", FLASH_SECTOR_SIZE);
     qdev_prop_set_uint8(dev, "width", 1);
+    qdev_prop_set_uint16(dev, "id1", 0xda);
+    qdev_prop_set_uint16(dev, "id3", 0x45);
     qdev_prop_set_string(dev, "name", name);
     object_property_add_child(OBJECT(pcms), name, OBJECT(dev));
     object_property_add_alias(OBJECT(pcms), alias_prop_name,
