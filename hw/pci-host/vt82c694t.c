@@ -39,7 +39,6 @@
 #include "qapi/visitor.h"
 #include "qemu/error-report.h"
 #include "qom/object.h"
-#include "sysemu/runstate.h"
 #include "trace.h"
 
 /*
@@ -140,10 +139,6 @@ static void vt82c694t_pci_update_memory_mappings(VT82C694TPCIState *d)
         break;
     }
     memory_region_transaction_commit();
-
-    if (pd->config[VT82C694T_PAM + 2] == 1) {
-        qemu_system_vmstop_request(RUN_STATE_PAUSED);
-    }
 }
 
 static void vt82c694t_pci_write_config(PCIDevice *dev, uint32_t address,
