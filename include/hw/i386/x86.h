@@ -118,7 +118,7 @@ void x86_cpu_unplug_cb(HotplugHandler *hotplug_dev,
 
 void x86_isa_bios_init(MemoryRegion *rom_memory, MemoryRegion *bios,
                        bool isapc_ram_fw);
-void x86_bios_rom_init(MachineState *ms, const char *default_firmware,
+void x86_bios_rom_init(const char *firmware, const char *default_firmware,
                        MemoryRegion *rom_memory, bool isapc_ram_fw);
 
 void x86_load_linux(X86MachineState *x86ms,

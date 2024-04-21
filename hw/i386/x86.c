@@ -1151,7 +1151,7 @@ void x86_isa_bios_init(MemoryRegion *rom_memory, MemoryRegion *bios,
     memory_region_set_readonly(isa_bios, !isapc_ram_fw);
 }
 
-void x86_bios_rom_init(MachineState *ms, const char *default_firmware,
+void x86_bios_rom_init(const char *firmware, const char *default_firmware,
                        MemoryRegion *rom_memory, bool isapc_ram_fw)
 {
     const char *bios_name;
@@ -1161,7 +1161,7 @@ void x86_bios_rom_init(MachineState *ms, const char *default_firmware,
     ssize_t ret;
 
     /* BIOS load */
-    bios_name = ms->firmware ?: default_firmware;
+    bios_name = firmware ?: default_firmware;
     filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, bios_name);
     if (filename) {
         bios_size = get_image_size(filename);
