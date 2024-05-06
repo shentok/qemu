@@ -11,6 +11,7 @@
 #include "cpu-features.h"
 #include "exec/exec-all.h"
 #include "exec/helper-proto.h"
+#include "../trace.h"
 
 
 /*
@@ -269,6 +270,8 @@ void arm_cpu_do_unaligned_access(CPUState *cs, vaddr vaddr,
 {
     ARMCPU *cpu = ARM_CPU(cs);
     ARMMMUFaultInfo fi = {};
+
+    trace_arm_cpu_do_unaligned_access(vaddr, access_type);
 
     /* now we have a real cpu fault */
     cpu_restore_state(cs, retaddr);
