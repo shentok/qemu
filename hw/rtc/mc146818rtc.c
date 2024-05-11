@@ -427,23 +427,33 @@ static void cmos_ioport_write(void *opaque, hwaddr addr,
                               uint64_t data, unsigned size)
 {
     MC146818RtcState *s = opaque;
-    uint32_t old_period;
-    bool update_periodic_timer;
 
     if ((addr & 1) == 0) {
         s->cmos_index = data & 0x7f;
+        if (s->cmos_index == RTC_IBM_PS2_CENTURY_BYTE) {
+            s->cmos_index = RTC_CENTURY;
+        }
     } else {
         trace_mc146818_rtc_ioport_write(s->cmos_index, data);
-        switch(s->cmos_index) {
+
+        mc146818rtc_set_cmos_data(s, s->cmos_index, data);
+    }
+}
+
+void mc146818rtc_set_cmos_data(MC146818RtcState *s, int cmos_index, int data)
+{
+    uint32_t old_period;
+    bool update_periodic_timer;
+
+    assert(cmos_index >= 0 && cmos_index < ARRAY_SIZE(s->cmos_data));
+
+        switch (cmos_index) {
         case RTC_SECONDS_ALARM:
         case RTC_MINUTES_ALARM:
         case RTC_HOURS_ALARM:
-            s->cmos_data[s->cmos_index] = data;
+            s->cmos_data[cmos_index] = data;
             check_update_timer(s);
             break;
-        case RTC_IBM_PS2_CENTURY_BYTE:
-            s->cmos_index = RTC_CENTURY;
-            /* fall through */
         case RTC_CENTURY:
         case RTC_SECONDS:
         case RTC_MINUTES:
@@ -452,7 +462,7 @@ static void cmos_ioport_write(void *opaque, hwaddr addr,
         case RTC_DAY_OF_MONTH:
         case RTC_MONTH:
         case RTC_YEAR:
-            s->cmos_data[s->cmos_index] = data;
+            s->cmos_data[cmos_index] = data;
             /* if in set mode, do not update the time */
             if (rtc_running(s)) {
                 rtc_set_time(s);
@@ -537,10 +547,9 @@ static void cmos_ioport_write(void *opaque, hwaddr addr,
             /* cannot write to them */
             break;
         default:
-            s->cmos_data[s->cmos_index] = data;
+            s->cmos_data[cmos_index] = data;
             break;
         }
-    }
 }
 
 static inline int rtc_to_bcd(MC146818RtcState *s, int a)
@@ -664,13 +673,29 @@ static uint64_t cmos_ioport_read(void *opaque, hwaddr addr,
 {
     MC146818RtcState *s = opaque;
     int ret;
+
     if ((addr & 1) == 0) {
         return 0xff;
-    } else {
-        switch(s->cmos_index) {
-        case RTC_IBM_PS2_CENTURY_BYTE:
-            s->cmos_index = RTC_CENTURY;
-            /* fall through */
+    }
+
+    if (s->cmos_index == RTC_IBM_PS2_CENTURY_BYTE) {
+        s->cmos_index = RTC_CENTURY;
+    }
+
+    ret = mc146818rtc_get_cmos_data(s, s->cmos_index);
+
+    trace_mc146818_rtc_ioport_read(s->cmos_index, ret);
+
+    return ret;
+}
+
+int mc146818rtc_get_cmos_data(MC146818RtcState *s, int cmos_index)
+{
+    int ret;
+
+    assert(cmos_index >= 0 && cmos_index < ARRAY_SIZE(s->cmos_data));
+
+        switch (cmos_index) {
         case RTC_CENTURY:
         case RTC_SECONDS:
         case RTC_MINUTES:
@@ -684,16 +709,16 @@ static uint64_t cmos_ioport_read(void *opaque, hwaddr addr,
             if (rtc_running(s)) {
                 rtc_update_time(s);
             }
-            ret = s->cmos_data[s->cmos_index];
+            ret = s->cmos_data[cmos_index];
             break;
         case RTC_REG_A:
-            ret = s->cmos_data[s->cmos_index];
+            ret = s->cmos_data[cmos_index];
             if (update_in_progress(s)) {
                 ret |= REG_A_UIP;
             }
             break;
         case RTC_REG_C:
-            ret = s->cmos_data[s->cmos_index];
+            ret = s->cmos_data[cmos_index];
             qemu_irq_lower(s->irq);
             s->cmos_data[RTC_REG_C] = 0x00;
             if (ret & (REG_C_UF | REG_C_AF)) {
@@ -714,24 +739,11 @@ static uint64_t cmos_ioport_read(void *opaque, hwaddr addr,
             }
             break;
         default:
-            ret = s->cmos_data[s->cmos_index];
+            ret = s->cmos_data[cmos_index];
             break;
         }
-        trace_mc146818_rtc_ioport_read(s->cmos_index, ret);
-        return ret;
-    }
-}
 
-void mc146818rtc_set_cmos_data(MC146818RtcState *s, int addr, int val)
-{
-    assert(addr >= 0 && addr < ARRAY_SIZE(s->cmos_data));
-    s->cmos_data[addr] = val;
-}
-
-int mc146818rtc_get_cmos_data(MC146818RtcState *s, int addr)
-{
-    assert(addr >= 0 && addr < ARRAY_SIZE(s->cmos_data));
-    return s->cmos_data[addr];
+    return ret;
 }
 
 static void rtc_set_date_from_host(ISADevice *dev)
