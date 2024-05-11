@@ -67,7 +67,6 @@
 
 static void rtc_set_time(MC146818RtcState *s);
 static void rtc_update_time(MC146818RtcState *s);
-static void rtc_set_cmos(MC146818RtcState *s, const struct tm *tm);
 static inline int rtc_from_bcd(MC146818RtcState *s, int a);
 static uint64_t get_next_alarm(MC146818RtcState *s);
 
