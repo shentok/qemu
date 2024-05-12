@@ -576,7 +576,7 @@ static void pc_cmos_init_late(PCMachineState *pcms)
     mc146818rtc_set_cmos_data(s, 0x5c, val >> 8);
     mc146818rtc_set_cmos_data(s, 0x5d, val >> 16);
 
-    val = 0;
+    val = mc146818rtc_get_cmos_data(s, REG_EQUIPMENT_BYTE);
     val |= 0x02; /* FPU is there */
     val |= 0x04; /* PS/2 mouse installed */
     mc146818rtc_set_cmos_data(s, REG_EQUIPMENT_BYTE, val);
