@@ -515,6 +515,11 @@ static void pflash_write(PFlashCFI01 *pfl, hwaddr offset,
         case 0x98: /* CFI query */
             trace_pflash_write(pfl->name, "CFI query");
             break;
+        case 0xaa:
+            if (offset % 0x10000 != 0x5555) {
+                goto error_flash;
+            }
+            break;
         case 0xe8: /* Write to buffer */
             trace_pflash_write(pfl->name, "write to buffer");
             pfl->status |= 0x80; /* Ready! */
@@ -555,6 +560,14 @@ static void pflash_write(PFlashCFI01 *pfl, hwaddr offset,
             } else
                 goto error_flash;
 
+            break;
+        case 0xaa:
+            if (cmd == 0x55 && (offset & 0x7fff) == 0x2aaa) {
+                pfl->wcycle++;
+                pfl->cmd = cmd;
+            } else {
+                goto error_flash;
+            }
             break;
         case 0xe8:
             /*
@@ -597,6 +610,27 @@ static void pflash_write(PFlashCFI01 *pfl, hwaddr offset,
         break;
     case 2:
         switch (pfl->cmd) {
+        case 0x55:
+            if ((offset & 0xffff) == 0x5555) {
+                switch (cmd) {
+                case 0x90: /* product identification */
+                    pfl->cmd = cmd;
+                    pfl->wcycle = 0;
+                    break;
+                case 0xa0: /* block write */
+                    pfl->cmd = cmd;
+                    pfl->counter = pfl->sector_len - 1;
+                    break;
+                case 0xf0:
+                    pfl->cmd = 0;
+                    trace_pflash_mode_software_product_identification_exit(pfl->name);
+                    goto mode_read_array;
+                default:
+                    goto error_flash;
+                }
+            }
+            break;
+        case 0xa0: /* fall through */
         case 0xe8: /* Block write */
             /* FIXME check @offset, @width */
             if (pfl->blk_offset == -1 && pfl->counter) {
@@ -614,7 +648,17 @@ static void pflash_write(PFlashCFI01 *pfl, hwaddr offset,
                 pfl->counter--;
             } else {
                 trace_pflash_write(pfl->name, "block write finished");
-                pfl->wcycle++;
+                if (pfl->cmd == 0xa0) {
+                    if (!(pfl->status & 0x10)) {
+                        pflash_blk_write_flush(pfl);
+                        pfl->wcycle = 0;
+                    } else {
+                        pflash_blk_write_abort(pfl);
+                        goto mode_read_array;
+                    }
+                } else {
+                    pfl->wcycle++;
+                }
             }
 
             break;
