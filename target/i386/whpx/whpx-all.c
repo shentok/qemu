@@ -26,6 +26,7 @@
 #include "qapi/qapi-types-common.h"
 #include "qapi/qapi-visit-common.h"
 #include "migration/blocker.h"
+#include "trace.h"
 #include <winerror.h>
 
 #include "whpx-internal.h"
@@ -860,6 +861,7 @@ static HRESULT CALLBACK whpx_emu_translate_callback(
                      Gva, hr);
     } else {
         *TranslationResult = res.ResultCode;
+        trace_whpx_emu_translate_callback(Gva, TranslateFlags, *Gpa);
     }
 
     return hr;
@@ -879,6 +881,12 @@ static int whpx_handle_mmio(CPUState *cpu, WHV_MEMORY_ACCESS_CONTEXT *ctx)
     HRESULT hr;
     AccelCPUState *vcpu = cpu->accel;
     WHV_EMULATOR_STATUS emu_status;
+
+    trace_whpx_handle_mmio(ctx->Gpa,
+                           ctx->AccessInfo.GpaUnmapped ? "unmapped" : "mapped",
+                           ctx->Gva,
+                           ctx->AccessInfo.GvaValid ? "valid" : "invalid",
+                           ctx->AccessInfo.AccessType);
 
     hr = whp_dispatch.WHvEmulatorTryMmioEmulation(
         vcpu->emulator, cpu,
@@ -910,6 +918,9 @@ static int whpx_handle_portio(CPUState *cpu,
     HRESULT hr;
     AccelCPUState *vcpu = cpu->accel;
     WHV_EMULATOR_STATUS emu_status;
+
+    trace_whpx_handle_portio(ctx->PortNumber, ctx->AccessInfo.AccessSize,
+                             ctx->AccessInfo.IsWrite ? "w" : "r");
 
     hr = whp_dispatch.WHvEmulatorTryIoEmulation(
         vcpu->emulator, cpu,
@@ -2299,18 +2310,10 @@ static void whpx_update_mapping(hwaddr start_pa, uint64_t size,
     struct whpx_state *whpx = &whpx_global;
     HRESULT hr;
 
-    /*
     if (add) {
-        printf("WHPX: ADD PA:%p Size:%p, Host:%p, %s, '%s'\n",
-               (void*)start_pa, (void*)size, host_va,
-               (rom ? "ROM" : "RAM"), name);
-    } else {
-        printf("WHPX: DEL PA:%p Size:%p, Host:%p,      '%s'\n",
-               (void*)start_pa, (void*)size, host_va, name);
-    }
-    */
+        trace_whpx_add_mapping(start_pa, size, host_va, rom ? "ROM" : "RAM",
+                               name);
 
-    if (add) {
         hr = whp_dispatch.WHvMapGpaRange(whpx->partition,
                                          host_va,
                                          start_pa,
@@ -2319,6 +2322,8 @@ static void whpx_update_mapping(hwaddr start_pa, uint64_t size,
                                           WHvMapGpaRangeFlagExecute |
                                           (rom ? 0 : WHvMapGpaRangeFlagWrite)));
     } else {
+        trace_whpx_delete_mapping(start_pa, size, name);
+
         hr = whp_dispatch.WHvUnmapGpaRange(whpx->partition,
                                            start_pa,
                                            size);
