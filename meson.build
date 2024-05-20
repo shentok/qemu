@@ -3610,6 +3610,7 @@ if have_system
     'accel/kvm',
     'accel/mshv',
     'accel/nitro',
+    'accel/whpx',
     'audio',
     'backends',
     'backends/tpm',

@@ -1,0 +1,5 @@
+# See docs/devel/tracing.rst for syntax documentation.
+
+# whpx.c
+whpx_add_mapping(uint64_t pa, uint64_t size, void *va, const char *name) "PA: 0x%" PRIx64 ", Size: 0x%" PRIx64 ", Host: %p, %s"
+whpx_delete_mapping(uint64_t pa, uint64_t size, const char *name) "PA: 0x%" PRIx64 ", Size: 0x%" PRIx64 ", %s"

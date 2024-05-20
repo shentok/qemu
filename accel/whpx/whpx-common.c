@@ -31,6 +31,7 @@
 #include "system/whpx-accel-ops.h"
 #include "system/whpx-common.h"
 #include "system/whpx-all.h"
+#include "trace.h"
 
 #include <winhvplatform.h>
 #include <winhvplatformdefs.h>
@@ -311,8 +312,9 @@ static void whpx_set_phys_mem(MemoryRegionSection *section, bool add)
     }
 
     if (!add) {
-        hr = whp_dispatch.WHvUnmapGpaRange(whpx->partition,
-                gva, size);
+        trace_whpx_delete_mapping(gva, size, area->name);
+
+        hr = whp_dispatch.WHvUnmapGpaRange(whpx->partition, gva, size);
         if (FAILED(hr)) {
             error_report("WHPX: Failed to unmap GPA range '%s' PA: 0x%" PRIx64
                          ", size: 0x%" PRIx64 " bytes, hr=%08lx",
@@ -326,8 +328,9 @@ static void whpx_set_phys_mem(MemoryRegionSection *section, bool add)
      | (writable ? WHvMapGpaRangeFlagWrite : 0);
     mem = memory_region_get_ram_ptr(area) + section->offset_within_region;
 
-    hr = whp_dispatch.WHvMapGpaRange(whpx->partition,
-         mem, gva, size, flags);
+    trace_whpx_add_mapping(gva, size, mem, area->name);
+
+    hr = whp_dispatch.WHvMapGpaRange(whpx->partition, mem, gva, size, flags);
     if (FAILED(hr)) {
         error_report("WHPX: Failed to map GPA range '%s' PA: 0x%" PRIx64
                      ", size: 0x%" PRIx64 " bytes, host: %p, hr=%08lx",

@@ -30,6 +30,7 @@
 #include "migration/blocker.h"
 #include "host-cpu.h"
 #include "accel/accel-cpu-target.h"
+#include "trace.h"
 #include <winerror.h>
 
 #include "system/whpx-internal.h"
