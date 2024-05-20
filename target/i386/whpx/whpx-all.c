@@ -2349,8 +2349,6 @@ static void whpx_process_section(MemoryRegionSection *section, int add)
     if (!memory_region_is_ram(mr)) {
         if (memory_region_is_romd(mr)) {
             is_romd = true;
-            warn_report("WHPX: ROMD region 0x%016" PRIx64 "->0x%016" PRIx64,
-                        start_pa, start_pa + size);
         } else {
             return;
         }
