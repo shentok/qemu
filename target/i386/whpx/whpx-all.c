@@ -2329,7 +2329,7 @@ static void whpx_process_section(MemoryRegionSection *section, int add)
     hwaddr start_pa = section->offset_within_address_space;
     ram_addr_t size = int128_get64(section->size);
     unsigned int delta;
-    uint64_t host_va;
+    void *host_va;
 
     if (!memory_region_is_ram(mr)) {
         return;
@@ -2347,10 +2347,10 @@ static void whpx_process_section(MemoryRegionSection *section, int add)
         return;
     }
 
-    host_va = (uintptr_t)memory_region_get_ram_ptr(mr)
+    host_va = memory_region_get_ram_ptr(mr)
             + section->offset_within_region + delta;
 
-    whpx_update_mapping(start_pa, size, (void *)(uintptr_t)host_va, add,
+    whpx_update_mapping(start_pa, size, host_va, add,
                         memory_region_is_rom(mr), mr->name);
 }
 
