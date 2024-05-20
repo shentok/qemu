@@ -787,6 +787,7 @@ static HRESULT CALLBACK whpx_emu_mmio_callback(
     void *ctx,
     WHV_EMULATOR_MEMORY_ACCESS_INFO *ma)
 {
+    trace_whpx_emu_mmio_callback(ma->GpaAddress, ma->AccessSize, ma->Direction);
     cpu_physical_memory_rw(ma->GpaAddress, ma->Data, ma->AccessSize,
                            ma->Direction);
     return S_OK;
