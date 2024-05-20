@@ -2283,7 +2283,7 @@ void whpx_vcpu_kick(CPUState *cpu)
  * Memory support.
  */
 
-static void whpx_update_mapping(hwaddr start_pa, ram_addr_t size,
+static void whpx_update_mapping(hwaddr start_pa, uint64_t size,
                                 void *host_va, int add, int rom,
                                 const char *name)
 {
@@ -2327,7 +2327,7 @@ static void whpx_process_section(MemoryRegionSection *section, int add)
 {
     MemoryRegion *mr = section->mr;
     hwaddr start_pa = section->offset_within_address_space;
-    ram_addr_t size = int128_get64(section->size);
+    uint64_t size = int128_get64(section->size);
     unsigned int delta;
     void *host_va;
 
