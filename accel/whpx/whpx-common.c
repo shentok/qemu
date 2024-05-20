@@ -314,7 +314,9 @@ static void whpx_set_phys_mem(MemoryRegionSection *section, bool add)
         hr = whp_dispatch.WHvUnmapGpaRange(whpx->partition,
                 gva, size);
         if (FAILED(hr)) {
-            error_report("WHPX: failed to unmap GPA range");
+            error_report("WHPX: Failed to unmap GPA range '%s' PA: 0x%" PRIx64
+                         ", size: 0x%" PRIx64 " bytes, hr=%08lx",
+                         area->name, gva, size, hr);
             abort();
         }
         return;
@@ -327,7 +329,9 @@ static void whpx_set_phys_mem(MemoryRegionSection *section, bool add)
     hr = whp_dispatch.WHvMapGpaRange(whpx->partition,
          mem, gva, size, flags);
     if (FAILED(hr)) {
-        error_report("WHPX: failed to map GPA range");
+        error_report("WHPX: Failed to map GPA range '%s' PA: 0x%" PRIx64
+                     ", size: 0x%" PRIx64 " bytes, host: %p, hr=%08lx",
+                     area->name, gva, size, mem, hr);
         abort();
     }
 }
