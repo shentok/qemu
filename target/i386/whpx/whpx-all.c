@@ -877,7 +877,7 @@ static const WHV_EMULATOR_CALLBACKS whpx_emu_callbacks = {
     .WHvEmulatorTranslateGvaPage = whpx_emu_translate_callback,
 };
 
-static int whpx_handle_mmio(CPUState *cpu, WHV_MEMORY_ACCESS_CONTEXT *ctx)
+static int whpx_handle_mmio(CPUState *cpu, const WHV_MEMORY_ACCESS_CONTEXT *ctx)
 {
     HRESULT hr;
     AccelCPUState *vcpu = cpu->accel;
@@ -914,7 +914,7 @@ static int whpx_handle_mmio(CPUState *cpu, WHV_MEMORY_ACCESS_CONTEXT *ctx)
 }
 
 static int whpx_handle_portio(CPUState *cpu,
-                              WHV_X64_IO_PORT_ACCESS_CONTEXT *ctx)
+                              const WHV_X64_IO_PORT_ACCESS_CONTEXT *ctx)
 {
     HRESULT hr;
     AccelCPUState *vcpu = cpu->accel;
