@@ -1,0 +1,8 @@
+# See docs/devel/tracing.rst for syntax documentation.
+
+# whpx.c
+whpx_add_mapping(uint64_t pa, uint64_t size, void *va, const char *type, const char *name) "PA: 0x%" PRIx64 ", Size: 0x%" PRIx64 ", Host: %p, %s, '%s'"
+whpx_delete_mapping(uint64_t pa, uint64_t size, const char *name) "PA: 0x%" PRIx64 ", Size: 0x%" PRIx64 ", '%s'"
+whpx_handle_mmio(uint64_t pa, const char *mapStatus, uint64_t va, const char *validStatus, uint32_t flags) "PA: 0x%" PRIx64 " (%s), VA: 0x%" PRIx64 " (%s), access type: %d"
+whpx_handle_portio(uint16_t port, uint8_t size, const char *mode) "port: 0x%" PRIx16 ", size: %" PRIu8 ", mode: %s"
+whpx_emu_translate_callback(uint64_t va, uint32_t flags, uint64_t pa) "va: 0x%" PRIx64 ", flags: 0x%" PRIx32 " -> pa: 0x%" PRIx64
