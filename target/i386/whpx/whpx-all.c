@@ -856,7 +856,8 @@ static HRESULT CALLBACK whpx_emu_translate_callback(
     hr = whp_dispatch.WHvTranslateGva(whpx->partition, cpu->cpu_index,
                                       Gva, TranslateFlags, &res, Gpa);
     if (FAILED(hr)) {
-        error_report("WHPX: Failed to translate GVA, hr=%08lx", hr);
+        error_report("WHPX: Failed to translate GVA 0x%" PRIx64 ", hr=%08lx",
+                     Gva, hr);
     } else {
         *TranslationResult = res.ResultCode;
     }
@@ -889,8 +890,14 @@ static int whpx_handle_mmio(CPUState *cpu, WHV_MEMORY_ACCESS_CONTEXT *ctx)
     }
 
     if (!emu_status.EmulationSuccessful) {
-        error_report("WHPX: Failed to emulate MMIO access with"
-                     " EmulatorReturnStatus: %u", emu_status.AsUINT32);
+        error_report("WHPX: Failed to emulate MMIO access for"
+                     " guest physical address 0x%" PRIx64 " (%s),"
+                     " guest virtual address 0x%" PRIx64 " (%s),"
+                     " access type: %d with EmulatorReturnStatus: %u",
+                     ctx->Gpa,
+                     ctx->AccessInfo.GpaUnmapped ? "unmapped" : "mapped",
+                     ctx->Gva, ctx->AccessInfo.GvaValid ? "valid" : "invalid",
+                     (int)ctx->AccessInfo.AccessType, emu_status.AsUINT32);
         return -1;
     }
 
@@ -914,8 +921,10 @@ static int whpx_handle_portio(CPUState *cpu,
     }
 
     if (!emu_status.EmulationSuccessful) {
-        error_report("WHPX: Failed to emulate PortIO access with"
-                     " EmulatorReturnStatus: %u", emu_status.AsUINT32);
+        error_report("WHPX: Failed to emulate PortIO access for port 0x%" PRIx16
+                     " (%s), size %" PRIu8 " with EmulatorReturnStatus: %u",
+                     ctx->PortNumber, ctx->AccessInfo.IsWrite ? "w" : "r",
+                     ctx->AccessInfo.AccessSize, emu_status.AsUINT32);
         return -1;
     }
 
@@ -2316,10 +2325,9 @@ static void whpx_update_mapping(hwaddr start_pa, uint64_t size,
     }
 
     if (FAILED(hr)) {
-        error_report("WHPX: Failed to %s GPA range '%s' PA:%p, Size:%p bytes,"
-                     " Host:%p, hr=%08lx",
-                     (add ? "MAP" : "UNMAP"), name,
-                     (void *)(uintptr_t)start_pa, (void *)size, host_va, hr);
+        error_report("WHPX: Failed to %s GPA range '%s' PA: 0x%" PRIx64
+                     ", size: 0x%" PRIx64 " bytes, host: %p, hr=%08lx",
+                     add ? "map" : "unmap", name, start_pa, size, host_va, hr);
     }
 }
 
