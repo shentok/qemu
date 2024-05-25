@@ -19,6 +19,7 @@
 #define PPC_INTERNAL_H
 
 #include "exec/breakpoint.h"
+#include "exec/memopidx.h"
 #include "hw/registerfields.h"
 #include "exec/page-protection.h"
 
@@ -277,7 +278,7 @@ bool ppc_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
                       MMUAccessType access_type, int mmu_idx,
                       bool probe, uintptr_t retaddr);
 G_NORETURN void ppc_cpu_do_unaligned_access(CPUState *cs, vaddr addr,
-                                            MMUAccessType access_type, int mmu_idx,
+                                            MMUAccessType access_type, MemOpIdx oi,
                                             uintptr_t retaddr);
 void ppc_cpu_do_transaction_failed(CPUState *cs, hwaddr physaddr,
                                    vaddr addr, unsigned size,

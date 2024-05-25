@@ -26,6 +26,7 @@
 #define TARGET_ARM_INTERNALS_H
 
 #include "exec/breakpoint.h"
+#include "exec/memopidx.h"
 #include "hw/registerfields.h"
 #include "tcg/tcg-gvec-desc.h"
 #include "syndrome.h"
@@ -815,7 +816,7 @@ bool arm_s1_regime_using_lpae_format(CPUARMState *env, ARMMMUIdx mmu_idx);
 /* Raise a data fault alignment exception for the specified virtual address */
 G_NORETURN void arm_cpu_do_unaligned_access(CPUState *cs, vaddr vaddr,
                                             MMUAccessType access_type,
-                                            int mmu_idx, uintptr_t retaddr);
+                                            MemOpIdx oi, uintptr_t retaddr);
 
 #ifndef CONFIG_USER_ONLY
 /* arm_cpu_do_transaction_failed: handle a memory system error response

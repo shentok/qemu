@@ -266,18 +266,18 @@ void arm_deliver_fault(ARMCPU *cpu, vaddr addr,
 /* Raise a data fault alignment exception for the specified virtual address */
 void arm_cpu_do_unaligned_access(CPUState *cs, vaddr vaddr,
                                  MMUAccessType access_type,
-                                 int mmu_idx, uintptr_t retaddr)
+                                 MemOpIdx oi, uintptr_t retaddr)
 {
     ARMCPU *cpu = ARM_CPU(cs);
     ARMMMUFaultInfo fi = {};
 
-    trace_arm_cpu_do_unaligned_access(vaddr, access_type);
+    trace_arm_cpu_do_unaligned_access(vaddr, access_type, memop_size(get_memop(oi)));
 
     /* now we have a real cpu fault */
     cpu_restore_state(cs, retaddr);
 
     fi.type = ARMFault_Alignment;
-    arm_deliver_fault(cpu, vaddr, access_type, mmu_idx, &fi);
+    arm_deliver_fault(cpu, vaddr, access_type, get_mmuidx(oi), &fi);
 }
 
 void helper_exception_pc_alignment(CPUARMState *env, target_ulong pc)

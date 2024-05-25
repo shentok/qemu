@@ -1758,7 +1758,7 @@ static bool mmu_lookup(CPUState *cpu, vaddr addr, MemOpIdx oi,
     }
 
     if (addr & ((1 << a_bits) - 1)) {
-        cpu_unaligned_access(cpu, addr, type, l->mmu_idx, ra);
+        cpu_unaligned_access(cpu, addr, type, oi, ra);
     }
 
     /*

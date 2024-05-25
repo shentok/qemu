@@ -12,6 +12,7 @@
 
 #include "tcg/tcg.h"
 #include "exec/memattrs.h"
+#include "exec/memopidx.h"
 #include "hw/core/cpu.h"
 #include "cpu.h"
 
@@ -19,7 +20,7 @@ void mips_tcg_init(void);
 
 void mips_cpu_synchronize_from_tb(CPUState *cs, const TranslationBlock *tb);
 G_NORETURN void mips_cpu_do_unaligned_access(CPUState *cpu, vaddr addr,
-                                             MMUAccessType access_type, int mmu_idx,
+                                             MMUAccessType access_type, MemOpIdx oi,
                                              uintptr_t retaddr);
 void mips_restore_state_to_opc(CPUState *cs,
                                const TranslationBlock *tb,

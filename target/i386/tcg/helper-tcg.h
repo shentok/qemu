@@ -21,6 +21,7 @@
 #define I386_HELPER_TCG_H
 
 #include "exec/exec-all.h"
+#include "exec/memopidx.h"
 
 /* Maximum instruction code size */
 #define TARGET_MAX_INSN_SIZE 16
@@ -83,7 +84,7 @@ bool x86_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
                       bool probe, uintptr_t retaddr);
 G_NORETURN void x86_cpu_do_unaligned_access(CPUState *cs, vaddr vaddr,
                                             MMUAccessType access_type,
-                                            int mmu_idx, uintptr_t retaddr);
+                                            MemOpIdx oi, uintptr_t retaddr);
 #endif
 
 /* cc_helper.c */

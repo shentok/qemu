@@ -12,6 +12,7 @@
 
 #include "exec/breakpoint.h"
 #include "exec/hwaddr.h"
+#include "exec/memopidx.h"
 #include "exec/memattrs.h"
 #include "exec/mmu-access-type.h"
 #include "exec/vaddr.h"
@@ -152,7 +153,7 @@ struct TCGCPUOps {
      */
     G_NORETURN void (*do_unaligned_access)(CPUState *cpu, vaddr addr,
                                            MMUAccessType access_type,
-                                           int mmu_idx, uintptr_t retaddr);
+                                           MemOpIdx oi, uintptr_t retaddr);
 
     /**
      * @adjust_watchpoint_address: hack for cpu_check_watchpoint used by ARM

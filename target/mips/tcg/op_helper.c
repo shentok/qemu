@@ -277,7 +277,7 @@ target_ulong helper_lcsr_cpucfg(CPUMIPSState *env, target_ulong rs)
 
 void mips_cpu_do_unaligned_access(CPUState *cs, vaddr addr,
                                   MMUAccessType access_type,
-                                  int mmu_idx, uintptr_t retaddr)
+                                  MemOpIdx oi, uintptr_t retaddr)
 {
     CPUMIPSState *env = cpu_env(cs);
     int error_code = 0;

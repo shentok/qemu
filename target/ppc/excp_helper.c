@@ -3116,7 +3116,7 @@ void helper_book3s_trace(CPUPPCState *env, target_ulong prev_ip)
 
 void ppc_cpu_do_unaligned_access(CPUState *cs, vaddr vaddr,
                                  MMUAccessType access_type,
-                                 int mmu_idx, uintptr_t retaddr)
+                                 MemOpIdx oi, uintptr_t retaddr)
 {
     CPUPPCState *env = cpu_env(cs);
     uint32_t insn;
