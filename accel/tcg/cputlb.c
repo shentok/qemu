@@ -1710,9 +1710,6 @@ static bool mmu_lookup(CPUState *cpu, vaddr addr, MemOpIdx oi,
 
     /* Handle CPU specific unaligned behaviour */
     a_bits = get_alignment_bits(l->memop);
-    if (addr & ((1 << a_bits) - 1)) {
-        cpu_unaligned_access(cpu, addr, type, l->mmu_idx, ra);
-    }
 
     l->page[0].addr = addr;
     l->page[0].size = memop_size(l->memop);
@@ -1758,6 +1755,10 @@ static bool mmu_lookup(CPUState *cpu, vaddr addr, MemOpIdx oi,
          * would be arbitrary.  Refuse it until there's a use.
          */
         tcg_debug_assert((flags & TLB_BSWAP) == 0);
+    }
+
+    if (addr & ((1 << a_bits) - 1)) {
+        cpu_unaligned_access(cpu, addr, type, l->mmu_idx, ra);
     }
 
     /*
