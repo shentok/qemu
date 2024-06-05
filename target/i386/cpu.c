@@ -680,6 +680,111 @@ static const CPUCaches legacy_amd_cache_info = {
 };
 
 /*
+ * Cache information for the AMD K7 (Athlon/Duron) family.  All models
+ * have 64 KiB two-way L1 instruction and data caches and no L3; the
+ * cores only differ in their L2 cache size.
+ */
+static CPUCacheInfo k7_l1d_cache = {
+    .type = DATA_CACHE,
+    .level = 1,
+    .size = 64 * KiB,
+    .self_init = 1,
+    .line_size = 64,
+    .associativity = 2,
+    .sets = 512,
+    .partitions = 1,
+    .lines_per_tag = 1,
+    .no_invd_sharing = true,
+    .share_level = CPU_TOPOLOGY_LEVEL_CORE,
+};
+
+static CPUCacheInfo k7_l1i_cache = {
+    .type = INSTRUCTION_CACHE,
+    .level = 1,
+    .size = 64 * KiB,
+    .self_init = 1,
+    .line_size = 64,
+    .associativity = 2,
+    .sets = 512,
+    .partitions = 1,
+    .lines_per_tag = 1,
+    .no_invd_sharing = true,
+    .share_level = CPU_TOPOLOGY_LEVEL_CORE,
+};
+
+static CPUCacheInfo k7_l2_64k_cache = {
+    .type = UNIFIED_CACHE,
+    .level = 2,
+    .size = 64 * KiB,
+    .line_size = 64,
+    .lines_per_tag = 1,
+    .associativity = 16,
+    .sets = 64,
+    .partitions = 1,
+    .share_level = CPU_TOPOLOGY_LEVEL_CORE,
+};
+
+static CPUCacheInfo k7_l2_256k_cache = {
+    .type = UNIFIED_CACHE,
+    .level = 2,
+    .size = 256 * KiB,
+    .line_size = 64,
+    .lines_per_tag = 1,
+    .associativity = 16,
+    .sets = 256,
+    .partitions = 1,
+    .share_level = CPU_TOPOLOGY_LEVEL_CORE,
+};
+
+static CPUCacheInfo k7_l2_512k_cache = {
+    .type = UNIFIED_CACHE,
+    .level = 2,
+    .size = 512 * KiB,
+    .line_size = 64,
+    .lines_per_tag = 1,
+    .associativity = 16,
+    .sets = 512,
+    .partitions = 1,
+    .share_level = CPU_TOPOLOGY_LEVEL_CORE,
+};
+
+static const CPUCaches k7_spitfire_cache_info = {
+    .l1d_cache = &k7_l1d_cache,
+    .l1i_cache = &k7_l1i_cache,
+    .l2_cache = &k7_l2_64k_cache,
+};
+
+static const CPUCaches k7_thunderbird_cache_info = {
+    .l1d_cache = &k7_l1d_cache,
+    .l1i_cache = &k7_l1i_cache,
+    .l2_cache = &k7_l2_256k_cache,
+};
+
+static const CPUCaches k7_palomino_cache_info = {
+    .l1d_cache = &k7_l1d_cache,
+    .l1i_cache = &k7_l1i_cache,
+    .l2_cache = &k7_l2_256k_cache,
+};
+
+static const CPUCaches k7_morgan_cache_info = {
+    .l1d_cache = &k7_l1d_cache,
+    .l1i_cache = &k7_l1i_cache,
+    .l2_cache = &k7_l2_64k_cache,
+};
+
+static const CPUCaches k7_thoroughbred_cache_info = {
+    .l1d_cache = &k7_l1d_cache,
+    .l1i_cache = &k7_l1i_cache,
+    .l2_cache = &k7_l2_256k_cache,
+};
+
+static const CPUCaches k7_barton_cache_info = {
+    .l1d_cache = &k7_l1d_cache,
+    .l1i_cache = &k7_l1i_cache,
+    .l2_cache = &k7_l2_512k_cache,
+};
+
+/*
  * Only used for the CPU models with CPUID level < 4.
  * These CPUs (CPUID level < 4) only use CPUID leaf 2 to present
  * cache information.
@@ -3822,6 +3927,102 @@ static const X86CPUDefinition builtin_x86_defs[] = {
             CPUID_EXT2_MMXEXT | CPUID_EXT2_3DNOW | CPUID_EXT2_3DNOWEXT,
         .xlevel = 0x80000008,
         .model_id = "QEMU Virtual CPU version " QEMU_HW_VERSION,
+    },
+    {
+        .name = "k7-spitfire",
+        .level = 2,
+        .vendor = CPUID_VENDOR_AMD,
+        .family = 6,
+        .model = 3,
+        .stepping = 0,
+        .features[FEAT_1_EDX] =
+            PPRO_FEATURES | CPUID_PSE36 | CPUID_VME | CPUID_MTRR |
+            CPUID_MCA,
+        .features[FEAT_8000_0001_EDX] =
+            CPUID_EXT2_MMXEXT | CPUID_EXT2_3DNOW | CPUID_EXT2_3DNOWEXT,
+        .xlevel = 0x80000008,
+        .model_id = "AMD Duron(tm) processor",
+        .cache_info = &k7_spitfire_cache_info,
+    },
+    {
+        .name = "k7-thunderbird",
+        .level = 2,
+        .vendor = CPUID_VENDOR_AMD,
+        .family = 6,
+        .model = 4,
+        .stepping = 0,
+        .features[FEAT_1_EDX] =
+            PPRO_FEATURES | CPUID_PSE36 | CPUID_VME | CPUID_MTRR |
+            CPUID_MCA,
+        .features[FEAT_8000_0001_EDX] =
+            CPUID_EXT2_MMXEXT | CPUID_EXT2_3DNOW | CPUID_EXT2_3DNOWEXT,
+        .xlevel = 0x80000008,
+        .model_id = "AMD Athlon(tm) processor",
+        .cache_info = &k7_thunderbird_cache_info,
+    },
+    {
+        .name = "k7-palomino",
+        .level = 2,
+        .vendor = CPUID_VENDOR_AMD,
+        .family = 6,
+        .model = 6,
+        .stepping = 1,
+        .features[FEAT_1_EDX] =
+            PPRO_FEATURES | CPUID_PSE36 | CPUID_VME | CPUID_MTRR |
+            CPUID_MCA,
+        .features[FEAT_8000_0001_EDX] =
+            CPUID_EXT2_MMXEXT | CPUID_EXT2_3DNOW | CPUID_EXT2_3DNOWEXT,
+        .xlevel = 0x80000008,
+        .model_id = "AMD Athlon(tm) XP processor",
+        .cache_info = &k7_palomino_cache_info,
+    },
+    {
+        .name = "k7-morgan",
+        .level = 2,
+        .vendor = CPUID_VENDOR_AMD,
+        .family = 6,
+        .model = 7,
+        .stepping = 0,
+        .features[FEAT_1_EDX] =
+            PPRO_FEATURES | CPUID_PSE36 | CPUID_VME | CPUID_MTRR |
+            CPUID_MCA,
+        .features[FEAT_8000_0001_EDX] =
+            CPUID_EXT2_MMXEXT | CPUID_EXT2_3DNOW | CPUID_EXT2_3DNOWEXT,
+        .xlevel = 0x80000008,
+        .model_id = "AMD Duron(tm) processor",
+        .cache_info = &k7_morgan_cache_info,
+    },
+    {
+        .name = "k7-thoroughbred",
+        .level = 2,
+        .vendor = CPUID_VENDOR_AMD,
+        .family = 6,
+        .model = 8,
+        .stepping = 0,
+        .features[FEAT_1_EDX] =
+            PPRO_FEATURES | CPUID_PSE36 | CPUID_VME | CPUID_MTRR |
+            CPUID_MCA,
+        .features[FEAT_8000_0001_EDX] =
+            CPUID_EXT2_MMXEXT | CPUID_EXT2_3DNOW | CPUID_EXT2_3DNOWEXT,
+        .xlevel = 0x80000008,
+        .model_id = "AMD Athlon(tm) XP processor",
+        .cache_info = &k7_thoroughbred_cache_info,
+    },
+    {
+        .name = "k7-barton",
+        .level = 2,
+        .vendor = CPUID_VENDOR_AMD,
+        .family = 6,
+        .model = 10,
+        .stepping = 0,
+        .features[FEAT_1_EDX] =
+            PPRO_FEATURES | CPUID_PSE36 | CPUID_VME | CPUID_MTRR |
+            CPUID_MCA,
+        .features[FEAT_8000_0001_EDX] =
+            CPUID_EXT2_MMXEXT | CPUID_EXT2_3DNOW | CPUID_EXT2_3DNOWEXT,
+        .xlevel = 0x80000008,
+        .model_id = "AMD Athlon(tm) XP processor",
+        .cache_info = &k7_barton_cache_info,
     },
     {
         .name = "n270",

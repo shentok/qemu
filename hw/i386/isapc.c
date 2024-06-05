@@ -157,6 +157,12 @@ static void isapc_machine_options(MachineClass *m)
     static const char * const valid_cpu_types[] = {
         X86_CPU_TYPE_NAME("486"),
         X86_CPU_TYPE_NAME("athlon"),
+        X86_CPU_TYPE_NAME("k7-barton"),
+        X86_CPU_TYPE_NAME("k7-morgan"),
+        X86_CPU_TYPE_NAME("k7-palomino"),
+        X86_CPU_TYPE_NAME("k7-spitfire"),
+        X86_CPU_TYPE_NAME("k7-thoroughbred"),
+        X86_CPU_TYPE_NAME("k7-thunderbird"),
         X86_CPU_TYPE_NAME("kvm32"),
         X86_CPU_TYPE_NAME("pentium"),
         X86_CPU_TYPE_NAME("pentium2"),

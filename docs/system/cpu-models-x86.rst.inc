@@ -419,7 +419,7 @@ featureset, which prevents guests having optimal performance.
     Legacy models just for historical compatibility with ancient QEMU
     versions.
 
-``486``, ``athlon``, ``phenom``, ``coreduo``, ``core2duo``, ``n270``, ``pentium``, ``pentium2``, ``pentium3``
+``486``, ``athlon``, ``k7-spitfire``, ``k7-thunderbird``, ``k7-palomino``, ``k7-morgan``, ``k7-thoroughbred``, ``k7-barton``, ``phenom``, ``coreduo``, ``core2duo``, ``n270``, ``pentium``, ``pentium2``, ``pentium3``
     Various very old x86 CPU models, mostly predating the introduction
     of hardware assisted virtualization, that should thus not be
     required for running virtual machines.
