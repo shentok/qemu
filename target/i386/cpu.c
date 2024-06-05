@@ -671,7 +671,7 @@ static const CPUCaches legacy_amd_cache_info = {
     .l2_cache = &(CPUCacheInfo) {
         .type = UNIFIED_CACHE,
         .level = 2,
-        .size = 512 * KiB,
+        .size = 256 * KiB,
         .line_size = 64,
         .lines_per_tag = 1,
         .associativity = 16,
@@ -3576,8 +3576,8 @@ static const X86CPUDefinition builtin_x86_defs[] = {
         .level = 2,
         .vendor = CPUID_VENDOR_AMD,
         .family = 6,
-        .model = 2,
-        .stepping = 3,
+        .model = 4,
+        .stepping = 0,
         .features[FEAT_1_EDX] =
             PPRO_FEATURES | CPUID_PSE36 | CPUID_VME | CPUID_MTRR |
             CPUID_MCA,
