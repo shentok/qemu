@@ -523,6 +523,8 @@ was possible (but non-sensical) to specify a more modern x86 CPU, including
 of the intended guest OSs.
 
 If the user requests a modern x86 CPU model (i.e. not one of ``486``,
-``athlon``, ``kvm32``, ``pentium``, ``pentium2``, ``pentium3``or ``qemu32``)
+``kvm32``, ``pentium``, ``pentium2``, ``pentium3``, ``qemu32``, or the
+``k7-spitfire``, ``k7-thunderbird``, ``k7-palomino``, ``k7-morgan``,
+``k7-thoroughbred`` and ``k7-barton`` models)
 a warning will be displayed until a future QEMU version when such CPUs will
 be rejected.

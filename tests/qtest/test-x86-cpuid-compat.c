@@ -247,8 +247,8 @@ static const CpuidTestArgs cpuid_tests[] = {
         "phenom", NULL, NULL, "xlevel", 0x8000001A,
     },
     {
-        "x86/cpuid/athlon/xlevel",
-        "athlon", NULL, NULL, "xlevel", 0x80000008,
+        "x86/cpuid/k7-thunderbird/xlevel",
+        "k7-thunderbird", NULL, NULL, "xlevel", 0x80000008,
     },
     /* If level is not large enough, it should increase automatically: */
     /* CPUID[6].EAX: */
@@ -298,8 +298,8 @@ static const CpuidTestArgs cpuid_tests[] = {
     },
     /* SVM needs CPUID[0x8000000A] */
     {
-        "x86/cpuid/auto-xlevel/athlon/svm",
-        "athlon", "svm=on", NULL, "xlevel", 0x8000000A,
+        "x86/cpuid/auto-xlevel/k7-thunderbird/svm",
+        "k7-thunderbird", "svm=on", NULL, "xlevel", 0x8000000A,
     },
     /* If level is already large enough, it shouldn't change: */
     {
