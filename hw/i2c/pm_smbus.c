@@ -156,12 +156,14 @@ static void smb_transaction(PMSMBus *s)
             goto out;
         } else {
             if (s->smb_auxctl & AUX_BLK) {
-                if (s->smb_index != s->smb_data0) {
-                    s->smb_index = 0;
-                    goto error;
-                }
-                /* Data is already all written to the queue, just do
-                   the operation. */
+                /*
+                 * The transfer length comes from SMBHSTDAT0.  The guest
+                 * may have written fewer bytes than that, e.g. when it
+                 * retains the buffer from a preceding block read and only
+                 * rewrites the modified bytes.  Real hardware transfers
+                 * SMBHSTDAT0 bytes from the buffer regardless, so do not
+                 * require the guest to have written every byte.
+                 */
                 s->smb_index = 0;
                 ret = smbus_write_block(bus, addr, cmd, s->smb_data,
                                         s->smb_data0, !s->i2c_enable);
@@ -383,6 +385,17 @@ static uint64_t smb_ioport_readb(void *opaque, hwaddr addr, unsigned width)
         }
         break;
     case SMBHSTCNT:
+        /*
+         * Reading SMBHSTCNT resets the block data buffer index on real
+         * hardware.  The Linux i2c-piix4 driver relies on this by doing
+         * inb(SMBHSTCNT) ("Reset SMBBLKDAT") before accessing the block
+         * buffer.  Only do so in block buffer mode, where smb_index is
+         * the index into that buffer; in byte-by-byte mode it tracks the
+         * progress of the transfer instead.
+         */
+        if (s->smb_auxctl & AUX_BLK) {
+            s->smb_index = 0;
+        }
         val = s->smb_ctl & CTL_RETURN_MASK;
         break;
     case SMBHSTCMD:
