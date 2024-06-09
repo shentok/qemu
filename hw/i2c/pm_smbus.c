@@ -319,7 +319,11 @@ static void smb_ioport_writeb(void *opaque, hwaddr addr, uint64_t val,
                     i2c_end_transfer(s->smbus);
                 }
             }
-            smb_transaction_start(s);
+            if (s->smb_addr >> 1 == 0x69) {
+                smb_transaction_start(s);
+            } else {
+                smb_transaction_start(s);
+            }
         }
         if (s->smb_ctl & CTL_KILL) {
             s->op_done = true;
@@ -332,7 +336,11 @@ static void smb_ioport_writeb(void *opaque, hwaddr addr, uint64_t val,
         s->smb_cmd = val;
         break;
     case SMBHSTADD:
-        s->smb_addr = val;
+        if (val >> 1 == 0x69) {
+            s->smb_addr = val;
+        } else {
+            s->smb_addr = val;
+        }
         break;
     case SMBHSTDAT0:
         s->smb_data0 = val;
@@ -367,6 +375,10 @@ static uint64_t smb_ioport_readb(void *opaque, hwaddr addr, unsigned width)
 {
     PMSMBus *s = opaque;
     uint32_t val;
+
+    if (s->smb_addr >> 1 == 0x69) {
+        val = 0;
+    }
 
     switch(addr) {
     case SMBHSTSTS:
