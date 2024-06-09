@@ -156,10 +156,6 @@ static void smb_transaction(PMSMBus *s)
             goto out;
         } else {
             if (s->smb_auxctl & AUX_BLK) {
-                if (s->smb_index != s->smb_data0) {
-                    s->smb_index = 0;
-                    goto error;
-                }
                 /* Data is already all written to the queue, just do
                    the operation. */
                 s->smb_index = 0;
