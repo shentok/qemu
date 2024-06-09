@@ -383,6 +383,7 @@ static uint64_t smb_ioport_readb(void *opaque, hwaddr addr, unsigned width)
         }
         break;
     case SMBHSTCNT:
+        s->smb_index = 0;
         val = s->smb_ctl & CTL_RETURN_MASK;
         break;
     case SMBHSTCMD:
