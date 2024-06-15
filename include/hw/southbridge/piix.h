@@ -56,6 +56,10 @@ struct PIIXState {
     int32_t pci_irq_levels_vmstate[PIIX_NUM_PIRQS];
 
     MC146818RtcState rtc;
+    MemoryRegion rtc_io;
+    MemoryRegion rtc_coalesced_io;
+    uint8_t rtc_cmos_index;
+
     PCIIDEState ide;
     UHCIState uhci;
     PIIX4PMState pm;
