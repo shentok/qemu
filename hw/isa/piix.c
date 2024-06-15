@@ -37,6 +37,7 @@
 #include "system/runstate.h"
 #include "migration/vmstate.h"
 #include "hw/acpi/acpi_aml_interface.h"
+#include "trace.h"
 
 static void piix_set_irq_pic(PIIXState *s, int pic_irq)
 {
@@ -168,6 +169,7 @@ static void piix_reset(DeviceState *dev)
     pci_conf[0xac] = 0x00;
     pci_conf[0xae] = 0x00;
 
+    d->rtc_cmos_index = 0x80;
     d->pic_levels = 0;
     d->rcr = 0;
 }
@@ -256,12 +258,13 @@ static const VMStateDescription vmstate_piix3 = {
 
 static const VMStateDescription vmstate_piix4 = {
     .name = "PIIX4",
-    .version_id = 3,
+    .version_id = 4,
     .minimum_version_id = 2,
     .post_load = piix4_post_load,
     .fields = (const VMStateField[]) {
         VMSTATE_PCI_DEVICE(dev, PIIXState),
         VMSTATE_UINT8_V(rcr, PIIXState, 3),
+        VMSTATE_UINT8_V(rtc_cmos_index, PIIXState, 4),
         VMSTATE_END_OF_LIST()
     }
 };
@@ -482,9 +485,62 @@ static const TypeInfo piix3_info = {
     .class_init    = piix3_class_init,
 };
 
+static uint64_t piix4_cmos_ioport_read(void *opaque, hwaddr addr,
+                                       unsigned size)
+{
+    PIIXState *s = opaque;
+    int ret;
+
+    if ((addr & 1) == 0) {
+        return 0xff;
+    }
+
+    ret = mc146818rtc_get_cmos_data(&s->rtc, s->rtc_cmos_index);
+
+    trace_piix4_cmos_ioport_read(s->rtc_cmos_index, ret);
+
+    return ret;
+}
+
+static void piix4_cmos_ioport_write(void *opaque, hwaddr addr,
+                                    uint64_t data, unsigned size)
+{
+    PIIXState *s = opaque;
+
+    if ((addr & 1) == 0) {
+        s->rtc_cmos_index = 0x80 + (data & 0x7f);
+    } else {
+        trace_piix4_cmos_ioport_write(s->rtc_cmos_index, data);
+
+        mc146818rtc_set_cmos_data(&s->rtc, s->rtc_cmos_index, data);
+    }
+}
+
+static const MemoryRegionOps cmos_ops = {
+    .read = piix4_cmos_ioport_read,
+    .write = piix4_cmos_ioport_write,
+    .impl = {
+        .min_access_size = 1,
+        .max_access_size = 1,
+    },
+    .endianness = DEVICE_LITTLE_ENDIAN,
+};
+
 static void piix4_realize(PCIDevice *dev, Error **errp)
 {
+    PIIXState *s = PIIX_PCI_DEVICE(dev);
+
     pci_piix_realize(dev, TYPE_PIIX4_USB_UHCI, errp);
+
+    memory_region_init_io(&s->rtc_io, OBJECT(s), &cmos_ops, s, "rtc-cmd2", 2);
+    isa_register_ioport(ISA_DEVICE(&s->rtc), &s->rtc_io, 0x72);
+
+    /* register rtc 0x72 port for coalesced_pio */
+    memory_region_set_flush_coalesced(&s->rtc_io);
+    memory_region_init_io(&s->rtc_coalesced_io, OBJECT(s), &cmos_ops,
+                          s, "rtc-index2", 1);
+    memory_region_add_subregion(&s->rtc_io, 0, &s->rtc_coalesced_io);
+    memory_region_add_coalescing(&s->rtc_coalesced_io, 0, 1);
 }
 
 static void piix4_init(Object *obj)
