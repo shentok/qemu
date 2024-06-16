@@ -134,14 +134,24 @@ static void w83781d_reset_hold(Object *obj, ResetType type)
     memset(s->regs, 0, sizeof(s->regs));
 
     regs[0x40] = 8;
+    regs[0x46] = 0x40;
     regs[0x47] = 0x50;
     regs[0x48] = i2c->address;
-    regs[0x49] = 0x10;
+    regs[0x49] = 0x20;
     regs[0x4a] = 1;
     regs[0x4b] = 0x44;
-    regs[0x4c] = 1;
+    regs[0x4c] = 0;
     regs[0x4d] = 0x15;
     regs[0x4e] = 0x80;
+    regs[0x56] = 0xff;
+    regs[0x57] = 0xff;
+    regs[0x58] = 0x31;
+    regs[0x59] = 0x8f;
+    regs[0x5a] = 0x8f;
+    regs[0x5b] = 0x2a;
+    regs[0x5c] = 0xe0;
+    regs[0x5d] = 0x48;
+    regs[0x5f] = 0x1f;
 
     s->offset = 0;
 }
@@ -170,7 +180,7 @@ static void w83781d_init(Object *obj)
 }
 
 static const Property w83781d_props[] = {
-    DEFINE_PROP_UINT16("vendor", W83781DState, vendor, 0x5ca3),
+    DEFINE_PROP_UINT16("vendor", W83781DState, vendor, 0x12c3),
 };
 
 static void w83781d_class_init(ObjectClass *klass, void *data)
