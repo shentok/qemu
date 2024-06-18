@@ -26,6 +26,7 @@
 #include "qapi/error.h"
 #include "qapi/visitor.h"
 #include "qemu/module.h"
+#include "trace.h"
 
 static void tmp105_interrupt_update(TMP105State *s)
 {
@@ -116,6 +117,8 @@ static const int tmp105_faultq[4] = { 1, 2, 4, 6 };
 
 static void tmp105_read(TMP105State *s)
 {
+    trace_tmp105_read(s->i2c.address, s->pointer);
+
     s->len = 0;
 
     if ((s->config >> 1) & 1) {					/* TM */
