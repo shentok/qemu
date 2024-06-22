@@ -83,6 +83,8 @@ struct ViaPMState {
     uint16_t gbl_en;
     uint16_t gbl_ctl;
     uint8_t smi_cmd;
+    uint8_t gpi_val[4];
+    uint8_t gpo_val[4];
 
     PMSMBus smb;
 
@@ -255,6 +257,7 @@ static void pm_io_write(void *op, hwaddr addr, uint64_t data, unsigned size)
     case VIA_PM_IO_GPOVAL + 1:
     case VIA_PM_IO_GPOVAL + 2:
     case VIA_PM_IO_GPOVAL + 3:
+        s->gpo_val[addr - VIA_PM_IO_GPOVAL] = data;
         break;
     default:
         qemu_log_mask(LOG_UNIMP, "%s: unimplemented register: 0x%" PRIx64 "\n",
@@ -308,11 +311,13 @@ static uint64_t pm_io_read(void *op, hwaddr addr, unsigned size)
     case VIA_PM_IO_GPIVAL + 1:
     case VIA_PM_IO_GPIVAL + 2:
     case VIA_PM_IO_GPIVAL + 3:
+        data = s->gpi_val[addr - VIA_PM_IO_GPIVAL];
         break;
     case VIA_PM_IO_GPOVAL:
     case VIA_PM_IO_GPOVAL + 1:
     case VIA_PM_IO_GPOVAL + 2:
     case VIA_PM_IO_GPOVAL + 3:
+        data = s->gpo_val[addr - VIA_PM_IO_GPOVAL];
         break;
     default:
         qemu_log_mask(LOG_UNIMP, "%s: unimplemented register: 0x%" PRIx64 "\n",
@@ -401,6 +406,14 @@ static void via_pm_reset(DeviceState *d)
     s->gbl_en = 0;
     s->gbl_ctl = VIA_PM_IO_GBLCTL_SMIIG;
     s->smi_cmd = 0;
+    s->gpi_val[0] = 0xff;
+    s->gpi_val[1] = 0;
+    s->gpi_val[2] = 0xff;
+    s->gpi_val[3] = 0;
+    s->gpo_val[0] = 0xff;
+    s->gpo_val[1] = 0xff;
+    s->gpo_val[2] = 0xff;
+    s->gpo_val[3] = 0x3f;
 
     if (!s->smm_enabled) {
         /*
