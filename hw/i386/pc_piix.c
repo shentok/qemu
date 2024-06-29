@@ -87,6 +87,11 @@ static int pc_pci_slot_get_pirq(PCIDevice *pci_dev, int pci_intx)
 {
     int slot_addend;
     slot_addend = PCI_SLOT(pci_dev->devfn) - 1;
+    if (slot_addend > 8) {
+        slot_addend -= 1;
+        return (pci_intx + slot_addend) & 3;
+    }
+
     return (pci_intx + slot_addend) & 3;
 }
 
