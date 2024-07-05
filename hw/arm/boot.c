@@ -934,7 +934,6 @@ static void arm_setup_direct_kernel_boot(ARMCPU *cpu,
     ssize_t kernel_size;
     int initrd_size;
     int is_linux = 0;
-    uint64_t elf_entry;
     /* Addresses of first byte used and first byte not used by the image */
     uint64_t image_low_addr = 0, image_high_addr = 0;
     int elf_machine;
@@ -954,7 +953,7 @@ static void arm_setup_direct_kernel_boot(ARMCPU *cpu,
     }
 
     /* Assume that raw images are linux kernels, and ELF images are not.  */
-    kernel_size = arm_load_elf(info, &elf_entry, &image_low_addr,
+    kernel_size = arm_load_elf(info, &entry, &image_low_addr,
                                &image_high_addr, elf_machine, as);
     if (kernel_size > 0 && have_dtb(info)) {
         /*
@@ -974,7 +973,6 @@ static void arm_setup_direct_kernel_boot(ARMCPU *cpu,
             info->dtb_limit = image_low_addr;
         }
     }
-    entry = elf_entry;
     if (kernel_size < 0) {
         uint64_t loadaddr = info->loader_start + KERNEL_NOLOAD_ADDR;
         kernel_size = load_uimage_as(info->kernel_filename, &entry, &loadaddr,
