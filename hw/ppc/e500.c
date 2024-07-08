@@ -1237,13 +1237,16 @@ void ppce500_init(MachineState *machine)
         cur_base = initrd_base + initrd_size;
     }
 
-    /*
-     * Reserve space for dtb behind the kernel image because Linux has a bug
-     * where it can only handle the dtb if it's within the first 64MB of where
-     * <kernel> starts. dtb cannot not reach initrd_base because INITRD_LOAD_PAD
-     * ensures enough space between kernel and initrd.
-     */
-    dt_base = (loadaddr + payload_size + DTC_LOAD_PAD) & ~DTC_PAD_MASK;
+    dt_base = (loadaddr + payload_size);
+    if (kernel_as_payload) {
+        /*
+         * Reserve space for dtb behind the kernel image because Linux has a bug
+         * where it can only handle the dtb if it's within the first 64MB of
+         * where <kernel> starts. dtb cannot not reach initrd_base because
+         * INITRD_LOAD_PAD ensures enough space between kernel and initrd.
+         */
+        dt_base = (dt_base + DTC_LOAD_PAD) & ~DTC_PAD_MASK;
+    }
     if (dt_base + DTB_MAX_SIZE > machine->ram_size) {
             error_report("not enough memory for device tree");
             exit(1);
