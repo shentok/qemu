@@ -1247,7 +1247,8 @@ void ppce500_init(MachineState *machine)
          */
         dt_base = (dt_base + DTC_LOAD_PAD) & ~DTC_PAD_MASK;
     }
-    if (dt_base + DTB_MAX_SIZE > machine->ram_size) {
+    if (loadaddr < machine->ram_size
+        && dt_base + DTB_MAX_SIZE > machine->ram_size) {
             error_report("not enough memory for device tree");
             exit(1);
     }
