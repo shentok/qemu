@@ -769,6 +769,86 @@ static void ppce500_cpu_reset_sec(void *opaque)
     cs->exception_index = EXCP_HLT;
 }
 
+static void ppce500_boot_reset(PPCE500MachineState *pms, PowerPCCPU *cpu)
+{
+    AddressSpace *as = CPU(cpu)->as;
+    ppcmas_tlb_t *tlb = booke206_get_tlbm(&cpu->env, 1, 0, 0);
+    DriveInfo *di = drive_get(IF_NONE, 0, 0);
+    BlockBackend *blk = di ? blk_by_legacy_dinfo(di) : NULL;
+    uint32_t boot_signature;
+    uint32_t user_length;
+    uint32_t source_address;
+    uint32_t target_address;
+    uint32_t execution_address;
+    uint32_t num_config_entries;
+    uint8_t buffer[0x100];
+
+    if (!blk) {
+        return;
+    }
+
+    if (blk_pread(blk, 0x40, 4, &boot_signature, 0) < 0) {
+        return;
+    }
+
+    if (blk_pread(blk, 0x48, 4, &user_length, 0) < 0) {
+        return;
+    }
+
+    if (blk_pread(blk, 0x50, 4, &source_address, 0) < 0) {
+        return;
+    }
+
+    if (blk_pread(blk, 0x58, 4, &target_address, 0) < 0) {
+        return;
+    }
+
+    if (blk_pread(blk, 0x60, 4, &execution_address, 0) < 0) {
+        return;
+    }
+
+    if (blk_pread(blk, 0x68, 4, &num_config_entries, 0) < 0) {
+        return;
+    }
+
+    user_length = ntohl(user_length);
+    source_address = ntohl(source_address);
+    target_address = ntohl(target_address);
+    execution_address = ntohl(execution_address);
+    num_config_entries = ntohl(num_config_entries);
+
+    for (uint32_t i = 0; i < num_config_entries; i++) {
+        uint32_t address;
+        uint32_t data;
+
+        if (blk_pread(blk, 0x80 + (8 * i), 4, &address, 0) < 0) {
+            continue;
+        }
+
+        if (blk_pread(blk, 0x84 + (8 * i), 4, &data, 0) < 0) {
+            continue;
+        }
+
+        address = ntohl(address);
+        data = ntohl(data);
+        stl_be_phys(as, address, data);
+    }
+
+    for (uint32_t i = 0; i < user_length; i += sizeof(buffer)) {
+        if (blk_pread(blk, source_address + i, sizeof(buffer), buffer, 0) < 0) {
+            continue;
+        }
+
+        for (uint32_t j = 0; j < sizeof(buffer); j++) {
+            stb_phys(as, target_address + i + j, buffer[j]);
+        }
+    }
+
+    cpu->env.nip = execution_address;
+    cpu->env.gpr[3] = 0;
+    booke206_set_tlb(tlb, 0, 0, 4 * GiB);
+}
+
 static void ppce500_cpu_reset(void *opaque)
 {
     PowerPCCPU *cpu = opaque;
@@ -1178,12 +1258,30 @@ void ppce500_init(MachineState *machine)
     pms->boot_info.dt_size = dt_size;
 }
 
+static void ppce500_reset(MachineState *ms, ResetType type)
+{
+    PPCE500MachineState *pms = PPCE500_MACHINE(ms);
+    PowerPCCPU *cpu = POWERPC_CPU(first_cpu);
+
+    qemu_devices_reset(type);
+
+    ppce500_boot_reset(pms, cpu);
+}
+
+static void ppce500_class_init(ObjectClass *klass, const void *data)
+{
+    MachineClass *mc = MACHINE_CLASS(klass);
+
+    mc->reset = ppce500_reset;
+}
+
 static const TypeInfo ppce500_info = {
     .name          = TYPE_PPCE500_MACHINE,
     .parent        = TYPE_MACHINE,
     .abstract      = true,
     .instance_size = sizeof(PPCE500MachineState),
     .class_size    = sizeof(PPCE500MachineClass),
+    .class_init    = ppce500_class_init,
 };
 
 static void e500_register_types(void)
