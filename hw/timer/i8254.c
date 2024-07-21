@@ -301,9 +301,7 @@ static void pit_reset(DeviceState *dev)
     pit_reset_common(pit);
 
     s = &pit->channels[0];
-    if (!s->irq_disabled) {
-        timer_mod(s->irq_timer, s->next_transition_time);
-    }
+    timer_del(s->irq_timer);
 }
 
 /* When HPET is operating in legacy mode, suppress the ignored timer IRQ,
