@@ -160,8 +160,7 @@ void pit_reset_common(PITCommonState *pit)
         s->count_load_time = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
         s->count = 0x10000;
         if (i == 0 && !s->irq_disabled) {
-            s->next_transition_time =
-                pit_get_next_transition_time(s, s->count_load_time);
+            s->next_transition_time = -1;
         }
     }
 }
