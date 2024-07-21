@@ -273,7 +273,11 @@ static void pit_irq_timer_update(PITChannelState *s, int64_t current_time)
     }
     expire_time = pit_get_next_transition_time(s, current_time);
     irq_level = pit_get_out(s, current_time);
-    qemu_set_irq(s->irq, irq_level);
+    if (irq_level) {
+        qemu_set_irq(s->irq, irq_level);
+    } else {
+        qemu_set_irq(s->irq, irq_level);
+    }
 #ifdef DEBUG_PIT
     printf("irq_level=%d next_delay=%f\n",
            irq_level,
