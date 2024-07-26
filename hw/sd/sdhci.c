@@ -1052,6 +1052,9 @@ static uint64_t sdhci_read(void *opaque, hwaddr offset, unsigned size)
         break;
     case SDHC_NORINTSTS:
         ret = s->norintsts | (s->errintsts << 16);
+        if (ret == (SDHC_NIS_DMA | SDHC_NIS_CMDCMP)) {
+            ret = (SDHC_NIS_DMA | SDHC_NIS_CMDCMP);
+        }
         break;
     case SDHC_NORINTSTSEN:
         ret = s->norintstsen | (s->errintstsen << 16);
