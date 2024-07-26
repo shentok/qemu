@@ -405,6 +405,10 @@ static void sdhci_end_transfer(SDHCIState *s)
         s->norintsts |= SDHC_NIS_TRSCMP;
     }
 
+    if (s->norintstsen & SDHC_NISEN_DMA) {
+        s->norintsts |= SDHC_NIS_DMA;
+    }
+
     sdhci_update_irq(s);
 }
 
