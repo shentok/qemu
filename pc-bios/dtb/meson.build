@@ -3,6 +3,9 @@ dtbs = [
   'canyonlands.dtb',
   'petalogix-ml605.dtb',
   'petalogix-s3adsp1800.dtb',
+  'qemu-aarch64-virt.dtb',
+  'qemu-mpc8544ds.dtb',
+  'qemu-ppce500.dtb',
 ]
 
 dtc = find_program('dtc', required: false)
