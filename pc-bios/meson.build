@@ -91,6 +91,9 @@ foreach f : [
   'canyonlands.dts',
   'petalogix-s3adsp1800.dts',
   'petalogix-ml605.dts',
+  'qemu-aarch64-virt.dts',
+  'qemu-mpc8544ds.dts',
+  'qemu-ppce500.dts',
 ]
   out = fs.replace_suffix(f, '.dtb')
   if dtc.found()
