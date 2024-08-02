@@ -19,7 +19,9 @@
 
 #include "qemu/osdep.h"
 #include "hw/i2c/i2c.h"
+#include "hw/i2c/i2c_fdt.h"
 #include "hw/irq.h"
+#include "hw/qdev-dt-interface.h"
 #include "hw/sysbus.h"
 #include "migration/vmstate.h"
 #include "qom/object.h"
@@ -35,7 +37,7 @@
 #define DPRINTF(fmt, ...) do {} while (0)
 #endif
 
-#define TYPE_MPC_I2C "mpc-i2c"
+#define TYPE_MPC_I2C "fsl-i2c"
 OBJECT_DECLARE_SIMPLE_TYPE(MPCI2CState, MPC_I2C)
 
 #define MPC_I2C_ADR   0x00
@@ -334,10 +336,20 @@ static void mpc_i2c_realize(DeviceState *dev, Error **errp)
     i2c->bus = i2c_init_bus(dev, "i2c");
 }
 
+static void mpc_i2c_handle_device_tree_node_post(DeviceState *dev, int node,
+                                                 QDevFdtContext *context)
+{
+    MPCI2CState *i2c = MPC_I2C(dev);
+
+    i2c_fdt_populate(i2c->bus, context, node);
+}
+
 static void mpc_i2c_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
+    DeviceDeviceTreeIfClass *dt = DEVICE_DT_IF_CLASS(klass);
 
+    dt->handle_device_tree_node_post = mpc_i2c_handle_device_tree_node_post;
     dc->vmsd  = &mpc_i2c_vmstate ;
     device_class_set_legacy_reset(dc, mpc_i2c_reset);
     dc->realize = mpc_i2c_realize;
@@ -350,6 +362,10 @@ static const TypeInfo mpc_i2c_types[] = {
         .parent        = TYPE_SYS_BUS_DEVICE,
         .instance_size = sizeof(MPCI2CState),
         .class_init    = mpc_i2c_class_init,
+        .interfaces    = (InterfaceInfo[]) {
+            { TYPE_DEVICE_DT_IF },
+            { },
+        },
     },
 };
 
