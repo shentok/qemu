@@ -35,6 +35,7 @@
 #include "system/device_tree.h"
 #include "hw/ppc/ppc.h"
 #include "hw/qdev-properties.h"
+#include "hw/qdev-dt-interface.h"
 #include "hw/loader.h"
 #include "elf.h"
 #include "hw/sysbus.h"
@@ -356,7 +357,6 @@ static int ppce500_load_device_tree(PPCE500MachineState *pms,
                                     hwaddr initrd_base,
                                     hwaddr initrd_size,
                                     hwaddr kernel_base,
-                                    hwaddr kernel_size,
                                     bool dry_run)
 {
     MachineState *machine = MACHINE(pms);
@@ -440,9 +440,7 @@ static int ppce500_load_device_tree(PPCE500MachineState *pms,
     }
 
     if (kernel_base != -1ULL) {
-        qemu_fdt_setprop_cells(fdt, "/chosen", "qemu,boot-kernel",
-                                     kernel_base >> 32, kernel_base,
-                                     kernel_size >> 32, kernel_size);
+        qemu_fdt_setprop_cells(fdt, "/chosen", "qemu,boot-kernel", 0, 0, 0, 0);
     }
 
     ret = qemu_fdt_setprop_string(fdt, "/chosen", "bootargs",
@@ -676,9 +674,19 @@ typedef struct DeviceTreeParams {
 static void ppce500_reset_device_tree(void *opaque)
 {
     DeviceTreeParams *p = opaque;
+    MachineState *m = MACHINE(p->machine);
     ppce500_load_device_tree(p->machine, p->addr, p->initrd_base,
-                             p->initrd_size, p->kernel_base, p->kernel_size,
-                             false);
+                             p->initrd_size, p->kernel_base, false);
+
+    if (p->kernel_base != -1) {
+        qemu_fdt_setprop_cells(m->fdt, "/chosen", "qemu,boot-kernel",
+                               p->kernel_base >> 32, p->kernel_base,
+                               p->kernel_size >> 32, p->kernel_size);
+    }
+
+    qemu_fdt_setprop_cells(m->fdt, "/memory", "reg",
+                           0, 0,
+                           m->ram_size >> 32, m->ram_size);
 }
 
 static void ppce500_init_notify(Notifier *notifier, void *data)
@@ -708,7 +716,7 @@ static int ppce500_prep_device_tree(PPCE500MachineState *machine,
 
     /* Issue the device tree loader once, so that we get the size of the blob */
     return ppce500_load_device_tree(machine, addr, initrd_base, initrd_size,
-                                    kernel_base, kernel_size, true);
+                                    kernel_base, true);
 }
 
 static hwaddr booke206_page_size_to_tlb(uint64_t size)
@@ -796,7 +804,6 @@ void ppce500_init(MachineState *machine)
     PPCE500MachineState *pms = PPCE500_MACHINE(machine);
     const PPCE500MachineClass *pmc = PPCE500_MACHINE_GET_CLASS(machine);
     MachineClass *mc = MACHINE_CLASS(pmc);
-    PCIBus *pci_bus;
     uint64_t loadaddr;
     hwaddr kernel_base = -1LL;
     int kernel_size = 0;
@@ -806,20 +813,13 @@ void ppce500_init(MachineState *machine)
     hwaddr cur_base = 0;
     char *filename;
     const char *payload_name;
-    bool kernel_as_payload;
+    bool kernel_as_payload = false;
     hwaddr bios_entry = 0;
     target_long payload_size;
+    void *fdt = NULL;
     int dt_size;
     int i;
     unsigned int smp_cpus = machine->smp.cpus;
-    /* irq num for pin INTA, INTB, INTC and INTD is 1, 2, 3 and
-     * 4 respectively */
-    unsigned int pci_irq_nrs[PCI_NUM_PINS] = {1, 2, 3, 4};
-    DeviceState *dev, *mpicdev;
-    DriveInfo *dinfo;
-    MemoryRegion *ccsr_addr_space;
-    SysBusDevice *s;
-    I2CBus *i2c;
 
     object_property_add_uint32_ptr(OBJECT(sysbus_get_default()), "mpic-version",
                                    &pmc->mpic_version, OBJ_PROP_FLAG_READ);
@@ -871,181 +871,217 @@ void ppce500_init(MachineState *machine)
     /* Register Memory */
     memory_region_add_subregion(address_space_mem, 0, machine->ram);
 
-    dev = qdev_new("e500-ccsr");
-    s = SYS_BUS_DEVICE(dev);
-    object_property_add_child(OBJECT(machine), "e500-ccsr", OBJECT(dev));
-    sysbus_realize_and_unref(s, &error_fatal);
-    ccsr_addr_space = sysbus_mmio_get_region(s, 0);
-    memory_region_add_subregion(address_space_mem, pmc->ccsrbar_base,
-                                ccsr_addr_space);
+    filename = qemu_find_file(QEMU_FILE_TYPE_DTB, machine->dtb);
+    if (filename) {
+        fdt = load_device_tree(filename, &dt_size);
+    }
+    g_free(filename);
 
-    mpicdev = qdev_new("fsl_mpic");
-    s = SYS_BUS_DEVICE(mpicdev);
-    sysbus_realize_and_unref(s, &error_fatal);
-    memory_region_add_subregion(ccsr_addr_space, MPC8544_MPIC_REGS_OFFSET,
-                                sysbus_mmio_get_region(s, 0));
+    if (fdt) {
+        DeviceState *dev = qdev_new(TYPE_PLATFORM_BUS_DEVICE);
+        SysBusDevice *s = SYS_BUS_DEVICE(dev);
+        qdev_prop_set_uint32(dev, "num_irqs", pmc->platform_bus_num_irqs);
+        qdev_prop_set_uint32(dev, "mmio_size", pmc->platform_bus_size);
+        sysbus_init_mmio(s, address_space_mem);
+        sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
 
-    /* Serial */
-    if (serial_hd(0)) {
-        serial_mm_init(ccsr_addr_space, MPC8544_SERIAL0_REGS_OFFSET,
-                       0, qdev_get_gpio_in(mpicdev, 42), 399193,
-                       serial_hd(0), DEVICE_BIG_ENDIAN);
+        machine_fdt_populate(s, fdt);
     }
 
-    if (serial_hd(1)) {
-        serial_mm_init(ccsr_addr_space, MPC8544_SERIAL1_REGS_OFFSET,
-                       0, qdev_get_gpio_in(mpicdev, 42), 399193,
-                       serial_hd(1), DEVICE_BIG_ENDIAN);
-    }
+    if (!fdt) {
+        PCIBus *pci_bus;
+        /*
+         * irq num for pin INTA, INTB, INTC and INTD is 1, 2, 3 and
+         * 4 respectively
+         */
+        unsigned int pci_irq_nrs[PCI_NUM_PINS] = {1, 2, 3, 4};
+        DeviceState *dev, *mpicdev;
+        DriveInfo *dinfo;
+        MemoryRegion *ccsr_addr_space;
+        SysBusDevice *s;
+        I2CBus *i2c;
 
-    /* I2C */
-    dev = qdev_new("fsl-i2c");
-    s = SYS_BUS_DEVICE(dev);
-    sysbus_realize_and_unref(s, &error_fatal);
-    sysbus_connect_irq(s, 0, qdev_get_gpio_in(mpicdev, MPC8544_I2C_IRQ));
-    memory_region_add_subregion(ccsr_addr_space, MPC8544_I2C_REGS_OFFSET,
-                                sysbus_mmio_get_region(s, 0));
-    i2c = I2C_BUS(qdev_get_child_bus(dev, "i2c"));
-    i2c_slave_create_simple(i2c, "ds1338", RTC_REGS_OFFSET);
+        dev = qdev_new("e500-ccsr");
+        s = SYS_BUS_DEVICE(dev);
+        object_property_add_child(OBJECT(machine), "e500-ccsr", OBJECT(dev));
+        sysbus_realize_and_unref(s, &error_fatal);
+        ccsr_addr_space = sysbus_mmio_get_region(s, 0);
+        memory_region_add_subregion(address_space_mem, pmc->ccsrbar_base,
+                                    ccsr_addr_space);
 
-    /* eSDHC */
-    if (pmc->has_esdhc) {
-        dev = qdev_new(TYPE_FSL_ESDHC_BE);
+        mpicdev = qdev_new("fsl_mpic");
+        s = SYS_BUS_DEVICE(mpicdev);
+        sysbus_realize_and_unref(s, &error_fatal);
+        memory_region_add_subregion(ccsr_addr_space, MPC8544_MPIC_REGS_OFFSET,
+                                    sysbus_mmio_get_region(s, 0));
+
+        /* Serial */
+        if (serial_hd(0)) {
+            serial_mm_init(ccsr_addr_space, MPC8544_SERIAL0_REGS_OFFSET,
+                           0, qdev_get_gpio_in(mpicdev, 42), 399193,
+                           serial_hd(0), DEVICE_BIG_ENDIAN);
+        }
+
+        if (serial_hd(1)) {
+            serial_mm_init(ccsr_addr_space, MPC8544_SERIAL1_REGS_OFFSET,
+                           0, qdev_get_gpio_in(mpicdev, 42), 399193,
+                           serial_hd(1), DEVICE_BIG_ENDIAN);
+        }
+
+        /* I2C */
+        dev = qdev_new("fsl-i2c");
         s = SYS_BUS_DEVICE(dev);
         sysbus_realize_and_unref(s, &error_fatal);
-        sysbus_connect_irq(s, 0, qdev_get_gpio_in(mpicdev, MPC85XX_ESDHC_IRQ));
-        memory_region_add_subregion(ccsr_addr_space, MPC85XX_ESDHC_REGS_OFFSET,
+        sysbus_connect_irq(s, 0, qdev_get_gpio_in(mpicdev, MPC8544_I2C_IRQ));
+        memory_region_add_subregion(ccsr_addr_space, MPC8544_I2C_REGS_OFFSET,
                                     sysbus_mmio_get_region(s, 0));
-    }
+        i2c = I2C_BUS(qdev_get_child_bus(dev, "i2c"));
 
-    /* General Utility device */
-    dev = qdev_new("mpc8544-guts");
-    s = SYS_BUS_DEVICE(dev);
-    sysbus_realize_and_unref(s, &error_fatal);
-    memory_region_add_subregion(ccsr_addr_space, MPC8544_UTIL_OFFSET,
-                                sysbus_mmio_get_region(s, 0));
+        i2c_slave_create_simple(i2c, "ds1338", RTC_REGS_OFFSET);
 
-    /* PCI */
-    dev = qdev_new("e500-pcihost");
-    object_property_add_child(OBJECT(machine), "pci-host", OBJECT(dev));
-    qdev_prop_set_uint32(dev, "first_slot", pmc->pci_first_slot);
-    qdev_prop_set_uint32(dev, "first_pin_irq", pci_irq_nrs[0]);
-    s = SYS_BUS_DEVICE(dev);
-    sysbus_realize_and_unref(s, &error_fatal);
-    for (i = 0; i < PCI_NUM_PINS; i++) {
-        sysbus_connect_irq(s, i, qdev_get_gpio_in(mpicdev, pci_irq_nrs[i]));
-    }
+        /* eSDHC */
+        if (pmc->has_esdhc) {
+            dev = qdev_new(TYPE_FSL_ESDHC_BE);
+            s = SYS_BUS_DEVICE(dev);
+            sysbus_realize_and_unref(s, &error_fatal);
+            sysbus_connect_irq(s, 0, qdev_get_gpio_in(mpicdev, MPC85XX_ESDHC_IRQ));
+            memory_region_add_subregion(ccsr_addr_space, MPC85XX_ESDHC_REGS_OFFSET,
+                                        sysbus_mmio_get_region(s, 0));
+        }
 
-    memory_region_add_subregion(ccsr_addr_space, MPC8544_PCI_REGS_OFFSET,
-                                sysbus_mmio_get_region(s, 0));
+        /* General Utility device */
+        dev = qdev_new("mpc8544-guts");
+        s = SYS_BUS_DEVICE(dev);
+        sysbus_realize_and_unref(s, &error_fatal);
+        memory_region_add_subregion(ccsr_addr_space, MPC8544_UTIL_OFFSET,
+                                    sysbus_mmio_get_region(s, 0));
 
-    pci_bus = PCI_BUS(qdev_get_child_bus(dev, "pci.0"));
-    if (!pci_bus)
-        printf("couldn't create PCI controller!\n");
+        /* PCI */
+        dev = qdev_new("e500-pcihost");
+        object_property_add_child(OBJECT(machine), "pci-host", OBJECT(dev));
+        qdev_prop_set_uint32(dev, "first_slot", pmc->pci_first_slot);
+        qdev_prop_set_uint32(dev, "first_pin_irq", pci_irq_nrs[0]);
+        s = SYS_BUS_DEVICE(dev);
+        sysbus_realize_and_unref(s, &error_fatal);
+        for (i = 0; i < PCI_NUM_PINS; i++) {
+            sysbus_connect_irq(s, i, qdev_get_gpio_in(mpicdev, pci_irq_nrs[i]));
+        }
 
-    if (pci_bus) {
-        /* Register network interfaces. */
-        pci_init_nic_devices(pci_bus, mc->default_nic);
+        memory_region_add_subregion(ccsr_addr_space, MPC8544_PCI_REGS_OFFSET,
+                                    sysbus_mmio_get_region(s, 0));
+
+        pci_bus = PCI_BUS(qdev_get_child_bus(dev, "pci.0"));
+        if (!pci_bus) {
+            printf("couldn't create PCI controller!\n");
+        }
+
+        if (pci_bus) {
+            /* Register network interfaces. */
+            pci_init_nic_devices(pci_bus, mc->default_nic);
+        }
+
+        if (pmc->has_mpc8xxx_gpio) {
+            DeviceState *poweroff_dev;
+
+            dev = qdev_new("mpc8xxx_gpio");
+            s = SYS_BUS_DEVICE(dev);
+            sysbus_realize_and_unref(s, &error_fatal);
+            sysbus_connect_irq(s, 0, qdev_get_gpio_in(mpicdev, MPC8XXX_GPIO_IRQ));
+            memory_region_add_subregion(ccsr_addr_space, MPC8XXX_GPIO_OFFSET,
+                                        sysbus_mmio_get_region(s, 0));
+
+            /* Power Off GPIO at Pin 0 */
+            poweroff_dev = sysbus_create_simple("gpio-poweroff", -1, NULL);
+            qdev_connect_gpio_out(dev, 0, qdev_get_gpio_in(poweroff_dev, 0));
+        }
+
+        /* Platform Bus Device */
+        dev = qdev_new(TYPE_PLATFORM_BUS_DEVICE);
+        dev->id = g_strdup(TYPE_PLATFORM_BUS_DEVICE);
+        qdev_prop_set_uint32(dev, "num_irqs", pmc->platform_bus_num_irqs);
+        qdev_prop_set_uint32(dev, "mmio_size", pmc->platform_bus_size);
+        sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
+        pms->pbus_dev = PLATFORM_BUS_DEVICE(dev);
+
+        s = SYS_BUS_DEVICE(pms->pbus_dev);
+        for (i = 0; i < pmc->platform_bus_num_irqs; i++) {
+            int irqn = pmc->platform_bus_first_irq + i;
+            sysbus_connect_irq(s, i, qdev_get_gpio_in(mpicdev, irqn));
+        }
+
+        memory_region_add_subregion(address_space_mem,
+                                    pmc->platform_bus_base,
+                                    &pms->pbus_dev->mmio);
+
+        dinfo = drive_get(IF_PFLASH, 0, 0);
+        if (dinfo) {
+            BlockBackend *blk = blk_by_legacy_dinfo(dinfo);
+            BlockDriverState *bs = blk_bs(blk);
+            uint64_t mmio_size = memory_region_size(&pms->pbus_dev->mmio);
+            uint64_t size = bdrv_getlength(bs);
+            uint32_t sector_len = 64 * KiB;
+
+            if (!is_power_of_2(size)) {
+                error_report("Size of pflash file must be a power of two.");
+                exit(1);
+            }
+
+            if (size > mmio_size) {
+                error_report("Size of pflash file must not be bigger than %" PRIu64
+                             " bytes.", mmio_size);
+                exit(1);
+            }
+
+            if (!QEMU_IS_ALIGNED(size, sector_len)) {
+                error_report("Size of pflash file must be a multiple of %" PRIu32
+                             ".", sector_len);
+                exit(1);
+            }
+
+            dev = qdev_new(TYPE_PFLASH_CFI01);
+            qdev_prop_set_drive(dev, "drive", blk);
+            qdev_prop_set_uint32(dev, "num-blocks", size / sector_len);
+            qdev_prop_set_uint64(dev, "sector-length", sector_len);
+            qdev_prop_set_uint8(dev, "width", 2);
+            qdev_prop_set_bit(dev, "big-endian", true);
+            qdev_prop_set_uint16(dev, "id0", 0x89);
+            qdev_prop_set_uint16(dev, "id1", 0x18);
+            qdev_prop_set_uint16(dev, "id2", 0x0000);
+            qdev_prop_set_uint16(dev, "id3", 0x0);
+            qdev_prop_set_string(dev, "name", "e500.flash");
+            sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
+
+            memory_region_add_subregion(&pms->pbus_dev->mmio, 0,
+                                        pflash_cfi01_get_memory(PFLASH_CFI01(dev)));
+        }
     }
 
     /* Register spinning region */
     sysbus_create_simple("e500-spin", pmc->spin_base, NULL);
 
-    if (pmc->has_mpc8xxx_gpio) {
-        DeviceState *poweroff_dev;
-
-        dev = qdev_new("mpc8xxx_gpio");
-        s = SYS_BUS_DEVICE(dev);
-        sysbus_realize_and_unref(s, &error_fatal);
-        sysbus_connect_irq(s, 0, qdev_get_gpio_in(mpicdev, MPC8XXX_GPIO_IRQ));
-        memory_region_add_subregion(ccsr_addr_space, MPC8XXX_GPIO_OFFSET,
-                                    sysbus_mmio_get_region(s, 0));
-
-        /* Power Off GPIO at Pin 0 */
-        poweroff_dev = sysbus_create_simple("gpio-poweroff", -1, NULL);
-        qdev_connect_gpio_out(dev, 0, qdev_get_gpio_in(poweroff_dev, 0));
-    }
-
-    /* Platform Bus Device */
-    dev = qdev_new(TYPE_PLATFORM_BUS_DEVICE);
-    dev->id = g_strdup(TYPE_PLATFORM_BUS_DEVICE);
-    qdev_prop_set_uint32(dev, "num_irqs", pmc->platform_bus_num_irqs);
-    qdev_prop_set_uint32(dev, "mmio_size", pmc->platform_bus_size);
-    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
-    pms->pbus_dev = PLATFORM_BUS_DEVICE(dev);
-
-    s = SYS_BUS_DEVICE(pms->pbus_dev);
-    for (i = 0; i < pmc->platform_bus_num_irqs; i++) {
-        int irqn = pmc->platform_bus_first_irq + i;
-        sysbus_connect_irq(s, i, qdev_get_gpio_in(mpicdev, irqn));
-    }
-
-    memory_region_add_subregion(address_space_mem,
-                                pmc->platform_bus_base,
-                                &pms->pbus_dev->mmio);
-
-    dinfo = drive_get(IF_PFLASH, 0, 0);
-    if (dinfo) {
-        BlockBackend *blk = blk_by_legacy_dinfo(dinfo);
-        BlockDriverState *bs = blk_bs(blk);
-        uint64_t mmio_size = memory_region_size(&pms->pbus_dev->mmio);
-        uint64_t size = bdrv_getlength(bs);
-        uint32_t sector_len = 64 * KiB;
-
-        if (!is_power_of_2(size)) {
-            error_report("Size of pflash file must be a power of two.");
-            exit(1);
-        }
-
-        if (size > mmio_size) {
-            error_report("Size of pflash file must not be bigger than %" PRIu64
-                         " bytes.", mmio_size);
-            exit(1);
-        }
-
-        if (!QEMU_IS_ALIGNED(size, sector_len)) {
-            error_report("Size of pflash file must be a multiple of %" PRIu32
-                         ".", sector_len);
-            exit(1);
-        }
-
-        dev = qdev_new(TYPE_PFLASH_CFI01);
-        qdev_prop_set_drive(dev, "drive", blk);
-        qdev_prop_set_uint32(dev, "num-blocks", size / sector_len);
-        qdev_prop_set_uint64(dev, "sector-length", sector_len);
-        qdev_prop_set_uint8(dev, "width", 2);
-        qdev_prop_set_bit(dev, "big-endian", true);
-        qdev_prop_set_uint16(dev, "id0", 0x89);
-        qdev_prop_set_uint16(dev, "id1", 0x18);
-        qdev_prop_set_uint16(dev, "id2", 0x0000);
-        qdev_prop_set_uint16(dev, "id3", 0x0);
-        qdev_prop_set_string(dev, "name", "e500.flash");
-        sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
-
-        memory_region_add_subregion(&pms->pbus_dev->mmio, 0,
-                                    pflash_cfi01_get_memory(PFLASH_CFI01(dev)));
-    }
-
-    /*
-     * Smart firmware defaults ahead!
-     *
-     * We follow the following table to select which payload we execute.
-     *
-     *  -kernel | -bios | payload
-     * ---------+-------+---------
-     *     N    |   Y   | u-boot
-     *     N    |   N   | u-boot
-     *     Y    |   Y   | u-boot
-     *     Y    |   N   | kernel
-     *
-     * This ensures backwards compatibility with how we used to expose
-     * -kernel to users but allows them to run through u-boot as well.
-     */
-    kernel_as_payload = false;
-    if (machine->firmware == NULL) {
-        if (machine->kernel_filename) {
-            payload_name = machine->kernel_filename;
-            kernel_as_payload = true;
+    if (!drive_get(IF_PFLASH, 0, 0)) {
+        /*
+         * Smart firmware defaults ahead!
+         *
+         * We follow the following table to select which payload we execute.
+         *
+         *  -kernel | -bios | payload
+         * ---------+-------+---------
+         *     N    |   Y   | u-boot
+         *     N    |   N   | u-boot
+         *     Y    |   Y   | u-boot
+         *     Y    |   N   | kernel
+         *
+         * This ensures backwards compatibility with how we used to expose
+         * -kernel to users but allows them to run through u-boot as well.
+         */
+        if (machine->firmware == NULL) {
+            if (machine->kernel_filename) {
+                payload_name = machine->kernel_filename;
+                kernel_as_payload = true;
+            } else {
+                payload_name = "u-boot.e500";
+            }
         } else {
             payload_name = "u-boot.e500";
         }
