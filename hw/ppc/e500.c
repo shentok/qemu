@@ -899,7 +899,7 @@ void ppce500_init(MachineState *machine)
     }
 
     /* I2C */
-    dev = qdev_new("mpc-i2c");
+    dev = qdev_new("fsl-i2c");
     s = SYS_BUS_DEVICE(dev);
     sysbus_realize_and_unref(s, &error_fatal);
     sysbus_connect_irq(s, 0, qdev_get_gpio_in(mpicdev, MPC8544_I2C_IRQ));
