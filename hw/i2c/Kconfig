@@ -36,6 +36,7 @@ config IMX_I2C
 config MPC_I2C
     bool
     select I2C
+    select I2C_FDT
 
 config ALLWINNER_I2C
     bool
