@@ -155,7 +155,7 @@ static bool type_name_is_valid(const char *name)
 
     plen = strspn(name, "abcdefghijklmnopqrstuvwxyz"
                         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                        "0123456789-_.");
+                        "0123456789-_.,");
 
     return plen == slen;
 }
