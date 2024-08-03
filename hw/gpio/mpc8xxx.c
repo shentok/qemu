@@ -215,6 +215,14 @@ static const TypeInfo types[] = {
         .instance_init = mpc8xxx_gpio_initfn,
         .class_init    = mpc8xxx_gpio_class_init,
     },
+    {
+        .name          = "fsl,mpc8572-gpio",
+        .parent        = TYPE_MPC8XXX_GPIO,
+    },
+    {
+        .name          = "fsl,qoriq-gpio",
+        .parent        = TYPE_MPC8XXX_GPIO,
+    },
 };
 
 DEFINE_TYPES(types)
