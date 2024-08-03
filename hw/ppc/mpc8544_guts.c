@@ -147,6 +147,18 @@ static const TypeInfo mpc8544_guts_types[] = {
         .instance_size = sizeof(GutsState),
         .instance_init = mpc8544_guts_initfn,
     },
+    {
+        .name          = "fsl,p1020-guts",
+        .parent        = TYPE_MPC8544_GUTS,
+    },
+    {
+        .name          = "fsl,p1022-guts",
+        .parent        = TYPE_MPC8544_GUTS,
+    },
+    {
+        .name          = "fsl,mpc8544-guts",
+        .parent        = TYPE_MPC8544_GUTS,
+    },
 };
 
 DEFINE_TYPES(mpc8544_guts_types)
