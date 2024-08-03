@@ -215,6 +215,18 @@ static const TypeInfo mpc8xxx_gpio_types[] = {
         .instance_init = mpc8xxx_gpio_initfn,
         .class_init    = mpc8xxx_gpio_class_init,
     },
+    {
+        .name          = "fsl,mpc8572-gpio",
+        .parent        = TYPE_MPC8XXX_GPIO,
+    },
+    {
+        .name          = "fsl,qoriq-gpio",
+        .parent        = TYPE_MPC8XXX_GPIO,
+    },
+    {
+        .name          = "fsl,pq3-gpio",
+        .parent        = TYPE_MPC8XXX_GPIO,
+    },
 };
 
 DEFINE_TYPES(mpc8xxx_gpio_types)
