@@ -136,9 +136,9 @@ static void ppc_core99_init(MachineState *machine)
     MachineClass *mc = MACHINE_GET_CLASS(machine);
     PowerPCCPU *cpu = NULL;
     CPUPPCState *env = NULL;
+    CPUState *cs = NULL;
     char *filename;
-    IrqLines *openpic_irqs;
-    int i, j, k, ppc_boot_device, machine_arch, bios_size = -1;
+    int i, ppc_boot_device, machine_arch, bios_size = -1;
     const char *bios_name = machine->firmware ?: PROM_FILENAME;
     MemoryRegion *bios = g_new(MemoryRegion, 1);
     hwaddr kernel_base = 0, initrd_base = 0, cmdline_base = 0;
@@ -251,47 +251,6 @@ static void ppc_core99_init(MachineState *machine)
         }
     }
 
-    openpic_irqs = g_new0(IrqLines, machine->smp.cpus);
-    dev = DEVICE(cpu);
-    for (i = 0; i < machine->smp.cpus; i++) {
-        /* Mac99 IRQ connection between OpenPIC outputs pins
-         * and PowerPC input pins
-         */
-        switch (PPC_INPUT(env)) {
-        case PPC_FLAGS_INPUT_6xx:
-            openpic_irqs[i].irq[OPENPIC_OUTPUT_INT] =
-                qdev_get_gpio_in(dev, PPC6xx_INPUT_INT);
-            openpic_irqs[i].irq[OPENPIC_OUTPUT_CINT] =
-                 qdev_get_gpio_in(dev, PPC6xx_INPUT_INT);
-            openpic_irqs[i].irq[OPENPIC_OUTPUT_MCK] =
-                qdev_get_gpio_in(dev, PPC6xx_INPUT_MCP);
-            /* Not connected ? */
-            openpic_irqs[i].irq[OPENPIC_OUTPUT_DEBUG] = NULL;
-            /* Check this */
-            openpic_irqs[i].irq[OPENPIC_OUTPUT_RESET] =
-                qdev_get_gpio_in(dev, PPC6xx_INPUT_HRESET);
-            break;
-#if defined(TARGET_PPC64)
-        case PPC_FLAGS_INPUT_970:
-            openpic_irqs[i].irq[OPENPIC_OUTPUT_INT] =
-                qdev_get_gpio_in(dev, PPC970_INPUT_INT);
-            openpic_irqs[i].irq[OPENPIC_OUTPUT_CINT] =
-                qdev_get_gpio_in(dev, PPC970_INPUT_INT);
-            openpic_irqs[i].irq[OPENPIC_OUTPUT_MCK] =
-                qdev_get_gpio_in(dev, PPC970_INPUT_MCP);
-            /* Not connected ? */
-            openpic_irqs[i].irq[OPENPIC_OUTPUT_DEBUG] = NULL;
-            /* Check this */
-            openpic_irqs[i].irq[OPENPIC_OUTPUT_RESET] =
-                qdev_get_gpio_in(dev, PPC970_INPUT_HRESET);
-            break;
-#endif /* defined(TARGET_PPC64) */
-        default:
-            error_report("Bus model not supported on mac99 machine");
-            exit(1);
-        }
-    }
-
     /* UniN init */
     s = SYS_BUS_DEVICE(qdev_new(TYPE_UNI_NORTH));
     sysbus_realize_and_unref(s, &error_fatal);
@@ -389,14 +348,9 @@ static void ppc_core99_init(MachineState *machine)
     }
 
     /* OpenPIC */
-    s = SYS_BUS_DEVICE(pic_dev);
-    k = 0;
-    for (i = 0; i < machine->smp.cpus; i++) {
-        for (j = 0; j < OPENPIC_OUTPUT_NB; j++) {
-            sysbus_connect_irq(s, k++, openpic_irqs[i].irq[j]);
-        }
+    CPU_FOREACH(cs) {
+        openpic_connect_vcpu(pic_dev, cs);
     }
-    g_free(openpic_irqs);
 
     /* We only emulate 2 out of 3 IDE controllers for now */
     ide_drive_get(hd, ARRAY_SIZE(hd));

@@ -56,5 +56,7 @@ ppc_system_ss.add(when: 'TARGET_PPC64', if_true: files(
   'mmu-radix64.c',
 ))
 
+ppc_ss.add(when: 'CONFIG_OPENPIC', if_true: files('openpic.c'))
+
 target_arch += {'ppc': ppc_ss}
 target_system_arch += {'ppc': ppc_system_ss}
