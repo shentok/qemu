@@ -29,27 +29,12 @@
 #include "hw/ppc/openpic_kvm.h"
 #include "hw/pci/msi.h"
 #include "hw/qdev-properties.h"
-#include "hw/sysbus.h"
 #include "system/kvm.h"
 #include "qemu/log.h"
 #include "qemu/module.h"
 #include "qom/object.h"
 
 #define GCR_RESET        0x80000000
-
-OBJECT_DECLARE_SIMPLE_TYPE(KVMOpenPICState, KVM_OPENPIC)
-
-struct KVMOpenPICState {
-    /*< private >*/
-    SysBusDevice parent_obj;
-    /*< public >*/
-
-    MemoryRegion mem;
-    MemoryListener mem_listener;
-    uint32_t fd;
-    uint32_t model;
-    hwaddr mapped;
-};
 
 static void kvm_openpic_set_irq(void *opaque, int n_IRQ, int level)
 {
