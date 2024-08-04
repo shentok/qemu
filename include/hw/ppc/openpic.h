@@ -173,4 +173,6 @@ struct OpenPICState {
     uint32_t irq_msi;
 };
 
+int openpic_connect_vcpu(DeviceState *dev, CPUState *cs);
+
 #endif /* OPENPIC_H */
