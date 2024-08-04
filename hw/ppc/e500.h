@@ -32,7 +32,7 @@ struct PPCE500MachineClass {
     int pci_first_slot;
     int pci_nr_slots;
 
-    int mpic_version;
+    uint32_t mpic_version;
     bool has_mpc8xxx_gpio;
     bool has_esdhc;
     hwaddr platform_bus_base;
