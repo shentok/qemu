@@ -843,12 +843,10 @@ static DeviceState *ppce500_init_mpic_kvm(const PPCE500MachineClass *pmc,
 #endif
 }
 
-static DeviceState *ppce500_init_mpic(PPCE500MachineState *pms,
-                                      MemoryRegion *ccsr)
+static DeviceState *ppce500_init_mpic(PPCE500MachineState *pms)
 {
     const PPCE500MachineClass *pmc = PPCE500_MACHINE_GET_CLASS(pms);
     DeviceState *dev = NULL;
-    SysBusDevice *s;
 
     if (kvm_enabled()) {
         Error *err = NULL;
@@ -866,10 +864,6 @@ static DeviceState *ppce500_init_mpic(PPCE500MachineState *pms,
     if (!dev) {
         dev = ppce500_init_mpic_qemu(pms);
     }
-
-    s = SYS_BUS_DEVICE(dev);
-    memory_region_add_subregion(ccsr, MPC8544_MPIC_REGS_OFFSET,
-                                s->mmio[0].memory);
 
     return dev;
 }
@@ -960,7 +954,10 @@ void ppce500_init(MachineState *machine)
     memory_region_add_subregion(address_space_mem, pmc->ccsrbar_base,
                                 ccsr_addr_space);
 
-    mpicdev = ppce500_init_mpic(pms, ccsr_addr_space);
+    mpicdev = ppce500_init_mpic(pms);
+    s = SYS_BUS_DEVICE(mpicdev);
+    memory_region_add_subregion(ccsr_addr_space, MPC8544_MPIC_REGS_OFFSET,
+                                sysbus_mmio_get_region(s, 0));
 
     /* Serial */
     if (serial_hd(0)) {
