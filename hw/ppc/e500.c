@@ -33,8 +33,6 @@
 #include "system/reset.h"
 #include "kvm_ppc.h"
 #include "system/device_tree.h"
-#include "hw/ppc/openpic.h"
-#include "hw/ppc/openpic_kvm.h"
 #include "hw/ppc/ppc.h"
 #include "hw/qdev-properties.h"
 #include "hw/loader.h"
@@ -792,82 +790,6 @@ static void ppce500_cpu_reset(void *opaque)
 #endif
 }
 
-static DeviceState *ppce500_init_mpic_qemu(PPCE500MachineState *pms)
-{
-    DeviceState *dev;
-    MachineState *machine = MACHINE(pms);
-    unsigned int smp_cpus = machine->smp.cpus;
-    const PPCE500MachineClass *pmc = PPCE500_MACHINE_GET_CLASS(pms);
-    CPUState *cs;
-
-    dev = qdev_new(TYPE_OPENPIC);
-    object_property_add_child(OBJECT(machine), "pic", OBJECT(dev));
-    qdev_prop_set_uint32(dev, "model", pmc->mpic_version);
-    qdev_prop_set_uint32(dev, "nb_cpus", smp_cpus);
-
-    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
-
-    CPU_FOREACH(cs) {
-        openpic_connect_vcpu(dev, cs);
-    }
-
-    return dev;
-}
-
-static DeviceState *ppce500_init_mpic_kvm(const PPCE500MachineClass *pmc,
-                                          Error **errp)
-{
-#ifdef CONFIG_OPENPIC_KVM
-    DeviceState *dev;
-    CPUState *cs;
-
-    dev = qdev_new(TYPE_KVM_OPENPIC);
-    qdev_prop_set_uint32(dev, "model", pmc->mpic_version);
-
-    if (!sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), errp)) {
-        object_unparent(OBJECT(dev));
-        return NULL;
-    }
-
-    CPU_FOREACH(cs) {
-        if (kvm_openpic_connect_vcpu(dev, cs)) {
-            fprintf(stderr, "%s: failed to connect vcpu to irqchip\n",
-                    __func__);
-            abort();
-        }
-    }
-
-    return dev;
-#else
-    g_assert_not_reached();
-#endif
-}
-
-static DeviceState *ppce500_init_mpic(PPCE500MachineState *pms)
-{
-    const PPCE500MachineClass *pmc = PPCE500_MACHINE_GET_CLASS(pms);
-    DeviceState *dev = NULL;
-
-    if (kvm_enabled()) {
-        Error *err = NULL;
-
-        if (kvm_kernel_irqchip_allowed()) {
-            dev = ppce500_init_mpic_kvm(pmc, &err);
-        }
-        if (kvm_kernel_irqchip_required() && !dev) {
-            error_reportf_err(err,
-                              "kernel_irqchip requested but unavailable: ");
-            exit(1);
-        }
-    }
-
-    if (!dev) {
-        dev = ppce500_init_mpic_qemu(pms);
-    }
-
-    return dev;
-}
-
 void ppce500_init(MachineState *machine)
 {
     MemoryRegion *address_space_mem = get_system_memory();
@@ -898,6 +820,9 @@ void ppce500_init(MachineState *machine)
     MemoryRegion *ccsr_addr_space;
     SysBusDevice *s;
     I2CBus *i2c;
+
+    object_property_add_uint32_ptr(OBJECT(sysbus_get_default()), "mpic-version",
+                                   &pmc->mpic_version, OBJ_PROP_FLAG_READ);
 
     for (i = 0; i < smp_cpus; i++) {
         PowerPCCPU *cpu;
@@ -954,8 +879,9 @@ void ppce500_init(MachineState *machine)
     memory_region_add_subregion(address_space_mem, pmc->ccsrbar_base,
                                 ccsr_addr_space);
 
-    mpicdev = ppce500_init_mpic(pms);
+    mpicdev = qdev_new("fsl_mpic");
     s = SYS_BUS_DEVICE(mpicdev);
+    sysbus_realize_and_unref(s, &error_fatal);
     memory_region_add_subregion(ccsr_addr_space, MPC8544_MPIC_REGS_OFFSET,
                                 sysbus_mmio_get_region(s, 0));
 
