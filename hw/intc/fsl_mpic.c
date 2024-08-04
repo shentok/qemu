@@ -114,7 +114,15 @@ static const TypeInfo types[] = {
         .instance_size = sizeof(MpicState),
         .class_init    = mpic_class_init,
         .instance_init = mpic_init,
-    }
+    },
+    {
+        .name          = "fsl,mpic",
+        .parent        = TYPE_FSL_MPIC,
+    },
+    {
+        .name          = "chrp,open-pic",
+        .parent        = TYPE_FSL_MPIC,
+    },
 };
 
 DEFINE_TYPES(types)
