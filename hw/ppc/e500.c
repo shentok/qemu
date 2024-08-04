@@ -792,29 +792,23 @@ static void ppce500_cpu_reset(void *opaque)
 #endif
 }
 
-static DeviceState *ppce500_init_mpic_qemu(PPCE500MachineState *pms,
-                                           IrqLines  *irqs)
+static DeviceState *ppce500_init_mpic_qemu(PPCE500MachineState *pms)
 {
     DeviceState *dev;
-    SysBusDevice *s;
-    int i, j, k;
     MachineState *machine = MACHINE(pms);
     unsigned int smp_cpus = machine->smp.cpus;
     const PPCE500MachineClass *pmc = PPCE500_MACHINE_GET_CLASS(pms);
+    CPUState *cs;
 
     dev = qdev_new(TYPE_OPENPIC);
     object_property_add_child(OBJECT(machine), "pic", OBJECT(dev));
     qdev_prop_set_uint32(dev, "model", pmc->mpic_version);
     qdev_prop_set_uint32(dev, "nb_cpus", smp_cpus);
 
-    s = SYS_BUS_DEVICE(dev);
-    sysbus_realize_and_unref(s, &error_fatal);
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
 
-    k = 0;
-    for (i = 0; i < smp_cpus; i++) {
-        for (j = 0; j < OPENPIC_OUTPUT_NB; j++) {
-            sysbus_connect_irq(s, k++, irqs[i].irq[j]);
-        }
+    CPU_FOREACH(cs) {
+        openpic_connect_vcpu(dev, cs);
     }
 
     return dev;
@@ -850,8 +844,7 @@ static DeviceState *ppce500_init_mpic_kvm(const PPCE500MachineClass *pmc,
 }
 
 static DeviceState *ppce500_init_mpic(PPCE500MachineState *pms,
-                                      MemoryRegion *ccsr,
-                                      IrqLines *irqs)
+                                      MemoryRegion *ccsr)
 {
     const PPCE500MachineClass *pmc = PPCE500_MACHINE_GET_CLASS(pms);
     DeviceState *dev = NULL;
@@ -871,7 +864,7 @@ static DeviceState *ppce500_init_mpic(PPCE500MachineState *pms,
     }
 
     if (!dev) {
-        dev = ppce500_init_mpic_qemu(pms, irqs);
+        dev = ppce500_init_mpic_qemu(pms);
     }
 
     s = SYS_BUS_DEVICE(dev);
@@ -906,14 +899,12 @@ void ppce500_init(MachineState *machine)
     /* irq num for pin INTA, INTB, INTC and INTD is 1, 2, 3 and
      * 4 respectively */
     unsigned int pci_irq_nrs[PCI_NUM_PINS] = {1, 2, 3, 4};
-    IrqLines *irqs;
     DeviceState *dev, *mpicdev;
     DriveInfo *dinfo;
     MemoryRegion *ccsr_addr_space;
     SysBusDevice *s;
     I2CBus *i2c;
 
-    irqs = g_new0(IrqLines, smp_cpus);
     for (i = 0; i < smp_cpus; i++) {
         PowerPCCPU *cpu;
         CPUPPCState *env;
@@ -937,10 +928,6 @@ void ppce500_init(MachineState *machine)
                                  &error_abort);
         qdev_realize_and_unref(DEVICE(cs), NULL, &error_fatal);
 
-        irqs[i].irq[OPENPIC_OUTPUT_INT] =
-            qdev_get_gpio_in(DEVICE(cpu), PPCE500_INPUT_INT);
-        irqs[i].irq[OPENPIC_OUTPUT_CINT] =
-            qdev_get_gpio_in(DEVICE(cpu), PPCE500_INPUT_CINT);
         env->spr_cb[SPR_BOOKE_PIR].default_value = cs->cpu_index = i;
         env->mpic_iack = pmc->ccsrbar_base + MPC8544_MPIC_REGS_OFFSET + 0xa0;
 
@@ -973,8 +960,7 @@ void ppce500_init(MachineState *machine)
     memory_region_add_subregion(address_space_mem, pmc->ccsrbar_base,
                                 ccsr_addr_space);
 
-    mpicdev = ppce500_init_mpic(pms, ccsr_addr_space, irqs);
-    g_free(irqs);
+    mpicdev = ppce500_init_mpic(pms, ccsr_addr_space);
 
     /* Serial */
     if (serial_hd(0)) {
