@@ -6,6 +6,9 @@ config I2C_DEVICES
     # to any board's i2c bus
     bool
 
+config I2C_FDT
+    bool
+
 config SMBUS
     bool
     select I2C
