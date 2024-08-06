@@ -38,6 +38,7 @@ system_ss.add(files(
   'nmi.c',
   'null-machine.c',
   'numa.c',
+  'qdev-dt-interface.c',
   'qdev-fw.c',
   'qdev-hotplug.c',
   'qdev-properties-system.c',
