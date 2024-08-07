@@ -13,8 +13,16 @@
 
 #include "qemu/osdep.h"
 #include "ppce500_ccsr.h"
+#include "hw/qdev-dt-interface.h"
 #include "qemu/log.h"
 #include "trace.h"
+
+static void ppce500_ccsr_handle_device_tree_node_post(DeviceState *dev,
+                                                      int node,
+                                                      QDevFdtContext *context)
+{
+    fdt_plaform_populate(SYS_BUS_DEVICE(dev), context, node);
+}
 
 static uint64_t ppce500_ccsr_io_read(void *opaque, hwaddr addr, unsigned size)
 {
@@ -52,12 +60,36 @@ static void ppce500_ccsr_init(Object *obj)
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->ccsr_space);
 }
 
+static void ppce500_ccsr_class_init(ObjectClass *klass, void *data)
+{
+    DeviceDeviceTreeIfClass *dt = DEVICE_DT_IF_CLASS(klass);
+
+    dt->handle_device_tree_node_post = ppce500_ccsr_handle_device_tree_node_post;
+}
+
 static const TypeInfo types[] = {
     {
         .name          = TYPE_CCSR,
         .parent        = TYPE_SYS_BUS_DEVICE,
         .instance_size = sizeof(PPCE500CCSRState),
         .instance_init = ppce500_ccsr_init,
+        .class_init    = ppce500_ccsr_class_init,
+        .interfaces    = (InterfaceInfo[]) {
+            { TYPE_DEVICE_DT_IF },
+            { },
+        },
+    },
+    {
+        .name          = "fsl,p1020-immr",
+        .parent        = TYPE_CCSR,
+    },
+    {
+        .name          = "fsl,p1022-immr",
+        .parent        = TYPE_CCSR,
+    },
+    {
+        .name          = "fsl,mpc8544-immr",
+        .parent        = TYPE_CCSR,
     },
 };
 
