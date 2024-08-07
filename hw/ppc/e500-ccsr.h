@@ -4,6 +4,8 @@
 #include "hw/sysbus.h"
 #include "qom/object.h"
 
+#define MPC8544_CCSRBAR_SIZE       0x00100000ULL
+
 struct PPCE500CCSRState {
     /*< private >*/
     SysBusDevice parent;
