@@ -96,7 +96,6 @@ struct SDHCIState {
     /* Configurable properties */
     bool pending_insert_quirk; /* Quirk for Raspberry Pi card insert int */
     uint32_t quirks;
-    uint8_t endianness;
     uint8_t sd_spec_version;
     uint8_t uhs_mode;
     uint8_t vendor;        /* For vendor specific functionality */
@@ -128,7 +127,7 @@ DECLARE_INSTANCE_CHECKER(SDHCIState, PCI_SDHCI,
 DECLARE_INSTANCE_CHECKER(SDHCIState, SYSBUS_SDHCI,
                          TYPE_SYSBUS_SDHCI)
 
-#define TYPE_FSL_ESDHC "fsl-esdhc"
+#define TYPE_FSL_ESDHC_BE "fsl-esdhc-be"
 
 #define TYPE_IMX_USDHC "imx-usdhc"
 

@@ -1446,22 +1446,6 @@ void sdhci_common_realize(SDHCIState *s, Error **errp)
 {
     ERRP_GUARD();
 
-    switch (s->endianness) {
-    case DEVICE_LITTLE_ENDIAN:
-        /* s->io_ops is little endian by default */
-        break;
-    case DEVICE_BIG_ENDIAN:
-        if (s->io_ops != &sdhci_mmio_le_ops) {
-            error_setg(errp, "SD controller doesn't support big endianness");
-            return;
-        }
-        s->io_ops = &sdhci_mmio_be_ops;
-        break;
-    default:
-        error_setg(errp, "Incorrect endianness");
-        return;
-    }
-
     sdhci_init_readonly_registers(s, errp);
     if (*errp) {
         return;
@@ -1643,10 +1627,12 @@ static void sdhci_bus_class_init(ObjectClass *klass, const void *data)
 
 /* --- Freescale eSDHC (MPC8569ERM Rev.2 from 06/2011) --- */
 
-static void fsl_esdhc_init(Object *obj)
+static void fsl_esdhc_be_init(Object *obj)
 {
+    SDHCIState *s = SYSBUS_SDHCI(obj);
     DeviceState *dev = DEVICE(obj);
 
+    s->io_ops = &sdhci_mmio_be_ops;
     qdev_prop_set_uint8(dev, "sd-spec-version", 2);
     qdev_prop_set_uint8(dev, "vendor", SDHCI_VENDOR_FSL);
 }
@@ -1977,9 +1963,9 @@ static const TypeInfo sdhci_types[] = {
         .class_init = sdhci_sysbus_class_init,
     },
     {
-        .name = TYPE_FSL_ESDHC,
+        .name = TYPE_FSL_ESDHC_BE,
         .parent = TYPE_SYSBUS_SDHCI,
-        .instance_init = fsl_esdhc_init,
+        .instance_init = fsl_esdhc_be_init,
     },
     {
         .name = TYPE_IMX_USDHC,
