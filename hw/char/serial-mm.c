@@ -28,7 +28,11 @@
 #include "exec/cpu-common.h"
 #include "migration/vmstate.h"
 #include "qapi/error.h"
+#include "hw/qdev-dt-interface.h"
 #include "hw/qdev-properties.h"
+#include "system/system.h"
+
+#include <libfdt.h>
 
 static uint64_t serial_mm_read(void *opaque, hwaddr addr, unsigned size)
 {
@@ -94,6 +98,33 @@ static const VMStateDescription vmstate_serial_mm = {
     }
 };
 
+static void serial_mm_handle_device_tree_node_pre(DeviceState *dev, int node,
+                                                  QDevFdtContext *context)
+{
+    const void *fdt = context->fdt;
+    int baudbase = 0;
+    const struct fdt_property *reg_shift;
+    const struct fdt_property *clock_frequency;
+
+    reg_shift = fdt_get_property(fdt, node, "reg-shift", NULL);
+    clock_frequency = fdt_get_property(fdt, node, "clock-frequency", NULL);
+
+    if (reg_shift) {
+        int regshift = ldl_be_p(reg_shift->data);
+        qdev_prop_set_uint8(dev, "regshift", regshift);
+    }
+
+    if (clock_frequency) {
+        baudbase = ldl_be_p(clock_frequency->data);
+    }
+
+    if (baudbase == 0) {
+        baudbase = 399193;
+    }
+
+    qdev_prop_set_uint32(dev, "baudbase", baudbase);
+}
+
 SerialMM *serial_mm_init(MemoryRegion *address_space,
                          hwaddr base, int regshift,
                          qemu_irq irq, int baudbase,
@@ -125,6 +156,14 @@ static void serial_mm_instance_init(Object *o)
     qdev_alias_all_properties(DEVICE(&smm->serial), o);
 }
 
+static void serial_mm_instance_init_dt(Object *o)
+{
+    DeviceState *dev = DEVICE(o);
+    static int instance;
+
+    qdev_prop_set_chr(dev, "chardev", serial_hd(instance++));
+}
+
 static const Property serial_mm_properties[] = {
     /*
      * Set the spacing between adjacent memory-mapped UART registers.
@@ -137,7 +176,9 @@ static const Property serial_mm_properties[] = {
 static void serial_mm_class_init(ObjectClass *oc, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(oc);
+    DeviceDeviceTreeIfClass *dt = DEVICE_DT_IF_CLASS(oc);
 
+    dt->handle_device_tree_node_pre = serial_mm_handle_device_tree_node_pre;
     device_class_set_props(dc, serial_mm_properties);
     dc->realize = serial_mm_realize;
     dc->vmsd = &vmstate_serial_mm;
@@ -150,6 +191,20 @@ static const TypeInfo types[] = {
         .class_init = serial_mm_class_init,
         .instance_init = serial_mm_instance_init,
         .instance_size = sizeof(SerialMM),
+        .interfaces = (InterfaceInfo[]) {
+            { TYPE_DEVICE_DT_IF },
+            { },
+        },
+    },
+    {
+        .name = "fsl,ns16550",
+        .parent = TYPE_SERIAL_MM,
+        .instance_init = serial_mm_instance_init_dt,
+    },
+    {
+        .name = "ns16550",
+        .parent = TYPE_SERIAL_MM,
+        .instance_init = serial_mm_instance_init_dt,
     },
 };
 
