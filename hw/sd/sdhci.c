@@ -1968,6 +1968,18 @@ static const TypeInfo sdhci_types[] = {
         .instance_init = fsl_esdhc_be_init,
     },
     {
+        .name = "fsl,esdhc",
+        .parent = TYPE_FSL_ESDHC_BE,
+    },
+    {
+        .name = "fsl,p1020-esdhc",
+        .parent = TYPE_FSL_ESDHC_BE,
+    },
+    {
+        .name = "fsl,p1022-esdhc",
+        .parent = TYPE_FSL_ESDHC_BE,
+    },
+    {
         .name = TYPE_IMX_USDHC,
         .parent = TYPE_SYSBUS_SDHCI,
         .instance_init = imx_usdhc_init,
