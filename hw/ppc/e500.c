@@ -1027,8 +1027,7 @@ void ppce500_init(MachineState *machine)
 
     /* eSDHC */
     if (pmc->has_esdhc) {
-        dev = qdev_new(TYPE_FSL_ESDHC);
-        qdev_prop_set_uint8(dev, "endianness", DEVICE_BIG_ENDIAN);
+        dev = qdev_new(TYPE_FSL_ESDHC_BE);
         s = SYS_BUS_DEVICE(dev);
         sysbus_realize_and_unref(s, &error_fatal);
         sysbus_connect_irq(s, 0, qdev_get_gpio_in(mpicdev, MPC85XX_ESDHC_IRQ));
