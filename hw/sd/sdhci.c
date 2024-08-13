@@ -29,6 +29,7 @@
 #include "qemu/error-report.h"
 #include "qapi/error.h"
 #include "hw/irq.h"
+#include "hw/qdev-dt-interface.h"
 #include "hw/qdev-properties.h"
 #include "sysemu/dma.h"
 #include "qemu/timer.h"
@@ -1371,6 +1372,21 @@ static const MemoryRegionOps sdhci_mmio_be_ops = {
     .endianness = DEVICE_BIG_ENDIAN,
 };
 
+static const MemoryRegionOps sdhci_mmio_native_ops = {
+    .read = sdhci_read,
+    .write = sdhci_write,
+    .impl = {
+        .min_access_size = 4,
+        .max_access_size = 4,
+    },
+    .valid = {
+        .min_access_size = 1,
+        .max_access_size = 4,
+        .unaligned = false
+    },
+    .endianness = DEVICE_NATIVE_ENDIAN,
+};
+
 static void sdhci_init_readonly_registers(SDHCIState *s, Error **errp)
 {
     ERRP_GUARD();
@@ -1425,6 +1441,13 @@ void sdhci_common_realize(SDHCIState *s, Error **errp)
             return;
         }
         s->io_ops = &sdhci_mmio_be_ops;
+        break;
+    case DEVICE_NATIVE_ENDIAN:
+        if (s->io_ops != &sdhci_mmio_le_ops) {
+            error_setg(errp, "SD controller doesn't support native endianness");
+            return;
+        }
+        s->io_ops = &sdhci_mmio_native_ops;
         break;
     default:
         error_setg(errp, "Incorrect endianness");
@@ -1551,6 +1574,12 @@ static void sdhci_sysbus_finalize(Object *obj)
     sdhci_uninitfn(s);
 }
 
+static void sdhci_sysbus_handle_device_tree_node_pre(DeviceState *dev, int node,
+                                                     QDevFdtContext *context)
+{
+    qdev_prop_set_uint8(dev, "endianness", DEVICE_NATIVE_ENDIAN);
+}
+
 static void sdhci_sysbus_realize(DeviceState *dev, Error **errp)
 {
     ERRP_GUARD();
@@ -1589,7 +1618,9 @@ static void sdhci_sysbus_unrealize(DeviceState *dev)
 static void sdhci_sysbus_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
+    DeviceDeviceTreeIfClass *dt = DEVICE_DT_IF_CLASS(klass);
 
+    dt->handle_device_tree_node_pre = sdhci_sysbus_handle_device_tree_node_pre;
     device_class_set_props(dc, sdhci_sysbus_properties);
     dc->realize = sdhci_sysbus_realize;
     dc->unrealize = sdhci_sysbus_unrealize;
@@ -1937,6 +1968,22 @@ static const TypeInfo types[] = {
         .instance_init = sdhci_sysbus_init,
         .instance_finalize = sdhci_sysbus_finalize,
         .class_init = sdhci_sysbus_class_init,
+        .interfaces = (InterfaceInfo[]) {
+            { TYPE_DEVICE_DT_IF },
+            { },
+        },
+    },
+    {
+        .name = "fsl,esdhc",
+        .parent = TYPE_SYSBUS_SDHCI,
+    },
+    {
+        .name = "fsl,p1020-esdhc",
+        .parent = TYPE_SYSBUS_SDHCI,
+    },
+    {
+        .name = "fsl,p1022-esdhc",
+        .parent = TYPE_SYSBUS_SDHCI,
     },
     {
         .name = TYPE_IMX_USDHC,
