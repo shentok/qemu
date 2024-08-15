@@ -39,6 +39,7 @@
 #include "qemu/osdep.h"
 #include "hw/block/block.h"
 #include "hw/block/flash.h"
+#include "hw/qdev-dt-interface.h"
 #include "hw/qdev-properties.h"
 #include "hw/qdev-properties-system.h"
 #include "system/block-backend.h"
@@ -48,11 +49,14 @@
 #include "qemu/host-utils.h"
 #include "qemu/log.h"
 #include "qemu/option.h"
+#include "qemu/units.h"
 #include "hw/sysbus.h"
 #include "migration/vmstate.h"
 #include "system/blockdev.h"
 #include "system/runstate.h"
 #include "trace.h"
+
+#include <libfdt.h>
 
 #define PFLASH_BE          0
 #define PFLASH_SECURE      1
@@ -874,6 +878,40 @@ static void pflash_cfi01_realize(DeviceState *dev, Error **errp)
     pfl->blk_offset = -1;
 }
 
+static void pflash_cfi01_handle_device_tree_node_pre(DeviceState *dev, int node,
+                                                     QDevFdtContext *context)
+{
+    static int instance;
+    const int sector_len = 128 * KiB;
+    const void *fdt = context->fdt;
+    const struct fdt_property *bank_width_prop;
+    uint32_t bank_width = 0;
+    uint64_t size = qemu_fdt_get_reg_size(fdt, node, 0);
+    DriveInfo *dinfo = drive_get(IF_PFLASH, 0, instance++);
+    BlockBackend *blk = dinfo ? blk_by_legacy_dinfo(dinfo) : NULL;
+
+    bank_width_prop = fdt_get_property(fdt, node, "bank-width", NULL);
+
+    if (bank_width_prop) {
+        bank_width = ldl_be_p(bank_width_prop->data);
+    }
+
+    if (blk) {
+        size = bdrv_getlength(blk_bs(blk));
+        qdev_prop_set_drive(dev, "drive", blk);
+    }
+    assert(QEMU_IS_ALIGNED(size, sector_len));
+    qdev_prop_set_uint32(dev, "num-blocks", size / sector_len);
+    qdev_prop_set_uint64(dev, "sector-length", sector_len);
+    qdev_prop_set_uint8(dev, "width", bank_width);
+    qdev_prop_set_bit(dev, "big-endian", true);
+    qdev_prop_set_uint16(dev, "id0", 0x89);
+    qdev_prop_set_uint16(dev, "id1", 0x18);
+    qdev_prop_set_uint16(dev, "id2", 0x0000);
+    qdev_prop_set_uint16(dev, "id3", 0x0);
+    qdev_prop_set_string(dev, "name", fdt_get_name(fdt, node, NULL));
+}
+
 static void pflash_cfi01_system_reset(DeviceState *dev)
 {
     PFlashCFI01 *pfl = PFLASH_CFI01(dev);
@@ -937,7 +975,9 @@ static const Property pflash_cfi01_properties[] = {
 static void pflash_cfi01_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
+    DeviceDeviceTreeIfClass *dt = DEVICE_DT_IF_CLASS(klass);
 
+    dt->handle_device_tree_node_pre = pflash_cfi01_handle_device_tree_node_pre;
     device_class_set_legacy_reset(dc, pflash_cfi01_system_reset);
     dc->realize = pflash_cfi01_realize;
     device_class_set_props(dc, pflash_cfi01_properties);
@@ -951,6 +991,14 @@ static const TypeInfo pflash_cfi01_types[] = {
         .parent         = TYPE_SYS_BUS_DEVICE,
         .instance_size  = sizeof(PFlashCFI01),
         .class_init     = pflash_cfi01_class_init,
+        .interfaces     = (InterfaceInfo[]) {
+            { TYPE_DEVICE_DT_IF },
+            { },
+        },
+    },
+    {
+        .name           = "cfi-flash",
+        .parent         = TYPE_PFLASH_CFI01,
     },
 };
 
