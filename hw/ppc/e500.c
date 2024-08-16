@@ -20,7 +20,6 @@
 #include "qemu/guest-random.h"
 #include "exec/target_page.h"
 #include "qapi/error.h"
-#include "cpu-models.h"
 #include "e500.h"
 #include "ppce500_ccsr.h"
 #include "net/net.h"
@@ -785,7 +784,9 @@ static void ppce500_cpu_reset(void *opaque)
     /* Set initial guest state. */
     cs->halted = 0;
     env->gpr[1] = (16 * MiB) - 8;
-    env->gpr[3] = bi->dt_base;
+    if (bi->dt_base) {
+        env->gpr[3] = bi->dt_base;
+    }
     env->gpr[4] = 0;
     env->gpr[5] = 0;
     env->gpr[6] = EPAPR_MAGIC;
@@ -816,7 +817,7 @@ void ppce500_init(MachineState *machine)
     char *filename;
     const char *payload_name;
     bool kernel_as_payload = false;
-    hwaddr bios_entry = 0;
+    hwaddr bios_entry = 0xfffffffc;
     target_long payload_size;
     void *fdt = NULL;
     int dt_size;
@@ -835,8 +836,9 @@ void ppce500_init(MachineState *machine)
         env = &cpu->env;
         cs = CPU(cpu);
 
-        if (!(POWERPC_CPU_GET_CLASS(cpu)->svr & POWERPC_SVR_E500)) {
-            error_report("This machine needs a CPU from the e500 family");
+        if (env->mmu_model != POWERPC_MMU_BOOKE206) {
+            error_report("MMU model %i not supported by this machine",
+                         env->mmu_model);
             exit(1);
         }
 
@@ -1093,86 +1095,85 @@ void ppce500_init(MachineState *machine)
                 payload_name = "u-boot.e500";
             }
         } else {
-            payload_name = "u-boot.e500";
+            payload_name = machine->firmware;
         }
-    } else {
-        payload_name = machine->firmware;
-    }
 
-    filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, payload_name);
-    if (!filename) {
-        error_report("could not find firmware/kernel file '%s'", payload_name);
-        exit(1);
-    }
+        filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, payload_name);
+        if (!filename) {
+            error_report("could not find firmware/kernel file '%s'", payload_name);
+            exit(1);
+        }
 
-    payload_size = load_elf(filename, NULL, NULL, NULL,
-                            &bios_entry, &loadaddr, NULL, NULL,
-                            ELFDATA2MSB, PPC_ELF_MACHINE, 0, 0);
-    if (payload_size < 0) {
-        /*
-         * Hrm. No ELF image? Try a uImage, maybe someone is giving us an
-         * ePAPR compliant kernel
-         */
-        loadaddr = LOAD_UIMAGE_LOADADDR_INVALID;
-        payload_size = load_uimage(filename, &bios_entry, &loadaddr, NULL,
-                                   NULL, NULL);
+        payload_size = load_elf(filename, NULL, NULL, NULL,
+                                &bios_entry, &loadaddr, NULL, NULL,
+                                ELFDATA2MSB, PPC_ELF_MACHINE, 0, 0);
         if (payload_size < 0) {
-            error_report("could not load firmware '%s'", filename);
+            /*
+             * Hrm. No ELF image? Try a uImage, maybe someone is giving us an
+             * ePAPR compliant kernel
+             */
+            loadaddr = LOAD_UIMAGE_LOADADDR_INVALID;
+            payload_size = load_uimage(filename, &bios_entry, &loadaddr, NULL,
+                                       NULL, NULL);
+            if (payload_size < 0) {
+                error_report("could not load firmware '%s'", filename);
+                exit(1);
+            }
+        }
+
+        g_free(filename);
+
+        if (kernel_as_payload) {
+            kernel_base = loadaddr;
+            kernel_size = payload_size;
+        }
+
+        cur_base = loadaddr + payload_size;
+        if (cur_base < 32 * MiB) {
+            /* u-boot occupies memory up to 32MB, so load blobs above */
+            cur_base = 32 * MiB;
+        }
+
+        /* Load bare kernel only if no bios/u-boot has been provided */
+        if (machine->kernel_filename && !kernel_as_payload) {
+            kernel_base = cur_base;
+            kernel_size = load_image_targphys(machine->kernel_filename,
+                                              cur_base,
+                                              machine->ram_size - cur_base,
+                                              &error_fatal);
+            cur_base += kernel_size;
+        }
+
+        /* Load initrd. */
+        if (machine->initrd_filename) {
+            initrd_base = (cur_base + INITRD_LOAD_PAD) & ~INITRD_PAD_MASK;
+            initrd_size = load_image_targphys(machine->initrd_filename, initrd_base,
+                                              machine->ram_size - initrd_base,
+                                              &error_fatal);
+            cur_base = initrd_base + initrd_size;
+        }
+
+        /*
+         * Reserve space for dtb behind the kernel image because Linux has a bug
+         * where it can only handle the dtb if it's within the first 64MB of where
+         * <kernel> starts. dtb cannot not reach initrd_base because INITRD_LOAD_PAD
+         * ensures enough space between kernel and initrd.
+         */
+        dt_base = (loadaddr + payload_size + DTC_LOAD_PAD) & ~DTC_PAD_MASK;
+        if (dt_base + DTB_MAX_SIZE > machine->ram_size) {
+                error_report("not enough memory for device tree");
+                exit(1);
+        }
+
+        dt_size = ppce500_prep_device_tree(pms, dt_base,
+                                           initrd_base, initrd_size,
+                                           kernel_base, kernel_size);
+        if (dt_size < 0) {
+            error_report("couldn't load device tree");
             exit(1);
         }
+        assert(dt_size < DTB_MAX_SIZE);
     }
-
-    g_free(filename);
-
-    if (kernel_as_payload) {
-        kernel_base = loadaddr;
-        kernel_size = payload_size;
-    }
-
-    cur_base = loadaddr + payload_size;
-    if (cur_base < 32 * MiB) {
-        /* u-boot occupies memory up to 32MB, so load blobs above */
-        cur_base = 32 * MiB;
-    }
-
-    /* Load bare kernel only if no bios/u-boot has been provided */
-    if (machine->kernel_filename && !kernel_as_payload) {
-        kernel_base = cur_base;
-        kernel_size = load_image_targphys(machine->kernel_filename,
-                                      cur_base, machine->ram_size - cur_base,
-                                      &error_fatal);
-        cur_base += kernel_size;
-    }
-
-    /* Load initrd. */
-    if (machine->initrd_filename) {
-        initrd_base = (cur_base + INITRD_LOAD_PAD) & ~INITRD_PAD_MASK;
-        initrd_size = load_image_targphys(machine->initrd_filename, initrd_base,
-                                          machine->ram_size - initrd_base,
-                                          &error_fatal);
-        cur_base = initrd_base + initrd_size;
-    }
-
-    /*
-     * Reserve space for dtb behind the kernel image because Linux has a bug
-     * where it can only handle the dtb if it's within the first 64MB of where
-     * <kernel> starts. dtb cannot not reach initrd_base because INITRD_LOAD_PAD
-     * ensures enough space between kernel and initrd.
-     */
-    dt_base = (loadaddr + payload_size + DTC_LOAD_PAD) & ~DTC_PAD_MASK;
-    if (dt_base + DTB_MAX_SIZE > machine->ram_size) {
-            error_report("not enough memory for device tree");
-            exit(1);
-    }
-
-    dt_size = ppce500_prep_device_tree(pms, dt_base,
-                                       initrd_base, initrd_size,
-                                       kernel_base, kernel_size);
-    if (dt_size < 0) {
-        error_report("couldn't load device tree");
-        exit(1);
-    }
-    assert(dt_size < DTB_MAX_SIZE);
 
     pms->boot_info.entry = bios_entry;
     pms->boot_info.dt_base = dt_base;
