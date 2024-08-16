@@ -19,6 +19,7 @@
 
 #include "qemu/osdep.h"
 #include "qemu/log.h"
+#include "qemu/units.h"
 #include "hw/qdev-dt-interface.h"
 #include "hw/registerfields.h"
 #include "hw/resettable.h"
@@ -39,6 +40,7 @@ typedef struct {
 struct PPCE500ELbcState {
     SysBusDevice parent;
 
+    MemoryRegion boot;
     MemoryRegion ops;
     qemu_irq irqs[2];
     ElbcChipSelect chip_selects[8];
@@ -260,7 +262,18 @@ static void ppce500_elbc_handle_device_tree_node_pre(DeviceState *dev, int node,
 static void ppce500_elbc_handle_device_tree_node_post(DeviceState *dev, int node,
                                                       QDevFdtContext *context)
 {
+    PPCE500ELbcState *s = E500_ELBC(dev);
+    MemoryRegion *mr = &s->chip_selects[0].mr;
+
     fdt_plaform_populate(SYS_BUS_DEVICE(dev), context, node);
+
+    if (memory_region_present(mr, 0)) {
+        memory_region_init_alias(&s->boot, OBJECT(dev), "boot", mr, 0,
+                                 memory_region_size(mr));
+        memory_region_add_subregion_overlap(mr->container,
+                                    4 * GiB - memory_region_size(&s->boot),
+                                    &s->boot, -1);
+    }
 }
 
 static void ppce500_elbc_reset_hold(Object *obj, ResetType type)

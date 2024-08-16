@@ -794,7 +794,7 @@ static void ppce500_cpu_reset(void *opaque)
     env->gpr[9] = 0;
     env->nip = bi->entry;
     /* create initial mapping */
-    booke206_set_tlb(tlb, 0, 0, map_size);
+    booke206_set_tlb(tlb, 0, 0, 4 * GiB);
 #ifdef CONFIG_KVM
     env->tlb_dirty = true;
 #endif
