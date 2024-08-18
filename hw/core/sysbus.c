@@ -261,6 +261,9 @@ static void sysbus_dev_print(MonitorHMP *hmp, DeviceState *dev, int indent)
     int i;
 
     for (i = 0; i < s->num_mmio; i++) {
+        if (!s->mmio[i].memory) {
+            continue;
+        }
         size = memory_region_size(s->mmio[i].memory);
         monitor_hmp_printf(hmp, "%*smmio " HWADDR_FMT_plx "/" HWADDR_FMT_plx "\n",
                            indent, "", s->mmio[i].addr, size);
