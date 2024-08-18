@@ -610,13 +610,13 @@ static void pflash_write(PFlashCFI01 *pfl, hwaddr offset,
 
             pfl->status |= 0x80;
 
-            if (!pfl->counter) {
+            if (pfl->counter) {
+                pfl->counter--;
+            } else {
                 trace_pflash_write(pfl->name, "block write finished");
                 pfl->wcycle++;
-                break;
             }
 
-            pfl->counter--;
             break;
         default:
             goto error_flash;
