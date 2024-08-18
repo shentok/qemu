@@ -16,6 +16,7 @@
 
 #include "qemu/osdep.h"
 #include "hw/irq.h"
+#include "hw/qdev-dt-interface.h"
 #include "hw/qdev-properties.h"
 #include "migration/vmstate.h"
 #include "hw/pci/pci_device.h"
@@ -79,6 +80,7 @@ struct PPCE500PCIBridgeState {
     PCIDevice parent;
 
     MemoryRegion bar0;
+    bool is_fdt_mode;
 };
 
 struct  pci_outbound {
@@ -415,13 +417,44 @@ static const VMStateDescription vmstate_ppce500_pci = {
 static void e500_pcihost_bridge_realize(PCIDevice *d, Error **errp)
 {
     PPCE500PCIBridgeState *b = PPC_E500_PCI_BRIDGE(d);
-    SysBusDevice *ccsr = SYS_BUS_DEVICE(
-        object_resolve_path_component(qdev_get_machine(), "e500-ccsr"));
-    MemoryRegion *ccsr_space = sysbus_mmio_get_region(ccsr, 0);
 
-    memory_region_init_alias(&b->bar0, OBJECT(ccsr), "e500-pci-bar0",
+    if (!b->is_fdt_mode) {
+        SysBusDevice *ccsr = SYS_BUS_DEVICE(
+            object_resolve_path_component(qdev_get_machine(), "e500-ccsr"));
+        MemoryRegion *ccsr_space = sysbus_mmio_get_region(ccsr, 0);
+
+        memory_region_init_alias(&b->bar0, OBJECT(ccsr), "e500-pci-bar0",
+                                 ccsr_space, 0, int128_get64(ccsr_space->size));
+        pci_register_bar(d, 0, PCI_BASE_ADDRESS_SPACE_MEMORY, &b->bar0);
+    }
+}
+
+static void e500_pcihost_handle_device_tree_node_pre(DeviceState *dev, int node,
+                                                     QDevFdtContext *context)
+{
+    PPCE500PCIState *s = PPC_E500_PCI_HOST_BRIDGE(dev);
+    SysBusDevice *sbd = SYS_BUS_DEVICE(s);
+    int num_ranges = qemu_fdt_get_num_ranges(context->fdt, node);
+
+    s->bridge.is_fdt_mode = true;
+
+    for (int i = 0; i < num_ranges; i++) {
+        sysbus_init_mmio(sbd, NULL);
+    }
+}
+
+static void e500_pcihost_handle_device_tree_node_post(DeviceState *dev, int node,
+                                                      QDevFdtContext *context)
+{
+    PPCE500PCIState *s = PPC_E500_PCI_HOST_BRIDGE(dev);
+    PCIDevice *b = PCI_DEVICE(&s->bridge);
+    MemoryRegion *ccsr_space = s->container.container;
+
+    assert(g_strcmp0(ccsr_space->name, "e500-ccsr") == 0);
+
+    memory_region_init_alias(&s->bridge.bar0, OBJECT(dev), "e500-pci-bar0",
                              ccsr_space, 0, int128_get64(ccsr_space->size));
-    pci_register_bar(d, 0, PCI_BASE_ADDRESS_SPACE_MEMORY, &b->bar0);
+    pci_register_bar(b, 0, PCI_BASE_ADDRESS_SPACE_MEMORY, &s->bridge.bar0);
 }
 
 static AddressSpace *e500_pcihost_set_iommu(PCIBus *bus, void *opaque,
@@ -521,7 +554,10 @@ static const Property pcihost_properties[] = {
 static void e500_pcihost_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
+    DeviceDeviceTreeIfClass *dt = DEVICE_DT_IF_CLASS(klass);
 
+    dt->handle_device_tree_node_pre = e500_pcihost_handle_device_tree_node_pre;
+    dt->handle_device_tree_node_post = e500_pcihost_handle_device_tree_node_post;
     dc->realize = e500_pcihost_realize;
     set_bit(DEVICE_CATEGORY_BRIDGE, dc->categories);
     device_class_set_props(dc, pcihost_properties);
@@ -545,6 +581,18 @@ static const TypeInfo e500_pci_types[] = {
         .instance_size = sizeof(PPCE500PCIState),
         .instance_init = e500_pcihost_init,
         .class_init    = e500_pcihost_class_init,
+        .interfaces    = (InterfaceInfo[]) {
+            { TYPE_DEVICE_DT_IF },
+            { },
+        },
+    },
+    {
+        .name          = "fsl,mpc8540-pci",
+        .parent        = TYPE_PPC_E500_PCI_HOST_BRIDGE,
+    },
+    {
+        .name          = "fsl,mpc8548-pcie",
+        .parent        = TYPE_PPC_E500_PCI_HOST_BRIDGE,
     },
 };
 
