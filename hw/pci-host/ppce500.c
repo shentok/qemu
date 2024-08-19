@@ -72,6 +72,15 @@
 #define PIWAR_WRITE_SNOOP       0x00005000
 #define PIWAR_SZ_MASK           0x0000003f
 
+#define TYPE_PPC_E500_PCI_BRIDGE "e500-host-bridge"
+OBJECT_DECLARE_SIMPLE_TYPE(PPCE500PCIBridgeState, PPC_E500_PCI_BRIDGE)
+
+struct PPCE500PCIBridgeState {
+    PCIDevice parent;
+
+    MemoryRegion bar0;
+};
+
 struct  pci_outbound {
     uint32_t potar;
     uint32_t potear;
@@ -95,6 +104,7 @@ OBJECT_DECLARE_SIMPLE_TYPE(PPCE500PCIState, PPC_E500_PCI_HOST_BRIDGE)
 struct PPCE500PCIState {
     PCIHostState parent_obj;
 
+    PPCE500PCIBridgeState bridge;
     struct pci_outbound pob[PPCE500_PCI_NR_POBS];
     struct pci_inbound pib[PPCE500_PCI_NR_PIBS];
     uint32_t gasket_time;
@@ -110,18 +120,6 @@ struct PPCE500PCIState {
     MemoryRegion pio;
     MemoryRegion busmem;
 };
-
-#define TYPE_PPC_E500_PCI_BRIDGE "e500-host-bridge"
-OBJECT_DECLARE_SIMPLE_TYPE(PPCE500PCIBridgeState, PPC_E500_PCI_BRIDGE)
-
-struct PPCE500PCIBridgeState {
-    /*< private >*/
-    PCIDevice parent;
-    /*< public >*/
-
-    MemoryRegion bar0;
-};
-
 
 static uint64_t pci_reg_read4(void *opaque, hwaddr addr,
                               unsigned size)
@@ -474,7 +472,7 @@ static void e500_pcihost_realize(DeviceState *dev, Error **errp)
     address_space_init(&s->bm_as, &s->bm, "pci-bm");
     pci_setup_iommu(b, &ppce500_iommu_ops, s);
 
-    pci_create_simple(b, 0, TYPE_PPC_E500_PCI_BRIDGE);
+    pci_realize_and_unref(PCI_DEVICE(&s->bridge), b, errp);
 
     memory_region_init(&s->container, OBJECT(h), "pci-container", PCIE500_ALL_SIZE);
     memory_region_init_io(&h->conf_mem, OBJECT(h), &pci_host_conf_be_ops, h,
@@ -488,6 +486,14 @@ static void e500_pcihost_realize(DeviceState *dev, Error **errp)
     memory_region_add_subregion(&s->container, PCIE500_REG_BASE, &s->iomem);
     sysbus_init_mmio(sbd, &s->container);
     pci_bus_set_route_irq_fn(b, e500_route_intx_pin_to_irq);
+}
+
+static void e500_pcihost_init(Object *obj)
+{
+    PPCE500PCIState *s = PPC_E500_PCI_HOST_BRIDGE(obj);
+
+    object_initialize_child(obj, "bridge", &s->bridge, TYPE_PPC_E500_PCI_BRIDGE);
+    qdev_prop_set_int32(DEVICE(&s->bridge), "addr", 0);
 }
 
 static void e500_host_bridge_class_init(ObjectClass *klass, const void *data)
@@ -537,6 +543,7 @@ static const TypeInfo e500_pci_types[] = {
         .name          = TYPE_PPC_E500_PCI_HOST_BRIDGE,
         .parent        = TYPE_PCI_HOST_BRIDGE,
         .instance_size = sizeof(PPCE500PCIState),
+        .instance_init = e500_pcihost_init,
         .class_init    = e500_pcihost_class_init,
     },
 };
