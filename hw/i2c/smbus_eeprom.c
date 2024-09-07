@@ -28,6 +28,7 @@
 #include "hw/boards.h"
 #include "hw/i2c/i2c.h"
 #include "hw/i2c/smbus_slave.h"
+#include "hw/qdev-dt-interface.h"
 #include "hw/qdev-properties.h"
 #include "migration/vmstate.h"
 #include "hw/i2c/smbus_eeprom.h"
@@ -137,10 +138,22 @@ static void smbus_eeprom_realize(DeviceState *dev, Error **errp)
     }
 }
 
+static void smbus_eeprom_handle_device_tree_node_pre(DeviceState *dev, int node,
+                                                     QDevFdtContext *context)
+{
+    SMBusEEPROMDevice *eeprom = SMBUS_EEPROM(dev);
+    MachineState *ms = MACHINE(qdev_get_machine());
+
+    eeprom->init_data = spd_data_generate(DDR3, ms->ram_size);
+}
+
 static void smbus_eeprom_class_initfn(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     SMBusDeviceClass *sc = SMBUS_DEVICE_CLASS(klass);
+    DeviceDeviceTreeIfClass *dt = DEVICE_DT_IF_CLASS(klass);
+
+    dt->handle_device_tree_node_pre = smbus_eeprom_handle_device_tree_node_pre;
 
     dc->realize = smbus_eeprom_realize;
     device_class_set_legacy_reset(dc, smbus_eeprom_reset);
@@ -157,6 +170,14 @@ static const TypeInfo smbus_eeprom_types[] = {
         .parent        = TYPE_SMBUS_DEVICE,
         .instance_size = sizeof(SMBusEEPROMDevice),
         .class_init    = smbus_eeprom_class_initfn,
+        .interfaces    = (InterfaceInfo[]) {
+            { TYPE_DEVICE_DT_IF },
+            { },
+        },
+    },
+    {
+        .name          = "jedec,79-3f",
+        .parent        = TYPE_SMBUS_EEPROM,
     },
 };
 
