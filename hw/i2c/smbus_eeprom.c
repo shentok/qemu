@@ -179,6 +179,10 @@ static const TypeInfo smbus_eeprom_types[] = {
         .name          = "jedec,79-3f",
         .parent        = TYPE_SMBUS_EEPROM,
     },
+    {
+        .name          = "men_eeprod",
+        .parent        = TYPE_SMBUS_EEPROM,
+    },
 };
 
 DEFINE_TYPES(smbus_eeprom_types)
