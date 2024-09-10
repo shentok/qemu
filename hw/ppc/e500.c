@@ -1043,7 +1043,7 @@ void ppce500_init(MachineState *machine)
     sysbus_create_simple("e500-spin", pmc->spin_base, NULL);
 
     if (pmc->has_mpc8xxx_gpio) {
-        DeviceState *gpio_pwr_dev;
+        DeviceState *poweroff_dev;
 
         dev = qdev_new("mpc8xxx_gpio");
         s = SYS_BUS_DEVICE(dev);
@@ -1053,9 +1053,8 @@ void ppce500_init(MachineState *machine)
                                     sysbus_mmio_get_region(s, 0));
 
         /* Power Off GPIO at Pin 0 */
-        gpio_pwr_dev = sysbus_create_simple("gpio-pwr", -1, NULL);
-        qdev_connect_gpio_out(dev, 0, qdev_get_gpio_in_named(gpio_pwr_dev,
-                                                             "shutdown", 0));
+        poweroff_dev = sysbus_create_simple("gpio-poweroff", -1, NULL);
+        qdev_connect_gpio_out(dev, 0, qdev_get_gpio_in(poweroff_dev, 0));
     }
 
     /* Platform Bus Device */
