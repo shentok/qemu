@@ -31,7 +31,6 @@
 #include "system/system.h"
 #include "system/kvm.h"
 #include "system/reset.h"
-#include "system/runstate.h"
 #include "kvm_ppc.h"
 #include "system/device_tree.h"
 #include "hw/ppc/openpic.h"
@@ -48,7 +47,6 @@
 #include "hw/platform-bus.h"
 #include "hw/net/fsl_etsec/etsec.h"
 #include "hw/i2c/i2c.h"
-#include "hw/irq.h"
 #include "hw/sd/sdhci.h"
 #include "hw/misc/unimp.h"
 
@@ -883,13 +881,6 @@ static DeviceState *ppce500_init_mpic(PPCE500MachineState *pms,
     return dev;
 }
 
-static void ppce500_power_off(void *opaque, int line, int on)
-{
-    if (on) {
-        qemu_system_shutdown_request(SHUTDOWN_CAUSE_GUEST_SHUTDOWN);
-    }
-}
-
 void ppce500_init(MachineState *machine)
 {
     MemoryRegion *address_space_mem = get_system_memory();
@@ -1068,7 +1059,7 @@ void ppce500_init(MachineState *machine)
     sysbus_create_simple("e500-spin", pmc->spin_base, NULL);
 
     if (pmc->has_mpc8xxx_gpio) {
-        qemu_irq poweroff_irq;
+        DeviceState *gpio_pwr_dev;
 
         dev = qdev_new("mpc8xxx_gpio");
         s = SYS_BUS_DEVICE(dev);
@@ -1078,8 +1069,9 @@ void ppce500_init(MachineState *machine)
                                     sysbus_mmio_get_region(s, 0));
 
         /* Power Off GPIO at Pin 0 */
-        poweroff_irq = qemu_allocate_irq(ppce500_power_off, NULL, 0);
-        qdev_connect_gpio_out(dev, 0, poweroff_irq);
+        gpio_pwr_dev = sysbus_create_simple("gpio-pwr", -1, NULL);
+        qdev_connect_gpio_out(dev, 0, qdev_get_gpio_in_named(gpio_pwr_dev,
+                                                             "shutdown", 0));
     }
 
     /* Platform Bus Device */
