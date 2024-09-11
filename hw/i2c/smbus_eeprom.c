@@ -23,6 +23,7 @@
  */
 
 #include "qemu/osdep.h"
+#include "qemu/crc-ccitt.h"
 #include "qemu/units.h"
 #include "qapi/error.h"
 #include "hw/boards.h"
@@ -222,6 +223,7 @@ uint8_t *spd_data_generate(enum sdram_type type, ram_addr_t ram_size)
     uint8_t *spd;
     uint8_t nbanks;
     uint16_t density;
+    uint16_t crc;
     uint32_t size;
     int min_log2, max_log2, sz_log2;
     int i;
@@ -238,6 +240,10 @@ uint8_t *spd_data_generate(enum sdram_type type, ram_addr_t ram_size)
     case DDR2:
         min_log2 = 7;
         max_log2 = 14;
+        break;
+    case DDR3:
+        min_log2 = 8; /* 256 Mib */
+        max_log2 = 15; /* 16 Gib */
         break;
     default:
         g_assert_not_reached();
@@ -277,46 +283,66 @@ uint8_t *spd_data_generate(enum sdram_type type, ram_addr_t ram_size)
     }
 
     spd = g_malloc0(256);
-    spd[0] = 128;   /* data bytes in EEPROM */
-    spd[1] = 8;     /* log2 size of EEPROM */
     spd[2] = type;
-    spd[3] = 13;    /* row address bits */
-    spd[4] = 10;    /* column address bits */
-    spd[5] = (type == DDR2 ? nbanks - 1 : nbanks);
-    spd[6] = 64;    /* module data width */
-                    /* reserved / data width high */
-    spd[8] = 4;     /* interface voltage level */
-    spd[9] = 0x25;  /* highest CAS latency */
-    spd[10] = 1;    /* access time */
-                    /* DIMM configuration 0 = non-ECC */
-    spd[12] = 0x82; /* refresh requirements */
-    spd[13] = 8;    /* primary SDRAM width */
-                    /* ECC SDRAM width */
-    spd[15] = (type == DDR2 ? 0 : 1); /* reserved / delay for random col rd */
-    spd[16] = 12;   /* burst lengths supported */
-    spd[17] = 4;    /* banks per SDRAM device */
-    spd[18] = 12;   /* ~CAS latencies supported */
-    spd[19] = (type == DDR2 ? 0 : 1); /* reserved / ~CS latencies supported */
-    spd[20] = 2;    /* DIMM type / ~WE latencies */
-    spd[21] = (type < DDR2 ? 0x20 : 0); /* module features */
-                    /* memory chip features */
-    spd[23] = 0x12; /* clock cycle time @ medium CAS latency */
-                    /* data access time */
-                    /* clock cycle time @ short CAS latency */
-                    /* data access time */
-    spd[27] = 20;   /* min. row precharge time */
-    spd[28] = 15;   /* min. row active row delay */
-    spd[29] = 20;   /* min. ~RAS to ~CAS delay */
-    spd[30] = 45;   /* min. active to precharge time */
-    spd[31] = density;
-    spd[32] = 20;   /* addr/cmd setup time */
-    spd[33] = 8;    /* addr/cmd hold time */
-    spd[34] = 20;   /* data input setup time */
-    spd[35] = 8;    /* data input hold time */
 
-    /* checksum */
-    for (i = 0; i < 63; i++) {
-        spd[63] += spd[i];
+    switch (type) {
+    case SDR:
+    case DDR:
+    case DDR2:
+        spd[0] = 128;   /* data bytes in EEPROM */
+        spd[1] = 8;     /* log2 size of EEPROM */
+        spd[3] = 13;    /* row address bits */
+        spd[4] = 10;    /* column address bits */
+        spd[5] = (type == DDR2 ? nbanks - 1 : nbanks);
+        spd[6] = 64;    /* module data width */
+        /* reserved / data width high */
+        spd[8] = 4;     /* interface voltage level */
+        spd[9] = 0x25;  /* highest CAS latency */
+        spd[10] = 1;    /* access time */
+        /* DIMM configuration 0 = non-ECC */
+        spd[12] = 0x82; /* refresh requirements */
+        spd[13] = 8;    /* primary SDRAM width */
+        /* ECC SDRAM width */
+        spd[15] = (type == DDR2 ? 0 : 1); /* reserved / delay for random col rd */
+        spd[16] = 12;   /* burst lengths supported */
+        spd[17] = 4;    /* banks per SDRAM device */
+        spd[18] = 12;   /* ~CAS latencies supported */
+        spd[19] = (type == DDR2 ? 0 : 1); /* reserved / ~CS latencies supported */
+        spd[20] = 2;    /* DIMM type / ~WE latencies */
+        spd[21] = (type < DDR2 ? 0x20 : 0); /* module features */
+        /* memory chip features */
+        spd[23] = 0x12; /* clock cycle time @ medium CAS latency */
+        /* data access time */
+        /* clock cycle time @ short CAS latency */
+        /* data access time */
+        spd[27] = 20;   /* min. row precharge time */
+        spd[28] = 15;   /* min. row active row delay */
+        spd[29] = 20;   /* min. ~RAS to ~CAS delay */
+        spd[30] = 45;   /* min. active to precharge time */
+        spd[31] = density;
+        spd[32] = 20;   /* addr/cmd setup time */
+        spd[33] = 8;    /* addr/cmd hold time */
+        spd[34] = 20;   /* data input setup time */
+        spd[35] = 8;    /* data input hold time */
+
+        /* checksum */
+        for (i = 0; i < 63; i++) {
+            spd[63] += spd[i];
+        }
+        break;
+    case DDR3:
+        spd[0] = 0x13;
+        spd[1] = 0x10; /* SPD rev. v1.0 */
+        /* type */
+        spd[3] = 1; /* Key Byte / Module Type */
+        spd[4] = (size >> 8) / 2;
+        spd[8] = 2;
+
+        crc = crc_ccitt_false(0, spd, 126);
+        spd[126] = crc & 0xff;
+        spd[127] = crc >> 8;
+        break;
     }
+
     return spd;
 }
