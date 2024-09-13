@@ -41,6 +41,7 @@ struct PPCE500ELbcState {
     SysBusDevice parent;
 
     MemoryRegion boot;
+    MemoryRegion shadow;
     MemoryRegion ops;
     qemu_irq irqs[2];
     ElbcChipSelect chip_selects[8];
@@ -273,6 +274,11 @@ static void ppce500_elbc_handle_device_tree_node_post(DeviceState *dev, int node
         memory_region_add_subregion_overlap(mr->container,
                                     4 * GiB - memory_region_size(&s->boot),
                                     &s->boot, -1);
+
+        memory_region_init_alias(&s->shadow, OBJECT(dev), "shadow", mr, 0,
+                                 memory_region_size(mr));
+        memory_region_add_subregion_overlap(mr->container, 0xe0000000,
+                                            &s->shadow, -1);
     }
 }
 
