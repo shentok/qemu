@@ -1058,9 +1058,6 @@ void ppce500_init(MachineState *machine)
         }
     }
 
-    /* Register spinning region */
-    sysbus_create_simple("e500-spin", pmc->spin_base, NULL);
-
     if (!drive_get(IF_PFLASH, 0, 0)) {
         /*
          * Smart firmware defaults ahead!
