@@ -239,6 +239,10 @@ static const TypeInfo ds1338_types[] = {
         .instance_size = sizeof(DS1338State),
         .class_init    = ds1338_class_init,
     },
+    {
+        .name          = "pericom,pt7c4338",
+        .parent        = TYPE_DS1338,
+    },
 };
 
 DEFINE_TYPES(ds1338_types)
