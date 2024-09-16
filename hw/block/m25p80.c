@@ -301,6 +301,7 @@ static const FlashPartInfo known_devices[] = {
     { INFO("s25sl016a",   0x010214,      0,  64 << 10,  32, 0) },
     { INFO("s25sl032a",   0x010215,      0,  64 << 10,  64, 0) },
     { INFO("s25sl064a",   0x010216,      0,  64 << 10, 128, 0) },
+    { INFO("s25fl008k",   0xef4015,      0,  64 << 10,  16, ER_4K | ER_32K) },
     { INFO("s25fl016k",   0xef4015,      0,  64 << 10,  32, ER_4K | ER_32K) },
     { INFO("s25fl064k",   0xef4017,      0,  64 << 10, 128, ER_4K | ER_32K) },
 
@@ -1883,6 +1884,17 @@ static const TypeInfo m25p80_info = {
     .abstract       = true,
 };
 
+static const TypeInfo types[] = {
+    {
+        .name           = "winbond,w25q80bl",
+        .parent         = "w25q80bl",
+    },
+    {
+        .name           = "spansion,s25fl008k",
+        .parent         = "s25fl008k",
+    },
+};
+
 static void m25p80_register_types(void)
 {
     int i;
@@ -1896,6 +1908,9 @@ static void m25p80_register_types(void)
             .class_data = &known_devices[i],
         };
         type_register_static(&ti);
+    }
+    for (i = 0; i < ARRAY_SIZE(types); ++i) {
+        type_register_static(&types[i]);
     }
 }
 
