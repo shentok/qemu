@@ -434,6 +434,10 @@ static const TypeInfo types[] = {
         .class_init    = etsec_class_init,
         .instance_init = etsec_instance_init,
     },
+    {
+        .name          = "fsl,etsec2",
+        .parent        = TYPE_ETSEC_COMMON,
+    },
 };
 
 DEFINE_TYPES(types)
