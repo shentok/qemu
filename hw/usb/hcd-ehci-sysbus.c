@@ -282,6 +282,14 @@ static const TypeInfo types[] = {
         .instance_init = fusbh200_ehci_init,
         .class_init    = fusbh200_ehci_class_init,
     },
+    {
+        .name          = "fsl-usb2-dr",
+        .parent        = TYPE_PLATFORM_EHCI,
+    },
+    {
+        .name          = "fsl-usb2-dr-v1.6",
+        .parent        = TYPE_PLATFORM_EHCI,
+    },
 };
 
 DEFINE_TYPES(types)

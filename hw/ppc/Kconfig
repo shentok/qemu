@@ -172,6 +172,7 @@ config E500
     select FDT_PPC
     select DS1338
     select UNIMP
+    select USB_EHCI_SYSBUS
 
 config E500PLAT
     bool
