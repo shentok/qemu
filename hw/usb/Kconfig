@@ -150,3 +150,7 @@ config USB_CHIPIDEA
 config ASPEED_UDC
     bool
     select USB
+
+config USB_EHCI_FSL
+    bool
+    select USB_CHIPIDEA
