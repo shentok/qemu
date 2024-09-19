@@ -16,6 +16,8 @@ fsl_etsec_write(uint32_t address, const char *name, uint32_t val, uint32_t befor
 fsl_etsec_update_irq(uint32_t ievent, uint32_t imask, char tx, char rx, char err) "ievent=0x%" PRIx32 " imask=0x%" PRIx32 " %c%c%c"
 fsl_etsec_phy_read(uint8_t phy, uint8_t addr, uint16_t value) "phy:%" PRIu8 " [0x%" PRIx8 "] -> 0x%" PRIx16
 fsl_etsec_phy_write(uint8_t phy, uint8_t addr, uint16_t value) "phy:%" PRIu8 " [0x%" PRIx8 "] <- 0x%" PRIx16
+fsl_etsec2_mdio_io_read(uint32_t index, uint32_t val, uint8_t size) "[0x%" PRIx32 "] -> 0x%08x (size: 0x%" PRIu8 ")"
+fsl_etsec2_mdio_io_write(uint32_t index, uint32_t val, uint8_t size) "[0x%" PRIx32 "] <- 0x%08x (size: 0x%" PRIu8 ")"
 
 # lan9118_phy.c
 lan9118_phy_read(uint16_t val, int reg) "[0x%02x] -> 0x%04" PRIx16
