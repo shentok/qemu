@@ -57,6 +57,7 @@ endif
 
 system_ss.add(when: 'CONFIG_ETSEC', if_true: files(
   'fsl_etsec/etsec.c',
+  'fsl_etsec/mdio.c',
   'fsl_etsec/miim.c',
   'fsl_etsec/registers.c',
   'fsl_etsec/rings.c',
