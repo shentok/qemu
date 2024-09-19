@@ -13,6 +13,8 @@ allwinner_sun8i_emac_write(uint64_t offset, uint64_t val) "MMIO write: offset=0x
 # fsl_etsec
 fsl_etsec_read(uint32_t address, const char *name, uint32_t val) "[0x%" PRIx32 " (%s)] -> 0x%" PRIx32
 fsl_etsec_write(uint32_t address, const char *name, uint32_t val, uint32_t before) "[0x%" PRIx32 " (%s)] -> 0x%" PRIx32 " (0x%" PRIx32 ")"
+fsl_etsec2_mdio_io_read(uint32_t index, uint32_t val, uint8_t size) "[0x%" PRIx32 "] -> 0x%08x (size: 0x%" PRIu8 ")"
+fsl_etsec2_mdio_io_write(uint32_t index, uint32_t val, uint8_t size) "[0x%" PRIx32 "] <- 0x%08x (size: 0x%" PRIu8 ")"
 
 # lan9118_phy.c
 lan9118_phy_read(uint32_t val, int reg) "[0x%02x] -> 0x%04" PRIx32
