@@ -133,6 +133,7 @@ config VIRTIO_NET
 config ETSEC
     bool
     select PTIMER
+    select LAN9118_PHY
 
 config ROCKER
     bool
