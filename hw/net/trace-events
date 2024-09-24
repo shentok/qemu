@@ -10,6 +10,10 @@ allwinner_sun8i_emac_set_link(bool active) "Set link: active=%u"
 allwinner_sun8i_emac_read(uint64_t offset, uint64_t val) "MMIO read: offset=0x%" PRIx64 " value=0x%" PRIx64
 allwinner_sun8i_emac_write(uint64_t offset, uint64_t val) "MMIO write: offset=0x%" PRIx64 " value=0x%" PRIx64
 
+# fsl_etsec
+fsl_etsec_read(uint32_t address, const char *name, uint32_t val) "[0x%" PRIx32 " (%s)] -> 0x%" PRIx32
+fsl_etsec_write(uint32_t address, const char *name, uint32_t val, uint32_t before) "[0x%" PRIx32 " (%s)] -> 0x%" PRIx32 " (0x%" PRIx32 ")"
+
 # lance.c
 lance_mem_readw(uint64_t addr, uint32_t ret) "addr=0x%"PRIx64"val=0x%04x"
 lance_mem_writew(uint64_t addr, uint32_t val) "addr=0x%"PRIx64"val=0x%04x"
