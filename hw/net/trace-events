@@ -10,6 +10,13 @@ allwinner_sun8i_emac_set_link(bool active) "Set link: active=%u"
 allwinner_sun8i_emac_read(uint64_t offset, uint64_t val) "MMIO read: offset=0x%" PRIx64 " value=0x%" PRIx64
 allwinner_sun8i_emac_write(uint64_t offset, uint64_t val) "MMIO write: offset=0x%" PRIx64 " value=0x%" PRIx64
 
+# fsl_etsec
+fsl_etsec_read(uint32_t address, const char *name, uint32_t val) "[0x%" PRIx32 " (%s)] -> 0x%" PRIx32
+fsl_etsec_write(uint32_t address, const char *name, uint32_t val, uint32_t before) "[0x%" PRIx32 " (%s)] -> 0x%" PRIx32 " (0x%" PRIx32 ")"
+fsl_etsec_update_irq(uint32_t ievent, uint32_t imask, char tx, char rx, char err) "ievent=0x%" PRIx32 " imask=0x%" PRIx32 " %c%c%c"
+fsl_etsec_phy_read(uint8_t phy, uint8_t addr, uint16_t value) "phy:%" PRIu8 " [0x%" PRIx8 "] -> 0x%" PRIx16
+fsl_etsec_phy_write(uint8_t phy, uint8_t addr, uint16_t value) "phy:%" PRIu8 " [0x%" PRIx8 "] <- 0x%" PRIx16
+
 # lan9118_phy.c
 lan9118_phy_read(uint16_t val, int reg) "[0x%02x] -> 0x%04" PRIx16
 lan9118_phy_write(uint16_t val, int reg) "[0x%02x] <- 0x%04" PRIx16
