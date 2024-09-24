@@ -26,8 +26,7 @@
 #include "hw/net/mii.h"
 #include "etsec.h"
 #include "registers.h"
-
-/* #define DEBUG_MIIM */
+#include "../trace.h"
 
 static void miim_read_cycle(eTSEC *etsec)
 {
@@ -54,9 +53,7 @@ static void miim_read_cycle(eTSEC *etsec)
         break;
     };
 
-#ifdef DEBUG_MIIM
-    qemu_log("%s phy:%d addr:0x%x value:0x%x\n", __func__, phy, addr, value);
-#endif
+    trace_fsl_etsec_phy_read(phy, addr, value);
 
     etsec->regs[MIIMSTAT].value = value;
 }
@@ -72,9 +69,7 @@ static void miim_write_cycle(eTSEC *etsec)
     addr  = etsec->regs[MIIMADD].value & 0x1F;
     value = etsec->regs[MIIMCON].value & 0xffff;
 
-#ifdef DEBUG_MIIM
-    qemu_log("%s phy:%d addr:0x%x value:0x%x\n", __func__, phy, addr, value);
-#endif
+    trace_fsl_etsec_phy_write(phy, addr, value);
 
     switch (addr) {
     case MII_BMCR:

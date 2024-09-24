@@ -35,22 +35,9 @@
 #include "etsec.h"
 #include "registers.h"
 #include "qapi/error.h"
-#include "qemu/log.h"
+#include "../trace.h"
 
 /* #define HEX_DUMP */
-/* #define DEBUG_REGISTER */
-
-#ifdef DEBUG_REGISTER
-static const int debug_etsec = 1;
-#else
-static const int debug_etsec;
-#endif
-
-#define DPRINTF(fmt, ...) do {                 \
-    if (debug_etsec) {                         \
-        qemu_log(fmt , ## __VA_ARGS__);        \
-    }                                          \
-    } while (0)
 
 /* call after any change to IEVENT or IMASK */
 void etsec_update_irq(eTSEC *etsec)
@@ -63,8 +50,7 @@ void etsec_update_irq(eTSEC *etsec)
     int rx  = !!(active & IEVENT_RX_MASK);
     int err = !!(active & IEVENT_ERR_MASK);
 
-    DPRINTF("%s IRQ ievent=%"PRIx32" imask=%"PRIx32" %c%c%c",
-            __func__, ievent, imask,
+    trace_fsl_etsec_update_irq(ievent, imask,
             tx  ? 'T' : '_',
             rx  ? 'R' : '_',
             err ? 'E' : '_');
@@ -99,9 +85,7 @@ static uint64_t etsec_read(void *opaque, hwaddr addr, unsigned size)
         break;
     }
 
-    DPRINTF("Read  0x%08x @ 0x" HWADDR_FMT_plx
-            "                            : %s (%s)\n",
-            ret, addr, reg->name, reg->desc);
+    trace_fsl_etsec_read(addr, reg->name, ret);
 
     return ret;
 }
@@ -276,10 +260,7 @@ static void etsec_write(void     *opaque,
         }
     }
 
-    DPRINTF("Write 0x%08x @ 0x" HWADDR_FMT_plx
-            " val:0x%08x->0x%08x : %s (%s)\n",
-            (unsigned int)value, addr, before, reg->value,
-            reg->name, reg->desc);
+    trace_fsl_etsec_write(addr, reg->name, value, before);
 }
 
 static const MemoryRegionOps etsec_ops = {
