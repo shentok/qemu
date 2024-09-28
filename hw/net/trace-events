@@ -14,6 +14,12 @@ allwinner_sun8i_emac_write(uint64_t offset, uint64_t val) "MMIO write: offset=0x
 fsl_etsec_read(uint32_t address, const char *name, uint32_t val) "[0x%" PRIx32 " (%s)] -> 0x%" PRIx32
 fsl_etsec_write(uint32_t address, const char *name, uint32_t val, uint32_t before) "[0x%" PRIx32 " (%s)] -> 0x%" PRIx32 " (0x%" PRIx32 ")"
 
+# lan9118_phy.c
+lan9118_phy_read(uint32_t val, int reg) "[0x%02x] -> 0x%04" PRIx32
+lan9118_phy_write(uint32_t val, int reg) "[0x%02x] <- 0x%04" PRIx32
+lan9118_phy_update_link(const char *s) "%s"
+lan9118_phy_reset(void) ""
+
 # lance.c
 lance_mem_readw(uint64_t addr, uint32_t ret) "addr=0x%"PRIx64"val=0x%04x"
 lance_mem_writew(uint64_t addr, uint32_t val) "addr=0x%"PRIx64"val=0x%04x"
@@ -430,12 +436,8 @@ i82596_set_multicast(uint16_t count) "Added %d multicast entries"
 i82596_channel_attention(void *s) "%p: Received CHANNEL ATTENTION"
 
 # imx_fec.c
-imx_phy_read(uint32_t val, int phy, int reg) "0x%04"PRIx32" <= phy[%d].reg[%d]"
 imx_phy_read_num(int phy, int configured) "read request from unconfigured phy %d (configured %d)"
-imx_phy_write(uint32_t val, int phy, int reg) "0x%04"PRIx32" => phy[%d].reg[%d]"
 imx_phy_write_num(int phy, int configured) "write request to unconfigured phy %d (configured %d)"
-imx_phy_update_link(const char *s) "%s"
-imx_phy_reset(void) ""
 imx_fec_read_bd(uint64_t addr, int flags, int len, int data) "tx_bd 0x%"PRIx64" flags 0x%04x len %d data 0x%08x"
 imx_enet_read_bd(uint64_t addr, int flags, int len, int data, int options, int status) "tx_bd 0x%"PRIx64" flags 0x%04x len %d data 0x%08x option 0x%04x status 0x%04x"
 imx_eth_tx_bd_busy(void) "tx_bd ran out of descriptors to transmit"
