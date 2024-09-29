@@ -31,7 +31,7 @@
 
 static uint8_t padding[60];
 
-static void mii_set_link(RTL8201CPState *mii, bool link_ok)
+static void rtl8201cp_phy_set_link(RTL8201CPState *mii, bool link_ok)
 {
     if (link_ok) {
         mii->bmsr |= MII_BMSR_LINK_ST | MII_BMSR_AN_COMP;
@@ -43,7 +43,7 @@ static void mii_set_link(RTL8201CPState *mii, bool link_ok)
     }
 }
 
-static void mii_reset(RTL8201CPState *mii, bool link_ok)
+static void rtl8201cp_phy_reset(RTL8201CPState *mii, bool link_ok)
 {
     mii->bmcr = MII_BMCR_FD | MII_BMCR_AUTOEN | MII_BMCR_SPEED;
     mii->bmsr = MII_BMSR_100TX_FD | MII_BMSR_100TX_HD | MII_BMSR_10T_FD |
@@ -52,10 +52,10 @@ static void mii_reset(RTL8201CPState *mii, bool link_ok)
                 MII_ANAR_CSMACD;
     mii->anlpar = MII_ANAR_TX;
 
-    mii_set_link(mii, link_ok);
+    rtl8201cp_phy_set_link(mii, link_ok);
 }
 
-static uint16_t mii_read(RTL8201CPState *mii, uint8_t addr, uint8_t reg)
+static uint16_t rtl8201cp_phy_read(RTL8201CPState *mii, uint8_t reg)
 {
     switch (reg) {
     case MII_BMCR:
@@ -88,7 +88,7 @@ static uint16_t mii_read(RTL8201CPState *mii, uint8_t addr, uint8_t reg)
     return 0;
 }
 
-static void mii_write(RTL8201CPState *mii, uint8_t reg, uint16_t value)
+static void rtl8201cp_phy_write(RTL8201CPState *mii, uint8_t reg, uint16_t value)
 {
     NetClientState *nc;
 
@@ -96,7 +96,7 @@ static void mii_write(RTL8201CPState *mii, uint8_t reg, uint16_t value)
     case MII_BMCR:
         if (value & MII_BMCR_RESET) {
             nc = qemu_get_queue(mii->nic);
-            mii_reset(mii, !nc->link_down);
+            rtl8201cp_phy_reset(mii, !nc->link_down);
         } else {
             mii->bmcr = value;
         }
@@ -129,22 +129,22 @@ static void mii_write(RTL8201CPState *mii, uint8_t reg, uint16_t value)
     }
 }
 
-static uint16_t RTL8201CP_mdio_read(AwEmacState *s, uint8_t addr, uint8_t reg)
+static uint16_t aw_emac_mdio_read(AwEmacState *s, uint8_t addr, uint8_t reg)
 {
     uint16_t ret = 0xffff;
 
     if (addr == s->phy_addr) {
-        return mii_read(&s->mii, addr, reg);
+        return rtl8201cp_phy_read(&s->mii, reg);
     }
 
     return ret;
 }
 
-static void RTL8201CP_mdio_write(AwEmacState *s, uint8_t addr, uint8_t reg,
-                                 uint16_t value)
+static void aw_emac_mdio_write(AwEmacState *s, uint8_t addr, uint8_t reg,
+                               uint16_t value)
 {
     if (addr == s->phy_addr) {
-        mii_write(&s->mii, reg, value);
+        rtl8201cp_phy_write(&s->mii, reg, value);
     }
 }
 
@@ -250,7 +250,7 @@ static void aw_emac_reset(DeviceState *dev)
     aw_emac_tx_reset(s, 1);
     aw_emac_rx_reset(s);
 
-    mii_reset(&s->mii, !nc->link_down);
+    rtl8201cp_phy_reset(&s->mii, !nc->link_down);
 }
 
 static uint64_t aw_emac_read(void *opaque, hwaddr offset, unsigned size)
@@ -307,7 +307,7 @@ static uint64_t aw_emac_read(void *opaque, hwaddr offset, unsigned size)
     case EMAC_INT_STA_REG:
         return s->int_sta;
     case EMAC_MAC_MRDD_REG:
-        return RTL8201CP_mdio_read(s,
+        return aw_emac_mdio_read(s,
                                    extract32(s->phy_target, PHY_ADDR_SHIFT, 8),
                                    extract32(s->phy_target, PHY_REG_SHIFT, 8));
     default:
@@ -410,7 +410,7 @@ static void aw_emac_write(void *opaque, hwaddr offset, uint64_t value,
         s->phy_target = value;
         break;
     case EMAC_MAC_MWTD_REG:
-        RTL8201CP_mdio_write(s, extract32(s->phy_target, PHY_ADDR_SHIFT, 8),
+        aw_emac_mdio_write(s, extract32(s->phy_target, PHY_ADDR_SHIFT, 8),
                              extract32(s->phy_target, PHY_REG_SHIFT, 8), value);
         break;
     default:
@@ -424,7 +424,7 @@ static void aw_emac_set_link(NetClientState *nc)
 {
     AwEmacState *s = qemu_get_nic_opaque(nc);
 
-    mii_set_link(&s->mii, !nc->link_down);
+    rtl8201cp_phy_set_link(&s->mii, !nc->link_down);
 }
 
 static const MemoryRegionOps aw_emac_mem_ops = {
