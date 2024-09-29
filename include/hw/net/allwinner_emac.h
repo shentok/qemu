@@ -26,7 +26,7 @@
 #include "qemu/units.h"
 #include "net/net.h"
 #include "qemu/fifo8.h"
-#include "hw/net/mii.h"
+#include "hw/net/rtl8201cp_phy.h"
 #include "hw/sysbus.h"
 #include "qom/object.h"
 
@@ -137,14 +137,6 @@ OBJECT_DECLARE_SIMPLE_TYPE(AwEmacState, AW_EMAC)
 
 #define PHY_REG_SHIFT       0
 #define PHY_ADDR_SHIFT      8
-
-typedef struct RTL8201CPState {
-    uint16_t bmcr;
-    uint16_t bmsr;
-    uint16_t anar;
-    uint16_t anlpar;
-    NICState *nic;
-} RTL8201CPState;
 
 struct AwEmacState {
     /*< private >*/

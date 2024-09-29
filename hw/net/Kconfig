@@ -81,8 +81,12 @@ config XGMAC
 config MIPSNET
     bool
 
+config RTL8201CP_PHY
+    bool
+
 config ALLWINNER_EMAC
     bool
+    select RTL8201CP_PHY
 
 config ALLWINNER_SUN8I_EMAC
     bool
