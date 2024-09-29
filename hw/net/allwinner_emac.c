@@ -139,7 +139,6 @@ static ssize_t aw_emac_receive(NetClientState *nc, const uint8_t *buf,
 static void aw_emac_reset(DeviceState *dev)
 {
     AwEmacState *s = AW_EMAC(dev);
-    NetClientState *nc = qemu_get_queue(s->nic);
 
     s->ctl = 0;
     s->tx_mode = 0;
@@ -152,7 +151,7 @@ static void aw_emac_reset(DeviceState *dev)
     aw_emac_tx_reset(s, 1);
     aw_emac_rx_reset(s);
 
-    rtl8201cp_phy_reset(&s->mii, !nc->link_down);
+    rtl8201cp_phy_reset(&s->mii);
 }
 
 static uint64_t aw_emac_read(void *opaque, hwaddr offset, unsigned size)
@@ -367,8 +366,6 @@ static void aw_emac_realize(DeviceState *dev, Error **errp)
                           object_get_typename(OBJECT(dev)), dev->id,
                           &dev->mem_reentrancy_guard, s);
     qemu_format_nic_info_str(qemu_get_queue(s->nic), s->conf.macaddr.a);
-
-    s->mii.nic = s->nic;
 
     fifo8_create(&s->rx_fifo, RX_FIFO_SIZE);
     fifo8_create(&s->tx_fifo[0], TX_FIFO_SIZE);

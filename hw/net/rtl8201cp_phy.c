@@ -21,19 +21,21 @@
 #include "qemu/log.h"
 #include "hw/net/mii.h"
 
-void rtl8201cp_phy_set_link(RTL8201CPState *mii, bool link_ok)
+void rtl8201cp_phy_set_link(RTL8201CPState *mii, bool link_down)
 {
-    if (link_ok) {
+    mii->link_down = link_down;
+
+    if (link_down) {
+        mii->bmsr &= ~(MII_BMSR_LINK_ST | MII_BMSR_AN_COMP);
+        mii->anlpar = MII_ANAR_TX;
+    } else {
         mii->bmsr |= MII_BMSR_LINK_ST | MII_BMSR_AN_COMP;
         mii->anlpar |= MII_ANAR_TXFD | MII_ANAR_10FD | MII_ANAR_10 |
                        MII_ANAR_CSMACD;
-    } else {
-        mii->bmsr &= ~(MII_BMSR_LINK_ST | MII_BMSR_AN_COMP);
-        mii->anlpar = MII_ANAR_TX;
     }
 }
 
-void rtl8201cp_phy_reset(RTL8201CPState *mii, bool link_ok)
+void rtl8201cp_phy_reset(RTL8201CPState *mii)
 {
     mii->bmcr = MII_BMCR_FD | MII_BMCR_AUTOEN | MII_BMCR_SPEED;
     mii->bmsr = MII_BMSR_100TX_FD | MII_BMSR_100TX_HD | MII_BMSR_10T_FD |
@@ -42,7 +44,7 @@ void rtl8201cp_phy_reset(RTL8201CPState *mii, bool link_ok)
                 MII_ANAR_CSMACD;
     mii->anlpar = MII_ANAR_TX;
 
-    rtl8201cp_phy_set_link(mii, link_ok);
+    rtl8201cp_phy_set_link(mii, mii->link_down);
 }
 
 uint16_t rtl8201cp_phy_read(RTL8201CPState *mii, uint8_t reg)
@@ -78,13 +80,10 @@ uint16_t rtl8201cp_phy_read(RTL8201CPState *mii, uint8_t reg)
 
 void rtl8201cp_phy_write(RTL8201CPState *mii, uint8_t reg, uint16_t value)
 {
-    NetClientState *nc;
-
     switch (reg) {
     case MII_BMCR:
         if (value & MII_BMCR_RESET) {
-            nc = qemu_get_queue(mii->nic);
-            rtl8201cp_phy_reset(mii, !nc->link_down);
+            rtl8201cp_phy_reset(mii);
         } else {
             mii->bmcr = value;
         }
