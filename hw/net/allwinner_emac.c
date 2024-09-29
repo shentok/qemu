@@ -55,87 +55,96 @@ static void mii_reset(RTL8201CPState *mii, bool link_ok)
     mii_set_link(mii, link_ok);
 }
 
+static uint16_t mii_read(RTL8201CPState *mii, uint8_t addr, uint8_t reg)
+{
+    switch (reg) {
+    case MII_BMCR:
+        return mii->bmcr;
+    case MII_BMSR:
+        return mii->bmsr;
+    case MII_PHYID1:
+        return RTL8201CP_PHYID1;
+    case MII_PHYID2:
+        return RTL8201CP_PHYID2;
+    case MII_ANAR:
+        return mii->anar;
+    case MII_ANLPAR:
+        return mii->anlpar;
+    case MII_ANER:
+    case MII_NSR:
+    case MII_LBREMR:
+    case MII_REC:
+    case MII_SNRDR:
+    case MII_TEST:
+        qemu_log_mask(LOG_UNIMP,
+                      "allwinner_emac: read from unimpl. mii reg 0x%x\n",
+                      reg);
+        return 0;
+    }
+
+    qemu_log_mask(LOG_GUEST_ERROR,
+                  "allwinner_emac: read from invalid mii reg 0x%x\n",
+                  reg);
+    return 0;
+}
+
+static void mii_write(RTL8201CPState *mii, uint8_t reg, uint16_t value)
+{
+    NetClientState *nc;
+
+    switch (reg) {
+    case MII_BMCR:
+        if (value & MII_BMCR_RESET) {
+            nc = qemu_get_queue(mii->nic);
+            mii_reset(mii, !nc->link_down);
+        } else {
+            mii->bmcr = value;
+        }
+        break;
+    case MII_ANAR:
+        mii->anar = value;
+        break;
+    case MII_BMSR:
+    case MII_PHYID1:
+    case MII_PHYID2:
+    case MII_ANLPAR:
+    case MII_ANER:
+        qemu_log_mask(LOG_GUEST_ERROR,
+                      "allwinner_emac: write to read-only mii reg 0x%x\n",
+                      reg);
+        break;
+    case MII_NSR:
+    case MII_LBREMR:
+    case MII_REC:
+    case MII_SNRDR:
+    case MII_TEST:
+        qemu_log_mask(LOG_UNIMP,
+                      "allwinner_emac: write to unimpl. mii reg 0x%x\n",
+                      reg);
+        break;
+    default:
+        qemu_log_mask(LOG_GUEST_ERROR,
+                      "allwinner_emac: write to invalid mii reg 0x%x\n",
+                      reg);
+    }
+}
+
 static uint16_t RTL8201CP_mdio_read(AwEmacState *s, uint8_t addr, uint8_t reg)
 {
-    RTL8201CPState *mii = &s->mii;
     uint16_t ret = 0xffff;
 
     if (addr == s->phy_addr) {
-        switch (reg) {
-        case MII_BMCR:
-            return mii->bmcr;
-        case MII_BMSR:
-            return mii->bmsr;
-        case MII_PHYID1:
-            return RTL8201CP_PHYID1;
-        case MII_PHYID2:
-            return RTL8201CP_PHYID2;
-        case MII_ANAR:
-            return mii->anar;
-        case MII_ANLPAR:
-            return mii->anlpar;
-        case MII_ANER:
-        case MII_NSR:
-        case MII_LBREMR:
-        case MII_REC:
-        case MII_SNRDR:
-        case MII_TEST:
-            qemu_log_mask(LOG_UNIMP,
-                          "allwinner_emac: read from unimpl. mii reg 0x%x\n",
-                          reg);
-            return 0;
-        default:
-            qemu_log_mask(LOG_GUEST_ERROR,
-                          "allwinner_emac: read from invalid mii reg 0x%x\n",
-                          reg);
-            return 0;
-        }
+        return mii_read(&s->mii, addr, reg);
     }
+
     return ret;
 }
 
 static void RTL8201CP_mdio_write(AwEmacState *s, uint8_t addr, uint8_t reg,
                                  uint16_t value)
 {
-    RTL8201CPState *mii = &s->mii;
-    NetClientState *nc;
-
     if (addr == s->phy_addr) {
-        switch (reg) {
-        case MII_BMCR:
-            if (value & MII_BMCR_RESET) {
-                nc = qemu_get_queue(s->nic);
-                mii_reset(mii, !nc->link_down);
-            } else {
-                mii->bmcr = value;
-            }
-            break;
-        case MII_ANAR:
-            mii->anar = value;
-            break;
-        case MII_BMSR:
-        case MII_PHYID1:
-        case MII_PHYID2:
-        case MII_ANLPAR:
-        case MII_ANER:
-            qemu_log_mask(LOG_GUEST_ERROR,
-                          "allwinner_emac: write to read-only mii reg 0x%x\n",
-                          reg);
-            break;
-        case MII_NSR:
-        case MII_LBREMR:
-        case MII_REC:
-        case MII_SNRDR:
-        case MII_TEST:
-            qemu_log_mask(LOG_UNIMP,
-                          "allwinner_emac: write to unimpl. mii reg 0x%x\n",
-                          reg);
-            break;
-        default:
-            qemu_log_mask(LOG_GUEST_ERROR,
-                          "allwinner_emac: write to invalid mii reg 0x%x\n",
-                          reg);
-        }
+        mii_write(&s->mii, reg, value);
     }
 }
 
@@ -456,6 +465,8 @@ static void aw_emac_realize(DeviceState *dev, Error **errp)
                           object_get_typename(OBJECT(dev)), dev->id,
                           &dev->mem_reentrancy_guard, s);
     qemu_format_nic_info_str(qemu_get_queue(s->nic), s->conf.macaddr.a);
+
+    s->mii.nic = s->nic;
 
     fifo8_create(&s->rx_fifo, RX_FIFO_SIZE);
     fifo8_create(&s->tx_fifo[0], TX_FIFO_SIZE);

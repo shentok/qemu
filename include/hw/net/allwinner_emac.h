@@ -143,6 +143,7 @@ typedef struct RTL8201CPState {
     uint16_t bmsr;
     uint16_t anar;
     uint16_t anlpar;
+    NICState *nic;
 } RTL8201CPState;
 
 struct AwEmacState {
