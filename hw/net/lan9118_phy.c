@@ -144,7 +144,10 @@ void lan9118_phy_write(Lan9118PhyState *s, int reg, uint32_t val)
         }
         break;
     case MII_ANAR:
-        s->advertise = (val & 0x2d7f) | MII_ANAR_TX;
+        s->advertise = (val & (MII_ANAR_RFAULT | MII_ANAR_PAUSE_ASYM |
+                               MII_ANAR_PAUSE | MII_ANAR_TXFD | MII_ANAR_TX |
+                               MII_ANAR_10FD | MII_ANAR_10 | MII_ANAR_CSMACD))
+                     | MII_ANAR_TX;
         break;
     case 30: /* Interrupt mask */
         s->int_mask = val & 0xff;
