@@ -385,6 +385,8 @@ static void etsec_realize(DeviceState *dev, Error **errp)
 {
     eTSEC        *etsec = ETSEC_COMMON(dev);
 
+    qemu_configure_nic_device(dev, true, NULL);
+
     etsec->nic = qemu_new_nic(&net_etsec_info, &etsec->conf,
                               object_get_typename(OBJECT(dev)), dev->id,
                               &dev->mem_reentrancy_guard, etsec);
