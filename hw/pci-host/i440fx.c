@@ -49,7 +49,7 @@ struct I440FXState {
 
     MemoryRegion *system_memory;
     MemoryRegion *io_memory;
-    MemoryRegion *pci_address_space;
+    MemoryRegion pci_address_space;
     MemoryRegion *ram_memory;
     Range pci_hole;
     uint64_t below_4g_mem_size;
@@ -233,10 +233,6 @@ static void i440fx_pcihost_initfn(Object *obj)
                              (Object **) &s->ram_memory,
                              qdev_prop_allow_set_link_before_realize, 0);
 
-    object_property_add_link(obj, PCI_HOST_PROP_PCI_MEM, TYPE_MEMORY_REGION,
-                             (Object **) &s->pci_address_space,
-                             qdev_prop_allow_set_link_before_realize, 0);
-
     object_property_add_link(obj, PCI_HOST_PROP_SYSTEM_MEM, TYPE_MEMORY_REGION,
                              (Object **) &s->system_memory,
                              qdev_prop_allow_set_link_before_realize, 0);
@@ -267,7 +263,9 @@ static void i440fx_pcihost_realize(DeviceState *dev, Error **errp)
     memory_region_set_flush_coalesced(&phb->data_mem);
     memory_region_add_coalescing(&phb->conf_mem, 0, 4);
 
-    b = pci_root_bus_new(dev, NULL, s->pci_address_space,
+    memory_region_init(&s->pci_address_space, NULL, "pci", UINT64_MAX);
+
+    b = pci_root_bus_new(dev, NULL, &s->pci_address_space,
                          s->io_memory, 0, TYPE_PCI_BUS);
     phb->bus = b;
 
@@ -278,11 +276,11 @@ static void i440fx_pcihost_realize(DeviceState *dev, Error **errp)
                      IO_APIC_DEFAULT_ADDRESS - 1);
 
     /* setup pci memory mapping */
-    pc_pci_as_mapping_init(s->system_memory, s->pci_address_space);
+    pc_pci_as_mapping_init(s->system_memory, &s->pci_address_space);
 
     /* if *disabled* show SMRAM to all CPUs */
     memory_region_init_alias(&f->smram_region, OBJECT(d), "smram-region",
-                             s->pci_address_space, SMRAM_C_BASE, SMRAM_C_SIZE);
+                             &s->pci_address_space, SMRAM_C_BASE, SMRAM_C_SIZE);
     memory_region_add_subregion_overlap(s->system_memory, SMRAM_C_BASE,
                                         &f->smram_region, 1);
     memory_region_set_enabled(&f->smram_region, true);
@@ -298,10 +296,10 @@ static void i440fx_pcihost_realize(DeviceState *dev, Error **errp)
                                    OBJECT(&f->smram));
 
     init_pam(&f->pam_regions[0], OBJECT(d), s->ram_memory, s->system_memory,
-             s->pci_address_space, PAM_BIOS_BASE, PAM_BIOS_SIZE);
+             &s->pci_address_space, PAM_BIOS_BASE, PAM_BIOS_SIZE);
     for (i = 0; i < ARRAY_SIZE(f->pam_regions) - 1; ++i) {
         init_pam(&f->pam_regions[i + 1], OBJECT(d), s->ram_memory,
-                 s->system_memory, s->pci_address_space,
+                 s->system_memory, &s->pci_address_space,
                  PAM_EXPAN_BASE + i * PAM_EXPAN_SIZE, PAM_EXPAN_SIZE);
     }
 

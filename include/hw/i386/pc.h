@@ -139,7 +139,6 @@ GSIState *pc_gsi_create(qemu_irq **irqs, bool pci_enabled);
 void pc_acpi_smi_interrupt(void *opaque, int irq, int level);
 
 #define PCI_HOST_PROP_RAM_MEM          "ram-mem"
-#define PCI_HOST_PROP_PCI_MEM          "pci-mem"
 #define PCI_HOST_PROP_SYSTEM_MEM       "system-mem"
 #define PCI_HOST_PROP_IO_MEM           "io-mem"
 #define PCI_HOST_PROP_PCI_HOLE_START   "pci-hole-start"

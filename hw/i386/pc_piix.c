@@ -37,6 +37,7 @@
 #include "hw/southbridge/piix.h"
 #include "hw/display/ramfb.h"
 #include "hw/pci/pci.h"
+#include "hw/pci/pci_bus.h"
 #include "hw/pci/pci_ids.h"
 #include "hw/usb.h"
 #include "net/net.h"
@@ -113,7 +114,6 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     qemu_irq smi_irq;
     GSIState *gsi_state;
     MemoryRegion *ram_memory;
-    MemoryRegion *pci_memory = NULL;
     MemoryRegion *rom_memory = system_memory;
     ram_addr_t lowmem;
     uint64_t hole64_size = 0;
@@ -188,16 +188,10 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     }
 
     if (pcmc->pci_enabled) {
-        pci_memory = g_new(MemoryRegion, 1);
-        memory_region_init(pci_memory, NULL, "pci", UINT64_MAX);
-        rom_memory = pci_memory;
-
         phb = OBJECT(qdev_new(TYPE_I440FX_PCI_HOST_BRIDGE));
         object_property_add_child(OBJECT(machine), "i440fx", phb);
         object_property_set_link(phb, PCI_HOST_PROP_RAM_MEM,
                                  OBJECT(ram_memory), &error_fatal);
-        object_property_set_link(phb, PCI_HOST_PROP_PCI_MEM,
-                                 OBJECT(pci_memory), &error_fatal);
         object_property_set_link(phb, PCI_HOST_PROP_SYSTEM_MEM,
                                  OBJECT(system_memory), &error_fatal);
         object_property_set_link(phb, PCI_HOST_PROP_IO_MEM,
@@ -211,6 +205,7 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         sysbus_realize_and_unref(SYS_BUS_DEVICE(phb), &error_fatal);
 
         pcms->pcibus = PCI_BUS(qdev_get_child_bus(DEVICE(phb), "pci.0"));
+        rom_memory = pcms->pcibus->address_space_mem;
         pci_bus_map_irqs(pcms->pcibus,
                          xen_enabled() ? xen_pci_slot_get_pirq
                                        : pc_pci_slot_get_pirq);

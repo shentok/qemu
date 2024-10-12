@@ -41,7 +41,7 @@ struct MCHPCIState {
     /*< public >*/
 
     MemoryRegion *ram_memory;
-    MemoryRegion *pci_address_space;
+    MemoryRegion pci_address_space;
     MemoryRegion *system_memory;
     MemoryRegion *address_space_io;
     PAMMemoryRegion pam_regions[PAM_REGIONS_COUNT];

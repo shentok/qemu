@@ -134,7 +134,6 @@ static void pc_q35_init(MachineState *machine)
     DeviceState *lpc_dev;
     MemoryRegion *system_memory = get_system_memory();
     MemoryRegion *system_io = get_system_io();
-    MemoryRegion *pci_memory = g_new(MemoryRegion, 1);
     GSIState *gsi_state;
     ISABus *isa_bus;
     int i;
@@ -195,14 +194,9 @@ static void pc_q35_init(MachineState *machine)
 
     /* create pci host bus */
     phb = OBJECT(qdev_new(TYPE_Q35_HOST_DEVICE));
-
-    memory_region_init(pci_memory, NULL, "pci", UINT64_MAX);
-
     object_property_add_child(OBJECT(machine), "q35", phb);
     object_property_set_link(phb, PCI_HOST_PROP_RAM_MEM,
                              OBJECT(machine->ram), NULL);
-    object_property_set_link(phb, PCI_HOST_PROP_PCI_MEM,
-                             OBJECT(pci_memory), NULL);
     object_property_set_link(phb, PCI_HOST_PROP_SYSTEM_MEM,
                              OBJECT(system_memory), NULL);
     object_property_set_link(phb, PCI_HOST_PROP_IO_MEM,
@@ -224,7 +218,8 @@ static void pc_q35_init(MachineState *machine)
     pci_hole64_size = object_property_get_uint(phb,
                                                PCI_HOST_PROP_PCI_HOLE64_SIZE,
                                                &error_abort);
-    pc_memory_init(pcms, system_memory, pci_memory, pci_hole64_size);
+    pc_memory_init(pcms, system_memory, pcms->pcibus->address_space_mem,
+                   pci_hole64_size);
 
     /* irq lines */
     gsi_state = pc_gsi_create(&x86ms->gsi, true);
