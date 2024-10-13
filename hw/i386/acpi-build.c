@@ -2657,10 +2657,8 @@ static const VMStateDescription vmstate_acpi_build = {
     },
 };
 
-void acpi_setup(void)
+void acpi_setup(PCMachineState *pcms, FWCfgState *fw_cfg)
 {
-    PCMachineState *pcms = PC_MACHINE(qdev_get_machine());
-    X86MachineState *x86ms = X86_MACHINE(pcms);
     AcpiBuildTables tables;
     AcpiBuildState *build_state;
     Object *vmgenid_dev;
@@ -2669,7 +2667,7 @@ void acpi_setup(void)
     static FwCfgTPMConfig tpm_config;
 #endif
 
-    if (!x86ms->fw_cfg) {
+    if (!fw_cfg) {
         ACPI_BUILD_DPRINTF("No fw cfg. Bailing out.\n");
         return;
     }
@@ -2700,7 +2698,7 @@ void acpi_setup(void)
                           tables.linker->cmd_blob, ACPI_BUILD_LOADER_FILE);
 
 #ifdef CONFIG_TPM
-    fw_cfg_add_file(x86ms->fw_cfg, ACPI_BUILD_TPMLOG_FILE,
+    fw_cfg_add_file(fw_cfg, ACPI_BUILD_TPMLOG_FILE,
                     tables.tcpalog->data, acpi_data_len(tables.tcpalog));
 
     tpm = tpm_find();
@@ -2710,14 +2708,14 @@ void acpi_setup(void)
             .tpm_version = tpm_get_version(tpm),
             .tpmppi_version = TPM_PPI_VERSION_1_30
         };
-        fw_cfg_add_file(x86ms->fw_cfg, "etc/tpm/config",
+        fw_cfg_add_file(fw_cfg, "etc/tpm/config",
                         &tpm_config, sizeof tpm_config);
     }
 #endif
 
     vmgenid_dev = find_vmgenid_dev();
     if (vmgenid_dev) {
-        vmgenid_add_fw_cfg(VMGENID(vmgenid_dev), x86ms->fw_cfg,
+        vmgenid_add_fw_cfg(VMGENID(vmgenid_dev), fw_cfg,
                            tables.vmgenid);
     }
 

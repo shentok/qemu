@@ -626,7 +626,7 @@ void pc_machine_done(Notifier *notifier, void *data)
 
     fw_cfg_add_extra_pci_roots(pcms->pcibus, x86ms->fw_cfg);
 
-    acpi_setup();
+    acpi_setup(pcms, x86ms->fw_cfg);
     if (x86ms->fw_cfg) {
         fw_cfg_build_smbios(pcms, x86ms->fw_cfg, pcms->smbios_entry_point_type);
         fw_cfg_add_e820(x86ms->fw_cfg);
