@@ -406,7 +406,10 @@ static void pc_cmos_init_floppy(MC146818RtcState *rtc_state, ISADevice *floppy)
         cmos_get_fd_drive_type(fd_type[1]);
     mc146818rtc_set_cmos_data(rtc_state, 0x10, val);
 
-    val = mc146818rtc_get_cmos_data(rtc_state, REG_EQUIPMENT_BYTE);
+    val = 0;
+    val |= 0x02; /* FPU is there */
+    val |= 0x04; /* PS/2 mouse installed */
+
     nb = 0;
     if (fd_type[0] != FLOPPY_DRIVE_TYPE_NONE) {
         nb++;
@@ -487,24 +490,23 @@ static ISADevice *pc_find_fdc0(void)
     return state.floppy;
 }
 
-static void pc_cmos_init_late(PCMachineState *pcms)
+static void pc_cmos_init_ide(MC146818RtcState *s, IDEBus *idebus0, IDEBus *idebus1)
 {
-    X86MachineState *x86ms = X86_MACHINE(pcms);
-    MC146818RtcState *s = x86ms->rtc;
     int16_t cylinders;
     int8_t heads, sectors;
     int val;
     int i, trans;
+    IDEBus *idebuses[2] = { idebus0, idebus1 };
 
     val = 0;
-    if (pcms->idebus[0] &&
-        ide_get_geometry(pcms->idebus[0], 0,
+    if (idebus0 &&
+        ide_get_geometry(idebus0, 0,
                          &cylinders, &heads, &sectors) >= 0) {
         cmos_init_hd(s, 0x19, 0x1b, cylinders, heads, sectors);
         val |= 0xf0;
     }
-    if (pcms->idebus[0] &&
-        ide_get_geometry(pcms->idebus[0], 1,
+    if (idebus0 &&
+        ide_get_geometry(idebus0, 1,
                          &cylinders, &heads, &sectors) >= 0) {
         cmos_init_hd(s, 0x1a, 0x24, cylinders, heads, sectors);
         val |= 0x0f;
@@ -517,7 +519,7 @@ static void pc_cmos_init_late(PCMachineState *pcms)
            geometry.  It is always such that: 1 <= sects <= 63, 1
            <= heads <= 16, 1 <= cylinders <= 16383. The BIOS
            geometry can be different if a translation is done. */
-        IDEBus *idebus = pcms->idebus[i / 2];
+        IDEBus *idebus = idebuses[i / 2];
         if (idebus &&
             ide_get_geometry(idebus, i % 2,
                              &cylinders, &heads, &sectors) >= 0) {
@@ -527,19 +529,22 @@ static void pc_cmos_init_late(PCMachineState *pcms)
         }
     }
     mc146818rtc_set_cmos_data(s, 0x39, val);
+}
 
-    pc_cmos_init_floppy(s, pc_find_fdc0());
-
-    /* various important CMOS locations needed by PC/Bochs bios */
+static void pc_cmos_init_memory(MC146818RtcState *s,
+                                ram_addr_t below_4g_mem_size,
+                                ram_addr_t above_4g_mem_size)
+{
+    int val;
 
     /* memory size */
     /* base memory (first MiB) */
-    val = MIN(x86ms->below_4g_mem_size / KiB, 640);
+    val = MIN(below_4g_mem_size / KiB, 640);
     mc146818rtc_set_cmos_data(s, 0x15, val);
     mc146818rtc_set_cmos_data(s, 0x16, val >> 8);
     /* extended memory (next 64MiB) */
-    if (x86ms->below_4g_mem_size > 1 * MiB) {
-        val = (x86ms->below_4g_mem_size - 1 * MiB) / KiB;
+    if (below_4g_mem_size > 1 * MiB) {
+        val = (below_4g_mem_size - 1 * MiB) / KiB;
     } else {
         val = 0;
     }
@@ -550,8 +555,8 @@ static void pc_cmos_init_late(PCMachineState *pcms)
     mc146818rtc_set_cmos_data(s, 0x30, val);
     mc146818rtc_set_cmos_data(s, 0x31, val >> 8);
     /* memory between 16MiB and 4GiB */
-    if (x86ms->below_4g_mem_size > 16 * MiB) {
-        val = (x86ms->below_4g_mem_size - 16 * MiB) / (64 * KiB);
+    if (below_4g_mem_size > 16 * MiB) {
+        val = (below_4g_mem_size - 16 * MiB) / (64 * KiB);
     } else {
         val = 0;
     }
@@ -560,15 +565,10 @@ static void pc_cmos_init_late(PCMachineState *pcms)
     mc146818rtc_set_cmos_data(s, 0x34, val);
     mc146818rtc_set_cmos_data(s, 0x35, val >> 8);
     /* memory above 4GiB */
-    val = x86ms->above_4g_mem_size / 65536;
+    val = above_4g_mem_size / 65536;
     mc146818rtc_set_cmos_data(s, 0x5b, val);
     mc146818rtc_set_cmos_data(s, 0x5c, val >> 8);
     mc146818rtc_set_cmos_data(s, 0x5d, val >> 16);
-
-    val = 0;
-    val |= 0x02; /* FPU is there */
-    val |= 0x04; /* PS/2 mouse installed */
-    mc146818rtc_set_cmos_data(s, REG_EQUIPMENT_BYTE, val);
 }
 
 static void handle_a20_line_change(void *opaque, int irq, int level)
@@ -624,9 +624,6 @@ void pc_machine_done(Notifier *notifier, void *data)
         cxl_fmws_link_targets(&pcms->cxl_devices_state, &error_fatal);
     }
 
-    /* set the number of CPUs */
-    x86_rtc_set_cpus_count(x86ms->rtc, x86ms->boot_cpus);
-
     fw_cfg_add_extra_pci_roots(pcms->pcibus, x86ms->fw_cfg);
 
     acpi_setup();
@@ -638,7 +635,11 @@ void pc_machine_done(Notifier *notifier, void *data)
         fw_cfg_modify_i16(x86ms->fw_cfg, FW_CFG_NB_CPUS, x86ms->boot_cpus);
     }
 
-    pc_cmos_init_late(pcms);
+    x86_rtc_set_cpus_count(x86ms->rtc, x86ms->boot_cpus);
+    pc_cmos_init_ide(x86ms->rtc, pcms->idebus[0], pcms->idebus[1]);
+    pc_cmos_init_floppy(x86ms->rtc, pc_find_fdc0());
+    pc_cmos_init_memory(x86ms->rtc,
+                        x86ms->below_4g_mem_size, x86ms->above_4g_mem_size);
 }
 
 /* setup pci memory address space mapping into system address space */
