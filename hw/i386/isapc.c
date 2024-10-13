@@ -146,7 +146,7 @@ static void pc_init_isa(MachineState *machine)
          * second one.
          */
         busname[4] = '0' + i;
-        pcms->idebus[i] = qdev_get_child_bus(DEVICE(dev), busname);
+        pcms->idebus[i] = IDE_BUS(qdev_get_child_bus(DEVICE(dev), busname));
     }
 }
 
