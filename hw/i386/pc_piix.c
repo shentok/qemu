@@ -274,8 +274,8 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     }
 
     isa_bus = ISA_BUS(qdev_get_child_bus(DEVICE(pci_dev), "isa.0"));
-    x86ms->rtc = ISA_DEVICE(object_resolve_path_component(OBJECT(pci_dev),
-                                                          "rtc"));
+    x86ms->rtc = MC146818_RTC(object_resolve_path_component(OBJECT(pci_dev),
+                                                            "rtc"));
     piix4_pm = object_resolve_path_component(OBJECT(pci_dev), "pm");
     dev = DEVICE(object_resolve_path_component(OBJECT(pci_dev), "ide"));
     pci_ide_create_devs(PCI_DEVICE(dev));
