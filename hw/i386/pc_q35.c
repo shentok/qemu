@@ -257,8 +257,8 @@ static void pc_q35_init(MachineState *machine)
                                                          ICH9_SATA1_FUNC),
                                                "ich9-ahci");
         ich9 = ICH9_AHCI(pdev);
-        pcms->idebus[0] = qdev_get_child_bus(DEVICE(pdev), "ide.0");
-        pcms->idebus[1] = qdev_get_child_bus(DEVICE(pdev), "ide.1");
+        pcms->idebus[0] = IDE_BUS(qdev_get_child_bus(DEVICE(pdev), "ide.0"));
+        pcms->idebus[1] = IDE_BUS(qdev_get_child_bus(DEVICE(pdev), "ide.1"));
         g_assert(MAX_SATA_PORTS == ich9->ahci.ports);
         ide_drive_get(hd, ich9->ahci.ports);
         ahci_ide_create_devs(&ich9->ahci, hd);

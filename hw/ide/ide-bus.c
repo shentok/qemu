@@ -83,10 +83,10 @@ IDEDevice *ide_bus_create_drive(IDEBus *bus, int unit, DriveInfo *drive)
     return DO_UPCAST(IDEDevice, qdev, dev);
 }
 
-int ide_get_geometry(BusState *bus, int unit,
+int ide_get_geometry(IDEBus *idebus, int unit,
                      int16_t *cyls, int8_t *heads, int8_t *secs)
 {
-    IDEState *s = &DO_UPCAST(IDEBus, qbus, bus)->ifs[unit];
+    IDEState *s = &idebus->ifs[unit];
 
     if (s->drive_kind != IDE_HD || !s->blk) {
         return -1;
@@ -98,9 +98,9 @@ int ide_get_geometry(BusState *bus, int unit,
     return 0;
 }
 
-int ide_get_bios_chs_trans(BusState *bus, int unit)
+int ide_get_bios_chs_trans(IDEBus *idebus, int unit)
 {
-    return DO_UPCAST(IDEBus, qbus, bus)->ifs[unit].chs_trans;
+    return idebus->ifs[unit].chs_trans;
 }
 
 static void ide_bus_register_type(void)

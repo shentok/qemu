@@ -518,7 +518,7 @@ static void pc_cmos_init_late(PCMachineState *pcms)
            geometry.  It is always such that: 1 <= sects <= 63, 1
            <= heads <= 16, 1 <= cylinders <= 16383. The BIOS
            geometry can be different if a translation is done. */
-        BusState *idebus = pcms->idebus[i / 2];
+        IDEBus *idebus = pcms->idebus[i / 2];
         if (idebus &&
             ide_get_geometry(idebus, i % 2,
                              &cylinders, &heads, &sectors) >= 0) {

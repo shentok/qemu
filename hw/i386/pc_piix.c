@@ -280,8 +280,8 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         piix4_pm = object_resolve_path_component(OBJECT(pci_dev), "pm");
         dev = DEVICE(object_resolve_path_component(OBJECT(pci_dev), "ide"));
         pci_ide_create_devs(PCI_DEVICE(dev));
-        pcms->idebus[0] = qdev_get_child_bus(dev, "ide.0");
-        pcms->idebus[1] = qdev_get_child_bus(dev, "ide.1");
+        pcms->idebus[0] = IDE_BUS(qdev_get_child_bus(dev, "ide.0"));
+        pcms->idebus[1] = IDE_BUS(qdev_get_child_bus(dev, "ide.1"));
     } else {
         isa_bus = isa_bus_new(NULL, system_memory, system_io,
                               &error_abort);
@@ -323,7 +323,7 @@ static void pc_init1(MachineState *machine, const char *pci_type)
              * second one.
              */
             busname[4] = '0' + i;
-            pcms->idebus[i] = qdev_get_child_bus(DEVICE(dev), busname);
+            pcms->idebus[i] = IDE_BUS(qdev_get_child_bus(DEVICE(dev), busname));
         }
     }
 #endif

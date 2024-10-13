@@ -8,6 +8,7 @@
 #include "hw/block/fdc.h"
 #include "hw/block/flash.h"
 #include "hw/i386/x86.h"
+#include "hw/ide/ide-bus.h"
 
 #include "hw/hotplug.h"
 #include "qom/object.h"
@@ -35,7 +36,7 @@ typedef struct PCMachineState {
     PFlashCFI01 *flash[2];
     ISADevice *pcspk;
     DeviceState *iommu;
-    BusState *idebus[MAX_IDE_BUS];
+    IDEBus *idebus[MAX_IDE_BUS];
 
     /* Configuration options: */
     uint64_t max_ram_below_4g;
