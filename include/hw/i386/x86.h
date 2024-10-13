@@ -24,6 +24,7 @@
 #include "hw/i386/topology.h"
 #include "hw/intc/ioapic.h"
 #include "hw/isa/isa.h"
+#include "hw/rtc/mc146818rtc.h"
 #include "qom/object.h"
 
 struct X86MachineClass {
@@ -47,7 +48,7 @@ struct X86MachineState {
     /*< public >*/
 
     /* Pointers to devices and objects: */
-    ISADevice *rtc;
+    MC146818RtcState *rtc;
     FWCfgState *fw_cfg;
     qemu_irq *gsi;
     DeviceState *ioapic2;
@@ -115,7 +116,7 @@ uint32_t x86_cpu_apic_id_from_index(X86MachineState *x86ms,
                                     unsigned int cpu_index);
 
 void x86_cpus_init(X86MachineState *pcms, int default_cpu_version);
-void x86_rtc_set_cpus_count(ISADevice *rtc, uint16_t cpus_count);
+void x86_rtc_set_cpus_count(MC146818RtcState *rtc, uint16_t cpus_count);
 void x86_cpu_pre_plug(HotplugHandler *hotplug_dev,
                       DeviceState *dev, Error **errp);
 void x86_cpu_plug(HotplugHandler *hotplug_dev,

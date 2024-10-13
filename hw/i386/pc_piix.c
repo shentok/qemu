@@ -275,8 +275,8 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         }
 
         isa_bus = ISA_BUS(qdev_get_child_bus(DEVICE(pci_dev), "isa.0"));
-        x86ms->rtc = ISA_DEVICE(object_resolve_path_component(OBJECT(pci_dev),
-                                                              "rtc"));
+        x86ms->rtc = MC146818_RTC(object_resolve_path_component(OBJECT(pci_dev),
+                                                                "rtc"));
         piix4_pm = object_resolve_path_component(OBJECT(pci_dev), "pm");
         dev = DEVICE(object_resolve_path_component(OBJECT(pci_dev), "ide"));
         pci_ide_create_devs(PCI_DEVICE(dev));
@@ -287,9 +287,9 @@ static void pc_init1(MachineState *machine, const char *pci_type)
                               &error_abort);
         isa_bus_register_input_irqs(isa_bus, x86ms->gsi);
 
-        x86ms->rtc = isa_new(TYPE_MC146818_RTC);
+        x86ms->rtc = MC146818_RTC(isa_new(TYPE_MC146818_RTC));
         qdev_prop_set_int32(DEVICE(x86ms->rtc), "base_year", 2000);
-        isa_realize_and_unref(x86ms->rtc, isa_bus, &error_fatal);
+        isa_realize_and_unref(ISA_DEVICE(x86ms->rtc), isa_bus, &error_fatal);
 
         i8257_dma_init(OBJECT(machine), isa_bus, 0);
         pcms->hpet_enabled = false;

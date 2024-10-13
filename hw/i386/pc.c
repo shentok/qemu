@@ -35,7 +35,6 @@
 #include "hw/ide/ide-bus.h"
 #include "hw/timer/hpet.h"
 #include "hw/loader.h"
-#include "hw/rtc/mc146818rtc.h"
 #include "hw/intc/i8259.h"
 #include "hw/timer/i8254.h"
 #include "hw/input/i8042.h"
@@ -385,7 +384,7 @@ static void pc_boot_set(void *opaque, const char *boot_device, Error **errp)
     PCMachineState *pcms = opaque;
     X86MachineState *x86ms = X86_MACHINE(pcms);
 
-    set_boot_dev(pcms, MC146818_RTC(x86ms->rtc), boot_device, errp);
+    set_boot_dev(pcms, x86ms->rtc, boot_device, errp);
 }
 
 static void pc_cmos_init_floppy(MC146818RtcState *rtc_state, ISADevice *floppy)
@@ -491,7 +490,7 @@ static ISADevice *pc_find_fdc0(void)
 static void pc_cmos_init_late(PCMachineState *pcms)
 {
     X86MachineState *x86ms = X86_MACHINE(pcms);
-    MC146818RtcState *s = MC146818_RTC(x86ms->rtc);
+    MC146818RtcState *s = x86ms->rtc;
     int16_t cylinders;
     int8_t heads, sectors;
     int val;
@@ -1156,7 +1155,7 @@ static void pc_superio_init(ISABus *isa_bus, bool create_fdctrl,
 
 void pc_basic_device_init(struct PCMachineState *pcms,
                           ISABus *isa_bus, I2CBus *smbus, qemu_irq *gsi,
-                          ISADevice *rtc_state,
+                          MC146818RtcState *rtc_state,
                           bool create_fdctrl,
                           uint32_t hpet_irqs)
 {
@@ -1233,7 +1232,7 @@ void pc_basic_device_init(struct PCMachineState *pcms,
     pc_nic_init(pcmc, isa_bus, pcms->pcibus);
 
     qemu_register_boot_set(pc_boot_set, pcms);
-    set_boot_dev(pcms, MC146818_RTC(rtc_state),
+    set_boot_dev(pcms, rtc_state,
                  MACHINE(pcms)->boot_config.order, &error_fatal);
 
     if (!xen_enabled() &&

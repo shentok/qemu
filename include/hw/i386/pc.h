@@ -9,6 +9,7 @@
 #include "hw/block/flash.h"
 #include "hw/i386/x86.h"
 #include "hw/ide/ide-bus.h"
+#include "hw/rtc/mc146818rtc.h"
 
 #include "hw/hotplug.h"
 #include "qom/object.h"
@@ -190,7 +191,7 @@ void pc_memory_init(PCMachineState *pcms,
 uint64_t pc_pci_hole64_start(void);
 void pc_basic_device_init(struct PCMachineState *pcms,
                           ISABus *isa_bus, I2CBus *smbus, qemu_irq *gsi,
-                          ISADevice *rtc_state,
+                          MC146818RtcState *rtc_state,
                           bool create_fdctrl,
                           uint32_t hpet_irqs);
 

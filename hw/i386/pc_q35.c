@@ -232,7 +232,7 @@ static void pc_q35_init(MachineState *machine)
     }
     pci_realize_and_unref(lpc, pcms->pcibus, &error_fatal);
 
-    x86ms->rtc = ISA_DEVICE(object_resolve_path_component(OBJECT(lpc), "rtc"));
+    x86ms->rtc = MC146818_RTC(object_resolve_path_component(OBJECT(lpc), "rtc"));
 
     isa_bus = ISA_BUS(qdev_get_child_bus(dev, "isa.0"));
 
