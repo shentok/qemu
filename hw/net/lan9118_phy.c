@@ -95,8 +95,8 @@ uint16_t lan9118_phy_read(Lan9118PhyState *s, int reg)
         break;
     case MII_ANLPAR:
         val = MII_ANLPAR_PAUSEASY | MII_ANLPAR_PAUSE | MII_ANLPAR_T4 |
-              MII_ANLPAR_TXFD | MII_ANLPAR_10FD | MII_ANLPAR_10 | 0x10 |
-              MII_ANLPAR_CSMACD;
+              MII_ANLPAR_TXFD | MII_ANLPAR_TX | MII_ANLPAR_10FD |
+              MII_ANLPAR_10 | MII_ANLPAR_CSMACD;
         break;
     case MII_ANER:
         val = MII_ANER_NWAY;
