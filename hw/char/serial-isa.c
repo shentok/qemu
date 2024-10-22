@@ -44,6 +44,7 @@ struct ISASerialState {
     uint32_t iobase;
     uint32_t isairq;
     SerialState state;
+    MemoryRegion io;
 };
 
 static const int isa_serial_io[MAX_ISA_SERIAL_PORTS] = {
@@ -80,8 +81,8 @@ static void serial_isa_realizefn(DeviceState *dev, Error **errp)
     qdev_realize(DEVICE(s), NULL, errp);
     qdev_set_legacy_instance_id(dev, isa->iobase, 3);
 
-    memory_region_init_io(&s->io, OBJECT(isa), &serial_io_ops, s, "serial", 8);
-    isa_register_ioport(isadev, &s->io, isa->iobase);
+    memory_region_init_io(&isa->io, OBJECT(isa), &serial_io_ops, s, "serial", 8);
+    isa_register_ioport(isadev, &isa->io, isa->iobase);
 }
 
 static void serial_isa_build_aml(AcpiDevAmlIf *adev, Aml *scope)
@@ -191,10 +192,10 @@ void isa_serial_set_iobase(ISADevice *serial, hwaddr iobase)
 
     serial->ioport_id = iobase;
     s->iobase = iobase;
-    memory_region_set_address(&s->state.io, s->iobase);
+    memory_region_set_address(&s->io, s->iobase);
 }
 
 void isa_serial_set_enabled(ISADevice *serial, bool enabled)
 {
-    memory_region_set_enabled(&ISA_SERIAL(serial)->state.io, enabled);
+    memory_region_set_enabled(&ISA_SERIAL(serial)->io, enabled);
 }

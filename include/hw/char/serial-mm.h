@@ -39,6 +39,7 @@ struct SerialMM {
     SysBusDevice parent;
 
     SerialState serial;
+    MemoryRegion io;
 
     uint8_t regshift;
     uint8_t endianness;

@@ -75,7 +75,6 @@ struct SerialState {
     int poll_msl;
 
     QEMUTimer *modem_status_poll;
-    MemoryRegion io;
 };
 typedef struct SerialState SerialState;
 

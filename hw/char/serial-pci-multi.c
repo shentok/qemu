@@ -44,6 +44,7 @@ typedef struct PCIMultiSerialState {
     uint32_t     ports;
     char         *name[PCI_SERIAL_MAX_PORTS];
     SerialState  state[PCI_SERIAL_MAX_PORTS];
+    MemoryRegion io[PCI_SERIAL_MAX_PORTS];
     uint32_t     level[PCI_SERIAL_MAX_PORTS];
     IRQState     irqs[PCI_SERIAL_MAX_PORTS];
     uint8_t      prog_if;
@@ -58,7 +59,7 @@ static void multi_serial_pci_exit(PCIDevice *dev)
     for (i = 0; i < pci->ports; i++) {
         s = pci->state + i;
         qdev_unrealize(DEVICE(s));
-        memory_region_del_subregion(&pci->iobar, &s->io);
+        memory_region_del_subregion(&pci->iobar, &pci->io[i]);
         g_free(pci->name[i]);
     }
 }
@@ -95,6 +96,7 @@ static void multi_serial_pci_realize(PCIDevice *dev, Error **errp)
     PCIDeviceClass *pc = PCI_DEVICE_GET_CLASS(dev);
     PCIMultiSerialState *pci = DO_UPCAST(PCIMultiSerialState, dev, dev);
     SerialState *s;
+    MemoryRegion *io;
     size_t i, nports = multi_serial_get_port_count(pc);
 
     pci->dev.config[PCI_CLASS_PROG] = pci->prog_if;
@@ -104,15 +106,16 @@ static void multi_serial_pci_realize(PCIDevice *dev, Error **errp)
 
     for (i = 0; i < nports; i++) {
         s = pci->state + i;
+        io = &pci->io[i];
         if (!qdev_realize(DEVICE(s), NULL, errp)) {
             multi_serial_pci_exit(dev);
             return;
         }
         s->irq = &pci->irqs[i];
         pci->name[i] = g_strdup_printf("uart #%zu", i + 1);
-        memory_region_init_io(&s->io, OBJECT(pci), &serial_io_ops, s,
+        memory_region_init_io(io, OBJECT(pci), &serial_io_ops, s,
                               pci->name[i], 8);
-        memory_region_add_subregion(&pci->iobar, 8 * i, &s->io);
+        memory_region_add_subregion(&pci->iobar, 8 * i, io);
         pci->ports++;
     }
 }
