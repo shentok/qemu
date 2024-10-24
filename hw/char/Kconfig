@@ -18,8 +18,12 @@ config PL011
 config PL011_C
     bool
 
+config SERIAL_C
+    bool
+
 config SERIAL
     bool
+    select SERIAL_C
 
 config SERIAL_ISA
     bool
