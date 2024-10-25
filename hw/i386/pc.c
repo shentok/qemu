@@ -407,7 +407,10 @@ static void pc_cmos_init_floppy(MC146818RtcState *rtc_state, ISADevice *floppy)
         cmos_get_fd_drive_type(fd_type[1]);
     mc146818rtc_set_cmos_data(rtc_state, 0x10, val);
 
-    val = mc146818rtc_get_cmos_data(rtc_state, REG_EQUIPMENT_BYTE);
+    val = 0;
+    val |= 0x02; /* FPU is there */
+    val |= 0x04; /* PS/2 mouse installed */
+
     nb = 0;
     if (fd_type[0] != FLOPPY_DRIVE_TYPE_NONE) {
         nb++;
@@ -565,11 +568,6 @@ static void pc_cmos_init_late(PCMachineState *pcms)
     mc146818rtc_set_cmos_data(s, 0x5b, val);
     mc146818rtc_set_cmos_data(s, 0x5c, val >> 8);
     mc146818rtc_set_cmos_data(s, 0x5d, val >> 16);
-
-    val = 0;
-    val |= 0x02; /* FPU is there */
-    val |= 0x04; /* PS/2 mouse installed */
-    mc146818rtc_set_cmos_data(s, REG_EQUIPMENT_BYTE, val);
 }
 
 static void handle_a20_line_change(void *opaque, int irq, int level)
