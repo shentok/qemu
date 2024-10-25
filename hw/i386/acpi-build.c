@@ -845,7 +845,7 @@ static void build_acpi0017(Aml *table)
 static void
 build_dsdt(GArray *table_data, BIOSLinker *linker,
            AcpiPmInfo *pm, AcpiMiscInfo *misc,
-           Range *pci_hole, Range *pci_hole64, MachineState *machine)
+           Range *pci_hole, Range *pci_hole64, PCMachineState *pcms)
 {
     Object *i440fx = object_resolve_type_unambiguous(TYPE_I440FX_PCI_HOST_BRIDGE,
                                                      NULL);
@@ -853,9 +853,9 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
     CrsRangeEntry *entry;
     Aml *dsdt, *sb_scope, *scope, *dev, *method, *field, *pkg, *crs;
     CrsRangeSet crs_range_set;
-    PCMachineState *pcms = PC_MACHINE(machine);
-    PCMachineClass *pcmc = PC_MACHINE_GET_CLASS(machine);
-    X86MachineState *x86ms = X86_MACHINE(machine);
+    PCMachineClass *pcmc = PC_MACHINE_GET_CLASS(pcms);
+    X86MachineState *x86ms = X86_MACHINE(pcms);
+    MachineState *machine = MACHINE(pcms);
     AcpiMcfgInfo mcfg;
     bool mcfg_valid = !!acpi_get_mcfg(&mcfg);
     uint32_t nr_mem = machine->ram_slots;
@@ -1917,10 +1917,10 @@ static bool acpi_get_mcfg(AcpiMcfgInfo *mcfg)
 }
 
 static
-void acpi_build(AcpiBuildTables *tables, MachineState *machine)
+void acpi_build(AcpiBuildTables *tables, PCMachineState *pcms)
 {
-    PCMachineState *pcms = PC_MACHINE(machine);
-    X86MachineState *x86ms = X86_MACHINE(machine);
+    X86MachineState *x86ms = X86_MACHINE(pcms);
+    MachineState *machine = MACHINE(pcms);
     DeviceState *iommu = pcms->iommu;
     GArray *table_offsets;
     unsigned facs, dsdt, rsdt;
@@ -1972,7 +1972,7 @@ void acpi_build(AcpiBuildTables *tables, MachineState *machine)
     /* DSDT is pointed to by FADT */
     dsdt = tables_blob->len;
     build_dsdt(tables_blob, tables->linker, &pm, &misc,
-               &pci_hole, &pci_hole64, machine);
+               &pci_hole, &pci_hole64, pcms);
 
     /* ACPI tables pointed to by RSDT */
     acpi_add_table(table_offsets, tables_blob);
@@ -2143,7 +2143,7 @@ static void acpi_build_update(void *build_opaque)
 
     acpi_build_tables_init(&tables);
 
-    acpi_build(&tables, MACHINE(qdev_get_machine()));
+    acpi_build(&tables, PC_MACHINE(qdev_get_machine()));
 
     acpi_ram_update(build_state->table_mr, tables.table_data);
 
@@ -2199,7 +2199,7 @@ void acpi_setup(void)
     build_state = g_malloc0(sizeof *build_state);
 
     acpi_build_tables_init(&tables);
-    acpi_build(&tables, MACHINE(pcms));
+    acpi_build(&tables, pcms);
 
     /* Now expose it all to Guest */
     build_state->table_mr = acpi_add_rom_blob(acpi_build_update,
