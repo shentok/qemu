@@ -980,7 +980,7 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
     }
 
     crs_range_set_init(&crs_range_set);
-    bus = PC_MACHINE(machine)->pcibus;
+    bus = pcms->pcibus;
     if (bus) {
         QLIST_FOREACH(bus, &bus->child, sibling) {
             uint8_t bus_num = pci_bus_num(bus);
@@ -2194,7 +2194,7 @@ void acpi_setup(void)
         return;
     }
 
-    if (!x86_machine_is_acpi_enabled(X86_MACHINE(pcms))) {
+    if (!x86_machine_is_acpi_enabled(x86ms)) {
         ACPI_BUILD_DPRINTF("ACPI disabled. Bailing out.\n");
         return;
     }
