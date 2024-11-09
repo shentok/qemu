@@ -45,6 +45,11 @@
 			compatible = "gpio-poweroff";
 		};
 
+		restart {
+			gpios = <0x8005 0x01 0x00>;
+			compatible = "gpio-restart";
+		};
+
 		gpio@ff000 {
 			linux,phandle = <0x8005>;
 			phandle = <0x8005>;
