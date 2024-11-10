@@ -935,7 +935,7 @@ static void arm_setup_direct_kernel_boot(ARMCPU *cpu,
     AddressSpace *as = arm_boot_address_space(cpu, info);
     ssize_t kernel_size;
     int initrd_size;
-    int is_linux = 0;
+    int is_linux = 1;
     uint64_t elf_entry;
     /* Addresses of first byte used and first byte not used by the image */
     uint64_t image_low_addr = 0, image_high_addr = 0;

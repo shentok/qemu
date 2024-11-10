@@ -339,6 +339,8 @@ static ssize_t glue(load_elf, SZ)(const char *name, int fd,
         glue(bswap_ehdr, SZ)(&ehdr);
     }
 
+    ehdr.e_entry = ehdr.e_entry & 0xfffffffffff;
+
     if (elf_machine <= EM_NONE) {
         /* The caller didn't specify an ARCH, we can figure it out */
         elf_machine = ehdr.e_machine;
@@ -422,6 +424,8 @@ static ssize_t glue(load_elf, SZ)(const char *name, int fd,
     total_size = 0;
     for(i = 0; i < ehdr.e_phnum; i++) {
         ph = &phdr[i];
+        ph->p_paddr = ph->p_paddr & 0xfffffffffff;
+        ph->p_vaddr = ph->p_vaddr & 0xfffffffffff;
         if (ph->p_type == PT_LOAD) {
             mem_size = ph->p_memsz; /* Size of the ROM */
             file_size = ph->p_filesz; /* Size of the allocated data */
