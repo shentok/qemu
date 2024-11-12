@@ -26,6 +26,7 @@
 #include "hw/misc/unimp.h"
 #include "hw/boards.h"
 #include "sysemu/sysemu.h"
+#include "qemu/error-report.h"
 #include "qemu/module.h"
 #include "target/arm/cpu-qom.h"
 
@@ -79,6 +80,24 @@ static void fsl_imx8mp_init(Object *obj)
      */
     object_initialize_child(obj, "gic", &s->gic, TYPE_ARM_GICV3);
 
+#if 0
+    /*
+     * GPIOs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_GPIOS; i++) {
+        snprintf(name, NAME_SIZE, "gpio%d", i + 1);
+        object_initialize_child(obj, name, &s->gpio[i], TYPE_IMX_GPIO);
+    }
+
+    /*
+     * GPTs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_GPTS; i++) {
+        snprintf(name, NAME_SIZE, "gpt%d", i + 1);
+        object_initialize_child(obj, name, &s->gpt[i], TYPE_IMX7_GPT);
+    }
+#endif
+
     /*
      * System Counter
      */
@@ -94,6 +113,34 @@ static void fsl_imx8mp_init(Object *obj)
      */
     object_initialize_child(obj, "analog", &s->analog, TYPE_IMX8MP_ANALOG);
 
+#if 0
+    /*
+     * GPCv2
+     */
+    object_initialize_child(obj, "gpcv2", &s->gpcv2, TYPE_IMX_GPCV2);
+
+    /*
+     * SRC
+     */
+    object_initialize_child(obj, "src", &s->src, TYPE_IMX7_SRC);
+
+    /*
+     * ECSPIs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_ECSPIS; i++) {
+        snprintf(name, NAME_SIZE, "spi%d", i + 1);
+        object_initialize_child(obj, name, &s->spi[i], TYPE_IMX_SPI);
+    }
+
+    /*
+     * I2Cs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_I2CS; i++) {
+        snprintf(name, NAME_SIZE, "i2c%d", i + 1);
+        object_initialize_child(obj, name, &s->i2c[i], TYPE_IMX_I2C);
+    }
+#endif
+
     /*
      * UARTs
      */
@@ -101,6 +148,57 @@ static void fsl_imx8mp_init(Object *obj)
         snprintf(name, NAME_SIZE, "uart%d", i + 1);
         object_initialize_child(obj, name, &s->uart[i], TYPE_IMX_SERIAL);
     }
+
+#if 0
+    /*
+     * Ethernets
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_ETHS; i++) {
+        snprintf(name, NAME_SIZE, "eth%d", i + 1);
+        object_initialize_child(obj, name, &s->eth[i], TYPE_IMX_ENET);
+    }
+
+    /*
+     * USDHCs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_USDHCS; i++) {
+        snprintf(name, NAME_SIZE, "usdhc%d", i + 1);
+        object_initialize_child(obj, name, &s->usdhc[i], TYPE_IMX_USDHC);
+    }
+
+    /*
+     * SNVS
+     */
+    object_initialize_child(obj, "snvs", &s->snvs, TYPE_IMX7_SNVS);
+
+    /*
+     * Watchdogs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_WDTS; i++) {
+        snprintf(name, NAME_SIZE, "wdt%d", i + 1);
+        object_initialize_child(obj, name, &s->wdt[i], TYPE_IMX2_WDT);
+    }
+
+    /*
+     * GPR
+     */
+    object_initialize_child(obj, "gpr", &s->gpr, TYPE_IMX7_GPR);
+#endif
+
+    /*
+     * PCIE
+     */
+    object_initialize_child(obj, "pcie", &s->pcie, TYPE_DESIGNWARE_PCIE_HOST);
+
+#if 0
+    /*
+     * USBs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_USBS; i++) {
+        snprintf(name, NAME_SIZE, "usb%d", i + 1);
+        object_initialize_child(obj, name, &s->usb[i], TYPE_CHIPIDEA);
+    }
+#endif
 }
 
 static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
@@ -220,6 +318,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                        qdev_get_gpio_in(DEVICE(&s->gic),
                                         FSL_IMX8MP_SYSCTR_IRQ));
 
+#if 0
     /*
      * GPTs
      */
@@ -229,14 +328,23 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
             FSL_IMX8MP_GPT2_ADDR,
             FSL_IMX8MP_GPT3_ADDR,
             FSL_IMX8MP_GPT4_ADDR,
-            FSL_IMX8MP_GPT5_ADDR,
-            FSL_IMX8MP_GPT6_ADDR,
         };
 
-        snprintf(name, NAME_SIZE, "gpt%d", i);
-        create_unimplemented_device(name, FSL_IMX8MP_GPTn_ADDR[i],
-                                    FSL_IMX8MP_GPIOn_SIZE);
+        static const int FSL_IMX8MP_GPTn_IRQ[FSL_IMX8MP_NUM_GPTS] = {
+            FSL_IMX8MP_GPT1_IRQ,
+            FSL_IMX8MP_GPT2_IRQ,
+            FSL_IMX8MP_GPT3_IRQ,
+            FSL_IMX8MP_GPT4_IRQ,
+        };
+
+        s->gpt[i].ccm = IMX_CCM(&s->ccm);
+        sysbus_realize(SYS_BUS_DEVICE(&s->gpt[i]), &error_abort);
+        sysbus_mmio_map(SYS_BUS_DEVICE(&s->gpt[i]), 0, FSL_IMX8MP_GPTn_ADDR[i]);
+        sysbus_connect_irq(SYS_BUS_DEVICE(&s->gpt[i]), 0,
+                           qdev_get_gpio_in(DEVICE(&s->gic),
+                                            FSL_IMX8MP_GPTn_IRQ[i]));
     }
+#endif
 
     /*
      * GPIOs
@@ -276,6 +384,10 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     /*
      * GPCv2
      */
+#if 0
+    sysbus_realize(SYS_BUS_DEVICE(&s->gpcv2), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gpcv2), 0, FSL_IMX8MP_GPC_ADDR);
+#endif
     create_unimplemented_device("gpcv2", FSL_IMX8MP_GPC_ADDR,
                                 FSL_IMX8MP_GPC_SIZE);
 
@@ -310,6 +422,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     create_unimplemented_device("ANA_TSENSOR", FSL_IMX8MP_ANA_TSENSOR_ADDR,
                                 FSL_IMX8MP_ANA_TSENSOR_SIZE);
 
+#if 0
     /*
      * ECSPIs
      */
@@ -318,11 +431,23 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
             FSL_IMX8MP_ECSPI1_ADDR,
             FSL_IMX8MP_ECSPI2_ADDR,
             FSL_IMX8MP_ECSPI3_ADDR,
+            FSL_IMX8MP_ECSPI4_ADDR,
         };
 
-        snprintf(name, NAME_SIZE, "spi%d", i + 1);
-        create_unimplemented_device(name, FSL_IMX8MP_SPIn_ADDR[i],
-                                    FSL_IMX8MP_ECSPIn_SIZE);
+        static const int FSL_IMX8MP_SPIn_IRQ[FSL_IMX8MP_NUM_ECSPIS] = {
+            FSL_IMX8MP_ECSPI1_IRQ,
+            FSL_IMX8MP_ECSPI2_IRQ,
+            FSL_IMX8MP_ECSPI3_IRQ,
+            FSL_IMX8MP_ECSPI4_IRQ,
+        };
+
+        /* Initialize the SPI */
+        sysbus_realize(SYS_BUS_DEVICE(&s->spi[i]), &error_abort);
+        sysbus_mmio_map(SYS_BUS_DEVICE(&s->spi[i]), 0,
+                        FSL_IMX8MP_SPIn_ADDR[i]);
+        sysbus_connect_irq(SYS_BUS_DEVICE(&s->spi[i]), 0,
+                           qdev_get_gpio_in(DEVICE(&s->gic),
+                                            FSL_IMX8MP_SPIn_IRQ[i]));
     }
 
     /*
@@ -334,14 +459,23 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
             FSL_IMX8MP_I2C2_ADDR,
             FSL_IMX8MP_I2C3_ADDR,
             FSL_IMX8MP_I2C4_ADDR,
-            FSL_IMX8MP_I2C5_ADDR,
-            FSL_IMX8MP_I2C6_ADDR,
         };
 
-        snprintf(name, NAME_SIZE, "i2c%d", i + 1);
-        create_unimplemented_device(name, FSL_IMX8MP_I2Cn_ADDR[i],
-                                    FSL_IMX8MP_I2Cn_SIZE);
+        static const int FSL_IMX8MP_I2Cn_IRQ[FSL_IMX8MP_NUM_I2CS] = {
+            FSL_IMX8MP_I2C1_IRQ,
+            FSL_IMX8MP_I2C2_IRQ,
+            FSL_IMX8MP_I2C3_IRQ,
+            FSL_IMX8MP_I2C4_IRQ,
+        };
+
+        sysbus_realize(SYS_BUS_DEVICE(&s->i2c[i]), &error_abort);
+        sysbus_mmio_map(SYS_BUS_DEVICE(&s->i2c[i]), 0, FSL_IMX8MP_I2Cn_ADDR[i]);
+
+        sysbus_connect_irq(SYS_BUS_DEVICE(&s->i2c[i]), 0,
+                           qdev_get_gpio_in(DEVICE(&s->gic),
+                                            FSL_IMX8MP_I2Cn_IRQ[i]));
     }
+#endif
 
     /*
      * UARTs
@@ -372,17 +506,45 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->uart[i]), 0, irq);
     }
 
+#if 0
     /*
      * Ethernets
+     *
+     * We must use two loops since phy_connected affects the other interface
+     * and we have to set all properties before calling sysbus_realize().
      */
+    for (i = 0; i < FSL_IMX8MP_NUM_ETHS; i++) {
+        object_property_set_bool(OBJECT(&s->eth[i]), "phy-connected",
+                                 s->phy_connected[i], &error_abort);
+        /*
+         * If the MDIO bus on this controller is not connected, assume the
+         * other controller provides support for it.
+         */
+        if (!s->phy_connected[i]) {
+            object_property_set_link(OBJECT(&s->eth[1 - i]), "phy-consumer",
+                                     OBJECT(&s->eth[i]), &error_abort);
+        }
+    }
+
     for (i = 0; i < FSL_IMX8MP_NUM_ETHS; i++) {
         static const hwaddr FSL_IMX8MP_ENETn_ADDR[FSL_IMX8MP_NUM_ETHS] = {
             FSL_IMX8MP_ENET1_ADDR,
+            FSL_IMX8MP_ENET2_ADDR,
         };
 
-        snprintf(name, NAME_SIZE, "eth%d", i + 1);
-        create_unimplemented_device(name, FSL_IMX8MP_ENETn_ADDR[i],
-                                    FSL_IMX8MP_ENETn_SIZE);
+        object_property_set_uint(OBJECT(&s->eth[i]), "phy-num",
+                                 s->phy_num[i], &error_abort);
+        object_property_set_uint(OBJECT(&s->eth[i]), "tx-ring-num",
+                                 FSL_IMX8MP_ETH_NUM_TX_RINGS, &error_abort);
+        qemu_configure_nic_device(DEVICE(&s->eth[i]), true, NULL);
+        sysbus_realize(SYS_BUS_DEVICE(&s->eth[i]), &error_abort);
+
+        sysbus_mmio_map(SYS_BUS_DEVICE(&s->eth[i]), 0, FSL_IMX8MP_ENETn_ADDR[i]);
+
+        irq = qdev_get_gpio_in(DEVICE(&s->gic), FSL_IMX8MP_ENET_IRQ(i, 0));
+        sysbus_connect_irq(SYS_BUS_DEVICE(&s->eth[i]), 0, irq);
+        irq = qdev_get_gpio_in(DEVICE(&s->gic), FSL_IMX8MP_ENET_IRQ(i, 3));
+        sysbus_connect_irq(SYS_BUS_DEVICE(&s->eth[i]), 1, irq);
     }
 
     /*
@@ -395,16 +557,34 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
             FSL_IMX8MP_USDHC3_ADDR,
         };
 
-        snprintf(name, NAME_SIZE, "usdhc%d", i + 1);
-        create_unimplemented_device(name, FSL_IMX8MP_USDHCn_ADDR[i],
-                                    FSL_IMX8MP_USDHCn_SIZE);
+        static const int FSL_IMX8MP_USDHCn_IRQ[FSL_IMX8MP_NUM_USDHCS] = {
+            FSL_IMX8MP_USDHC1_IRQ,
+            FSL_IMX8MP_USDHC2_IRQ,
+            FSL_IMX8MP_USDHC3_IRQ,
+        };
+
+        object_property_set_uint(OBJECT(&s->usdhc[i]), "vendor",
+                                 SDHCI_VENDOR_IMX, &error_abort);
+        sysbus_realize(SYS_BUS_DEVICE(&s->usdhc[i]), &error_abort);
+
+        sysbus_mmio_map(SYS_BUS_DEVICE(&s->usdhc[i]), 0,
+                        FSL_IMX8MP_USDHCn_ADDR[i]);
+
+        irq = qdev_get_gpio_in(DEVICE(&s->gic), FSL_IMX8MP_USDHCn_IRQ[i]);
+        sysbus_connect_irq(SYS_BUS_DEVICE(&s->usdhc[i]), 0, irq);
     }
 
     /*
      * SNVS
      */
-    create_unimplemented_device("snvs", FSL_IMX8MP_SNVS_HP_ADDR,
-                                FSL_IMX8MP_SNVS_HP_SIZE);
+    sysbus_realize(SYS_BUS_DEVICE(&s->snvs), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->snvs), 0, FSL_IMX8MP_SNVS_HP_ADDR);
+
+    /*
+     * SRC
+     */
+    sysbus_realize(SYS_BUS_DEVICE(&s->src), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->src), 0, FSL_IMX8MP_SRC_ADDR);
 
     /*
      * Watchdogs
@@ -414,12 +594,35 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
             FSL_IMX8MP_WDOG1_ADDR,
             FSL_IMX8MP_WDOG2_ADDR,
             FSL_IMX8MP_WDOG3_ADDR,
+            FSL_IMX8MP_WDOG4_ADDR,
+        };
+        static const int FSL_IMX8MP_WDOGn_IRQ[FSL_IMX8MP_NUM_WDTS] = {
+            FSL_IMX8MP_WDOG1_IRQ,
+            FSL_IMX8MP_WDOG2_IRQ,
+            FSL_IMX8MP_WDOG3_IRQ,
+            FSL_IMX8MP_WDOG4_IRQ,
         };
 
-        snprintf(name, NAME_SIZE, "wdt%d", i + 1);
-        create_unimplemented_device(name, FSL_IMX8MP_WDOGn_ADDR[i],
-                                    FSL_IMX8MP_WDOGn_SIZE);
+        object_property_set_bool(OBJECT(&s->wdt[i]), "pretimeout-support",
+                                 true, &error_abort);
+        sysbus_realize(SYS_BUS_DEVICE(&s->wdt[i]), &error_abort);
+
+        sysbus_mmio_map(SYS_BUS_DEVICE(&s->wdt[i]), 0, FSL_IMX8MP_WDOGn_ADDR[i]);
+        sysbus_connect_irq(SYS_BUS_DEVICE(&s->wdt[i]), 0,
+                           qdev_get_gpio_in(DEVICE(&s->gic),
+                                            FSL_IMX8MP_WDOGn_IRQ[i]));
     }
+
+    /*
+     * SDMA
+     */
+    create_unimplemented_device("sdma", FSL_IMX8MP_SDMA_ADDR, FSL_IMX8MP_SDMA_SIZE);
+
+    /*
+     * CAAM
+     */
+    create_unimplemented_device("caam", FSL_IMX8MP_CAAM_ADDR, FSL_IMX8MP_CAAM_SIZE);
+#endif
 
     /*
      * PWMs
@@ -437,25 +640,118 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                                     FSL_IMX8MP_PWMn_SIZE);
     }
 
+#if 0
+    /*
+     * CANs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_CANS; i++) {
+        static const hwaddr FSL_IMX8MP_CANn_ADDR[FSL_IMX8MP_NUM_CANS] = {
+            FSL_IMX8MP_CAN1_ADDR,
+            FSL_IMX8MP_CAN2_ADDR,
+        };
+
+        snprintf(name, NAME_SIZE, "can%d", i);
+        create_unimplemented_device(name, FSL_IMX8MP_CANn_ADDR[i],
+                                    FSL_IMX8MP_CANn_SIZE);
+    }
+
+    /*
+     * SAIs (Audio SSI (Synchronous Serial Interface))
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_SAIS; i++) {
+        static const hwaddr FSL_IMX8MP_SAIn_ADDR[FSL_IMX8MP_NUM_SAIS] = {
+            FSL_IMX8MP_SAI1_ADDR,
+            FSL_IMX8MP_SAI2_ADDR,
+            FSL_IMX8MP_SAI3_ADDR,
+        };
+
+        snprintf(name, NAME_SIZE, "sai%d", i);
+        create_unimplemented_device(name, FSL_IMX8MP_SAIn_ADDR[i],
+                                    FSL_IMX8MP_SAIn_SIZE);
+    }
+#endif
+
     /*
      * OCOTP
      */
     create_unimplemented_device("ocotp", FSL_IMX8MP_OCOTP_CTRL_ADDR,
                                 FSL_IMX8MP_OCOTP_CTRL_SIZE);
 
+#if 0
+    /*
+     * GPR
+     */
+    sysbus_realize(SYS_BUS_DEVICE(&s->gpr), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gpr), 0, FSL_IMX8MP_IOMUXC_GPR_ADDR);
+#endif
+
+    /*
+     * PCIE
+     */
+    sysbus_realize(SYS_BUS_DEVICE(&s->pcie), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->pcie), 0, FSL_IMX8MP_PCIE1_ADDR);
+
+    /* fixme irq */
+    irq = qdev_get_gpio_in(DEVICE(&s->gic), FSL_IMX8MP_PCI_INTA_IRQ);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 0, irq);
+    irq = qdev_get_gpio_in(DEVICE(&s->gic), FSL_IMX8MP_PCI_INTB_IRQ);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 1, irq);
+    irq = qdev_get_gpio_in(DEVICE(&s->gic), FSL_IMX8MP_PCI_INTC_IRQ);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 2, irq);
+    irq = qdev_get_gpio_in(DEVICE(&s->gic), FSL_IMX8MP_PCI_INTD_IRQ);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 3, irq);
+
+#if 0
     /*
      * USBs
      */
     for (i = 0; i < FSL_IMX8MP_NUM_USBS; i++) {
         static const hwaddr FSL_IMX8MP_USBMISCn_ADDR[FSL_IMX8MP_NUM_USBS] = {
-            FSL_IMX8MP_USB1_ADDR,
-            FSL_IMX8MP_USB2_ADDR,
+            FSL_IMX8MP_USBMISC1_ADDR,
+            FSL_IMX8MP_USBMISC2_ADDR,
+            FSL_IMX8MP_USBMISC3_ADDR,
         };
 
-        snprintf(name, NAME_SIZE, "usb%d", i + 1);
-        create_unimplemented_device(name, FSL_IMX8MP_USBMISCn_ADDR[i],
-                                    FSL_IMX8MP_USBn_SIZE);
+        static const hwaddr FSL_IMX8MP_USBn_ADDR[FSL_IMX8MP_NUM_USBS] = {
+            FSL_IMX8MP_USB1_ADDR,
+            FSL_IMX8MP_USB2_ADDR,
+            FSL_IMX8MP_USB3_ADDR,
+        };
+
+        static const int FSL_IMX8MP_USBn_IRQ[FSL_IMX8MP_NUM_USBS] = {
+            FSL_IMX8MP_USB1_IRQ,
+            FSL_IMX8MP_USB2_IRQ,
+            FSL_IMX8MP_USB3_IRQ,
+        };
+
+        sysbus_realize(SYS_BUS_DEVICE(&s->usb[i]), &error_abort);
+        sysbus_mmio_map(SYS_BUS_DEVICE(&s->usb[i]), 0,
+                        FSL_IMX8MP_USBn_ADDR[i]);
+
+        irq = qdev_get_gpio_in(DEVICE(&s->gic), FSL_IMX8MP_USBn_IRQ[i]);
+        sysbus_connect_irq(SYS_BUS_DEVICE(&s->usb[i]), 0, irq);
     }
+
+    /*
+     * ADCs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_ADCS; i++) {
+        static const hwaddr FSL_IMX8MP_ADCn_ADDR[FSL_IMX8MP_NUM_ADCS] = {
+            FSL_IMX8MP_ADC1_ADDR,
+            FSL_IMX8MP_ADC2_ADDR,
+        };
+
+        snprintf(name, NAME_SIZE, "adc%d", i);
+        create_unimplemented_device(name, FSL_IMX8MP_ADCn_ADDR[i],
+                                    FSL_IMX8MP_ADCn_SIZE);
+    }
+
+    /*
+     * LCD
+     */
+    create_unimplemented_device("lcdif", FSL_IMX8MP_LCDIF_ADDR,
+                                FSL_IMX8MP_LCDIF_SIZE);
+#endif
 
     /*
      * DMA APBH
@@ -465,6 +761,78 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
 
     create_unimplemented_device("DDRC 4MB DDR CTL", FSL_IMX8MP_DDR_CTL_ADDR,
                                 FSL_IMX8MP_DDR_CTL_SIZE);
+
+#if 0
+    /*
+     * PCIe PHY
+     */
+    create_unimplemented_device("pcie-phy", FSL_IMX8MP_PCIE_PHY_ADDR,
+                                FSL_IMX8MP_PCIE_PHY_SIZE);
+
+    /*
+     * CSU
+     */
+    create_unimplemented_device("csu", FSL_IMX8MP_CSU_ADDR,
+                                FSL_IMX8MP_CSU_SIZE);
+
+    /*
+     * TZASC
+     */
+    create_unimplemented_device("tzasc", FSL_IMX8MP_TZASC_ADDR,
+                                FSL_IMX8MP_TZASC_SIZE);
+
+    /*
+     * OCRAM memory
+     */
+    memory_region_init_ram(&s->ocram, NULL, "imx7.ocram",
+                           FSL_IMX8MP_OCRAM_MEM_SIZE,
+                           &error_abort);
+    memory_region_add_subregion(get_system_memory(), FSL_IMX8MP_OCRAM_MEM_ADDR,
+                                &s->ocram);
+
+    /*
+     * OCRAM EPDC memory
+     */
+    memory_region_init_ram(&s->ocram_epdc, NULL, "imx7.ocram_epdc",
+                           FSL_IMX8MP_OCRAM_EPDC_SIZE,
+                           &error_abort);
+    memory_region_add_subregion(get_system_memory(), FSL_IMX8MP_OCRAM_EPDC_ADDR,
+                                &s->ocram_epdc);
+
+    /*
+     * OCRAM PXP memory
+     */
+    memory_region_init_ram(&s->ocram_pxp, NULL, "imx7.ocram_pxp",
+                           FSL_IMX8MP_OCRAM_PXP_SIZE,
+                           &error_abort);
+    memory_region_add_subregion(get_system_memory(), FSL_IMX8MP_OCRAM_PXP_ADDR,
+                                &s->ocram_pxp);
+
+    /*
+     * OCRAM_S memory
+     */
+    memory_region_init_ram(&s->ocram_s, NULL, "imx7.ocram_s",
+                           FSL_IMX8MP_OCRAM_S_SIZE,
+                           &error_abort);
+    memory_region_add_subregion(get_system_memory(), FSL_IMX8MP_OCRAM_S_ADDR,
+                                &s->ocram_s);
+
+    /*
+     * ROM memory
+     */
+    memory_region_init_rom(&s->rom, OBJECT(dev), "imx7.rom",
+                           FSL_IMX8MP_ROM_SIZE, &error_abort);
+    memory_region_add_subregion(get_system_memory(), FSL_IMX8MP_ROM_ADDR,
+                                &s->rom);
+
+    /*
+     * CAAM memory
+     */
+    memory_region_init_rom(&s->caam, OBJECT(dev), "imx7.caam",
+                           FSL_IMX8MP_CAAM_MEM_SIZE, &error_abort);
+    memory_region_add_subregion(get_system_memory(), FSL_IMX8MP_CAAM_MEM_ADDR,
+                                &s->caam);
+#endif
 }
 
 static Property fsl_imx8mp_properties[] = {
