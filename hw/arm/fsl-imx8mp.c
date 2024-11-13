@@ -157,6 +157,7 @@ static void fsl_imx8mp_init(Object *obj)
         snprintf(name, NAME_SIZE, "eth%d", i + 1);
         object_initialize_child(obj, name, &s->eth[i], TYPE_IMX_ENET);
     }
+#endif
 
     /*
      * USDHCs
@@ -166,6 +167,7 @@ static void fsl_imx8mp_init(Object *obj)
         object_initialize_child(obj, name, &s->usdhc[i], TYPE_IMX_USDHC);
     }
 
+#if 0
     /*
      * SNVS
      */
@@ -574,6 +576,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->usdhc[i]), 0, irq);
     }
 
+#if 0
     /*
      * SNVS
      */
