@@ -1,5 +1,8 @@
 # See docs/devel/tracing.rst for syntax documentation.
 
+# cpu.c
+arm_cpu_set_irq(int cpu_index, int irq, int level) "index: %d, irq: %d, level: %d"
+
 # helper.c
 arm_gt_recalc(int timer, uint64_t nexttick) "gt recalc: timer %d next tick 0x%" PRIx64
 arm_gt_recalc_disabled(int timer) "gt recalc: timer %d timer disabled"

@@ -50,6 +50,7 @@
 #include "cpregs.h"
 #include "target/arm/cpu-qom.h"
 #include "target/arm/gtimer.h"
+#include "trace.h"
 
 static void arm_cpu_set_pc(CPUState *cs, vaddr value)
 {
@@ -1070,6 +1071,8 @@ static void arm_cpu_set_irq(void *opaque, int irq, int level)
         [ARM_CPU_NMI] = CPU_INTERRUPT_NMI,
         [ARM_CPU_VINMI] = CPU_INTERRUPT_VINMI,
     };
+
+    trace_arm_cpu_set_irq(cs->cpu_index, irq, level);
 
     if (!arm_feature(env, ARM_FEATURE_EL2) &&
         (irq == ARM_CPU_VIRQ || irq == ARM_CPU_VFIQ)) {
