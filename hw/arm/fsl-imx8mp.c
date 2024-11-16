@@ -123,6 +123,7 @@ static void fsl_imx8mp_init(Object *obj)
      * SRC
      */
     object_initialize_child(obj, "src", &s->src, TYPE_IMX7_SRC);
+#endif
 
     /*
      * ECSPIs
@@ -131,7 +132,6 @@ static void fsl_imx8mp_init(Object *obj)
         snprintf(name, NAME_SIZE, "spi%d", i + 1);
         object_initialize_child(obj, name, &s->spi[i], TYPE_IMX_SPI);
     }
-#endif
 
     /*
      * I2Cs
@@ -448,7 +448,6 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     create_unimplemented_device("ANA_TSENSOR", FSL_IMX8MP_ANA_TSENSOR_ADDR,
                                 FSL_IMX8MP_ANA_TSENSOR_SIZE);
 
-#if 0
     /*
      * ECSPIs
      */
@@ -457,14 +456,12 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
             FSL_IMX8MP_ECSPI1_ADDR,
             FSL_IMX8MP_ECSPI2_ADDR,
             FSL_IMX8MP_ECSPI3_ADDR,
-            FSL_IMX8MP_ECSPI4_ADDR,
         };
 
         static const int FSL_IMX8MP_SPIn_IRQ[FSL_IMX8MP_NUM_ECSPIS] = {
             FSL_IMX8MP_ECSPI1_IRQ,
             FSL_IMX8MP_ECSPI2_IRQ,
             FSL_IMX8MP_ECSPI3_IRQ,
-            FSL_IMX8MP_ECSPI4_IRQ,
         };
 
         /* Initialize the SPI */
@@ -475,7 +472,6 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                            qdev_get_gpio_in(DEVICE(&s->gic),
                                             FSL_IMX8MP_SPIn_IRQ[i]));
     }
-#endif
 
     /*
      * I2Cs
