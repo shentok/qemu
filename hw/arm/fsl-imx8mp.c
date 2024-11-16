@@ -80,7 +80,6 @@ static void fsl_imx8mp_init(Object *obj)
      */
     object_initialize_child(obj, "gic", &s->gic, TYPE_ARM_GICV3);
 
-#if 0
     /*
      * GPIOs
      */
@@ -89,6 +88,7 @@ static void fsl_imx8mp_init(Object *obj)
         object_initialize_child(obj, name, &s->gpio[i], TYPE_IMX_GPIO);
     }
 
+#if 0
     /*
      * GPTs
      */
@@ -360,9 +360,33 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
             FSL_IMX8MP_GPIO5_ADDR,
         };
 
-        snprintf(name, NAME_SIZE, "gpio%d", i);
-        create_unimplemented_device(name, FSL_IMX8MP_GPIOn_ADDR[i],
-                                    FSL_IMX8MP_GPIOn_SIZE);
+        static const int FSL_IMX8MP_GPIOn_LOW_IRQ[FSL_IMX8MP_NUM_GPIOS] = {
+            FSL_IMX8MP_GPIO1_LOW_IRQ,
+            FSL_IMX8MP_GPIO2_LOW_IRQ,
+            FSL_IMX8MP_GPIO3_LOW_IRQ,
+            FSL_IMX8MP_GPIO4_LOW_IRQ,
+            FSL_IMX8MP_GPIO5_LOW_IRQ,
+        };
+
+        static const int FSL_IMX8MP_GPIOn_HIGH_IRQ[FSL_IMX8MP_NUM_GPIOS] = {
+            FSL_IMX8MP_GPIO1_HIGH_IRQ,
+            FSL_IMX8MP_GPIO2_HIGH_IRQ,
+            FSL_IMX8MP_GPIO3_HIGH_IRQ,
+            FSL_IMX8MP_GPIO4_HIGH_IRQ,
+            FSL_IMX8MP_GPIO5_HIGH_IRQ,
+        };
+
+        sysbus_realize(SYS_BUS_DEVICE(&s->gpio[i]), &error_abort);
+        sysbus_mmio_map(SYS_BUS_DEVICE(&s->gpio[i]), 0,
+                        FSL_IMX8MP_GPIOn_ADDR[i]);
+
+        sysbus_connect_irq(SYS_BUS_DEVICE(&s->gpio[i]), 0,
+                           qdev_get_gpio_in(DEVICE(&s->gic),
+                                            FSL_IMX8MP_GPIOn_LOW_IRQ[i]));
+
+        sysbus_connect_irq(SYS_BUS_DEVICE(&s->gpio[i]), 1,
+                           qdev_get_gpio_in(DEVICE(&s->gic),
+                                            FSL_IMX8MP_GPIOn_HIGH_IRQ[i]));
     }
 
     /*
