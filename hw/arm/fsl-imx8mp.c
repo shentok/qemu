@@ -167,12 +167,10 @@ static void fsl_imx8mp_init(Object *obj)
         object_initialize_child(obj, name, &s->usdhc[i], TYPE_IMX_USDHC);
     }
 
-#if 0
     /*
      * SNVS
      */
     object_initialize_child(obj, "snvs", &s->snvs, TYPE_IMX7_SNVS);
-#endif
 
     /*
      * Watchdogs
@@ -605,13 +603,13 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->usdhc[i]), 0, irq);
     }
 
-#if 0
     /*
      * SNVS
      */
     sysbus_realize(SYS_BUS_DEVICE(&s->snvs), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->snvs), 0, FSL_IMX8MP_SNVS_HP_ADDR);
 
+#if 0
     /*
      * SRC
      */
