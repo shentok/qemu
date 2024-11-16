@@ -49,7 +49,7 @@ enum FslIMX7Configuration {
     FSL_IMX8MP_NUM_ETHS         = 1,
     FSL_IMX8MP_ETH_NUM_TX_RINGS = 3,
     FSL_IMX8MP_NUM_USDHCS       = 3,
-    FSL_IMX8MP_NUM_WDTS         = 4,
+    FSL_IMX8MP_NUM_WDTS         = 3,
     FSL_IMX8MP_NUM_GPTS         = 6,
     FSL_IMX8MP_NUM_IOMUXCS      = 2,
     FSL_IMX8MP_NUM_GPIOS        = 5,
@@ -507,7 +507,6 @@ enum FslIMX7IRQs {
     FSL_IMX8MP_WDOG1_IRQ    = 78,
     FSL_IMX8MP_WDOG2_IRQ    = 79,
     FSL_IMX8MP_WDOG3_IRQ    = 10,
-    FSL_IMX8MP_WDOG4_IRQ    = 109,
 
     FSL_IMX8MP_PCI_INTA_IRQ = 125,
     FSL_IMX8MP_PCI_INTB_IRQ = 124,

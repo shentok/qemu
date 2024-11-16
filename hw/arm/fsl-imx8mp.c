@@ -172,6 +172,7 @@ static void fsl_imx8mp_init(Object *obj)
      * SNVS
      */
     object_initialize_child(obj, "snvs", &s->snvs, TYPE_IMX7_SNVS);
+#endif
 
     /*
      * Watchdogs
@@ -181,6 +182,7 @@ static void fsl_imx8mp_init(Object *obj)
         object_initialize_child(obj, name, &s->wdt[i], TYPE_IMX2_WDT);
     }
 
+#if 0
     /*
      * GPR
      */
@@ -613,6 +615,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
      */
     sysbus_realize(SYS_BUS_DEVICE(&s->src), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->src), 0, FSL_IMX8MP_SRC_ADDR);
+#endif
 
     /*
      * Watchdogs
@@ -622,13 +625,11 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
             FSL_IMX8MP_WDOG1_ADDR,
             FSL_IMX8MP_WDOG2_ADDR,
             FSL_IMX8MP_WDOG3_ADDR,
-            FSL_IMX8MP_WDOG4_ADDR,
         };
         static const int FSL_IMX8MP_WDOGn_IRQ[FSL_IMX8MP_NUM_WDTS] = {
             FSL_IMX8MP_WDOG1_IRQ,
             FSL_IMX8MP_WDOG2_IRQ,
             FSL_IMX8MP_WDOG3_IRQ,
-            FSL_IMX8MP_WDOG4_IRQ,
         };
 
         object_property_set_bool(OBJECT(&s->wdt[i]), "pretimeout-support",
@@ -641,6 +642,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                                             FSL_IMX8MP_WDOGn_IRQ[i]));
     }
 
+#if 0
     /*
      * SDMA
      */
