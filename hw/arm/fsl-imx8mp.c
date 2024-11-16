@@ -131,6 +131,7 @@ static void fsl_imx8mp_init(Object *obj)
         snprintf(name, NAME_SIZE, "spi%d", i + 1);
         object_initialize_child(obj, name, &s->spi[i], TYPE_IMX_SPI);
     }
+#endif
 
     /*
      * I2Cs
@@ -139,7 +140,6 @@ static void fsl_imx8mp_init(Object *obj)
         snprintf(name, NAME_SIZE, "i2c%d", i + 1);
         object_initialize_child(obj, name, &s->i2c[i], TYPE_IMX_I2C);
     }
-#endif
 
     /*
      * UARTs
@@ -451,6 +451,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                            qdev_get_gpio_in(DEVICE(&s->gic),
                                             FSL_IMX8MP_SPIn_IRQ[i]));
     }
+#endif
 
     /*
      * I2Cs
@@ -461,6 +462,8 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
             FSL_IMX8MP_I2C2_ADDR,
             FSL_IMX8MP_I2C3_ADDR,
             FSL_IMX8MP_I2C4_ADDR,
+            FSL_IMX8MP_I2C5_ADDR,
+            FSL_IMX8MP_I2C6_ADDR,
         };
 
         static const int FSL_IMX8MP_I2Cn_IRQ[FSL_IMX8MP_NUM_I2CS] = {
@@ -468,6 +471,8 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
             FSL_IMX8MP_I2C2_IRQ,
             FSL_IMX8MP_I2C3_IRQ,
             FSL_IMX8MP_I2C4_IRQ,
+            FSL_IMX8MP_I2C5_IRQ,
+            FSL_IMX8MP_I2C6_IRQ,
         };
 
         sysbus_realize(SYS_BUS_DEVICE(&s->i2c[i]), &error_abort);
@@ -477,7 +482,6 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                            qdev_get_gpio_in(DEVICE(&s->gic),
                                             FSL_IMX8MP_I2Cn_IRQ[i]));
     }
-#endif
 
     /*
      * UARTs
@@ -548,6 +552,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         irq = qdev_get_gpio_in(DEVICE(&s->gic), FSL_IMX8MP_ENET_IRQ(i, 3));
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->eth[i]), 1, irq);
     }
+#endif
 
     /*
      * USDHCs

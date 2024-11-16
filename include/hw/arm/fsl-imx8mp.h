@@ -481,6 +481,8 @@ enum FslIMX7IRQs {
     FSL_IMX8MP_I2C2_IRQ     = 36,
     FSL_IMX8MP_I2C3_IRQ     = 37,
     FSL_IMX8MP_I2C4_IRQ     = 38,
+    FSL_IMX8MP_I2C5_IRQ     = 76,
+    FSL_IMX8MP_I2C6_IRQ     = 77,
 
     FSL_IMX8MP_USB1_IRQ     = 43,
     FSL_IMX8MP_USB2_IRQ     = 42,
