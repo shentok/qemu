@@ -88,7 +88,6 @@ static void fsl_imx8mp_init(Object *obj)
         object_initialize_child(obj, name, &s->gpio[i], TYPE_IMX_GPIO);
     }
 
-#if 0
     /*
      * GPTs
      */
@@ -98,6 +97,7 @@ static void fsl_imx8mp_init(Object *obj)
     }
 #endif
 
+#if 0
     /*
      * System Counter
      */
@@ -322,7 +322,6 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                        qdev_get_gpio_in(DEVICE(&s->gic),
                                         FSL_IMX8MP_SYSCTR_IRQ));
 
-#if 0
     /*
      * GPTs
      */
@@ -332,6 +331,8 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
             FSL_IMX8MP_GPT2_ADDR,
             FSL_IMX8MP_GPT3_ADDR,
             FSL_IMX8MP_GPT4_ADDR,
+            FSL_IMX8MP_GPT5_ADDR,
+            FSL_IMX8MP_GPT6_ADDR,
         };
 
         static const int FSL_IMX8MP_GPTn_IRQ[FSL_IMX8MP_NUM_GPTS] = {
@@ -339,6 +340,8 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
             FSL_IMX8MP_GPT2_IRQ,
             FSL_IMX8MP_GPT3_IRQ,
             FSL_IMX8MP_GPT4_IRQ,
+            FSL_IMX8MP_GPT5_IRQ,
+            FSL_IMX8MP_GPT6_IRQ,
         };
 
         s->gpt[i].ccm = IMX_CCM(&s->ccm);
@@ -348,7 +351,6 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                            qdev_get_gpio_in(DEVICE(&s->gic),
                                             FSL_IMX8MP_GPTn_IRQ[i]));
     }
-#endif
 
     /*
      * GPIOs
