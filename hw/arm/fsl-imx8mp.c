@@ -112,12 +112,10 @@ static void fsl_imx8mp_init(Object *obj)
      */
     object_initialize_child(obj, "analog", &s->analog, TYPE_IMX8MP_ANALOG);
 
-#if 0
     /*
      * GPCv2
      */
     object_initialize_child(obj, "gpcv2", &s->gpcv2, TYPE_IMX_GPCV2);
-#endif
 
     /*
      * SRC
@@ -411,12 +409,8 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     /*
      * GPCv2
      */
-#if 0
     sysbus_realize(SYS_BUS_DEVICE(&s->gpcv2), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->gpcv2), 0, FSL_IMX8MP_GPC_ADDR);
-#endif
-    create_unimplemented_device("gpcv2", FSL_IMX8MP_GPC_ADDR,
-                                FSL_IMX8MP_GPC_SIZE);
 
     create_unimplemented_device("HSIO BLK_CTL", FSL_IMX8MP_HSIO_BLK_CTL_ADDR,
                                 FSL_IMX8MP_HSIO_BLK_CTL_SIZE);
