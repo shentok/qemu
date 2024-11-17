@@ -111,6 +111,9 @@ static uint64_t imx_sysctr_get_cntcv(IMXSysCtrState *s)
 
 static void imx_sysctr_update_int(IMXSysCtrState *s)
 {
+    printf("mask: %d, en: %d, %" PRIu64 " >= %" PRIu64 "\n", (s->cmpcr & CMPCR_MASK), (s->cmpcr & CMPCR_EN),
+                             imx_sysctr_get_cntcv(s), s->cmpcv);
+
     if ((s->cmpcr & CMPCR_MASK) && (s->cmpcr & CMPCR_EN) &&
         (imx_sysctr_get_cntcv(s) >= s->cmpcv)) {
         qemu_irq_raise(s->irq);
@@ -202,6 +205,8 @@ static void imx_sysctr_write(void *opaque, hwaddr offset, uint64_t value,
         }
 
         timer_mod(s->timer, s->start + imx_sysctr_to_ns(s, s->cmpcv));
+
+        printf("nanoseconds: %" PRIu64 "\n", s->start + imx_sysctr_to_ns(s, s->cmpcv) - qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL));
 
         break;
 
