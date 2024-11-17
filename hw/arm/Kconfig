@@ -585,6 +585,7 @@ config FSL_IMX8MP
     select IMX
     select IMX_FEC
     select IMX_I2C
+    select IMX_SYSCTR
     select WDT_IMX2
     select PCI_EXPRESS_DESIGNWARE
     select SDHCI

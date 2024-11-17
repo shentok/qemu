@@ -29,7 +29,7 @@
 #include "hw/gpio/imx_gpio.h"
 #include "hw/char/imx_serial.h"
 #include "hw/timer/imx_gpt.h"
-#include "hw/timer/imx_epit.h"
+#include "hw/timer/imx_sysctr.h"
 #include "hw/i2c/imx_i2c.h"
 #include "hw/sd/sdhci.h"
 #include "hw/ssi/imx_spi.h"
@@ -71,6 +71,7 @@ struct FslIMX8MPState {
     ARMCPU             cpu[FSL_IMX8MP_NUM_CPUS];
     GICv3State         gic;
     IMXGPTState        gpt[FSL_IMX8MP_NUM_GPTS];
+    IMXSysCtrState     sysctr;
     IMXGPIOState       gpio[FSL_IMX8MP_NUM_GPIOS];
     IMX8MPCCMState     ccm;
     IMX8MPAnalogState  analog;
@@ -483,6 +484,8 @@ enum FslIMX7IRQs {
 
     FSL_IMX8MP_USB1_IRQ     = 43,
     FSL_IMX8MP_USB2_IRQ     = 42,
+
+    FSL_IMX8MP_SYSCTR_IRQ   = 47,
 
     FSL_IMX8MP_GPT1_IRQ     = 55,
     FSL_IMX8MP_GPT2_IRQ     = 54,

@@ -80,6 +80,11 @@ static void fsl_imx8mp_init(Object *obj)
     object_initialize_child(obj, "gic", &s->gic, TYPE_ARM_GICV3);
 
     /*
+     * System Counter
+     */
+    object_initialize_child(obj, "sysctr", &s->sysctr, TYPE_IMX8MP_SYSCTR);
+
+    /*
      * CCM
      */
     object_initialize_child(obj, "ccm", &s->ccm, TYPE_IMX8MP_CCM);
@@ -206,10 +211,14 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         }
     }
 
-    create_unimplemented_device("nxp,sysctr-timer-cmp", FSL_IMX8MP_SYSCNT_CMP_ADDR,
-                                FSL_IMX8MP_SYSCNT_CMP_SIZE);
-    create_unimplemented_device("nxp,sysctr-timer-rd", FSL_IMX8MP_SYSCNT_RD_ADDR,
-                                FSL_IMX8MP_SYSCNT_RD_SIZE);
+    /*
+     * System Counter
+     */
+    sysbus_realize(SYS_BUS_DEVICE(&s->sysctr), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->sysctr), 0, FSL_IMX8MP_SYSCNT_RD_ADDR);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->sysctr), 0,
+                       qdev_get_gpio_in(DEVICE(&s->gic),
+                                        FSL_IMX8MP_SYSCTR_IRQ));
 
     /*
      * GPTs
