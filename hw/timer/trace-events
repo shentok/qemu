@@ -55,6 +55,15 @@ imx_gpt_read(const char *name, uint64_t value) "%s -> 0x%08" PRIx64
 imx_gpt_write(const char *name, uint64_t value) "%s <- 0x%08" PRIx64
 imx_gpt_timeout(void) ""
 
+# imx_sysctr.c
+imx_sysctr_cnt_read(uint32_t offset, const char *name, uint64_t value) "[0x%05" PRIx32 " (%s)] -> 0x%" PRIx64
+imx_sysctr_cnt_write(uint32_t offset, const char *name, uint64_t value) "[0x%05" PRIx32 " (%s)] <- 0x%" PRIx64
+imx_sysctr_cmp_read(uint32_t offset, const char *name, uint64_t value) "[0x%05" PRIx32 " (%s)] -> 0x%" PRIx64
+imx_sysctr_cmp_write(uint32_t offset, const char *name, uint64_t value) "[0x%05" PRIx32 " (%s)] <- 0x%" PRIx64
+imx_sysctr_rd_read(uint32_t offset, const char *name, uint64_t value) "[0x%05" PRIx32 " (%s)] -> 0x%" PRIx64
+imx_sysctr_rd_write(uint32_t offset, const char *name, uint64_t value) "[0x%05" PRIx32 " (%s)] <- 0x%" PRIx64
+imx_sysctr_timeout(int index) "%d"
+
 # npcm7xx_timer.c
 npcm7xx_timer_read(const char *id, uint64_t offset, uint64_t value) " %s offset: 0x%04" PRIx64 " value 0x%08" PRIx64
 npcm7xx_timer_write(const char *id, uint64_t offset, uint64_t value) "%s offset: 0x%04" PRIx64 " value 0x%08" PRIx64
