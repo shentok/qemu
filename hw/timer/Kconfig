@@ -23,6 +23,9 @@ config I8254
     bool
     depends on ISA_BUS
 
+config IMX_SYSCTR
+    bool
+
 config ALLWINNER_A10_PIT
     bool
     select PTIMER
