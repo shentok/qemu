@@ -209,6 +209,12 @@ static void fsl_imx8mp_init(Object *obj)
 
     object_initialize_child(obj, "snvs", &s->snvs, TYPE_IMX7_SNVS);
 
+    object_initialize_child(obj, "sysctr", &s->sysctr, TYPE_IMX_SYSCTR);
+    object_property_set_uint(OBJECT(&s->sysctr), "base_clk", 24000000,
+                             &error_abort);
+    object_property_set_uint(OBJECT(&s->sysctr), "slow_clk", 32000,
+                             &error_abort);
+
     for (i = 0; i < FSL_IMX8MP_NUM_UARTS; i++) {
         g_autofree char *name = g_strdup_printf("uart%d", i + 1);
         object_initialize_child(obj, name, &s->uart[i], TYPE_IMX_SERIAL);
@@ -280,10 +286,8 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                                     &error_abort);
         }
 
-        /*
-         * CNTFID0 base frequency in Hz of system counter
-         */
-        object_property_set_int(OBJECT(&s->cpu[i]), "cntfrq", 8000000,
+        object_property_set_int(OBJECT(&s->cpu[i]), "cntfrq",
+                                imx_sysctr_base_freq(&s->sysctr),
                                 &error_abort);
 
         if (i) {
@@ -372,6 +376,21 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     }
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->analog), 0,
                     fsl_imx8mp_memmap[FSL_IMX8MP_ANA_PLL].addr);
+
+    /* System Counter */
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->sysctr), errp)) {
+        return;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->sysctr), 0,
+                    fsl_imx8mp_memmap[FSL_IMX8MP_SYSCNT_RD].addr);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->sysctr), 1,
+                    fsl_imx8mp_memmap[FSL_IMX8MP_SYSCNT_CMP].addr);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->sysctr), 2,
+                    fsl_imx8mp_memmap[FSL_IMX8MP_SYSCNT_CTRL].addr);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->sysctr), 0,
+                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_SYSCTR1_IRQ));
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->sysctr), 1,
+                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_SYSCTR2_IRQ));
 
     /* UARTs */
     for (i = 0; i < FSL_IMX8MP_NUM_UARTS; i++) {
@@ -668,6 +687,9 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MP_PCIE_PHY1:
         case FSL_IMX8MP_RAM:
         case FSL_IMX8MP_SNVS_HP:
+        case FSL_IMX8MP_SYSCNT_CMP:
+        case FSL_IMX8MP_SYSCNT_CTRL:
+        case FSL_IMX8MP_SYSCNT_RD:
         case FSL_IMX8MP_UART1 ... FSL_IMX8MP_UART4:
         case FSL_IMX8MP_USB1 ... FSL_IMX8MP_USB2:
         case FSL_IMX8MP_USDHC1 ... FSL_IMX8MP_USDHC3:
