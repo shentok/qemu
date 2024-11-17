@@ -29,6 +29,7 @@
 #include "hw/sd/sdhci.h"
 #include "hw/ssi/imx_spi.h"
 #include "hw/timer/imx_gpt.h"
+#include "hw/timer/imx_sysctr.h"
 #include "hw/usb/fsl-imx8mp-phy.h"
 #include "hw/usb/hcd-dwc3.h"
 #include "hw/watchdog/wdt_imx2.h"
@@ -61,6 +62,7 @@ struct FslImx8mpState {
     ARMCPU             cpu[FSL_IMX8MP_NUM_CPUS];
     GICv3State         gic;
     IMXGPTState        gpt[FSL_IMX8MP_NUM_GPTS];
+    IMXSysCtrState     sysctr;
     IMXGPIOState       gpio[FSL_IMX8MP_NUM_GPIOS];
     FslImxCaamState    caam_ctrl;
     IMX8MPCCMState     ccm;
@@ -261,6 +263,9 @@ enum FslImx8mpIrqs {
 
     FSL_IMX8MP_USB1_IRQ     = 40,
     FSL_IMX8MP_USB2_IRQ     = 41,
+
+    FSL_IMX8MP_SYSCTR1_IRQ  = 47,
+    FSL_IMX8MP_SYSCTR2_IRQ  = 48,
 
     FSL_IMX8MP_GPT1_IRQ      = 55,
     FSL_IMX8MP_GPT2_IRQ      = 54,
