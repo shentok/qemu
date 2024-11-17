@@ -630,6 +630,7 @@ config FSL_IMX8MP
     select IMX_I2C
     select IMX_SERIAL
     select IMX_SPI
+    select IMX_SYSCTR
     select OR_IRQ
     select PCI_EXPRESS_DESIGNWARE
     select PCI_EXPRESS_FSL_IMX8M_PHY
@@ -661,6 +662,7 @@ config FSL_IMX8MM
     select IMX_I2C
     select IMX_SERIAL
     select IMX_SPI
+    select IMX_SYSCTR
     select OR_IRQ
     select SDHCI
     select PCI_EXPRESS_DESIGNWARE

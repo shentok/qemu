@@ -33,6 +33,9 @@ config IMX_GPT
     depends on IMX_CCM
     select PTIMER
 
+config IMX_SYSCTR
+    bool
+
 config ALLWINNER_A10_PIT
     bool
     select PTIMER

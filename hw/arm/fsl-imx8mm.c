@@ -168,6 +168,12 @@ static void fsl_imx8mm_init(Object *obj)
 
     object_initialize_child(obj, "snvs", &s->snvs, TYPE_IMX7_SNVS);
 
+    object_initialize_child(obj, "sysctr", &s->sysctr, TYPE_IMX_SYSCTR);
+    object_property_set_uint(OBJECT(&s->sysctr), "base_clk", 24000000,
+                             &error_abort);
+    object_property_set_uint(OBJECT(&s->sysctr), "slow_clk", 32000,
+                             &error_abort);
+
     object_initialize_child(obj, "ddr", &s->ddr, TYPE_IMX8MP_DDR);
     object_initialize_child(obj, "ddr-phy", &s->ddr_phy, TYPE_IMX8MP_DDR_PHY);
 
@@ -251,10 +257,8 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
                                     &error_abort);
         }
 
-        /*
-         * CNTFID0 base frequency in Hz of system counter
-         */
-        object_property_set_int(OBJECT(&s->cpu[i]), "cntfrq", 8000000,
+        object_property_set_int(OBJECT(&s->cpu[i]), "cntfrq",
+                                imx_sysctr_base_freq(&s->sysctr),
                                 &error_abort);
 
         if (object_property_find(OBJECT(&s->cpu[i]), "has_el2")) {
@@ -370,6 +374,21 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
     }
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->analog), 0,
                     fsl_imx8mm_memmap[FSL_IMX8MM_ANA_PLL].addr);
+
+    /* System Counter */
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->sysctr), errp)) {
+        return;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->sysctr), 0,
+                    fsl_imx8mm_memmap[FSL_IMX8MM_SYSCNT_RD].addr);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->sysctr), 1,
+                    fsl_imx8mm_memmap[FSL_IMX8MM_SYSCNT_CMP].addr);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->sysctr), 2,
+                    fsl_imx8mm_memmap[FSL_IMX8MM_SYSCNT_CTRL].addr);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->sysctr), 0,
+                       qdev_get_gpio_in(gicdev, FSL_IMX8MM_SYSCTR1_IRQ));
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->sysctr), 1,
+                       qdev_get_gpio_in(gicdev, FSL_IMX8MM_SYSCTR2_IRQ));
 
     /* DDR */
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->ddr), errp)) {
@@ -719,6 +738,9 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MM_RAM:
         case FSL_IMX8MM_OCRAM:
         case FSL_IMX8MM_SNVS_HP:
+        case FSL_IMX8MM_SYSCNT_CMP:
+        case FSL_IMX8MM_SYSCNT_CTRL:
+        case FSL_IMX8MM_SYSCNT_RD:
         case FSL_IMX8MM_TCM_DTCM:
         case FSL_IMX8MM_TCM_ITCM:
         case FSL_IMX8MM_UART1 ... FSL_IMX8MM_UART4:

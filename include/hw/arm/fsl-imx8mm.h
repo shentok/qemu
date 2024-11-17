@@ -27,6 +27,7 @@
 #include "hw/sd/sdhci.h"
 #include "hw/ssi/imx_spi.h"
 #include "hw/timer/imx_gpt.h"
+#include "hw/timer/imx_sysctr.h"
 #include "hw/usb/hcd-dwc3.h"
 #include "hw/watchdog/wdt_imx2.h"
 #include "qom/object.h"
@@ -63,6 +64,7 @@ struct FslImx8mmState {
     FslImx8mpDdrState  ddr;
     FslImx8mpDdrPhyState  ddr_phy;
     IMX7SNVSState      snvs;
+    IMXSysCtrState     sysctr;
     IMXSPIState        spi[FSL_IMX8MM_NUM_ECSPIS];
     IMXI2CState        i2c[FSL_IMX8MM_NUM_I2CS];
     IMXSerialState     uart[FSL_IMX8MM_NUM_UARTS];
@@ -214,6 +216,9 @@ enum FslImx8mmIrqs {
 
     FSL_IMX8MM_USB1_IRQ     = 40,
     FSL_IMX8MM_USB2_IRQ     = 41,
+
+    FSL_IMX8MM_SYSCTR1_IRQ  = 47,
+    FSL_IMX8MM_SYSCTR2_IRQ  = 48,
 
     FSL_IMX8MM_GPT1_IRQ      = 55,
     FSL_IMX8MM_GPT2_IRQ      = 54,
