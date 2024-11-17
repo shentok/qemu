@@ -248,7 +248,7 @@ static void imx_sysctr_reset(DeviceState *dev)
     s->cntfid[1] = 512; /* Hz */
     s->slow = false;
 
-    s->cmpcr = 0;
+    s->cmpcr = CMPCR_MASK;
     s->cmpcv = 0;
 }
 
