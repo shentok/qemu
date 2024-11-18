@@ -63,6 +63,7 @@ system_ss.add(when: 'CONFIG_IMX', if_true: files(
   'imx7_src.c',
   'imx7_gpr.c',
   'imx7_snvs.c',
+  'imx8mp_ccm.c',
   'imx_ccm.c',
   'imx_rngc.c',
 ))

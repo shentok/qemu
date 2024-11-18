@@ -818,7 +818,9 @@ L: qemu-arm@nongnu.org
 S: Odd Fixes
 F: hw/arm/imx8mp-evk.c
 F: hw/arm/fsl-imx8mp.c
+F: hw/misc/imx8mp_*.c
 F: include/hw/arm/fsl-imx8mp.h
+F: include/hw/misc/imx8mp_*.h
 
 MPS2 / MPS3
 M: Peter Maydell <peter.maydell@linaro.org>

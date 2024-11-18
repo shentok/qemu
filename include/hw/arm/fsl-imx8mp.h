@@ -21,7 +21,7 @@
 
 #include "hw/intc/arm_gicv3.h"
 #include "hw/intc/imx_gpcv2.h"
-#include "hw/misc/imx7_ccm.h"
+#include "hw/misc/imx8mp_ccm.h"
 #include "hw/misc/imx7_snvs.h"
 #include "hw/misc/imx7_gpr.h"
 #include "hw/misc/imx7_src.h"
@@ -72,8 +72,8 @@ struct FslIMX8MPState {
     GICv3State         gic;
     IMXGPTState        gpt[FSL_IMX8MP_NUM_GPTS];
     IMXGPIOState       gpio[FSL_IMX8MP_NUM_GPIOS];
-    IMX7CCMState       ccm;
-    IMX7AnalogState    analog;
+    IMX8MPCCMState     ccm;
+    IMX8MPAnalogState  analog;
     IMX7SNVSState      snvs;
     IMX7SRCState       src;
     IMXGPCv2State      gpcv2;

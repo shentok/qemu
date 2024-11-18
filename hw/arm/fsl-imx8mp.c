@@ -80,6 +80,16 @@ static void fsl_imx8mp_init(Object *obj)
     object_initialize_child(obj, "gic", &s->gic, TYPE_ARM_GICV3);
 
     /*
+     * CCM
+     */
+    object_initialize_child(obj, "ccm", &s->ccm, TYPE_IMX8MP_CCM);
+
+    /*
+     * Analog
+     */
+    object_initialize_child(obj, "analog", &s->analog, TYPE_IMX8MP_ANALOG);
+
+    /*
      * UARTs
      */
     for (i = 0; i < FSL_IMX8MP_NUM_UARTS; i++) {
@@ -245,14 +255,14 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     /*
      * CCM
      */
-    create_unimplemented_device("ccm", FSL_IMX8MP_CCM_ADDR,
-                                FSL_IMX8MP_CCM_SIZE);
+    sysbus_realize(SYS_BUS_DEVICE(&s->ccm), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ccm), 0, FSL_IMX8MP_CCM_ADDR);
 
     /*
      * Analog
      */
-    create_unimplemented_device("analog", FSL_IMX8MP_ANA_PLL_ADDR,
-                                FSL_IMX8MP_ANA_PLL_SIZE);
+    sysbus_realize(SYS_BUS_DEVICE(&s->analog), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->analog), 0, FSL_IMX8MP_ANA_PLL_ADDR);
 
     /*
      * GPCv2
