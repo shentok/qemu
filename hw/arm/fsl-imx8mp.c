@@ -123,7 +123,6 @@ static void fsl_imx8mp_init(Object *obj)
      * SRC
      */
     object_initialize_child(obj, "src", &s->src, TYPE_IMX7_SRC);
-#endif
 
     /*
      * ECSPIs
@@ -609,13 +608,11 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     sysbus_realize(SYS_BUS_DEVICE(&s->snvs), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->snvs), 0, FSL_IMX8MP_SNVS_HP_ADDR);
 
-#if 0
     /*
      * SRC
      */
     sysbus_realize(SYS_BUS_DEVICE(&s->src), &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->src), 0, FSL_IMX8MP_SRC_ADDR);
-#endif
 
     /*
      * Watchdogs
