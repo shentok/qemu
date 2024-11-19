@@ -14,8 +14,8 @@
 #include "migration/vmstate.h"
 #include "qemu/module.h"
 
-#define GPC_PU_PGC_SW_PUP_REQ       0x0f8
-#define GPC_PU_PGC_SW_PDN_REQ       0x104
+#define GPC_PU_PGC_SW_PUP_REQ       0xd8
+#define GPC_PU_PGC_SW_PDN_REQ       0xe4
 
 #define USB_HSIC_PHY_SW_Pxx_REQ     BIT(4)
 #define USB_OTG2_PHY_SW_Pxx_REQ     BIT(3)
@@ -53,11 +53,7 @@ static void imx_gpcv2_write(void *opaque, hwaddr offset,
      */
     if (offset == GPC_PU_PGC_SW_PUP_REQ ||
         offset == GPC_PU_PGC_SW_PDN_REQ) {
-        s->regs[idx] &= ~(USB_HSIC_PHY_SW_Pxx_REQ |
-                          USB_OTG2_PHY_SW_Pxx_REQ |
-                          USB_OTG1_PHY_SW_Pxx_REQ |
-                          PCIE_PHY_SW_Pxx_REQ     |
-                          MIPI_PHY_SW_Pxx_REQ);
+        s->regs[idx] = 0;
     }
 }
 
