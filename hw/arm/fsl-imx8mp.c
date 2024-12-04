@@ -97,7 +97,6 @@ static void fsl_imx8mp_init(Object *obj)
     }
 #endif
 
-#if 0
     /*
      * System Counter
      */
@@ -118,6 +117,7 @@ static void fsl_imx8mp_init(Object *obj)
      * GPCv2
      */
     object_initialize_child(obj, "gpcv2", &s->gpcv2, TYPE_IMX_GPCV2);
+#endif
 
     /*
      * SRC
@@ -148,15 +148,13 @@ static void fsl_imx8mp_init(Object *obj)
         object_initialize_child(obj, name, &s->uart[i], TYPE_IMX_SERIAL);
     }
 
-#if 0
     /*
      * Ethernets
      */
     for (i = 0; i < FSL_IMX8MP_NUM_ETHS; i++) {
         snprintf(name, NAME_SIZE, "eth%d", i + 1);
-        object_initialize_child(obj, name, &s->eth[i], TYPE_IMX_ENET);
+        object_initialize_child(obj, name, &s->eth[i], TYPE_IMX_FEC);
     }
-#endif
 
     /*
      * USDHCs
@@ -533,7 +531,6 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->uart[i]), 0, irq);
     }
 
-#if 0
     /*
      * Ethernets
      *
@@ -556,7 +553,6 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     for (i = 0; i < FSL_IMX8MP_NUM_ETHS; i++) {
         static const hwaddr FSL_IMX8MP_ENETn_ADDR[FSL_IMX8MP_NUM_ETHS] = {
             FSL_IMX8MP_ENET1_ADDR,
-            FSL_IMX8MP_ENET2_ADDR,
         };
 
         object_property_set_uint(OBJECT(&s->eth[i]), "phy-num",
@@ -573,7 +569,6 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         irq = qdev_get_gpio_in(DEVICE(&s->gic), FSL_IMX8MP_ENET_IRQ(i, 3));
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->eth[i]), 1, irq);
     }
-#endif
 
     /*
      * USDHCs
