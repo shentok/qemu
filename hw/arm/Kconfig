@@ -588,6 +588,7 @@ config FSL_IMX8MP
     select IMX_SYSCTR
     select WDT_IMX2
     select PCI_EXPRESS_DESIGNWARE
+    select PCI_EXPRESS_FSL_IMX8M_PHY
     select SDHCI
     select UNIMP
 

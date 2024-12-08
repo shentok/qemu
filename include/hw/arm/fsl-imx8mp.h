@@ -35,6 +35,7 @@
 #include "hw/ssi/imx_spi.h"
 #include "hw/net/imx_fec.h"
 #include "hw/pci-host/designware.h"
+#include "hw/pci-host/fsl_imx8m_phy.h"
 #include "hw/usb/chipidea.h"
 #include "cpu.h"
 #include "qom/object.h"
@@ -87,6 +88,7 @@ struct FslIMX8MPState {
     IMX7GPRState       gpr;
     ChipideaState      usb[FSL_IMX8MP_NUM_USBS];
     DesignwarePCIEHost pcie;
+    FslImx8mPciePhyState   pcie_phy;
     MemoryRegion       rom;
     MemoryRegion       caam;
     MemoryRegion       ocram;

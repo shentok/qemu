@@ -188,6 +188,8 @@ static void fsl_imx8mp_init(Object *obj)
      * PCIE
      */
     object_initialize_child(obj, "pcie", &s->pcie, TYPE_DESIGNWARE_PCIE_HOST);
+    object_initialize_child(obj, "pcie_phy", &s->pcie_phy,
+                            TYPE_FSL_IMX8M_PCIE_PHY);
 
 #if 0
     /*
@@ -723,6 +725,12 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     irq = qdev_get_gpio_in(DEVICE(&s->gic), FSL_IMX8MP_PCI_INTD_IRQ);
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 3, irq);
 
+    /*
+     * PCIe PHY
+     */
+    sysbus_realize(SYS_BUS_DEVICE(&s->pcie_phy), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->pcie_phy), 0, FSL_IMX8MP_PCIE_PHY1_ADDR);
+
 #if 0
     /*
      * USBs
@@ -785,12 +793,6 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                                 FSL_IMX8MP_DDR_CTL_SIZE);
 
 #if 0
-    /*
-     * PCIe PHY
-     */
-    create_unimplemented_device("pcie-phy", FSL_IMX8MP_PCIE_PHY_ADDR,
-                                FSL_IMX8MP_PCIE_PHY_SIZE);
-
     /*
      * CSU
      */
