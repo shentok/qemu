@@ -840,15 +840,17 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                            &error_abort);
     memory_region_add_subregion(get_system_memory(), FSL_IMX8MP_OCRAM_S_ADDR,
                                 &s->ocram_s);
+#endif
 
     /*
      * ROM memory
      */
-    memory_region_init_rom(&s->rom, OBJECT(dev), "imx7.rom",
-                           FSL_IMX8MP_ROM_SIZE, &error_abort);
-    memory_region_add_subregion(get_system_memory(), FSL_IMX8MP_ROM_ADDR,
+    memory_region_init_rom(&s->rom, OBJECT(dev), "imx8.rom",
+                           FSL_IMX8MP_BOOT_ROM_SIZE, &error_abort);
+    memory_region_add_subregion(get_system_memory(), FSL_IMX8MP_BOOT_ROM_ADDR,
                                 &s->rom);
 
+#if 0
     /*
      * CAAM memory
      */
