@@ -447,7 +447,10 @@ static MemTxResult  memory_region_read_accessor(MemoryRegion *mr,
         trace_memory_region_subpage_read(get_cpu_index(), mr, addr, tmp, size);
     } else if (trace_event_get_state_backends(TRACE_MEMORY_REGION_OPS_READ)) {
         hwaddr abs_addr = memory_region_to_absolute_addr(mr, addr);
-        if (strcmp(memory_region_name(mr), "imx.serial")) {
+        if (strcmp(memory_region_name(mr), "fallback") == 0) {
+            trace_memory_region_ops_read(get_cpu_index(), mr, abs_addr, tmp, size,
+                                         memory_region_name(mr));
+        } else {
             trace_memory_region_ops_read(get_cpu_index(), mr, abs_addr, tmp, size,
                                          memory_region_name(mr));
         }
@@ -472,7 +475,10 @@ static MemTxResult memory_region_read_with_attrs_accessor(MemoryRegion *mr,
         trace_memory_region_subpage_read(get_cpu_index(), mr, addr, tmp, size);
     } else if (trace_event_get_state_backends(TRACE_MEMORY_REGION_OPS_READ)) {
         hwaddr abs_addr = memory_region_to_absolute_addr(mr, addr);
-        if (strcmp(memory_region_name(mr), "imx.serial")) {
+        if (strcmp(memory_region_name(mr), "fallback") == 0) {
+            trace_memory_region_ops_read(get_cpu_index(), mr, abs_addr, tmp, size,
+                                         memory_region_name(mr));
+        } else {
             trace_memory_region_ops_read(get_cpu_index(), mr, abs_addr, tmp, size,
                                          memory_region_name(mr));
         }
@@ -495,7 +501,10 @@ static MemTxResult memory_region_write_accessor(MemoryRegion *mr,
         trace_memory_region_subpage_write(get_cpu_index(), mr, addr, tmp, size);
     } else if (trace_event_get_state_backends(TRACE_MEMORY_REGION_OPS_WRITE)) {
         hwaddr abs_addr = memory_region_to_absolute_addr(mr, addr);
-        if (strcmp(memory_region_name(mr), "imx.serial")) {
+        if (strcmp(memory_region_name(mr), "fallback") == 0) {
+            trace_memory_region_ops_write(get_cpu_index(), mr, abs_addr, tmp, size,
+                                          memory_region_name(mr));
+        } else {
             trace_memory_region_ops_write(get_cpu_index(), mr, abs_addr, tmp, size,
                                           memory_region_name(mr));
         }
@@ -518,7 +527,10 @@ static MemTxResult memory_region_write_with_attrs_accessor(MemoryRegion *mr,
         trace_memory_region_subpage_write(get_cpu_index(), mr, addr, tmp, size);
     } else if (trace_event_get_state_backends(TRACE_MEMORY_REGION_OPS_WRITE)) {
         hwaddr abs_addr = memory_region_to_absolute_addr(mr, addr);
-        if (strcmp(memory_region_name(mr), "imx.serial")) {
+        if (strcmp(memory_region_name(mr), "fallback") == 0) {
+            trace_memory_region_ops_write(get_cpu_index(), mr, abs_addr, tmp, size,
+                                          memory_region_name(mr));
+        } else {
             trace_memory_region_ops_write(get_cpu_index(), mr, abs_addr, tmp, size,
                                           memory_region_name(mr));
         }
