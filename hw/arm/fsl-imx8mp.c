@@ -83,7 +83,7 @@ static void fsl_imx8mp_init(Object *obj)
      * UARTs
      */
     for (i = 0; i < FSL_IMX8MP_NUM_UARTS; i++) {
-        snprintf(name, NAME_SIZE, "uart%d", i);
+        snprintf(name, NAME_SIZE, "uart%d", i + 1);
         object_initialize_child(obj, name, &s->uart[i], TYPE_IMX_SERIAL);
     }
 }
@@ -96,6 +96,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     Object *o;
     int i;
     qemu_irq irq;
+    char name[NAME_SIZE];
     unsigned int smp_cpus = ms->smp.cpus;
 
     if (smp_cpus > FSL_IMX8MP_NUM_CPUS) {
@@ -197,6 +198,43 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
 
     create_unimplemented_device("nxp,sysctr-timer-cmp", FSL_IMX8MP_SYSCNT_CMP_ADDR,
                                 FSL_IMX8MP_SYSCNT_CMP_SIZE);
+    create_unimplemented_device("nxp,sysctr-timer-rd", FSL_IMX8MP_SYSCNT_RD_ADDR,
+                                FSL_IMX8MP_SYSCNT_RD_SIZE);
+
+    /*
+     * GPTs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_GPTS; i++) {
+        static const hwaddr FSL_IMX8MP_GPTn_ADDR[FSL_IMX8MP_NUM_GPTS] = {
+            FSL_IMX8MP_GPT1_ADDR,
+            FSL_IMX8MP_GPT2_ADDR,
+            FSL_IMX8MP_GPT3_ADDR,
+            FSL_IMX8MP_GPT4_ADDR,
+            FSL_IMX8MP_GPT5_ADDR,
+            FSL_IMX8MP_GPT6_ADDR,
+        };
+
+        snprintf(name, NAME_SIZE, "gpt%d", i);
+        create_unimplemented_device(name, FSL_IMX8MP_GPTn_ADDR[i],
+                                    FSL_IMX8MP_GPIOn_SIZE);
+    }
+
+    /*
+     * GPIOs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_GPIOS; i++) {
+        static const hwaddr FSL_IMX8MP_GPIOn_ADDR[FSL_IMX8MP_NUM_GPIOS] = {
+            FSL_IMX8MP_GPIO1_ADDR,
+            FSL_IMX8MP_GPIO2_ADDR,
+            FSL_IMX8MP_GPIO3_ADDR,
+            FSL_IMX8MP_GPIO4_ADDR,
+            FSL_IMX8MP_GPIO5_ADDR,
+        };
+
+        snprintf(name, NAME_SIZE, "gpio%d", i);
+        create_unimplemented_device(name, FSL_IMX8MP_GPIOn_ADDR[i],
+                                    FSL_IMX8MP_GPIOn_SIZE);
+    }
 
     /*
      * IOMUXC
@@ -207,19 +245,84 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     /*
      * CCM
      */
-    create_unimplemented_device("ccm", FSL_IMX8MP_CCM_ADDR, 64 * KiB);
+    create_unimplemented_device("ccm", FSL_IMX8MP_CCM_ADDR,
+                                FSL_IMX8MP_CCM_SIZE);
 
     /*
      * Analog
      */
-    create_unimplemented_device("analog", FSL_IMX8MP_ANA_PLL_ADDR, 64 * KiB);
+    create_unimplemented_device("analog", FSL_IMX8MP_ANA_PLL_ADDR,
+                                FSL_IMX8MP_ANA_PLL_SIZE);
 
     /*
      * GPCv2
      */
-    create_unimplemented_device("gpcv2", FSL_IMX8MP_GPC_ADDR, 0x10000);
+    create_unimplemented_device("gpcv2", FSL_IMX8MP_GPC_ADDR,
+                                FSL_IMX8MP_GPC_SIZE);
 
-    create_unimplemented_device("HSIO BLK_CTL", 0x32F10000, 64 * KiB);
+    create_unimplemented_device("HSIO BLK_CTL", FSL_IMX8MP_HSIO_BLK_CTL_ADDR,
+                                FSL_IMX8MP_HSIO_BLK_CTL_SIZE);
+
+    create_unimplemented_device("MEDIA_BLK_CTL", FSL_IMX8MP_MEDIA_BLK_CTL_ADDR,
+                                FSL_IMX8MP_MEDIA_BLK_CTL_SIZE);
+
+    create_unimplemented_device("HDMI_TX", FSL_IMX8MP_HDMI_TX_ADDR,
+                                FSL_IMX8MP_HDMI_TX_SIZE);
+
+    create_unimplemented_device("interconnect", FSL_IMX8MP_INTERCONNECT_ADDR,
+                                FSL_IMX8MP_INTERCONNECT_SIZE);
+
+    create_unimplemented_device("LCDIF1", FSL_IMX8MP_LCDIF1_ADDR,
+                                FSL_IMX8MP_LCDIF1_SIZE);
+    create_unimplemented_device("LCDIF2", FSL_IMX8MP_LCDIF2_ADDR,
+                                FSL_IMX8MP_LCDIF2_SIZE);
+
+    create_unimplemented_device("QSPI", FSL_IMX8MP_QSPI_ADDR,
+                                FSL_IMX8MP_QSPI_SIZE);
+
+    create_unimplemented_device("GPU2D", FSL_IMX8MP_GPU2D_ADDR,
+                                FSL_IMX8MP_GPU2D_SIZE);
+    create_unimplemented_device("GPU3D", FSL_IMX8MP_GPU3D_ADDR,
+                                FSL_IMX8MP_GPU3D_SIZE);
+
+    create_unimplemented_device("MU_1_A", FSL_IMX8MP_MU_1_A_ADDR,
+                                FSL_IMX8MP_MU_1_A_SIZE);
+
+    create_unimplemented_device("ANA_TSENSOR", FSL_IMX8MP_ANA_TSENSOR_ADDR,
+                                FSL_IMX8MP_ANA_TSENSOR_SIZE);
+
+    /*
+     * ECSPIs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_ECSPIS; i++) {
+        static const hwaddr FSL_IMX8MP_SPIn_ADDR[FSL_IMX8MP_NUM_ECSPIS] = {
+            FSL_IMX8MP_ECSPI1_ADDR,
+            FSL_IMX8MP_ECSPI2_ADDR,
+            FSL_IMX8MP_ECSPI3_ADDR,
+        };
+
+        snprintf(name, NAME_SIZE, "spi%d", i + 1);
+        create_unimplemented_device(name, FSL_IMX8MP_SPIn_ADDR[i],
+                                    FSL_IMX8MP_ECSPIn_SIZE);
+    }
+
+    /*
+     * I2Cs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_I2CS; i++) {
+        static const hwaddr FSL_IMX8MP_I2Cn_ADDR[FSL_IMX8MP_NUM_I2CS] = {
+            FSL_IMX8MP_I2C1_ADDR,
+            FSL_IMX8MP_I2C2_ADDR,
+            FSL_IMX8MP_I2C3_ADDR,
+            FSL_IMX8MP_I2C4_ADDR,
+            FSL_IMX8MP_I2C5_ADDR,
+            FSL_IMX8MP_I2C6_ADDR,
+        };
+
+        snprintf(name, NAME_SIZE, "i2c%d", i + 1);
+        create_unimplemented_device(name, FSL_IMX8MP_I2Cn_ADDR[i],
+                                    FSL_IMX8MP_I2Cn_SIZE);
+    }
 
     /*
      * UARTs
@@ -251,15 +354,98 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     }
 
     /*
+     * Ethernets
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_ETHS; i++) {
+        static const hwaddr FSL_IMX8MP_ENETn_ADDR[FSL_IMX8MP_NUM_ETHS] = {
+            FSL_IMX8MP_ENET1_ADDR,
+        };
+
+        snprintf(name, NAME_SIZE, "eth%d", i + 1);
+        create_unimplemented_device(name, FSL_IMX8MP_ENETn_ADDR[i],
+                                    FSL_IMX8MP_ENETn_SIZE);
+    }
+
+    /*
+     * USDHCs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_USDHCS; i++) {
+        static const hwaddr FSL_IMX8MP_USDHCn_ADDR[FSL_IMX8MP_NUM_USDHCS] = {
+            FSL_IMX8MP_USDHC1_ADDR,
+            FSL_IMX8MP_USDHC2_ADDR,
+            FSL_IMX8MP_USDHC3_ADDR,
+        };
+
+        snprintf(name, NAME_SIZE, "usdhc%d", i + 1);
+        create_unimplemented_device(name, FSL_IMX8MP_USDHCn_ADDR[i],
+                                    FSL_IMX8MP_USDHCn_SIZE);
+    }
+
+    /*
+     * SNVS
+     */
+    create_unimplemented_device("snvs", FSL_IMX8MP_SNVS_HP_ADDR,
+                                FSL_IMX8MP_SNVS_HP_SIZE);
+
+    /*
+     * Watchdogs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_WDTS; i++) {
+        static const hwaddr FSL_IMX8MP_WDOGn_ADDR[FSL_IMX8MP_NUM_WDTS] = {
+            FSL_IMX8MP_WDOG1_ADDR,
+            FSL_IMX8MP_WDOG2_ADDR,
+            FSL_IMX8MP_WDOG3_ADDR,
+        };
+
+        snprintf(name, NAME_SIZE, "wdt%d", i + 1);
+        create_unimplemented_device(name, FSL_IMX8MP_WDOGn_ADDR[i],
+                                    FSL_IMX8MP_WDOGn_SIZE);
+    }
+
+    /*
+     * PWMs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_PWMS; i++) {
+        static const hwaddr FSL_IMX8MP_PWMn_ADDR[FSL_IMX8MP_NUM_PWMS] = {
+            FSL_IMX8MP_PWM1_ADDR,
+            FSL_IMX8MP_PWM2_ADDR,
+            FSL_IMX8MP_PWM3_ADDR,
+            FSL_IMX8MP_PWM4_ADDR,
+        };
+
+        snprintf(name, NAME_SIZE, "pwm%d", i + 1);
+        create_unimplemented_device(name, FSL_IMX8MP_PWMn_ADDR[i],
+                                    FSL_IMX8MP_PWMn_SIZE);
+    }
+
+    /*
      * OCOTP
      */
     create_unimplemented_device("ocotp", FSL_IMX8MP_OCOTP_CTRL_ADDR,
                                 FSL_IMX8MP_OCOTP_CTRL_SIZE);
+
+    /*
+     * USBs
+     */
+    for (i = 0; i < FSL_IMX8MP_NUM_USBS; i++) {
+        static const hwaddr FSL_IMX8MP_USBMISCn_ADDR[FSL_IMX8MP_NUM_USBS] = {
+            FSL_IMX8MP_USB1_ADDR,
+            FSL_IMX8MP_USB2_ADDR,
+        };
+
+        snprintf(name, NAME_SIZE, "usb%d", i + 1);
+        create_unimplemented_device(name, FSL_IMX8MP_USBMISCn_ADDR[i],
+                                    FSL_IMX8MP_USBn_SIZE);
+    }
+
     /*
      * DMA APBH
      */
     create_unimplemented_device("dma-apbh", FSL_IMX8MP_APBH_DMA_ADDR,
                                 FSL_IMX8MP_APBH_DMA_SIZE);
+
+    create_unimplemented_device("DDRC 4MB DDR CTL", FSL_IMX8MP_DDR_CTL_ADDR,
+                                FSL_IMX8MP_DDR_CTL_SIZE);
 }
 
 static Property fsl_imx8mp_properties[] = {
