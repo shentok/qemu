@@ -31,12 +31,39 @@
 
 #define NAME_SIZE 20
 
+static MemTxResult ioport80_write(void *opaque, hwaddr addr,
+                           uint64_t value, unsigned size,
+                           MemTxAttrs attrs)
+{
+    return MEMTX_DECODE_ERROR;
+}
+
+static MemTxResult ioport80_read(void *opaque, hwaddr addr,
+                              uint64_t *data, unsigned size,
+                              MemTxAttrs attrs)
+{
+    return MEMTX_DECODE_ERROR;
+}
+
+static const MemoryRegionOps ioport80_io_ops = {
+    .write_with_attrs = ioport80_write,
+    .read_with_attrs = ioport80_read,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .impl = {
+        .min_access_size = 1,
+        .max_access_size = 1,
+    },
+};
+
 static void fsl_imx8mp_init(Object *obj)
 {
     MachineState *ms = MACHINE(qdev_get_machine());
     FslIMX8MPState *s = FSL_IMX8MP(obj);
     char name[NAME_SIZE];
     int i;
+
+    memory_region_init_io(&s->caam, obj, &ioport80_io_ops, NULL, "fallback",
+                          FSL_IMX8MP_DDR_ADDR);
 
     /*
      * CPUs
@@ -100,6 +127,9 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
 
         qdev_realize(DEVICE(o), NULL, &error_abort);
     }
+
+    memory_region_add_subregion_overlap(get_system_memory(), 0, &s->caam,
+                                        -10000);
 
     /*
      * GIC
