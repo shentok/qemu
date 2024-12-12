@@ -95,7 +95,6 @@ static void fsl_imx8mp_init(Object *obj)
         snprintf(name, NAME_SIZE, "gpt%d", i + 1);
         object_initialize_child(obj, name, &s->gpt[i], TYPE_IMX7_GPT);
     }
-#endif
 
     /*
      * System Counter
