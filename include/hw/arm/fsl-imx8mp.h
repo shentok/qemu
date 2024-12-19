@@ -77,6 +77,7 @@ struct FslImx8mpState {
     OrIRQState         gpt5_gpt6_irq;
     MemoryRegion       caam_ram;
     MemoryRegion       ocram;
+    MemoryRegion       boot_rom;
 
     uint32_t           phy_num;
     bool               phy_connected;
