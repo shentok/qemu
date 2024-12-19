@@ -7,11 +7,13 @@
  */
 
 #include "qemu/osdep.h"
+#include "qemu/datadir.h"
 #include "system/address-spaces.h"
 #include "hw/arm/boot.h"
 #include "hw/arm/fsl-imx8mp.h"
 #include "hw/arm/machines-qom.h"
 #include "hw/core/boards.h"
+#include "hw/core/loader.h"
 #include "hw/core/qdev-properties.h"
 #include "system/kvm.h"
 #include "system/qtest.h"
@@ -67,9 +69,34 @@ static void imx8mp_evk_modify_dtb(const struct arm_boot_info *info, void *fdt)
     }
 }
 
+/*
+ * This function locates the vbootrom image file specified via the command line
+ * using the -bios option. It loads the specified image into the boot_rom
+ * memory region and handles errors if the file cannot be found or loaded.
+ */
+static void imx8mp_evk_load_vbootrom(FslImx8mpState *soc, const char *bios_name,
+                                     Error **errp)
+{
+    g_autofree char *filename = NULL;
+    int ret;
+
+    filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, bios_name);
+    if (!filename) {
+        error_setg(errp, "Could not find vbootrom image '%s'", bios_name);
+        return;
+    }
+
+    ret = load_image_mr(filename, &soc->boot_rom);
+    if (ret < 0) {
+        error_setg(errp, "Failed to load vbootrom image '%s'", bios_name);
+        return;
+    }
+}
+
 static void imx8mp_evk_init(MachineState *machine)
 {
     FslImx8mpEvkState *s = IMX8MPEVK_MACHINE(machine);
+    const char *bios_name = NULL;
 
     if (machine->ram_size > FSL_IMX8MP_RAM_SIZE_MAX) {
         error_report("RAM size " RAM_ADDR_FMT " above max supported (%08" PRIx64 ")",
@@ -114,6 +141,9 @@ static void imx8mp_evk_init(MachineState *machine)
         qdev_prop_set_drive_err(carddev, "drive", blk, &error_fatal);
         qdev_realize_and_unref(carddev, bus, &error_fatal);
     }
+
+    bios_name = machine->firmware ?: "imx8mp-boot.rom";
+    imx8mp_evk_load_vbootrom(&s->soc, bios_name, &error_abort);
 
     if (!qtest_enabled()) {
         arm_load_kernel(&s->soc.cpu[0], machine, &s->boot_info);

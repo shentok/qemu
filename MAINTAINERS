@@ -947,6 +947,7 @@ F: include/hw/arm/fsl-imx8mp.h
 F: include/hw/misc/imx8mp_*.h
 F: include/hw/pci-host/fsl_imx8m_phy.h
 F: include/hw/timer/imx_sysctr.h
+F: pc-bios/imx8mp*
 F: docs/system/arm/imx8m.rst
 F: tests/functional/aarch64/test_imx8mp_evk.py
 F: tests/qtest/rs5c372-test.c
