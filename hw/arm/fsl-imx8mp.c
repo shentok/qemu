@@ -785,10 +785,22 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                                 fsl_imx8mp_memmap[FSL_IMX8MP_OCRAM].addr,
                                 &s->ocram);
 
+    /* ROM memory */
+    if (!memory_region_init_rom(&s->boot_rom, OBJECT(dev),
+                                fsl_imx8mp_memmap[FSL_IMX8MP_BOOT_ROM].name,
+                                fsl_imx8mp_memmap[FSL_IMX8MP_BOOT_ROM].size,
+                                errp)) {
+        return;
+    }
+    memory_region_add_subregion(get_system_memory(),
+                                fsl_imx8mp_memmap[FSL_IMX8MP_BOOT_ROM].addr,
+                                &s->boot_rom);
+
     /* Unimplemented devices */
     for (i = 0; i < ARRAY_SIZE(fsl_imx8mp_memmap); i++) {
         switch (i) {
         case FSL_IMX8MP_ANA_PLL:
+        case FSL_IMX8MP_BOOT_ROM:
         case FSL_IMX8MP_CAAM_RAM:
         case FSL_IMX8MP_CCM:
         case FSL_IMX8MP_DDR_CTL:
