@@ -1795,6 +1795,13 @@ esdhc_write(void *opaque, hwaddr offset, uint64_t val, unsigned size)
         sdhci_write(opaque, offset, value, size);
         break;
 
+    case SDHC_CLKCON:
+        if (object_dynamic_cast(OBJECT(s), TYPE_IMX_USDHC)) {
+            value |= SDHC_CLOCK_INT_EN | SDHC_CLOCK_SDCLK_EN;
+        }
+        sdhci_write(opaque, offset, value, size);
+        break;
+
     case ESDHC_MIX_CTRL:
         /*
          * So, when SD/MMC stack in Linux tries to write to "Transfer
