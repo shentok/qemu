@@ -1870,6 +1870,11 @@ usdhc_write(void *opaque, hwaddr offset, uint64_t val, unsigned size)
     uint32_t value = (uint32_t)val;
 
     switch (offset) {
+    case SDHC_CLKCON:
+        value |= SDHC_CLOCK_INT_EN;
+        sdhci_write(opaque, offset, value, size);
+        break;
+
     case ESDHC_MIX_CTRL:
         /*
          * So, when SD/MMC stack in Linux tries to write to "Transfer
