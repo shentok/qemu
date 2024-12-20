@@ -2098,6 +2098,11 @@ usdhc_write(void *opaque, hwaddr offset, uint64_t val, unsigned size)
         sdhci_write(opaque, offset, val | s->trnmod, size);
         break;
 
+    case SDHC_CLKCON:
+        value |= SDHC_CLOCK_INT_EN;
+        sdhci_write(opaque, offset, value, size);
+        break;
+
     default:
         esdhc_write(opaque, offset, val, size);
         break;
