@@ -1245,11 +1245,7 @@ sdhci_write(void *opaque, hwaddr offset, uint64_t val, unsigned size)
         }
         MASKED_WRITE(s->clkcon, mask, value);
         MASKED_WRITE(s->timeoutcon, mask >> 16, value >> 16);
-        if (s->clkcon & SDHC_CLOCK_INT_EN) {
             s->clkcon |= SDHC_CLOCK_INT_STABLE;
-        } else {
-            s->clkcon &= ~SDHC_CLOCK_INT_STABLE;
-        }
         break;
     case SDHC_NORINTSTS:
         if (s->norintstsen & SDHC_NISEN_CARDINT) {
