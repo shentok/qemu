@@ -673,14 +673,16 @@ static void sdhci_sdma_transfer_multi_blocks(SDHCIState *s)
         }
     }
 
-    if (s->norintstsen & SDHC_NISEN_DMA) {
-        s->norintsts |= SDHC_NIS_DMA;
-    }
-
     if (s->blkcnt == 0) {
+        if (s->norintstsen & SDHC_NISEN_DMA) {
+            s->norintsts |= SDHC_NIS_DMA;
+        }
+
         sdhci_end_transfer(s);
     } else {
-        sdhci_update_irq(s);
+        /* we have unfinished business - reschedule to continue SDMA */
+        timer_mod(s->transfer_timer,
+                  qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) + SDHC_TRANSFER_DELAY);
     }
 }
 
@@ -709,7 +711,7 @@ static void sdhci_sdma_transfer_single_block(SDHCIState *s)
 
 static void sdhci_sdma_transfer(SDHCIState *s)
 {
-    if ((s->blkcnt == 1) || !(s->trnmod & SDHC_TRNS_MULTI)) {
+    if (!(s->trnmod & SDHC_TRNS_MULTI)) {
         sdhci_sdma_transfer_single_block(s);
     } else {
         sdhci_sdma_transfer_multi_blocks(s);
