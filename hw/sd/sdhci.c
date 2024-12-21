@@ -615,7 +615,8 @@ static void sdhci_sdma_transfer_multi_blocks(SDHCIState *s)
      * possible stop at page boundary if initial address is not page aligned,
      * allow them to work properly
      */
-    if ((s->sdmasysad % boundary_chk) == 0) {
+    if ((s->sdmasysad % boundary_chk == 0) &&
+        !(s->quirks & SDHCI_QUIRK_NO_SDMA_PAGE_BOUNDARY)) {
         stop_at_page_boundary = true;
     }
 
@@ -1869,7 +1870,7 @@ static void fsl_esdhc_be_init(Object *obj)
     DeviceState *dev = DEVICE(obj);
 
     s->io_ops = &esdhc_mmio_be_ops;
-    s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ;
+    s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ | SDHCI_QUIRK_NO_SDMA_PAGE_BOUNDARY;
     qdev_prop_set_uint8(dev, "sd-spec-version", 2);
 }
 
@@ -1894,7 +1895,7 @@ static void fsl_esdhc_le_init(Object *obj)
     DeviceState *dev = DEVICE(obj);
 
     s->io_ops = &esdhc_mmio_le_ops;
-    s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ;
+    s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ | SDHCI_QUIRK_NO_SDMA_PAGE_BOUNDARY;
     qdev_prop_set_uint8(dev, "sd-spec-version", 2);
 }
 
@@ -1915,7 +1916,7 @@ static void imx_usdhc_init(Object *obj)
     DeviceState *dev = DEVICE(obj);
 
     s->io_ops = &usdhc_mmio_ops;
-    s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ;
+    s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ | SDHCI_QUIRK_NO_SDMA_PAGE_BOUNDARY;
     qdev_prop_set_uint8(dev, "sd-spec-version", 3);
 }
 
