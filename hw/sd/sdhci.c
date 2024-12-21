@@ -1668,6 +1668,13 @@ static uint64_t esdhc_read(void *opaque, hwaddr offset, unsigned size)
         }
         break;
 
+    case SDHC_CLKCON:
+        ret = sdhci_read(opaque, offset, size);
+        if (object_dynamic_cast(OBJECT(s), TYPE_IMX_USDHC)) {
+            ret |= 0xf;
+        }
+        break;
+
     case ESDHC_VENDOR_SPEC:
         ret = s->vendor_spec;
         break;
