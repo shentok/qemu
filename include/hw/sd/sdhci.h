@@ -106,6 +106,9 @@ struct SDHCIState {
 };
 typedef struct SDHCIState SDHCIState;
 
+/* Controller does not stop/interrupt at page boundary in SDMA mode */
+#define SDHCI_QUIRK_NO_SDMA_PAGE_BOUNDARY BIT(0)
+
 /*
  * Controller does not provide transfer-complete interrupt when not
  * busy.
