@@ -177,6 +177,12 @@ static int i2c_do_start_transfer(I2CBus *bus, uint8_t address,
 
 int i2c_start_transfer(I2CBus *bus, uint8_t address, bool is_recv)
 {
+    if (is_recv) {
+        trace_i2c_start_recv(BUS(bus)->name, address);
+    } else {
+        trace_i2c_start_send(BUS(bus)->name, address);
+    }
+
     return i2c_do_start_transfer(bus, address, is_recv
                                                ? I2C_START_RECV
                                                : I2C_START_SEND);
