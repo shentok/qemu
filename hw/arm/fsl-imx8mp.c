@@ -207,6 +207,8 @@ static void fsl_imx8mp_init(Object *obj)
 
     object_initialize_child(obj, "analog", &s->analog, TYPE_IMX8MP_ANALOG);
 
+    object_initialize_child(obj, "src", &s->src, TYPE_IMX8MP_SRC);
+
     object_initialize_child(obj, "snvs", &s->snvs, TYPE_IMX7_SNVS);
 
     object_initialize_child(obj, "sysctr", &s->sysctr, TYPE_IMX_SYSCTR);
@@ -376,6 +378,13 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     }
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->analog), 0,
                     fsl_imx8mp_memmap[FSL_IMX8MP_ANA_PLL].addr);
+
+    /* SRC */
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->src), errp)) {
+        return;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->src), 0,
+                    fsl_imx8mp_memmap[FSL_IMX8MP_SRC].addr);
 
     /* System Counter */
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->sysctr), errp)) {
@@ -687,6 +696,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MP_PCIE_PHY1:
         case FSL_IMX8MP_RAM:
         case FSL_IMX8MP_SNVS_HP:
+        case FSL_IMX8MP_SRC:
         case FSL_IMX8MP_SYSCNT_CMP:
         case FSL_IMX8MP_SYSCNT_CTRL:
         case FSL_IMX8MP_SYSCNT_RD:
