@@ -216,7 +216,8 @@ static uint64_t mpc_i2c_read(void *opaque, hwaddr addr, unsigned size)
         if (mpc_i2c_is_master(s)) { /* master mode */
             if (mpc_i2c_direction_is_tx(s)) {
                 qemu_log_mask(LOG_GUEST_ERROR,
-                              "%s: MTX is set not in recv mode\n", __func__);
+                              "%s: MTX is set not in recv mode\n",
+                              DEVICE(s)->canonical_path);
             } else {
                 mpc_i2c_data_recive(s);
             }
@@ -225,11 +226,11 @@ static uint64_t mpc_i2c_read(void *opaque, hwaddr addr, unsigned size)
     default:
         value = 0;
         qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad read addr 0x%x\n",
-                      __func__, (unsigned int)addr);
+                      DEVICE(s)->canonical_path, (unsigned int)addr);
         break;
     }
 
-    trace_mpc_i2c_read(addr, value);
+    trace_mpc_i2c_read(DEVICE(s)->canonical_path, addr, value);
 
     return (uint64_t)value;
 }
@@ -239,7 +240,7 @@ static void mpc_i2c_write(void *opaque, hwaddr addr,
 {
     MPCI2CState *s = opaque;
 
-    trace_mpc_i2c_write(addr, value);
+    trace_mpc_i2c_write(DEVICE(s)->canonical_path, addr, value);
 
     switch (addr) {
     case MPC_I2C_ADR:
@@ -302,7 +303,7 @@ static void mpc_i2c_write(void *opaque, hwaddr addr,
         break;
     default:
         qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad write addr 0x%x\n",
-                      __func__, (unsigned int)addr);
+                      DEVICE(s)->canonical_path, (unsigned int)addr);
         break;
     }
 }
