@@ -37,8 +37,8 @@ aspeed_i2c_bus_recv(const char *mode, int i, int count, uint8_t byte) "%s recv %
 
 # mpc_i2c.c
 
-mpc_i2c_read(uint64_t addr, uint32_t value) "[0x%" PRIx64 "] -> 0x%02" PRIx32
-mpc_i2c_write(uint64_t addr, uint32_t value) "[0x%" PRIx64 "] <- 0x%02" PRIx32
+mpc_i2c_read(const char *id, uint64_t addr, uint32_t value) "%s:[0x%" PRIx64 "] -> 0x%02" PRIx32
+mpc_i2c_write(const char *id, uint64_t addr, uint32_t value) "%s:[0x%" PRIx64 "] <- 0x%02" PRIx32
 
 # npcm7xx_smbus.c
 
