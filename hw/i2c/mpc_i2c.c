@@ -24,6 +24,7 @@
 #include "hw/qdev-dt-interface.h"
 #include "hw/sysbus.h"
 #include "migration/vmstate.h"
+#include "qemu/log.h"
 #include "qom/object.h"
 #include "trace.h"
 
@@ -214,7 +215,8 @@ static uint64_t mpc_i2c_read(void *opaque, hwaddr addr, unsigned size)
         value = s->dr;
         if (mpc_i2c_is_master(s)) { /* master mode */
             if (mpc_i2c_direction_is_tx(s)) {
-                DPRINTF("MTX is set not in recv mode\n");
+                qemu_log_mask(LOG_GUEST_ERROR,
+                              "%s: MTX is set not in recv mode\n", __func__);
             } else {
                 mpc_i2c_data_recive(s);
             }
@@ -222,7 +224,8 @@ static uint64_t mpc_i2c_read(void *opaque, hwaddr addr, unsigned size)
         break;
     default:
         value = 0;
-        DPRINTF("ERROR: Bad read addr 0x%x\n", (unsigned int)addr);
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad read addr 0x%x\n",
+                      __func__, (unsigned int)addr);
         break;
     }
 
@@ -298,7 +301,8 @@ static void mpc_i2c_write(void *opaque, hwaddr addr,
         s->dfsrr = value;
         break;
     default:
-        DPRINTF("ERROR: Bad write addr 0x%x\n", (unsigned int)addr);
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad write addr 0x%x\n",
+                      __func__, (unsigned int)addr);
         break;
     }
 }
