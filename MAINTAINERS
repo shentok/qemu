@@ -1483,6 +1483,7 @@ S: Odd Fixes
 F: hw/ppc/mpc8544ds.c
 F: hw/ppc/mpc8544_guts.c
 F: pc-bios/mpc8544ds.dts
+F: pc-bios/tabor2.dts
 F: tests/functional/test_ppc_mpc8544ds.py
 
 New World (mac99)

@@ -160,3 +160,16 @@ There are some other kernels and instructions for booting other
 distros on aCube's product page at
 https://www.acube-systems.biz/index.php?page=hardware&pid=5
 but those are untested.
+
+A-Eon A1222 (Varisys TABOR)
+===========================
+
+Running U-Boot
+--------------
+
+.. code-block:: bash
+
+  $ qemu-system-ppc -machine mpc8544ds -dtb tabor2.dtb -m 1G \
+                    -drive id=mydrive,if=none,file=firmware-a1222.img,format=raw \
+                    -device sd-card,drive=mydrive \
+                    -device sparse-mem,baseaddr=0xffd00000,length=256000,priority=1
