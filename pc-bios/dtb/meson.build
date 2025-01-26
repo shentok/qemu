@@ -8,6 +8,7 @@ dtbs = [
   'qemu-aarch64-virt.dtb',
   'qemu-mpc8544ds.dtb',
   'qemu-ppce500.dtb',
+  'tabor2.dtb',
 ]
 
 dtc = find_program('dtc', required: false)
