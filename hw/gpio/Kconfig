@@ -19,10 +19,12 @@ config STM32L4X5_GPIO
 config PCA9552
     bool
     depends on I2C
+    default y if I2C_DEVICES
 
 config PCA9554
     bool
     depends on I2C
+    default y if I2C_DEVICES
 
 config PCF8574
     bool
