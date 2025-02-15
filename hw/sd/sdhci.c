@@ -598,7 +598,6 @@ static void sdhci_write_dataport(SDHCIState *s, uint32_t value, unsigned size)
 /* Multi block SDMA transfer */
 static void sdhci_sdma_transfer_multi_blocks(SDHCIState *s)
 {
-    unsigned int begin;
     const uint16_t block_size = s->blksize & BLOCK_SIZE_MASK;
 
     if (!(s->trnmod & SDHC_TRNS_BLK_CNT_EN) || !s->blkcnt) {
@@ -610,35 +609,23 @@ static void sdhci_sdma_transfer_multi_blocks(SDHCIState *s)
     if (s->trnmod & SDHC_TRNS_READ) {
         s->prnsts |= SDHC_DOING_READ;
         while (s->blkcnt) {
-            if (s->data_count == 0) {
-                sdbus_read_data(&s->sdbus, s->fifo_buffer, block_size);
-            }
-            begin = s->data_count;
-            s->data_count = block_size;
+            sdbus_read_data(&s->sdbus, s->fifo_buffer, block_size);
             if (s->trnmod & SDHC_TRNS_BLK_CNT_EN) {
                 s->blkcnt--;
             }
-            dma_memory_write(s->dma_as, s->sdmasysad, &s->fifo_buffer[begin],
-                             s->data_count - begin, MEMTXATTRS_UNSPECIFIED);
-            s->sdmasysad += s->data_count - begin;
-            if (s->data_count == block_size) {
-                s->data_count = 0;
-            }
+            dma_memory_write(s->dma_as, s->sdmasysad, s->fifo_buffer,
+                             block_size, MEMTXATTRS_UNSPECIFIED);
+            s->sdmasysad += block_size;
         }
     } else {
         s->prnsts |= SDHC_DOING_WRITE;
         while (s->blkcnt) {
-            begin = s->data_count;
-            s->data_count = block_size;
-            dma_memory_read(s->dma_as, s->sdmasysad, &s->fifo_buffer[begin],
-                            s->data_count - begin, MEMTXATTRS_UNSPECIFIED);
-            s->sdmasysad += s->data_count - begin;
-            if (s->data_count == block_size) {
-                sdbus_write_data(&s->sdbus, s->fifo_buffer, block_size);
-                s->data_count = 0;
-                if (s->trnmod & SDHC_TRNS_BLK_CNT_EN) {
-                    s->blkcnt--;
-                }
+            dma_memory_read(s->dma_as, s->sdmasysad, s->fifo_buffer,
+                            block_size, MEMTXATTRS_UNSPECIFIED);
+            s->sdmasysad += block_size;
+            sdbus_write_data(&s->sdbus, s->fifo_buffer, block_size);
+            if (s->trnmod & SDHC_TRNS_BLK_CNT_EN) {
+                s->blkcnt--;
             }
         }
     }
