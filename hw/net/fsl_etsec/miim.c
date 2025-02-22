@@ -28,22 +28,16 @@
 #include "registers.h"
 #include "../trace.h"
 
-static void miim_read_cycle(eTSEC *etsec)
+static uint16_t fsl_etsec_phy_read(EtsecPhyState *s, uint8_t addr)
 {
-    uint8_t  phy;
-    uint8_t  addr;
     uint16_t value;
-
-    phy  = (etsec->regs[MIIMADD].value >> 8) & 0x1F;
-    (void)phy; /* Unreferenced */
-    addr = etsec->regs[MIIMADD].value & 0x1F;
 
     switch (addr) {
     case MII_BMCR:
-        value = etsec->phy_control;
+        value = s->phy_control;
         break;
     case MII_BMSR:
-        value = etsec->phy_status;
+        value = s->phy_status;
         break;
     case MII_STAT1000:
         value = MII_STAT1000_LOK | MII_STAT1000_ROK;
@@ -53,31 +47,28 @@ static void miim_read_cycle(eTSEC *etsec)
         break;
     };
 
-    trace_fsl_etsec_phy_read(phy, addr, value);
-
-    etsec->regs[MIIMSTAT].value = value;
+    return value;
 }
 
-static void miim_write_cycle(eTSEC *etsec)
+static void fsl_etsec_phy_write(EtsecPhyState *s, uint8_t addr, uint16_t value)
 {
-    uint8_t  phy;
-    uint8_t  addr;
-    uint16_t value;
-
-    phy   = (etsec->regs[MIIMADD].value >> 8) & 0x1F;
-    (void)phy; /* Unreferenced */
-    addr  = etsec->regs[MIIMADD].value & 0x1F;
-    value = etsec->regs[MIIMCON].value & 0xffff;
-
-    trace_fsl_etsec_phy_write(phy, addr, value);
-
     switch (addr) {
     case MII_BMCR:
-        etsec->phy_control = value & ~(MII_BMCR_RESET | MII_BMCR_FD);
+        s->phy_control = value & ~(MII_BMCR_RESET | MII_BMCR_FD);
         break;
     default:
         break;
     };
+}
+
+void fsl_etsec_phy_reset(EtsecPhyState *s)
+{
+    s->phy_status =
+        MII_BMSR_EXTCAP   | MII_BMSR_LINK_ST  | MII_BMSR_AUTONEG  |
+        MII_BMSR_AN_COMP  | MII_BMSR_MFPS     | MII_BMSR_EXTSTAT  |
+        MII_BMSR_100T2_HD | MII_BMSR_100T2_FD |
+        MII_BMSR_10T_HD   | MII_BMSR_10T_FD   |
+        MII_BMSR_100TX_HD | MII_BMSR_100TX_FD | MII_BMSR_100T4;
 }
 
 void etsec_write_miim(eTSEC          *etsec,
@@ -93,14 +84,27 @@ void etsec_write_miim(eTSEC          *etsec,
 
         if ((!(reg->value & MIIMCOM_READ)) && (value & MIIMCOM_READ)) {
             /* Read */
-            miim_read_cycle(etsec);
+            uint8_t phy = (etsec->regs[MIIMADD].value >> 8) & 0x1F;
+            uint8_t addr = etsec->regs[MIIMADD].value & 0x1F;
+
+            etsec->regs[MIIMSTAT].value = fsl_etsec_phy_read(&etsec->phy, addr);
+
+            trace_fsl_etsec_phy_read(phy, addr, etsec->regs[MIIMSTAT].value);
         }
         reg->value = value;
         break;
 
     case MIIMCON:
         reg->value = value & 0xffff;
-        miim_write_cycle(etsec);
+        {
+            uint8_t phy = (etsec->regs[MIIMADD].value >> 8) & 0x1F;
+            uint8_t addr = etsec->regs[MIIMADD].value & 0x1F;
+            uint16_t mii_value = etsec->regs[MIIMCON].value & 0xffff;
+
+            trace_fsl_etsec_phy_write(phy, addr, mii_value);
+
+            fsl_etsec_phy_write(&etsec->phy, addr, mii_value);
+        }
         break;
 
     default:
@@ -125,12 +129,12 @@ void etsec_write_miim(eTSEC          *etsec,
 
 }
 
-void etsec_miim_link_status(eTSEC *etsec, NetClientState *nc)
+void fsl_etsec_phy_set_link_status(EtsecPhyState *s, bool link_down)
 {
     /* Set link status */
-    if (nc->link_down) {
-        etsec->phy_status &= ~MII_BMSR_LINK_ST;
+    if (link_down) {
+        s->phy_status &= ~MII_BMSR_LINK_ST;
     } else {
-        etsec->phy_status |= MII_BMSR_LINK_ST;
+        s->phy_status |= MII_BMSR_LINK_ST;
     }
 }
