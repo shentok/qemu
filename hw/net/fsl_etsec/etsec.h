@@ -30,6 +30,11 @@
 #include "hw/ptimer.h"
 #include "qom/object.h"
 
+typedef struct EtsecPhyState {
+    uint16_t phy_status;
+    uint16_t phy_control;
+} EtsecPhyState;
+
 /* Buffer Descriptors */
 
 typedef struct eTSEC_rxtx_bd {
@@ -120,9 +125,7 @@ struct eTSEC {
     qemu_irq     rx_irq;
     qemu_irq     err_irq;
 
-
-    uint16_t phy_status;
-    uint16_t phy_control;
+    EtsecPhyState phy;
 
     /* Polling */
     struct ptimer_state *ptimer;
@@ -149,6 +152,7 @@ void etsec_write_miim(eTSEC          *etsec,
                       uint32_t        reg_index,
                       uint32_t        value);
 
-void etsec_miim_link_status(eTSEC *etsec, NetClientState *nc);
+void fsl_etsec_phy_reset(EtsecPhyState *s);
+void fsl_etsec_phy_set_link_status(EtsecPhyState *s, bool link_down);
 
 #endif /* ETSEC_H */

@@ -29,7 +29,6 @@
 #include "qemu/osdep.h"
 #include "hw/sysbus.h"
 #include "hw/irq.h"
-#include "hw/net/mii.h"
 #include "hw/ptimer.h"
 #include "hw/qdev-properties.h"
 #include "etsec.h"
@@ -319,12 +318,7 @@ static void etsec_reset(DeviceState *d)
     etsec->rx_buffer     = NULL;
     etsec->rx_buffer_len = 0;
 
-    etsec->phy_status =
-        MII_BMSR_EXTCAP   | MII_BMSR_LINK_ST  | MII_BMSR_AUTONEG  |
-        MII_BMSR_AN_COMP  | MII_BMSR_MFPS     | MII_BMSR_EXTSTAT  |
-        MII_BMSR_100T2_HD | MII_BMSR_100T2_FD |
-        MII_BMSR_10T_HD   | MII_BMSR_10T_FD   |
-        MII_BMSR_100TX_HD | MII_BMSR_100TX_FD | MII_BMSR_100T4;
+    fsl_etsec_phy_reset(&etsec->phy);
 
     etsec_update_irq(etsec);
 }
@@ -356,7 +350,7 @@ static void etsec_set_link_status(NetClientState *nc)
 {
     eTSEC *etsec = qemu_get_nic_opaque(nc);
 
-    etsec_miim_link_status(etsec, nc);
+    fsl_etsec_phy_set_link_status(&etsec->phy, nc->link_down);
 }
 
 static NetClientInfo net_etsec_info = {
