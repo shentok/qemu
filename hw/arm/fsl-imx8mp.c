@@ -17,7 +17,9 @@
 #include "hw/misc/unimp.h"
 #include "hw/boards.h"
 #include "hw/loader.h"
+#include "system/qtest.h"
 #include "system/system.h"
+#include "system/tcg.h"
 #include "target/arm/cpu-qom.h"
 #include "qapi/error.h"
 #include "qobject/qlist.h"
@@ -293,6 +295,13 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
          */
         object_property_set_int(OBJECT(&s->cpu[i]), "cntfrq", 8000000,
                                 &error_abort);
+
+        object_property_set_bool(OBJECT(&s->cpu[i]), "has_el3",
+                                 tcg_enabled() || qtest_enabled(),
+                                 &error_fatal);
+        object_property_set_bool(OBJECT(&s->cpu[i]), "has_el2",
+                                 tcg_enabled() || qtest_enabled(),
+                                 &error_fatal);
 
         if (i) {
             /*
