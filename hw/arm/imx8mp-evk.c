@@ -12,10 +12,24 @@
 #include "hw/arm/fsl-imx8mp.h"
 #include "hw/boards.h"
 #include "hw/qdev-properties.h"
+#include "system/kvm.h"
 #include "system/qtest.h"
+#include "qemu/accel.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
 #include <libfdt.h>
+
+struct Imx8mpEvkState {
+    MachineState parent_obj;
+
+    bool secure;
+    bool virt;
+
+    struct arm_boot_info boot_info;
+};
+
+#define TYPE_IMX8MP_EVK_MACHINE MACHINE_TYPE_NAME("imx8mp-evk")
+OBJECT_DECLARE_SIMPLE_TYPE(Imx8mpEvkState, IMX8MP_EVK_MACHINE)
 
 static void imx8mp_evk_modify_dtb(const struct arm_boot_info *info, void *fdt)
 {
@@ -46,7 +60,7 @@ static void imx8mp_evk_modify_dtb(const struct arm_boot_info *info, void *fdt)
 
 static void imx8mp_evk_init(MachineState *machine)
 {
-    static struct arm_boot_info boot_info;
+    Imx8mpEvkState *m = IMX8MP_EVK_MACHINE(machine);
     FslImx8mpState *s;
 
     if (machine->ram_size > FSL_IMX8MP_RAM_SIZE_MAX) {
@@ -55,7 +69,19 @@ static void imx8mp_evk_init(MachineState *machine)
         exit(1);
     }
 
-    boot_info = (struct arm_boot_info) {
+    if (m->secure && (kvm_enabled())) {
+        error_report("%s does not support providing Security extensions "
+                     "(TrustZone) to the guest CPU", current_accel_name());
+        exit(1);
+    }
+
+    if (m->virt && (kvm_enabled())) {
+        error_report("%s does not support providing Virtualization extensions "
+                     "to the guest CPU", current_accel_name());
+        exit(1);
+    }
+
+    m->boot_info = (struct arm_boot_info) {
         .loader_start = FSL_IMX8MP_RAM_START,
         .board_id = -1,
         .ram_size = machine->ram_size,
@@ -65,6 +91,9 @@ static void imx8mp_evk_init(MachineState *machine)
 
     s = FSL_IMX8MP(object_new(TYPE_FSL_IMX8MP));
     object_property_add_child(OBJECT(machine), "soc", OBJECT(s));
+    object_property_set_bool(OBJECT(s), "secure", m->secure, &error_fatal);
+    object_property_set_bool(OBJECT(s), "virtualization", m->virt,
+                             &error_fatal);
     object_property_set_uint(OBJECT(s), "fec1-phy-num", 1, &error_fatal);
     sysbus_realize_and_unref(SYS_BUS_DEVICE(s), &error_fatal);
 
@@ -89,15 +118,88 @@ static void imx8mp_evk_init(MachineState *machine)
     }
 
     if (!qtest_enabled()) {
-        arm_load_kernel(&s->cpu[0], machine, &boot_info);
+        arm_load_kernel(&s->cpu[0], machine, &m->boot_info);
     }
 }
 
-static void imx8mp_evk_machine_init(MachineClass *mc)
+static void imx8mp_evk_instance_init(Object *obj)
 {
+    Imx8mpEvkState *s = IMX8MP_EVK_MACHINE(obj);
+
+    /* Default to secure mode (EL3) being enabled */
+    s->secure = true;
+    /* Default to virt (EL2) being enabled */
+    s->virt = true;
+}
+
+static bool imx8mp_evk_get_secure(Object *obj, Error **errp)
+{
+    Imx8mpEvkState *s = IMX8MP_EVK_MACHINE(obj);
+
+    return s->secure;
+}
+
+static void imx8mp_evk_set_secure(Object *obj, bool value, Error **errp)
+{
+    Imx8mpEvkState *s = IMX8MP_EVK_MACHINE(obj);
+
+    s->secure = value;
+}
+
+static bool imx8mp_evk_get_virt(Object *obj, Error **errp)
+{
+    Imx8mpEvkState *s = IMX8MP_EVK_MACHINE(obj);
+
+    return s->virt;
+}
+
+static void imx8mp_evk_set_virt(Object *obj, bool value, Error **errp)
+{
+    Imx8mpEvkState *s = IMX8MP_EVK_MACHINE(obj);
+
+    s->virt = value;
+}
+
+static void imx8mp_evk_machine_init(ObjectClass *oc, const void *data)
+{
+    MachineClass *mc = MACHINE_CLASS(oc);
+    static const char *const valid_cpu_types[] = {
+        ARM_CPU_TYPE_NAME("cortex-a53"),
+#ifdef CONFIG_KVM
+        ARM_CPU_TYPE_NAME("host"),
+#endif /* CONFIG_KVM */
+        NULL
+    };
+
     mc->desc = "NXP i.MX 8M Plus EVK Board";
     mc->init = imx8mp_evk_init;
     mc->max_cpus = FSL_IMX8MP_NUM_CPUS;
+    mc->valid_cpu_types = valid_cpu_types;
+    mc->default_cpu_type = mc->valid_cpu_types[0];
     mc->default_ram_id = "imx8mp-evk.ram";
+
+    object_class_property_add_bool(oc, "secure", imx8mp_evk_get_secure,
+                                   imx8mp_evk_set_secure);
+    object_class_property_set_description(oc, "secure",
+                                          "Set on/off to enable/disable the ARM "
+                                          "Security Extensions (TrustZone)");
+
+    object_class_property_add_bool(oc, "virtualization", imx8mp_evk_get_virt,
+                                   imx8mp_evk_set_virt);
+    object_class_property_set_description(oc, "virtualization",
+                                          "Set on/off to enable/disable emulating a "
+                                          "guest CPU which implements the ARM "
+                                          "Virtualization Extensions");
 }
-DEFINE_MACHINE("imx8mp-evk", imx8mp_evk_machine_init)
+
+static const TypeInfo imx8mp_evk_types[] = {
+    {
+        .name = TYPE_IMX8MP_EVK_MACHINE,
+        .parent = TYPE_MACHINE,
+        .instance_size = sizeof(FslImx8mpState),
+        .instance_init = imx8mp_evk_instance_init,
+        .class_init = imx8mp_evk_machine_init,
+    },
+};
+
+DEFINE_TYPES(imx8mp_evk_types)

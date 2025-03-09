@@ -73,6 +73,8 @@ struct FslImx8mpState {
 
     uint32_t           phy_num;
     bool               phy_connected;
+    bool               secure;
+    bool               virt;
 };
 
 enum FslImx8mpMemoryRegions {
