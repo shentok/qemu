@@ -285,6 +285,10 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
          */
         object_property_set_int(OBJECT(&s->cpu[i]), "cntfrq", 8000000,
                                 &error_abort);
+        object_property_set_bool(OBJECT(&s->cpu[i]), "has_el2", s->virt,
+                                 &error_abort);
+        object_property_set_bool(OBJECT(&s->cpu[i]), "has_el3", s->secure,
+                                 &error_abort);
 
         if (i) {
             /*
@@ -308,6 +312,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         qdev_prop_set_uint32(gicdev, "num-cpu", ms->smp.cpus);
         qdev_prop_set_uint32(gicdev, "num-irq",
                              FSL_IMX8MP_NUM_IRQS + GIC_INTERNAL);
+        qdev_prop_set_bit(gicdev, "has-security-extensions", s->secure);
         redist_region_count = qlist_new();
         qlist_append_int(redist_region_count, ms->smp.cpus);
         qdev_prop_set_array(gicdev, "redist-region-count", redist_region_count);
@@ -691,6 +696,8 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
 static const Property fsl_imx8mp_properties[] = {
     DEFINE_PROP_UINT32("fec1-phy-num", FslImx8mpState, phy_num, 0),
     DEFINE_PROP_BOOL("fec1-phy-connected", FslImx8mpState, phy_connected, true),
+    DEFINE_PROP_BOOL("secure", FslImx8mpState, secure, false),
+    DEFINE_PROP_BOOL("virtualization", FslImx8mpState, virt, false),
 };
 
 static void fsl_imx8mp_class_init(ObjectClass *oc, const void *data)
