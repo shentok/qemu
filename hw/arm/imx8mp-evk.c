@@ -12,7 +12,9 @@
 #include "hw/arm/fsl-imx8mp.h"
 #include "hw/boards.h"
 #include "hw/qdev-properties.h"
+#include "system/kvm.h"
 #include "system/qtest.h"
+#include "qemu/accel.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
 #include <libfdt.h>
@@ -64,6 +66,18 @@ static void imx8mp_evk_init(MachineState *machine)
     if (machine->ram_size > FSL_IMX8MP_RAM_SIZE_MAX) {
         error_report("RAM size " RAM_ADDR_FMT " above max supported (%08" PRIx64 ")",
                      machine->ram_size, FSL_IMX8MP_RAM_SIZE_MAX);
+        exit(1);
+    }
+
+    if (m->secure && (kvm_enabled())) {
+        error_report("%s does not support providing Security extensions "
+                     "(TrustZone) to the guest CPU", current_accel_name());
+        exit(1);
+    }
+
+    if (m->virt && (kvm_enabled())) {
+        error_report("%s does not support providing Virtualization extensions "
+                     "to the guest CPU", current_accel_name());
         exit(1);
     }
 
@@ -149,9 +163,19 @@ static void imx8mp_evk_set_virt(Object *obj, bool value, Error **errp)
 static void imx8mp_evk_machine_init(ObjectClass *oc, const void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
+    static const char *const valid_cpu_types[] = {
+        ARM_CPU_TYPE_NAME("cortex-a53"),
+#ifdef CONFIG_KVM
+        ARM_CPU_TYPE_NAME("host"),
+#endif /* CONFIG_KVM */
+        NULL
+    };
+
     mc->desc = "NXP i.MX 8M Plus EVK Board";
     mc->init = imx8mp_evk_init;
     mc->max_cpus = FSL_IMX8MP_NUM_CPUS;
+    mc->valid_cpu_types = valid_cpu_types;
+    mc->default_cpu_type = mc->valid_cpu_types[0];
     mc->default_ram_id = "imx8mp-evk.ram";
 
     object_class_property_add_bool(oc, "secure", imx8mp_evk_get_secure,
