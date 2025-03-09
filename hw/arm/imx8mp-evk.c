@@ -17,6 +17,15 @@
 #include "qapi/error.h"
 #include <libfdt.h>
 
+#define TYPE_IMX8MP_EVK_MACHINE MACHINE_TYPE_NAME("imx8mp-evk")
+OBJECT_DECLARE_SIMPLE_TYPE(Imx8mpEvkState, IMX8MP_EVK_MACHINE)
+
+struct Imx8mpEvkState {
+    MachineState parent_obj;
+
+    struct arm_boot_info boot_info;
+};
+
 static void imx8mp_evk_modify_dtb(const struct arm_boot_info *info, void *fdt)
 {
     int i, offset;
@@ -46,7 +55,7 @@ static void imx8mp_evk_modify_dtb(const struct arm_boot_info *info, void *fdt)
 
 static void imx8mp_evk_init(MachineState *machine)
 {
-    static struct arm_boot_info boot_info;
+    Imx8mpEvkState *m = IMX8MP_EVK_MACHINE(machine);
     FslImx8mpState *s;
 
     if (machine->ram_size > FSL_IMX8MP_RAM_SIZE_MAX) {
@@ -55,7 +64,7 @@ static void imx8mp_evk_init(MachineState *machine)
         exit(1);
     }
 
-    boot_info = (struct arm_boot_info) {
+    m->boot_info = (struct arm_boot_info) {
         .loader_start = FSL_IMX8MP_RAM_START,
         .board_id = -1,
         .ram_size = machine->ram_size,
@@ -89,15 +98,27 @@ static void imx8mp_evk_init(MachineState *machine)
     }
 
     if (!qtest_enabled()) {
-        arm_load_kernel(&s->cpu[0], machine, &boot_info);
+        arm_load_kernel(&s->cpu[0], machine, &m->boot_info);
     }
 }
 
-static void imx8mp_evk_machine_init(MachineClass *mc)
+static void imx8mp_evk_machine_init(ObjectClass *oc, const void *data)
 {
+    MachineClass *mc = MACHINE_CLASS(oc);
+
     mc->desc = "NXP i.MX 8M Plus EVK Board";
     mc->init = imx8mp_evk_init;
     mc->max_cpus = FSL_IMX8MP_NUM_CPUS;
     mc->default_ram_id = "imx8mp-evk.ram";
 }
-DEFINE_MACHINE("imx8mp-evk", imx8mp_evk_machine_init)
+
+static const TypeInfo imx8mp_evk_types[] = {
+    {
+        .name = TYPE_IMX8MP_EVK_MACHINE,
+        .parent = TYPE_MACHINE,
+        .instance_size = sizeof(FslImx8mpState),
+        .class_init = imx8mp_evk_machine_init,
+    },
+};
+
+DEFINE_TYPES(imx8mp_evk_types)
