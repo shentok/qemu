@@ -279,6 +279,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     MachineState *ms = MACHINE(qdev_get_machine());
     FslImx8mpState *s = FSL_IMX8MP(dev);
     DeviceState *gicdev = DEVICE(&s->gic);
+    DeviceState *reserved;
     g_autofree char *filename = NULL;
     int i;
 
@@ -787,6 +788,15 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
             break;
         }
     }
+
+    reserved = qdev_new(TYPE_UNIMPLEMENTED_DEVICE);
+
+    qdev_prop_set_string(reserved, "name", "reserved");
+    qdev_prop_set_uint64(reserved, "size", 4 * GiB);
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(reserved), &error_fatal);
+
+    sysbus_mmio_map_overlap(SYS_BUS_DEVICE(reserved), 0, 0, -10000);
+
 }
 
 static const Property fsl_imx8mp_properties[] = {
