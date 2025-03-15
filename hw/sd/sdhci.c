@@ -1871,7 +1871,22 @@ esdhc_write(void *opaque, hwaddr offset, uint64_t val, unsigned size)
     }
 }
 
-static const MemoryRegionOps esdhc_mmio_ops = {
+static const MemoryRegionOps esdhc_mmio_be_ops = {
+    .read = esdhc_read,
+    .write = esdhc_write,
+    .impl = {
+        .min_access_size = 4,
+        .max_access_size = 4,
+    },
+    .valid = {
+        .min_access_size = 1,
+        .max_access_size = 4,
+        .unaligned = false
+    },
+    .endianness = DEVICE_BIG_ENDIAN,
+};
+
+static const MemoryRegionOps esdhc_mmio_le_ops = {
     .read = esdhc_read,
     .write = esdhc_write,
     .valid = {
@@ -1882,12 +1897,23 @@ static const MemoryRegionOps esdhc_mmio_ops = {
     .endianness = DEVICE_LITTLE_ENDIAN,
 };
 
+static void fsl_esdhc_be_init(Object *obj)
+{
+    SDHCIState *s = SYSBUS_SDHCI(obj);
+    DeviceState *dev = DEVICE(obj);
+
+    s->io_ops = &esdhc_mmio_be_ops;
+    s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ;
+    qdev_prop_set_uint8(dev, "sd-spec-version", 2);
+    qdev_prop_set_uint8(dev, "vendor", SDHCI_VENDOR_FSL);
+}
+
 static void imx_usdhc_init(Object *obj)
 {
     SDHCIState *s = SYSBUS_SDHCI(obj);
     DeviceState *dev = DEVICE(obj);
 
-    s->io_ops = &esdhc_mmio_ops;
+    s->io_ops = &esdhc_mmio_le_ops;
     s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ;
     qdev_prop_set_uint8(dev, "sd-spec-version", 3);
 }
@@ -1964,6 +1990,11 @@ static const TypeInfo sdhci_types[] = {
         .instance_init = sdhci_sysbus_init,
         .instance_finalize = sdhci_sysbus_finalize,
         .class_init = sdhci_sysbus_class_init,
+    },
+    {
+        .name = TYPE_FSL_ESDHC_BE,
+        .parent = TYPE_SYSBUS_SDHCI,
+        .instance_init = fsl_esdhc_be_init,
     },
     {
         .name = TYPE_IMX_USDHC,
