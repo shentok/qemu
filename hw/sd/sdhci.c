@@ -1641,7 +1641,17 @@ static void sdhci_bus_class_init(ObjectClass *klass, const void *data)
     sbc->set_readonly = sdhci_set_readonly;
 }
 
-/* --- qdev i.MX eSDHC --- */
+/* --- Freescale eSDHC (MPC8569ERM Rev.2 from 06/2011) --- */
+
+static void fsl_esdhc_init(Object *obj)
+{
+    DeviceState *dev = DEVICE(obj);
+
+    qdev_prop_set_uint8(dev, "sd-spec-version", 2);
+    qdev_prop_set_uint8(dev, "vendor", SDHCI_VENDOR_FSL);
+}
+
+/* --- qdev i.MX uSDHC --- */
 
 #define USDHC_MIX_CTRL                  0x48
 
@@ -1965,6 +1975,11 @@ static const TypeInfo sdhci_types[] = {
         .instance_init = sdhci_sysbus_init,
         .instance_finalize = sdhci_sysbus_finalize,
         .class_init = sdhci_sysbus_class_init,
+    },
+    {
+        .name = TYPE_FSL_ESDHC,
+        .parent = TYPE_SYSBUS_SDHCI,
+        .instance_init = fsl_esdhc_init,
     },
     {
         .name = TYPE_IMX_USDHC,
