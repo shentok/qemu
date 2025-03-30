@@ -670,31 +670,3 @@ pub unsafe extern "C" fn pl011_create(
     // The pointer is kept alive by the QOM tree; drop the owned ref
     dev.as_mut_ptr()
 }
-
-#[repr(C)]
-#[derive(qemu_api_macros::Object)]
-/// PL011 Luminary device model.
-pub struct PL011Luminary {
-    parent_obj: ParentField<PL011State>,
-}
-
-qom_isa!(PL011Luminary : PL011State, SysBusDevice, DeviceState, Object);
-
-unsafe impl ObjectType for PL011Luminary {
-    type Class = <PL011State as ObjectType>::Class;
-    const TYPE_NAME: &'static CStr = crate::TYPE_PL011_LUMINARY;
-}
-
-impl ObjectImpl for PL011Luminary {
-    type ParentType = PL011State;
-
-    const CLASS_INIT: fn(&mut Self::Class) = Self::Class::class_init::<Self>;
-}
-
-impl PL011Impl for PL011Luminary {
-    const DEVICE_ID: DeviceId = DeviceId(&[0x11, 0x00, 0x18, 0x01, 0x0d, 0xf0, 0x05, 0xb1]);
-}
-
-impl DeviceImpl for PL011Luminary {}
-impl ResettablePhasesImpl for PL011Luminary {}
-impl SysBusDeviceImpl for PL011Luminary {}
