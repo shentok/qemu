@@ -4,6 +4,7 @@ members = [
     "qemu-api-macros",
     "qemu-api",
     "hw/char/pl011",
+    "hw/char/serial",
     "hw/timer/hpet",
 ]
 

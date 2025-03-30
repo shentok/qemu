@@ -23,7 +23,9 @@ config SERIAL_C
 
 config SERIAL
     bool
-    select SERIAL_C
+    # SERIAL has both a Rust and a C implementation
+    select SERIAL_C if !HAVE_RUST
+    select X_SERIAL_RUST if HAVE_RUST
 
 config SERIAL_ISA
     bool
