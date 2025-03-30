@@ -1,10 +1,10 @@
 [package]
-name = "pl011"
+name = "serial"
 version = "0.1.0"
 edition = "2021"
-authors = ["Manos Pitsidianakis <manos.pitsidianakis@linaro.org>"]
+authors = ["Bernhard Beschow <shentey@gmail.com>"]
 license = "GPL-2.0-or-later"
-description = "pl011 device model for QEMU"
+description = "16550-style serial implementation for QEMU"
 resolver = "2"
 publish = false
 keywords = []
