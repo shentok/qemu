@@ -15,7 +15,6 @@ use qemu_api::{
     qdev::{Clock, ClockEvent, DeviceImpl, DeviceState, Property, ResetType, ResettablePhasesImpl},
     qom::{ObjectImpl, Owned, ParentField},
     static_assert,
-    sysbus::{SysBusDevice, SysBusDeviceImpl},
     vmstate::VMStateDescription,
 };
 
@@ -103,7 +102,7 @@ pub struct SerialRegisters {
 #[derive(qemu_api_macros::Object, qemu_api_macros::offsets)]
 /// Serial Device Model in QEMU
 pub struct SerialState {
-    pub parent_obj: ParentField<SysBusDevice>,
+    pub parent_obj: ParentField<DeviceState>,
     pub iomem: MemoryRegion,
     #[doc(alias = "chr")]
     pub char_backend: CharBackend,
@@ -133,16 +132,16 @@ pub struct SerialState {
 // expand the padding_for_rust[] array in the C SerialState struct.
 static_assert!(size_of::<SerialState>() <= size_of::<qemu_api::bindings::SerialState>());
 
-qom_isa!(SerialState : SysBusDevice, DeviceState, Object);
+qom_isa!(SerialState : DeviceState, Object);
 
 #[repr(C)]
 pub struct SerialClass {
-    parent_class: <SysBusDevice as ObjectType>::Class,
+    parent_class: <DeviceState as ObjectType>::Class,
     /// The byte string that identifies the device.
     device_id: DeviceId,
 }
 
-trait SerialImpl: SysBusDeviceImpl + IsA<SerialState> {
+trait SerialImpl: DeviceImpl + IsA<SerialState> {
     const DEVICE_ID: DeviceId;
 }
 
@@ -163,7 +162,7 @@ impl SerialImpl for SerialState {
 }
 
 impl ObjectImpl for SerialState {
-    type ParentType = SysBusDevice;
+    type ParentType = DeviceState;
 
     const INSTANCE_INIT: Option<unsafe fn(&mut Self)> = Some(Self::init);
     const INSTANCE_POST_INIT: Option<fn(&Self)> = Some(Self::post_init);
@@ -183,8 +182,6 @@ impl DeviceImpl for SerialState {
 impl ResettablePhasesImpl for SerialState {
     const HOLD: Option<fn(&Self, ResetType)> = Some(Self::reset_hold);
 }
-
-impl SysBusDeviceImpl for SerialState {}
 
 impl SerialRegisters {
     pub(self) fn read(&mut self, offset: RegisterOffset) -> (bool, u32) {
