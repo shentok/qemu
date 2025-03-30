@@ -35,7 +35,7 @@ const IBRD_MASK: u32 = 0xffff;
 const FBRD_MASK: u32 = 0x3f;
 
 /// QEMU sourced constant.
-pub const PL011_FIFO_DEPTH: u32 = 16;
+pub const SERIAL_FIFO_DEPTH: u32 = 16;
 
 #[derive(Clone, Copy)]
 struct DeviceId(&'static [u8; 8]);
@@ -52,7 +52,7 @@ impl std::ops::Index<hwaddr> for DeviceId {
 // the migration stream produced by the C version of this device.
 #[repr(transparent)]
 #[derive(Debug, Default)]
-pub struct Fifo([registers::Data; PL011_FIFO_DEPTH as usize]);
+pub struct Fifo([registers::Data; SERIAL_FIFO_DEPTH as usize]);
 impl_vmstate_forward!(Fifo);
 
 impl Fifo {
@@ -77,7 +77,7 @@ impl std::ops::Index<u32> for Fifo {
 
 #[repr(C)]
 #[derive(Debug, Default, qemu_api_macros::offsets)]
-pub struct PL011Registers {
+pub struct SerialRegisters {
     #[doc(alias = "fr")]
     pub flags: registers::Flags,
     #[doc(alias = "lcr")]
@@ -101,13 +101,13 @@ pub struct PL011Registers {
 
 #[repr(C)]
 #[derive(qemu_api_macros::Object, qemu_api_macros::offsets)]
-/// PL011 Device Model in QEMU
-pub struct PL011State {
+/// Serial Device Model in QEMU
+pub struct SerialState {
     pub parent_obj: ParentField<SysBusDevice>,
     pub iomem: MemoryRegion,
     #[doc(alias = "chr")]
     pub char_backend: CharBackend,
-    pub regs: BqlRefCell<PL011Registers>,
+    pub regs: BqlRefCell<SerialRegisters>,
     /// QEMU interrupts
     ///
     /// ```text
@@ -130,39 +130,39 @@ pub struct PL011State {
 // Some C users of this device embed its state struct into their own
 // structs, so the size of the Rust version must not be any larger
 // than the size of the C one. If this assert triggers you need to
-// expand the padding_for_rust[] array in the C PL011State struct.
-static_assert!(size_of::<PL011State>() <= size_of::<qemu_api::bindings::PL011State>());
+// expand the padding_for_rust[] array in the C SerialState struct.
+static_assert!(size_of::<SerialState>() <= size_of::<qemu_api::bindings::SerialState>());
 
-qom_isa!(PL011State : SysBusDevice, DeviceState, Object);
+qom_isa!(SerialState : SysBusDevice, DeviceState, Object);
 
 #[repr(C)]
-pub struct PL011Class {
+pub struct SerialClass {
     parent_class: <SysBusDevice as ObjectType>::Class,
     /// The byte string that identifies the device.
     device_id: DeviceId,
 }
 
-trait PL011Impl: SysBusDeviceImpl + IsA<PL011State> {
+trait SerialImpl: SysBusDeviceImpl + IsA<SerialState> {
     const DEVICE_ID: DeviceId;
 }
 
-impl PL011Class {
-    fn class_init<T: PL011Impl>(&mut self) {
+impl SerialClass {
+    fn class_init<T: SerialImpl>(&mut self) {
         self.device_id = T::DEVICE_ID;
         self.parent_class.class_init::<T>();
     }
 }
 
-unsafe impl ObjectType for PL011State {
-    type Class = PL011Class;
-    const TYPE_NAME: &'static CStr = crate::TYPE_PL011;
+unsafe impl ObjectType for SerialState {
+    type Class = SerialClass;
+    const TYPE_NAME: &'static CStr = crate::TYPE_SERIAL;
 }
 
-impl PL011Impl for PL011State {
+impl SerialImpl for SerialState {
     const DEVICE_ID: DeviceId = DeviceId(&[0x11, 0x10, 0x14, 0x00, 0x0d, 0xf0, 0x05, 0xb1]);
 }
 
-impl ObjectImpl for PL011State {
+impl ObjectImpl for SerialState {
     type ParentType = SysBusDevice;
 
     const INSTANCE_INIT: Option<unsafe fn(&mut Self)> = Some(Self::init);
@@ -170,23 +170,23 @@ impl ObjectImpl for PL011State {
     const CLASS_INIT: fn(&mut Self::Class) = Self::Class::class_init::<Self>;
 }
 
-impl DeviceImpl for PL011State {
+impl DeviceImpl for SerialState {
     fn properties() -> &'static [Property] {
-        &device_class::PL011_PROPERTIES
+        &device_class::SERIAL_PROPERTIES
     }
     fn vmsd() -> Option<&'static VMStateDescription> {
-        Some(&device_class::VMSTATE_PL011)
+        Some(&device_class::VMSTATE_SERIAL)
     }
     const REALIZE: Option<fn(&Self)> = Some(Self::realize);
 }
 
-impl ResettablePhasesImpl for PL011State {
+impl ResettablePhasesImpl for SerialState {
     const HOLD: Option<fn(&Self, ResetType)> = Some(Self::reset_hold);
 }
 
-impl SysBusDeviceImpl for PL011State {}
+impl SysBusDeviceImpl for SerialState {}
 
-impl PL011Registers {
+impl SerialRegisters {
     pub(self) fn read(&mut self, offset: RegisterOffset) -> (bool, u32) {
         use RegisterOffset::*;
 
@@ -300,7 +300,7 @@ impl PL011Registers {
             DMACR => {
                 self.dmacr = value;
                 if value & 3 > 0 {
-                    qemu_log_mask!(LOG_UNIMP, "pl011: DMA not implemented\n");
+                    qemu_log_mask!(LOG_UNIMP, "serial: DMA not implemented\n");
                 }
             }
         }
@@ -431,7 +431,7 @@ impl PL011Registers {
     pub fn fifo_depth(&self) -> u32 {
         // Note: FIFO depth is expected to be power-of-2
         if self.fifo_enabled() {
-            return PL011_FIFO_DEPTH;
+            return SERIAL_FIFO_DEPTH;
         }
         1
     }
@@ -462,7 +462,7 @@ impl PL011Registers {
         }
 
         if !self.fifo_enabled() && self.read_count > 0 && self.read_pos > 0 {
-            // Older versions of PL011 didn't ensure that the single
+            // Older versions of SERIAL didn't ensure that the single
             // character in the FIFO in FIFO-disabled mode is in
             // element 0 of the array; convert to follow the current
             // code's assumptions.
@@ -477,19 +477,19 @@ impl PL011Registers {
     }
 }
 
-impl PL011State {
-    /// Initializes a pre-allocated, unitialized instance of `PL011State`.
+impl SerialState {
+    /// Initializes a pre-allocated, unitialized instance of `SerialState`.
     ///
     /// # Safety
     ///
     /// `self` must point to a correctly sized and aligned location for the
-    /// `PL011State` type. It must not be called more than once on the same
+    /// `SerialState` type. It must not be called more than once on the same
     /// location/instance. All its fields are expected to hold unitialized
     /// values with the sole exception of `parent_obj`.
     unsafe fn init(&mut self) {
-        static PL011_OPS: MemoryRegionOps<PL011State> = MemoryRegionOpsBuilder::<PL011State>::new()
-            .read(&PL011State::read)
-            .write(&PL011State::write)
+        static SERIAL_OPS: MemoryRegionOps<SerialState> = MemoryRegionOpsBuilder::<SerialState>::new()
+            .read(&SerialState::read)
+            .write(&SerialState::write)
             .native_endian()
             .impl_sizes(4, 4)
             .build();
@@ -501,8 +501,8 @@ impl PL011State {
         MemoryRegion::init_io(
             unsafe { &mut *addr_of_mut!(self.iomem) },
             addr_of_mut!(*self),
-            &PL011_OPS,
-            "pl011",
+            &SERIAL_OPS,
+            "serial",
             0x1000,
         );
 
@@ -512,14 +512,14 @@ impl PL011State {
         //
         // self.clock is not initialized at this point; but since `Owned<_>` is
         // not Drop, we can overwrite the undefined value without side effects;
-        // it's not sound but, because for all PL011State instances are created
+        // it's not sound but, because for all SerialState instances are created
         // by QOM code which calls this function to initialize the fields, at
         // leastno code is able to access an invalid self.clock value.
         self.clock = self.init_clock_in("clk", &Self::clock_update, ClockEvent::ClockUpdate);
     }
 
     const fn clock_update(&self, _event: ClockEvent) {
-        /* pl011_trace_baudrate_change(s); */
+        /* serial_trace_baudrate_change(s); */
     }
 
     fn post_init(&self) {
@@ -536,7 +536,7 @@ impl PL011State {
                 u64::from(device_id[(offset - 0xfe0) >> 2])
             }
             Err(_) => {
-                qemu_log_mask!(LOG_GUEST_ERROR, "pl011_read: Bad offset {offset}\n");
+                qemu_log_mask!(LOG_GUEST_ERROR, "serial_read: Bad offset {offset}\n");
                 0
             }
             Ok(field) => {
@@ -554,7 +554,7 @@ impl PL011State {
         let mut update_irq = false;
         if let Ok(field) = RegisterOffset::try_from(offset) {
             // qemu_chr_fe_write_all() calls into the can_receive
-            // callback, so handle writes before entering PL011Registers.
+            // callback, so handle writes before entering SerialRegisters.
             if field == RegisterOffset::DR {
                 // ??? Check if transmitter is enabled.
                 let ch: [u8; 1] = [value as u8];
@@ -569,7 +569,7 @@ impl PL011State {
                 .write(field, value as u32, &self.char_backend);
         } else {
             qemu_log_mask!(LOG_GUEST_ERROR,
-                           "pl011_write: Bad offset {offset} value {value}\n");
+                           "serial_write: Bad offset {offset} value {value}\n");
         }
         if update_irq {
             self.update();
@@ -578,7 +578,7 @@ impl PL011State {
 
     fn can_receive(&self) -> u32 {
         let regs = self.regs.borrow();
-        // trace_pl011_can_receive(s->lcr, s->read_count, r);
+        // trace_serial_can_receive(s->lcr, s->read_count, r);
         u32::from(regs.read_count < regs.fifo_depth())
     }
 
@@ -649,16 +649,16 @@ const IRQMASK: [u32; 6] = [
 /// We expect the FFI user of this function to pass a valid pointer for `chr`
 /// and `irq`.
 #[no_mangle]
-pub unsafe extern "C" fn pl011_create(
+pub unsafe extern "C" fn serial_create(
     addr: u64,
     irq: *mut IRQState,
     chr: *mut Chardev,
 ) -> *mut DeviceState {
     // SAFETY: The callers promise that they have owned references.
-    // They do not gift them to pl011_create, so use `Owned::from`.
+    // They do not gift them to serial_create, so use `Owned::from`.
     let irq = unsafe { Owned::<IRQState>::from(&*irq) };
 
-    let dev = PL011State::new();
+    let dev = SerialState::new();
     if !chr.is_null() {
         let chr = unsafe { Owned::<Chardev>::from(&*chr) };
         dev.prop_set_chr("chardev", &chr);
