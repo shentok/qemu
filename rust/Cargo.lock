@@ -372,6 +372,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "serial"
+version = "0.1.0"
+dependencies = [
+ "bilge",
+ "bilge-impl",
+ "bits",
+ "bql",
+ "chardev",
+ "common",
+ "glib-sys",
+ "hwcore",
+ "migration",
+ "qom",
+ "system",
+ "trace",
+ "util",
+]
+
+[[package]]
 name = "smallvec"
 version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

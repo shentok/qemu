@@ -21,6 +21,7 @@ use std::{
 use bilge::prelude::*;
 use bql::{prelude::*, BqlRefMut};
 use common::{callbacks::FnCall, errno, Opaque};
+use glib_sys::{gboolean, guint, GIOCondition, G_IO_HUP, G_IO_OUT, G_SOURCE_REMOVE};
 use qom::prelude::*;
 
 use crate::bindings;
@@ -199,6 +200,40 @@ impl CharFrontend {
                 core::ptr::null_mut(),
                 true,
             );
+        }
+    }
+
+    pub fn add_watch<'chardev, 'owner: 'chardev, T, WatchFn: for<'a> FnCall<(&'a T,)>>(
+        // When "self" is dropped, the handlers are automatically disabled.
+        // However, this is not necessarily true if the owner is dropped.
+        // So require the owner to outlive the character device.
+        &'chardev self,
+        owner: &'owner T,
+        _can_receive: WatchFn,
+    ) -> guint {
+        unsafe extern "C" fn rust_watch_cb<T, F: for<'a> FnCall<(&'a T,)>>(
+            _do_not_use: *mut std::os::raw::c_void,
+            _condition: GIOCondition,
+            opaque: *mut std::os::raw::c_void,
+        ) -> gboolean {
+            // SAFETY: the values are safe according to the contract of
+            // enable_handlers() and qemu_chr_fe_set_handlers()
+            let owner: &T = unsafe { &*(opaque.cast::<T>()) };
+            F::call((owner,));
+            G_SOURCE_REMOVE
+        }
+
+        const { assert!(WatchFn::IS_SOME) };
+
+        let mut chr = self.inner.borrow_mut();
+        // SAFETY: the borrow promises that the BQL is taken
+        unsafe {
+            bindings::qemu_chr_fe_add_watch(
+                addr_of_mut!(*chr),
+                G_IO_OUT | G_IO_HUP,
+                Some(rust_watch_cb::<T, WatchFn>),
+                (owner as *const T).cast_mut().cast::<c_void>(),
+            )
         }
     }
 
