@@ -231,4 +231,8 @@ config IOSB
 config XLNX_VERSAL_TRNG
     bool
 
+config PCA9450
+    bool
+    default y if I2C_DEVICES
+
 source macio/Kconfig
