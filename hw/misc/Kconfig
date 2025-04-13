@@ -127,6 +127,9 @@ config FSL_IMX7_SNVS
 config FSL_IMX7_SRC
     bool
 
+config FSL_CAAM
+    bool
+
 config FSL_IMX8MP_ANALOG
     bool
 
