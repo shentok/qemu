@@ -14,6 +14,7 @@
 #include "hw/gpio/imx_gpio.h"
 #include "hw/i2c/imx_i2c.h"
 #include "hw/intc/arm_gicv3_common.h"
+#include "hw/misc/fsl_caam.h"
 #include "hw/misc/imx8mp_src.h"
 #include "hw/misc/imx7_snvs.h"
 #include "hw/misc/imx8mm_ocotp.h"
@@ -58,6 +59,7 @@ struct FslImx8mpState {
     GICv3State         gic;
     IMXGPTState        gpt[FSL_IMX8MP_NUM_GPTS];
     IMXGPIOState       gpio[FSL_IMX8MP_NUM_GPIOS];
+    FslImxCaamState    caam_ctrl;
     FslImx8mmOcotpState ocotp_ctrl;
     IMX8MPCCMState     ccm;
     IMX8MPAnalogState  analog;
@@ -99,7 +101,7 @@ enum FslImx8mpMemoryRegions {
     FSL_IMX8MP_AUD_IRQ_STEER,
     FSL_IMX8MP_BOOT_ROM,
     FSL_IMX8MP_BOOT_ROM_PROTECTED,
-    FSL_IMX8MP_CAAM,
+    FSL_IMX8MP_CAAM_CTRL,
     FSL_IMX8MP_CAAM_RAM,
     FSL_IMX8MP_CCM,
     FSL_IMX8MP_CSU,
@@ -276,6 +278,11 @@ enum FslImx8mpIrqs {
     FSL_IMX8MP_WDOG1_IRQ    = 78,
     FSL_IMX8MP_WDOG2_IRQ    = 79,
     FSL_IMX8MP_WDOG3_IRQ    = 10,
+
+    FSL_IMX8MP_CAAM_CTRL_IRQ = 91,
+    FSL_IMX8MP_CAAM_JR1_IRQ  = 105,
+    FSL_IMX8MP_CAAM_JR2_IRQ  = 106,
+    FSL_IMX8MP_CAAM_JR3_IRQ  = 114,
 
     FSL_IMX8MP_ENET1_MAC_IRQ    = 118,
     FSL_IMX6_ENET1_MAC_1588_IRQ = 121,
