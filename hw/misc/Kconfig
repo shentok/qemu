@@ -78,6 +78,9 @@ config IMX
     select SSI
     select USB_EHCI_SYSBUS
 
+config FSL_CAAM
+    bool
+
 config FSL_IMX8MP_ANALOG
     bool
 

@@ -123,7 +123,7 @@ static const struct {
     [FSL_IMX8MP_I2C2] = { 0x30a30000, 64 * KiB, "i2c2" },
     [FSL_IMX8MP_I2C1] = { 0x30a20000, 64 * KiB, "i2c1" },
     [FSL_IMX8MP_AIPS3_CONFIGURATION] = { 0x309f0000, 64 * KiB, "aips3_configuration" },
-    [FSL_IMX8MP_CAAM] = { 0x30900000, 256 * KiB, "caam" },
+    [FSL_IMX8MP_CAAM_CTRL] = { 0x30900000, 256 * KiB, "caam_ctrl" },
     [FSL_IMX8MP_SPBA1] = { 0x308f0000, 64 * KiB, "spba1" },
     [FSL_IMX8MP_FLEXCAN2] = { 0x308d0000, 64 * KiB, "flexcan2" },
     [FSL_IMX8MP_FLEXCAN1] = { 0x308c0000, 64 * KiB, "flexcan1" },
@@ -269,6 +269,9 @@ static void fsl_imx8mp_init(Object *obj)
     object_initialize_child(obj, "pcie", &s->pcie, TYPE_DESIGNWARE_PCIE_HOST);
     object_initialize_child(obj, "pcie_phy", &s->pcie_phy,
                             TYPE_FSL_IMX8M_PCIE_PHY);
+
+    object_initialize_child(obj, fsl_imx8mp_memmap[FSL_IMX8MP_CAAM_CTRL].name,
+                            &s->caam_ctrl, TYPE_FSL_CAAM);
 
     object_initialize_child(obj, fsl_imx8mp_memmap[FSL_IMX8MP_OCOTP_CTRL].name,
                             &s->ocotp_ctrl, TYPE_FSL_IMX8MM_OCOTP);
@@ -708,6 +711,21 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->pcie_phy), 0,
                     fsl_imx8mp_memmap[FSL_IMX8MP_PCIE_PHY1].addr);
 
+    /* CAAM */
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->caam_ctrl), errp)) {
+        return;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->caam_ctrl), 0,
+                    fsl_imx8mp_memmap[FSL_IMX8MP_CAAM_CTRL].addr);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->caam_ctrl), 0,
+                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_CAAM_CTRL_IRQ));
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->caam_ctrl), 1,
+                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_CAAM_JR1_IRQ));
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->caam_ctrl), 2,
+                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_CAAM_JR2_IRQ));
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->caam_ctrl), 3,
+                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_CAAM_JR3_IRQ));
+
     /* On-Chip OTP */
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->ocotp_ctrl), errp)) {
         return;
@@ -755,6 +773,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         switch (i) {
         case FSL_IMX8MP_ANA_PLL:
         case FSL_IMX8MP_BOOT_ROM:
+        case FSL_IMX8MP_CAAM_CTRL:
         case FSL_IMX8MP_CAAM_RAM:
         case FSL_IMX8MP_CCM:
         case FSL_IMX8MP_GIC_DIST:
