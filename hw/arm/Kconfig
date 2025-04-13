@@ -602,6 +602,7 @@ config FSL_IMX8MP
     imply PCI_DEVICES
     select ARM_GIC
     select CAN_FLEXCAN
+    select FSL_CAAM
     select FSL_IMX8MP_ANALOG
     select FSL_IMX8MP_CCM
     select FSL_IMX8MP_DDR
