@@ -82,6 +82,7 @@ struct FslImx8mpState {
     FslImx8mPciePhyState   pcie_phy;
     FlexcanState       flexcan[FSL_IMX8MP_NUM_CANS];
     OrIRQState         gpt5_gpt6_irq;
+    MemoryRegion       caam_ram;
     MemoryRegion       ocram;
 
     uint32_t           phy_num;
@@ -109,7 +110,7 @@ enum FslImx8mpMemoryRegions {
     FSL_IMX8MP_BOOT_ROM,
     FSL_IMX8MP_BOOT_ROM_PROTECTED,
     FSL_IMX8MP_CAAM,
-    FSL_IMX8MP_CAAM_MEM,
+    FSL_IMX8MP_CAAM_RAM,
     FSL_IMX8MP_CCM,
     FSL_IMX8MP_CSU,
     FSL_IMX8MP_DDR_BLK_CTRL,
