@@ -186,7 +186,7 @@ static const struct {
     [FSL_IMX8MP_TCM_DTCM] = { 0x00800000, 128 * KiB, "tcm_dtcm" },
     [FSL_IMX8MP_TCM_ITCM] = { 0x007e0000, 128 * KiB, "tcm_itcm" },
     [FSL_IMX8MP_OCRAM_S] = { 0x00180000, 36 * KiB, "ocram_s" },
-    [FSL_IMX8MP_CAAM_MEM] = { 0x00100000, 32 * KiB, "caam_mem" },
+    [FSL_IMX8MP_CAAM_RAM] = { 0x00100000, 32 * KiB, "caam_ram" },
     [FSL_IMX8MP_BOOT_ROM_PROTECTED] = { 0x0003f000, 4 * KiB, "boot_rom_protected" },
     [FSL_IMX8MP_BOOT_ROM] = { 0x00000000, 252 * KiB, "boot_rom" },
 };
@@ -701,6 +701,17 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->pcie_phy), 0,
                     fsl_imx8mp_memmap[FSL_IMX8MP_PCIE_PHY1].addr);
 
+    /* CAAM memory */
+    if (!memory_region_init_ram(&s->caam_ram, OBJECT(dev),
+                                fsl_imx8mp_memmap[FSL_IMX8MP_CAAM_RAM].name,
+                                fsl_imx8mp_memmap[FSL_IMX8MP_CAAM_RAM].size,
+                                errp)) {
+        return;
+    }
+    memory_region_add_subregion(get_system_memory(),
+                                fsl_imx8mp_memmap[FSL_IMX8MP_CAAM_RAM].addr,
+                                &s->caam_ram);
+
     /* On-Chip RAM */
     if (!memory_region_init_ram(&s->ocram, NULL, "imx8mp.ocram",
                                 fsl_imx8mp_memmap[FSL_IMX8MP_OCRAM].size,
@@ -715,6 +726,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     for (i = 0; i < ARRAY_SIZE(fsl_imx8mp_memmap); i++) {
         switch (i) {
         case FSL_IMX8MP_ANA_PLL:
+        case FSL_IMX8MP_CAAM_RAM:
         case FSL_IMX8MP_CCM:
         case FSL_IMX8MP_GIC_DIST:
         case FSL_IMX8MP_GIC_REDIST:
