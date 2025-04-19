@@ -19,4 +19,4 @@ system_ss.add(when: 'CONFIG_ASPEED_SOC', if_true: files('aspeed_gpio.c'))
 system_ss.add(when: 'CONFIG_SIFIVE_GPIO', if_true: files('sifive_gpio.c'))
 system_ss.add(when: 'CONFIG_PCF8574', if_true: files('pcf8574.c'))
 
-system_ss.add(files('qmp-cmds.c'))
+system_ss.add(files('qmp-cmds.c', 'hmp-cmds.c'))
