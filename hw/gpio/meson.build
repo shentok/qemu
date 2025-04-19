@@ -20,4 +20,4 @@ system_ss.add(when: 'CONFIG_SIFIVE_GPIO', if_true: files('sifive_gpio.c'))
 system_ss.add(when: 'CONFIG_PCF8574', if_true: files('pcf8574.c'))
 system_ss.add(when: 'CONFIG_PCA_I2C_GPIO', if_true: files('pca_i2c_gpio.c'))
 
-system_ss.add(files('qmp-cmds.c'))
+system_ss.add(files('qmp-cmds.c', 'hmp-cmds.c'))
