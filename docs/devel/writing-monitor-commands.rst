@@ -316,7 +316,7 @@ we should add it to the hmp-commands.hx file::
     {
         .name       = "hello-world",
         .args_type  = "message:s?",
-        .params     = "hello-world [message]",
+        .params     = "[message]",
         .help       = "Print message to the standard output",
         .cmd        = hmp_hello_world,
     },
