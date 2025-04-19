@@ -605,6 +605,20 @@ SRST
 ERST
 
     {
+        .name       = "gpio-set",
+        .args_type  = "path:s,number:i,value:b",
+        .params     = "path number value",
+        .help       = "Print message to the standard output",
+        .cmd        = hmp_gpio_set,
+    },
+
+SRST
+``gpio-set`` *path* *number* *value*
+  Print message to the standard output.
+ERST
+
+
+    {
         .name       = "sendkey",
         .args_type  = "keys:s,hold-time:i?",
         .params     = "keys [hold_ms]",
