@@ -15,6 +15,8 @@
 #include "migration/vmstate.h"
 #include "trace.h"
 #include "system/address-spaces.h"
+#include "system/dma.h"
+#include "system/runstate.h"
 
 REG32(IRBA_HI, 0x0)
 REG32(IRBA_LO, 0x4)
@@ -274,6 +276,7 @@ static uint64_t fsl_caam_jr_read(void *opaque, hwaddr offset, unsigned size)
         break;
     case R_JRINT:
         value = s->data[reg];
+        /* qemu_system_vmstop_request(RUN_STATE_PAUSED); */
         break;
     default:
         value = s->data[reg];
@@ -283,6 +286,26 @@ static uint64_t fsl_caam_jr_read(void *opaque, hwaddr offset, unsigned size)
     trace_fsl_caam_jr_read(offset, fsl_caam_jr_reg_name(offset), value);
 
     return value;
+}
+
+static void dump(dma_addr_t addr)
+{
+    dma_addr_t addr2 = ldq_le_phys(&address_space_memory, addr);
+    uint32_t val = ldl_le_phys(&address_space_memory, addr2);
+
+    fprintf(stderr, "0x%" PRIx64 " -> 0x%" PRIx64 " -> 0x%" PRIx32 "\n",
+            addr, addr2, val);
+
+    if ((val & 0xf8000000) == 0xb0000000) {
+        int num = (val & 0x3f);
+        hwaddr len = num * sizeof(uint32_t);
+        uint32_t *words = address_space_map(&address_space_memory, addr2, &len,
+                                            false, MEMTXATTRS_UNSPECIFIED);
+        for (int i = 1; i < num; ++i) {
+            fprintf(stderr, "  0x%" PRIx32 "\n", words[i]);
+        }
+        address_space_unmap(&address_space_memory, words, len, false, len);
+    }
 }
 
 static void fsl_caam_jr_write(void *opaque, hwaddr offset,
@@ -299,13 +322,16 @@ static void fsl_caam_jr_write(void *opaque, hwaddr offset,
         s->data[R_IRRI] = 0;
         break;
     case R_IRJA:
+        dump(s->data[R_IRBA_LO] + 4 * s->data[R_IRRI]);
         stq_le_phys(&address_space_memory, s->data[R_ORBA_LO] + 8 * s->data[R_ORWI],
                     ldq_le_phys(&address_space_memory,
                                 s->data[R_IRBA_LO] + 4 * s->data[R_IRRI]));
+        dump(s->data[R_ORBA_LO] + 8 * s->data[R_ORWI]);
         s->data[R_IRRI] = (s->data[R_IRRI] + value) % s->data[R_IRS];
         s->data[R_JRINT] |= JRINT_JR_INT;
         s->data[R_ORSF] = value;
         qemu_set_irq(s->irq, !!(s->data[R_JRINT] & 0x1));
+        /* qemu_system_vmstop_request(RUN_STATE_PAUSED); */
         break;
     case R_ORBA_LO:
         s->data[reg] = value;
