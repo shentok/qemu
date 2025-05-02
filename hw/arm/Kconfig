@@ -603,6 +603,7 @@ config FSL_IMX8MP
     select SDHCI
     select UNIMP
     select USB_DWC3
+    select USB_FSL_IMX8MP_PHY
     select WDT_IMX2
 
 config FSL_IMX8MP_EVK
