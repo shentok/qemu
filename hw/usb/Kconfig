@@ -130,6 +130,9 @@ config USB_CANOKEY
     default y
     depends on USB
 
+config USB_FSL_IMX8MP_PHY
+    bool
+
 config IMX_USBPHY
     bool
     default y
