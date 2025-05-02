@@ -29,6 +29,7 @@
 #include "hw/ssi/imx_spi.h"
 #include "hw/timer/imx_gpt.h"
 #include "hw/timer/imx_sysctr.h"
+#include "hw/usb/fsl-imx8mp-phy.h"
 #include "hw/usb/hcd-dwc3.h"
 #include "hw/watchdog/wdt_imx2.h"
 #include "hw/sysbus.h"
@@ -76,6 +77,7 @@ struct FslImx8mpState {
     SDHCIState         usdhc[FSL_IMX8MP_NUM_USDHCS];
     IMX2WdtState       wdt[FSL_IMX8MP_NUM_WDTS];
     USBDWC3            usb[FSL_IMX8MP_NUM_USBS];
+    FslImx8mpUsbPhyState usb_phy[FSL_IMX8MP_NUM_USBS];
     DesignwarePCIEHost pcie;
     FslImx8mPciePhyState   pcie_phy;
     OrIRQState         gpt5_gpt6_irq;

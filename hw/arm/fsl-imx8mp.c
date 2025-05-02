@@ -254,6 +254,11 @@ static void fsl_imx8mp_init(Object *obj)
         object_initialize_child(obj, name, &s->usb[i], TYPE_USB_DWC3);
     }
 
+    for (i = 0; i < FSL_IMX8MP_NUM_USBS; i++) {
+        g_autofree char *name = g_strdup_printf("usb%d_glue", i);
+        object_initialize_child(obj, name, &s->usb_phy[i], TYPE_FSL_IMX8MP_USB_PHY);
+    }
+
     for (i = 0; i < FSL_IMX8MP_NUM_ECSPIS; i++) {
         g_autofree char *name = g_strdup_printf("spi%d", i + 1);
         object_initialize_child(obj, name, &s->spi[i], TYPE_IMX_SPI);
@@ -623,6 +628,18 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                            qdev_get_gpio_in(gicdev, usb_table[i].irq));
     }
 
+    for (i = 0; i < FSL_IMX8MP_NUM_USBS; i++) {
+        hwaddr usb_glue_addrs[FSL_IMX8MP_NUM_USBS] = {
+            fsl_imx8mp_memmap[FSL_IMX8MP_USB1_GLUE].addr,
+            fsl_imx8mp_memmap[FSL_IMX8MP_USB2_GLUE].addr,
+        };
+
+        if (!sysbus_realize(SYS_BUS_DEVICE(&s->usb_phy[i]), errp)) {
+            return;
+        }
+        sysbus_mmio_map(SYS_BUS_DEVICE(&s->usb_phy[i]), 0, usb_glue_addrs[i]);
+    }
+
     /* ECSPIs */
     for (i = 0; i < FSL_IMX8MP_NUM_ECSPIS; i++) {
         struct {
@@ -795,6 +812,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MP_SYSCNT_RD:
         case FSL_IMX8MP_UART1 ... FSL_IMX8MP_UART4:
         case FSL_IMX8MP_USB1 ... FSL_IMX8MP_USB2:
+        case FSL_IMX8MP_USB1_GLUE ... FSL_IMX8MP_USB2_GLUE:
         case FSL_IMX8MP_USDHC1 ... FSL_IMX8MP_USDHC3:
         case FSL_IMX8MP_WDOG1 ... FSL_IMX8MP_WDOG3:
             /* device implemented and treated above */
