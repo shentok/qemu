@@ -11,6 +11,7 @@
 #include "hw/arm/boot.h"
 #include "hw/arm/fsl-imx8mp.h"
 #include "hw/boards.h"
+#include "hw/i2c/i2c.h"
 #include "hw/qdev-properties.h"
 #include "system/qtest.h"
 #include "qemu/error-report.h"
@@ -48,6 +49,7 @@ static void imx8mp_evk_init(MachineState *machine)
 {
     static struct arm_boot_info boot_info;
     FslImx8mpState *s;
+    I2CBus *i2c;
 
     if (machine->ram_size > FSL_IMX8MP_RAM_SIZE_MAX) {
         error_report("RAM size " RAM_ADDR_FMT " above max supported (%08" PRIx64 ")",
@@ -70,6 +72,9 @@ static void imx8mp_evk_init(MachineState *machine)
 
     memory_region_add_subregion(get_system_memory(), FSL_IMX8MP_RAM_START,
                                 machine->ram);
+
+    i2c = I2C_BUS(qdev_get_child_bus(DEVICE(&s->i2c[0]), "i2c-bus.0"));
+    i2c_slave_create_simple(i2c, "pca9450c", 0x25);
 
     for (int i = 0; i < FSL_IMX8MP_NUM_USDHCS; i++) {
         BusState *bus;
