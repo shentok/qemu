@@ -612,6 +612,7 @@ config FSL_IMX8MP_EVK
     depends on AARCH64
     depends on TCG || KVM
     select FSL_IMX8MP
+    select PCA9450
 
 config ARM_SMMUV3
     bool
