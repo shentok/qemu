@@ -611,6 +611,7 @@ config FSL_IMX8MP_EVK
     default y
     depends on TCG && AARCH64
     select FSL_IMX8MP
+    select PCA9450
 
 config ARM_SMMUV3
     bool
