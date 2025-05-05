@@ -19,6 +19,30 @@
 #include "hw/core/cpu.h"
 #include "trace.h"
 
+/* SRC_SCR */
+#define CORE3_ENABLE_SHIFT     24
+#define CORE3_ENABLE_LENGTH    1
+#define CORE2_ENABLE_SHIFT     23
+#define CORE2_ENABLE_LENGTH    1
+#define CORE1_ENABLE_SHIFT     22
+#define CORE1_ENABLE_LENGTH    1
+#define CORE3_RST_SHIFT        16
+#define CORE3_RST_LENGTH       1
+#define CORE2_RST_SHIFT        15
+#define CORE2_RST_LENGTH       1
+#define CORE1_RST_SHIFT        14
+#define CORE1_RST_LENGTH       1
+#define CORE0_RST_SHIFT        13
+#define CORE0_RST_LENGTH       1
+#define SW_IPU1_RST_SHIFT      3
+#define SW_IPU1_RST_LENGTH     1
+#define SW_IPU2_RST_SHIFT      12
+#define SW_IPU2_RST_LENGTH     1
+#define WARM_RST_ENABLE_SHIFT  0
+#define WARM_RST_ENABLE_LENGTH 1
+
+#define EXTRACT(value, name) extract32(value, name##_SHIFT, name##_LENGTH)
+
 static const char *imx6_src_reg_name(uint32_t reg)
 {
     static char unknown[20];
