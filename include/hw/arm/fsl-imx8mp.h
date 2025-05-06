@@ -21,6 +21,7 @@
 #include "hw/misc/imx8mp_analog.h"
 #include "hw/misc/imx8mp_ccm.h"
 #include "hw/misc/imx8mp_ddr.h"
+#include "hw/misc/imx8mp_ddr_phy.h"
 #include "hw/net/imx_fec.h"
 #include "hw/or-irq.h"
 #include "hw/pci-host/designware.h"
@@ -67,6 +68,7 @@ struct FslImx8mpState {
     IMX8MPCCMState     ccm;
     IMX8MPAnalogState  analog;
     FslImx8mpDdrState  ddr;
+    FslImx8mpDdrPhyState  ddr_phy;
     IMX7SNVSState      snvs;
     FslImx8mpSrcState  src;
     IMXGPCv2State      gpcv2;
