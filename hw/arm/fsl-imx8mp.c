@@ -223,6 +223,7 @@ static void fsl_imx8mp_init(Object *obj)
                              &error_abort);
 
     object_initialize_child(obj, "ddr", &s->ddr, TYPE_IMX8MP_DDR);
+    object_initialize_child(obj, "ddr-phy", &s->ddr_phy, TYPE_IMX8MP_DDR_PHY);
 
     for (i = 0; i < FSL_IMX8MP_NUM_UARTS; i++) {
         g_autofree char *name = g_strdup_printf("uart%d", i + 1);
@@ -452,6 +453,12 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     }
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->ddr), 0,
                     fsl_imx8mp_memmap[FSL_IMX8MP_DDR_CTL].addr);
+
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->ddr_phy), errp)) {
+        return;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ddr_phy), 0,
+                    fsl_imx8mp_memmap[FSL_IMX8MP_DDR_PHY].addr);
 
     /* UARTs */
     for (i = 0; i < FSL_IMX8MP_NUM_UARTS; i++) {
@@ -793,6 +800,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MP_CAAM_RAM:
         case FSL_IMX8MP_CCM:
         case FSL_IMX8MP_DDR_CTL:
+        case FSL_IMX8MP_DDR_PHY:
         case FSL_IMX8MP_GIC_DIST:
         case FSL_IMX8MP_GIC_REDIST:
         case FSL_IMX8MP_GPC:
