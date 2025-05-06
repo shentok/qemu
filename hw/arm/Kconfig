@@ -604,6 +604,7 @@ config FSL_IMX8MP
     select CAN_FLEXCAN
     select FSL_IMX8MP_ANALOG
     select FSL_IMX8MP_CCM
+    select FSL_IMX8MP_DDR
     select IMX
     select IMX_FEC
     select IMX_I2C
@@ -629,6 +630,7 @@ config FSL_IMX8MM
     select ARM_GIC
     select FSL_IMX8MP_ANALOG
     select FSL_IMX8MP_CCM
+    select FSL_IMX8MP_DDR
     select IMX
     select IMX_FEC
     select IMX_I2C
