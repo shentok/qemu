@@ -211,6 +211,8 @@ static void fsl_imx8mp_init(Object *obj)
 
     object_initialize_child(obj, "analog", &s->analog, TYPE_IMX8MP_ANALOG);
 
+    object_initialize_child(obj, "ddr", &s->ddr, TYPE_IMX8MP_DDR);
+
     object_initialize_child(obj, "src", &s->src, TYPE_IMX8MP_SRC);
 
     object_initialize_child(obj, "snvs", &s->snvs, TYPE_IMX7_SNVS);
@@ -395,6 +397,13 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     }
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->analog), 0,
                     fsl_imx8mp_memmap[FSL_IMX8MP_ANA_PLL].addr);
+
+    /* DDR */
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->ddr), errp)) {
+        return;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ddr), 0,
+                    fsl_imx8mp_memmap[FSL_IMX8MP_DDR_CTL].addr);
 
     /* SRC */
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->src), errp)) {
@@ -742,6 +751,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MP_CAAM_CTRL:
         case FSL_IMX8MP_CAAM_RAM:
         case FSL_IMX8MP_CCM:
+        case FSL_IMX8MP_DDR_CTL:
         case FSL_IMX8MP_GIC_DIST:
         case FSL_IMX8MP_GIC_REDIST:
         case FSL_IMX8MP_GPIO1 ... FSL_IMX8MP_GPIO5:
