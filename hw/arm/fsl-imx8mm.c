@@ -168,6 +168,8 @@ static void fsl_imx8mm_init(Object *obj)
 
     object_initialize_child(obj, "snvs", &s->snvs, TYPE_IMX7_SNVS);
 
+    object_initialize_child(obj, "ddr", &s->ddr, TYPE_IMX8MP_DDR);
+
     for (i = 0; i < FSL_IMX8MM_NUM_UARTS; i++) {
         g_autofree char *name = g_strdup_printf("uart%d", i + 1);
         object_initialize_child(obj, name, &s->uart[i], TYPE_IMX_SERIAL);
@@ -367,6 +369,13 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
     }
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->analog), 0,
                     fsl_imx8mm_memmap[FSL_IMX8MM_ANA_PLL].addr);
+
+    /* DDR */
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->ddr), errp)) {
+        return;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ddr), 0,
+                    fsl_imx8mm_memmap[FSL_IMX8MM_DDR_CTL].addr);
 
     /* UARTs */
     for (i = 0; i < FSL_IMX8MM_NUM_UARTS; i++) {

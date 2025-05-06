@@ -134,6 +134,9 @@ config FSL_IMX8MP_CCM
     bool
     select IMX_CCM
 
+config FSL_IMX8MP_DDR
+    bool
+
 config STM32_RCC
     bool
 
