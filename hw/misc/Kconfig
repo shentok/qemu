@@ -87,9 +87,6 @@ config FSL_IMX8MP_ANALOG
 config FSL_IMX8MP_CCM
     bool
 
-config FSL_IMX8MM_OCOTP
-    bool
-
 config FSL_IMX8MP_SRC
     bool
 
