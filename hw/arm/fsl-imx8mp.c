@@ -277,9 +277,6 @@ static void fsl_imx8mp_init(Object *obj)
 
     object_initialize_child(obj, fsl_imx8mp_memmap[FSL_IMX8MP_CAAM_CTRL].name,
                             &s->caam_ctrl, TYPE_FSL_CAAM);
-
-    object_initialize_child(obj, fsl_imx8mp_memmap[FSL_IMX8MP_OCOTP_CTRL].name,
-                            &s->ocotp_ctrl, TYPE_FSL_IMX8MM_OCOTP);
 }
 
 static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
@@ -743,13 +740,6 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->caam_ctrl), 3,
                        qdev_get_gpio_in(gicdev, FSL_IMX8MP_CAAM_JR3_IRQ));
 
-    /* On-Chip OTP */
-    if (!sysbus_realize(SYS_BUS_DEVICE(&s->ocotp_ctrl), errp)) {
-        return;
-    }
-    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ocotp_ctrl), 0,
-                    fsl_imx8mp_memmap[FSL_IMX8MP_OCOTP_CTRL].addr);
-
     /* CAAM memory */
     if (!memory_region_init_ram(&s->caam_ram, OBJECT(dev),
                                 fsl_imx8mp_memmap[FSL_IMX8MP_CAAM_RAM].name,
@@ -800,7 +790,6 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MP_ECSPI1 ... FSL_IMX8MP_ECSPI3:
         case FSL_IMX8MP_ENET1:
         case FSL_IMX8MP_I2C1 ... FSL_IMX8MP_I2C6:
-        case FSL_IMX8MP_OCOTP_CTRL:
         case FSL_IMX8MP_OCRAM:
         case FSL_IMX8MP_PCIE1:
         case FSL_IMX8MP_PCIE_PHY1:
