@@ -222,6 +222,8 @@ static void fsl_imx8mp_init(Object *obj)
     object_property_set_uint(OBJECT(&s->sysctr), "slow_clk", 32000,
                              &error_abort);
 
+    object_initialize_child(obj, "ddr", &s->ddr, TYPE_IMX8MP_DDR);
+
     for (i = 0; i < FSL_IMX8MP_NUM_UARTS; i++) {
         g_autofree char *name = g_strdup_printf("uart%d", i + 1);
         object_initialize_child(obj, name, &s->uart[i], TYPE_IMX_SERIAL);
@@ -443,6 +445,13 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                        qdev_get_gpio_in(gicdev, FSL_IMX8MP_SYSCTR1_IRQ));
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->sysctr), 1,
                        qdev_get_gpio_in(gicdev, FSL_IMX8MP_SYSCTR2_IRQ));
+
+    /* DDR */
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->ddr), errp)) {
+        return;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ddr), 0,
+                    fsl_imx8mp_memmap[FSL_IMX8MP_DDR_CTL].addr);
 
     /* UARTs */
     for (i = 0; i < FSL_IMX8MP_NUM_UARTS; i++) {
@@ -783,6 +792,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MP_CAAM_CTRL:
         case FSL_IMX8MP_CAAM_RAM:
         case FSL_IMX8MP_CCM:
+        case FSL_IMX8MP_DDR_CTL:
         case FSL_IMX8MP_GIC_DIST:
         case FSL_IMX8MP_GIC_REDIST:
         case FSL_IMX8MP_GPC:
