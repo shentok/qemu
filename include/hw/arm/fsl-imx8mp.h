@@ -17,7 +17,6 @@
 #include "hw/misc/fsl_caam.h"
 #include "hw/misc/imx8mp_src.h"
 #include "hw/misc/imx7_snvs.h"
-#include "hw/misc/imx8mm_ocotp.h"
 #include "hw/misc/imx8mp_analog.h"
 #include "hw/misc/imx8mp_ccm.h"
 #include "hw/net/imx_fec.h"
@@ -61,7 +60,6 @@ struct FslImx8mpState {
     IMXGPTState        gpt[FSL_IMX8MP_NUM_GPTS];
     IMXGPIOState       gpio[FSL_IMX8MP_NUM_GPIOS];
     FslImxCaamState    caam_ctrl;
-    FslImx8mmOcotpState ocotp_ctrl;
     IMX8MPCCMState     ccm;
     IMX8MPAnalogState  analog;
     IMX7SNVSState      snvs;
