@@ -104,6 +104,9 @@ config FSL_IMX8MP_CCM
 config FSL_IMX8MP_DDR
     bool
 
+config FSL_IMX8MP_DDR_PHY
+    bool
+
 config STM32_RCC
     bool
 
