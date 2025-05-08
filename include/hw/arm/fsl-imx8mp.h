@@ -84,6 +84,7 @@ struct FslImx8mpState {
     FslImx8mPciePhyState   pcie_phy;
     OrIRQState         gpt5_gpt6_irq;
     MemoryRegion       caam_ram;
+    MemoryRegion       ocram_s;
     MemoryRegion       ocram;
     MemoryRegion       boot_rom;
 

@@ -767,6 +767,17 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                                 fsl_imx8mp_memmap[FSL_IMX8MP_CAAM_RAM].addr,
                                 &s->caam_ram);
 
+    /* On-Chip Secure RAM */
+    if (!memory_region_init_ram(&s->ocram_s, NULL,
+                                fsl_imx8mp_memmap[FSL_IMX8MP_OCRAM_S].name,
+                                fsl_imx8mp_memmap[FSL_IMX8MP_OCRAM_S].size,
+                                errp)) {
+        return;
+    }
+    memory_region_add_subregion(get_system_memory(),
+                                fsl_imx8mp_memmap[FSL_IMX8MP_OCRAM_S].addr,
+                                &s->ocram_s);
+
     /* On-Chip RAM */
     if (!memory_region_init_ram(&s->ocram, NULL, "imx8mp.ocram",
                                 fsl_imx8mp_memmap[FSL_IMX8MP_OCRAM].size,
@@ -809,6 +820,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MP_ENET1:
         case FSL_IMX8MP_I2C1 ... FSL_IMX8MP_I2C6:
         case FSL_IMX8MP_OCRAM:
+        case FSL_IMX8MP_OCRAM_S:
         case FSL_IMX8MP_PCIE1:
         case FSL_IMX8MP_PCIE_PHY1:
         case FSL_IMX8MP_RAM:
