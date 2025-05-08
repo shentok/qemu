@@ -203,22 +203,8 @@ static void main_cpu_reset(void *opaque)
 /* Map the original irq (0~3) to bonito irq (16~47, but 16~31 are unused) */
 static int pci_fuloong2e_map_irq(PCIDevice *pci_dev, int irq_num)
 {
-    int slot;
-
-    slot = PCI_SLOT(pci_dev->devfn);
-
-    switch (slot) {
-    case 5:   /* FULOONG2E_VIA_SLOT, SouthBridge, IDE, USB, ACPI, AC97, MC97 */
-        return irq_num % 4 + BONITO_IRQ_BASE;
-    case 6:   /* FULOONG2E_ATI_SLOT, VGA */
-        return 4 + BONITO_IRQ_BASE;
-    case 7:   /* FULOONG2E_RTL_SLOT, RTL8139 */
-        return 5 + BONITO_IRQ_BASE;
-    case 8 ... 12: /* PCI slot 1 to 4 */
-        return (slot - 8 + irq_num) + 6 + BONITO_IRQ_BASE;
-    default:  /* Unknown device, don't do any translation */
-        return irq_num;
-    }
+    /* Fuloong 2E PCI INTX are connected to Bonito GPIN[3:0] */
+    return ICU_PIN_GPINx(irq_num);
 }
 
 /* Network support */

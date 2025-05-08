@@ -206,6 +206,7 @@ struct PCIBonitoState {
 
     BonitoState *pcihost;
     uint32_t regs[BONITO_REGS];
+    uint32_t icu_pin_state;
 
     struct bonldma {
         uint32_t ldmactrl;
@@ -241,6 +242,40 @@ struct BonitoState {
 
 #define TYPE_PCI_BONITO "Bonito"
 OBJECT_DECLARE_SIMPLE_TYPE(PCIBonitoState, PCI_BONITO)
+
+static void bonito_update_irq(PCIBonitoState *s)
+{
+    BonitoState *bs = s->pcihost;
+    uint32_t inten = s->regs[BONITO_INTEN];
+    uint32_t intisr = s->regs[BONITO_INTISR];
+    uint32_t intpol = s->regs[BONITO_INTPOL];
+    uint32_t intedge = s->regs[BONITO_INTEDGE];
+    uint32_t pin_state = s->icu_pin_state;
+    uint32_t level, edge;
+
+    pin_state = (pin_state & ~intpol) | (~pin_state & intpol);
+
+    level = pin_state & ~intedge;
+    edge = (pin_state & ~intisr) & intedge;
+
+    intisr = (intisr & intedge) | level;
+    intisr |= edge;
+    intisr &= inten;
+
+    s->regs[BONITO_INTISR] = intisr;
+
+    qemu_set_irq(*bs->pic, !!intisr);
+}
+
+static void bonito_set_irq(void *opaque, int irq, int level)
+{
+    BonitoState *bs = opaque;
+    PCIBonitoState *s = bs->pci_dev;
+
+    s->icu_pin_state = deposit32(s->icu_pin_state, irq, 1, !!level);
+
+    bonito_update_irq(s);
+}
 
 static void bonito_writel(void *opaque, hwaddr addr,
                           uint64_t val, unsigned size)
@@ -289,12 +324,12 @@ static void bonito_writel(void *opaque, hwaddr addr,
         }
         break;
     case BONITO_INTENSET:
-        s->regs[BONITO_INTENSET] = val;
         s->regs[BONITO_INTEN] |= val;
+        bonito_update_irq(s);
         break;
     case BONITO_INTENCLR:
-        s->regs[BONITO_INTENCLR] = val;
         s->regs[BONITO_INTEN] &= ~val;
+        bonito_update_irq(s);
         break;
     case BONITO_INTEN:
     case BONITO_INTISR:
@@ -549,24 +584,6 @@ static const MemoryRegionOps bonito_spciconf_ops = {
     .endianness = DEVICE_NATIVE_ENDIAN,
 };
 
-static void pci_bonito_set_irq(void *opaque, int irq_num, int level)
-{
-    BonitoState *s = opaque;
-    qemu_irq *pic = s->pic;
-    PCIBonitoState *bonito_state = s->pci_dev;
-    int internal_irq = irq_num - BONITO_IRQ_BASE;
-
-    if (bonito_state->regs[BONITO_INTEDGE] & (1 << internal_irq)) {
-        qemu_irq_pulse(*pic);
-    } else {   /* level triggered */
-        if (bonito_state->regs[BONITO_INTPOL] & (1 << internal_irq)) {
-            qemu_irq_raise(*pic);
-        } else {
-            qemu_irq_lower(*pic);
-        }
-    }
-}
-
 static void bonito_reset_hold(Object *obj, ResetType type)
 {
     PCIBonitoState *s = PCI_BONITO(obj);
@@ -612,7 +629,7 @@ static void bonito_host_realize(DeviceState *dev, Error **errp)
 
     phb->bus = pci_root_bus_new(dev, "pci", &bs->pci_mem, get_system_io(),
                                 PCI_DEVFN(5, 0), TYPE_PCI_BUS);
-    pci_bus_irqs(phb->bus, pci_bonito_set_irq, dev, 32);
+    pci_bus_irqs(phb->bus, bonito_set_irq, dev, 32);
 
     for (size_t i = 0; i < 3; i++) {
         char *name = g_strdup_printf("pci.lomem%zu", i);
