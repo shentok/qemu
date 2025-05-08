@@ -85,6 +85,7 @@ struct FslImx8mpState {
     FlexcanState       flexcan[FSL_IMX8MP_NUM_CANS];
     OrIRQState         gpt5_gpt6_irq;
     MemoryRegion       caam_ram;
+    MemoryRegion       ocram_s;
     MemoryRegion       ocram;
     MemoryRegion       boot_rom;
 
