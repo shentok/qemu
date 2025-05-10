@@ -14,6 +14,7 @@
 #include "hw/gpio/imx_gpio.h"
 #include "hw/i2c/imx_i2c.h"
 #include "hw/intc/arm_gicv3_common.h"
+#include "hw/intc/fsl_imx8mp_gpc.h"
 #include "hw/misc/imx8mp_src.h"
 #include "hw/misc/imx7_snvs.h"
 #include "hw/misc/imx8mp_analog.h"
@@ -69,6 +70,7 @@ struct FslImx8mpState {
     FslImx8mpDdrPhyState  ddr_phy;
     IMX7SNVSState      snvs;
     FslImx8mpSrcState  src;
+    FslImx8mpGpcState  gpc;
     IMXSPIState        spi[FSL_IMX8MP_NUM_ECSPIS];
     IMXI2CState        i2c[FSL_IMX8MP_NUM_I2CS];
     IMXSerialState     uart[FSL_IMX8MP_NUM_UARTS];
