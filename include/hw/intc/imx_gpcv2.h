@@ -5,7 +5,7 @@
 #include "qom/object.h"
 
 enum IMXGPCv2Registers {
-    GPC_NUM        = 0xE00 / sizeof(uint32_t),
+    GPC_NUM = 0x1000 / sizeof(uint32_t),
 };
 
 struct IMXGPCv2State {
