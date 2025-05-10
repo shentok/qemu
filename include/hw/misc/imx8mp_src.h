@@ -26,4 +26,6 @@ struct FslImx8mpSrcState {
     uint32_t regs[FSL_IMX8MP_SRC_NUM_REGS];
 };
 
+void imx8mp_src_start_cpu(FslImx8mpSrcState *s, int cpuid);
+
 #endif /* FSL_IMX8MP_SRC_H */
