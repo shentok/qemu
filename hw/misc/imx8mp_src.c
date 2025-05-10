@@ -329,6 +329,27 @@ static const struct MemoryRegionOps imx8mp_src_ops = {
     },
 };
 
+void imx8mp_src_start_cpu(FslImx8mpSrcState *s, int cpuid)
+{
+    switch (cpuid) {
+    case 0:
+        arm_set_cpu_on(0, s->regs[R_SRC_GPR2] << 2, 0, 3, true);
+        break;
+    case 1:
+        arm_set_cpu_on(1, s->regs[R_SRC_GPR4] << 2, 0, 3, true);
+        break;
+    case 2:
+        arm_set_cpu_on(2, s->regs[R_SRC_GPR6] << 2, 0, 3, true);
+        break;
+    case 3:
+        arm_set_cpu_on(3, s->regs[R_SRC_GPR8] << 2, 0, 3, true);
+        break;
+    default:
+        g_assert_not_reached();
+        break;
+    }
+}
+
 static void imx8mp_src_realize(DeviceState *dev, Error **errp)
 {
     FslImx8mpSrcState *s = IMX8MP_SRC(dev);
@@ -375,10 +396,10 @@ static void imx8mp_src_class_init(ObjectClass *klass, const void *data)
 
 static const TypeInfo imx8mp_src_types[] = {
     {
-        .name = TYPE_IMX8MP_SRC,
-        .parent = TYPE_SYS_BUS_DEVICE,
+        .name          = TYPE_IMX8MP_SRC,
+        .parent        = TYPE_SYS_BUS_DEVICE,
         .instance_size = sizeof(FslImx8mpSrcState),
-        .class_init = imx8mp_src_class_init,
+        .class_init    = imx8mp_src_class_init,
     },
 };
 

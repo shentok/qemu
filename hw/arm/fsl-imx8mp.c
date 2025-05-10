@@ -202,6 +202,8 @@ static void fsl_imx8mp_init(Object *obj)
 
     object_initialize_child(obj, "analog", &s->analog, TYPE_IMX8MP_ANALOG);
 
+    object_initialize_child(obj, "gpcv2", &s->gpc, TYPE_IMX8MP_GPC);
+
     object_initialize_child(obj, "src", &s->src, TYPE_IMX8MP_SRC);
 
     object_initialize_child(obj, "snvs", &s->snvs, TYPE_IMX7_SNVS);
@@ -324,6 +326,10 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         if (!qdev_realize(DEVICE(&s->cpu[i]), NULL, errp)) {
             return;
         }
+
+        qdev_connect_gpio_out_named(DEVICE(&s->cpu[i]), "wfi", 0,
+                                    qdev_get_gpio_in_named(DEVICE(&s->gpc),
+                                                           IMX8MP_GPC_WFI, i));
     }
 
     /* GIC */
@@ -387,6 +393,10 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                                qdev_get_gpio_in(cpudev, ARM_CPU_VIRQ));
             sysbus_connect_irq(gicsbd, i + 3 * ms->smp.cpus,
                                qdev_get_gpio_in(cpudev, ARM_CPU_VFIQ));
+            irq = qdev_get_gpio_in_named(DEVICE(&s->gpc),
+                                         IMX8MP_GPC_REQUEST_WAKE_GIC, i);
+            qdev_connect_gpio_out_named(DEVICE(gicsbd), ARM_CPU_WAKE_REQUEST, i,
+                                        irq);
 
             if (kvm_enabled()) {
                 if (pmu) {
@@ -420,6 +430,14 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     }
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->src), 0,
                     fsl_imx8mp_memmap[FSL_IMX8MP_SRC].addr);
+
+    /*
+     * GPCv2
+     */
+    s->gpc.src = &s->src;
+    sysbus_realize(SYS_BUS_DEVICE(&s->gpc), errp);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gpc), 0,
+                    fsl_imx8mp_memmap[FSL_IMX8MP_GPC].addr);
 
     /* System Counter */
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->sysctr), errp)) {
@@ -766,6 +784,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MP_FLEXCAN1 ... FSL_IMX8MP_FLEXCAN2:
         case FSL_IMX8MP_GIC_DIST:
         case FSL_IMX8MP_GIC_REDIST:
+        case FSL_IMX8MP_GPC:
         case FSL_IMX8MP_GPIO1 ... FSL_IMX8MP_GPIO5:
         case FSL_IMX8MP_GPT1 ... FSL_IMX8MP_GPT6:
         case FSL_IMX8MP_ECSPI1 ... FSL_IMX8MP_ECSPI3:
