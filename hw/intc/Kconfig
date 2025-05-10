@@ -21,6 +21,11 @@ config APIC
     select MSI_NONBROKEN
     select I8259
 
+config FSL_IMX8MP_GPC
+    bool
+    depends on AARCH64
+    depends on FSL_IMX8MP_SRC
+
 config ARM_GIC
     bool
     select ARM_GICV3 if TCG
