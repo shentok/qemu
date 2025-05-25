@@ -148,8 +148,8 @@ void arm_handle_psci_call(ARMCPU *cpu)
         mpidr = param[1];
         entry = param[2];
         context_id = param[3];
-        ret = arm_set_cpu_on(mpidr, entry, context_id,
-                             target_el, target_aarch64);
+        ret = arm_set_cpu_on_firmware_reset(mpidr, entry, context_id,
+                                            target_el, target_aarch64);
         break;
     }
     case QEMU_PSCI_0_1_FN_CPU_OFF:
