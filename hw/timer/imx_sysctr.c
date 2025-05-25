@@ -378,7 +378,7 @@ static void imx_sysctr_reset(DeviceState *dev)
 {
     IMXSysCtrState *s = IMX_SYSCTR(dev);
 
-    s->cntcr = 0;
+    s->cntcr = CNTCR_EN;
     s->cntcv = 0;
 
     for (int i = 0; i < ARRAY_SIZE(s->cmp); i++) {
