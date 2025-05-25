@@ -207,7 +207,7 @@ static void imx7_src_write(void *opaque, hwaddr offset, uint64_t value,
         if (FIELD_EX32(change_mask, CORE1, ENABLE)) {
             if (FIELD_EX32(current_value, CORE1, ENABLE)) {
                 /* CORE 1 is brought up */
-                arm_set_cpu_on(1, s->regs[SRC_GPR3], s->regs[SRC_GPR4],
+                arm_set_cpu_on_firmware_reset(1, s->regs[SRC_GPR3], s->regs[SRC_GPR4],
                                3, false);
             } else {
                 /* CORE 1 is shut down */
