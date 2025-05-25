@@ -1,5 +1,11 @@
 # See docs/devel/tracing.rst for syntax documentation.
 
+# arm-powerctl.c
+arm_reset_cpu(uint64_t cpuid) "cpuid %" PRIu64
+arm_set_cpu_off(uint64_t cpuid) "cpuid %" PRIu64
+arm_set_cpu_on(uint64_t cpuid, uint32_t target_el, const char *target_arch, uint64_t entry, uint64_t context_id) "cpuid %" PRIu64 " (EL %d, %s) @ 0x%" PRIx64 " with R0 = 0x%" PRIx64
+arm_set_cpu_on_and_reset(uint64_t cpuid) "cpuid %" PRIu64
+
 # helper.c
 arm_gt_recalc(int timer, uint64_t nexttick) "gt recalc: timer %d next tick 0x%" PRIx64
 arm_gt_recalc_disabled(int timer) "gt recalc: timer %d timer disabled"
