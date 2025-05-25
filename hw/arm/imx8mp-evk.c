@@ -35,13 +35,6 @@ static void imx8mp_evk_modify_dtb(const struct arm_boot_info *info, void *fdt)
             offset = fdt_node_offset_by_compatible(fdt, offset, dev_str);
         }
     }
-
-    /* Remove cpu-idle-states property from CPU nodes */
-    offset = fdt_node_offset_by_compatible(fdt, -1, "arm,cortex-a53");
-    while (offset >= 0) {
-        fdt_nop_property(fdt, offset, "cpu-idle-states");
-        offset = fdt_node_offset_by_compatible(fdt, offset, "arm,cortex-a53");
-    }
 }
 
 static void imx8mp_evk_init(MachineState *machine)
