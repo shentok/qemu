@@ -523,6 +523,9 @@ static MemTxResult gicr_writel(GICv3CPUState *cs, hwaddr offset,
             value |= GICR_WAKER_ChildrenAsleep;
         }
         cs->gicr_waker = value;
+        if (!(cs->gicr_waker & GICR_WAKER_ProcessorSleep)) {
+            gicv3_redist_update(cs);
+        }
         return MEMTX_OK;
     case GICR_PROPBASER:
         cs->gicr_propbaser = deposit64(cs->gicr_propbaser, 0, 32, value);

@@ -1054,6 +1054,10 @@ void gicv3_cpuif_update(GICv3CPUState *cs)
 
     g_assert(bql_locked());
 
+    if (cs->gicr_waker & GICR_WAKER_ProcessorSleep) {
+        return;
+    }
+
     trace_gicv3_cpuif_update(gicv3_redist_affid(cs), cs->hppi.irq,
                              cs->hppi.grp, cs->hppi.prio);
 
