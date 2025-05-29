@@ -1387,21 +1387,6 @@ static const MemoryRegionOps sdhci_mmio_le_ops = {
     .endianness = DEVICE_LITTLE_ENDIAN,
 };
 
-static const MemoryRegionOps sdhci_mmio_be_ops = {
-    .read = sdhci_read,
-    .write = sdhci_write,
-    .impl = {
-        .min_access_size = 4,
-        .max_access_size = 4,
-    },
-    .valid = {
-        .min_access_size = 1,
-        .max_access_size = 4,
-        .unaligned = false
-    },
-    .endianness = DEVICE_BIG_ENDIAN,
-};
-
 static void sdhci_init_readonly_registers(SDHCIState *s, Error **errp)
 {
     ERRP_GUARD();
@@ -1625,18 +1610,6 @@ static void sdhci_bus_class_init(ObjectClass *klass, const void *data)
 
     sbc->set_inserted = sdhci_set_inserted;
     sbc->set_readonly = sdhci_set_readonly;
-}
-
-/* --- Freescale eSDHC (MPC8569ERM Rev.2 from 06/2011) --- */
-
-static void fsl_esdhc_be_init(Object *obj)
-{
-    SDHCIState *s = SYSBUS_SDHCI(obj);
-    DeviceState *dev = DEVICE(obj);
-
-    s->io_ops = &sdhci_mmio_be_ops;
-    qdev_prop_set_uint8(dev, "sd-spec-version", 2);
-    qdev_prop_set_uint8(dev, "vendor", SDHCI_VENDOR_FSL);
 }
 
 /* --- qdev i.MX uSDHC --- */
@@ -1883,12 +1856,40 @@ static const MemoryRegionOps usdhc_mmio_ops = {
     .endianness = DEVICE_LITTLE_ENDIAN,
 };
 
+static const MemoryRegionOps usdhc_mmio_be_ops = {
+    .read = sdhci_read,
+    .write = sdhci_write,
+    .impl = {
+        .min_access_size = 4,
+        .max_access_size = 4,
+    },
+    .valid = {
+        .min_access_size = 1,
+        .max_access_size = 4,
+        .unaligned = false
+    },
+    .endianness = DEVICE_BIG_ENDIAN,
+};
+
 static void imx_usdhc_init(Object *obj)
 {
     SDHCIState *s = SYSBUS_SDHCI(obj);
 
     s->io_ops = &usdhc_mmio_ops;
     s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ;
+}
+
+/* --- Freescale eSDHC (MPC8569ERM Rev.2 from 06/2011) --- */
+
+static void fsl_esdhc_be_init(Object *obj)
+{
+    SDHCIState *s = SYSBUS_SDHCI(obj);
+    DeviceState *dev = DEVICE(obj);
+
+    s->io_ops = &usdhc_mmio_be_ops;
+    s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ;
+    qdev_prop_set_uint8(dev, "sd-spec-version", 2);
+    qdev_prop_set_uint8(dev, "vendor", SDHCI_VENDOR_FSL);
 }
 
 /* --- qdev Samsung s3c --- */
