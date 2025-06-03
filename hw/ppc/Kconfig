@@ -51,6 +51,7 @@ config PPC440
     imply PCI_DEVICES
     imply TEST_DEVICES
     imply E1000_PCI
+    select DTC
     select PCI_EXPRESS
     select PPC440_PCIX
     select PPC4XX
@@ -67,6 +68,7 @@ config SAM460EX
     bool
     default y
     depends on PPC && FDT
+    select DTC
     select PFLASH_CFI01
     select IDE_SII3112
     select M41T80
