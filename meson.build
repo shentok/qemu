@@ -2092,13 +2092,15 @@ if numa.found() and not cc.links('''
 endif
 
 fdt = not_found
+dtc = not_found
 fdt_opt = get_option('fdt')
 if fdt_opt == 'enabled' and get_option('wrap_mode') == 'nodownload'
   fdt_opt = 'system'
 endif
 if fdt_opt in ['enabled', 'system'] or (fdt_opt == 'auto' and have_system)
   fdt = cc.find_library('fdt', required: fdt_opt == 'system')
-  if fdt.found() and cc.links('''
+  dtc = find_program('dtc', required: fdt_opt == 'system')
+  if dtc.found() and fdt.found() and cc.links('''
      #include <libfdt.h>
      #include <libfdt_env.h>
      int main(void) { fdt_find_max_phandle(NULL, NULL); return 0; }''',
@@ -2107,16 +2109,22 @@ if fdt_opt in ['enabled', 'system'] or (fdt_opt == 'auto' and have_system)
   elif fdt_opt != 'system'
     fdt_opt = get_option('wrap_mode') == 'nodownload' ? 'disabled' : 'internal'
     fdt = not_found
+    dtc = not_found
   else
-    error('system libfdt is too old (1.5.1 or newer required)')
+    if dtc.found()
+      error('system libfdt is too old (1.5.1 or newer required)')
+    else
+      error('device tree compiler not found')
+    endif
   endif
 endif
 if fdt_opt == 'internal'
   assert(not fdt.found())
   libfdt_proj = subproject('dtc', required: true,
-                           default_options: ['tools=false',  'yaml=disabled',
+                           default_options: ['tools=true',  'yaml=disabled',
                                              'python=disabled', 'default_library=static'])
-  fdt = libfdt_proj.get_variable('libfdt_dep')
+  fdt = dependency('libfdt', required: true)
+  dtc = find_program('dtc', required: true)
 endif
 
 rdma = not_found
@@ -2477,6 +2485,7 @@ config_host_data.set('CONFIG_FREEBSD', host_os == 'freebsd')
 config_host_data.set('CONFIG_CAPSTONE', capstone.found())
 config_host_data.set('CONFIG_COCOA', cocoa.found())
 config_host_data.set('CONFIG_DARWIN', host_os == 'darwin')
+config_host_data.set('CONFIG_DTC', dtc.found())
 config_host_data.set('CONFIG_FDT', fdt.found())
 config_host_data.set('CONFIG_FUZZ', get_option('fuzzing'))
 config_host_data.set('CONFIG_GCOV', get_option('b_coverage'))
@@ -3314,6 +3323,7 @@ host_kconfig = \
   (libcbor.found() ? ['CONFIG_LIBCBOR=y'] : []) + \
   (gnutls.found() ? ['CONFIG_GNUTLS=y'] : []) + \
   (x11.found() ? ['CONFIG_X11=y'] : []) + \
+  (dtc.found() ? ['CONFIG_DTC=y'] : []) + \
   (fdt.found() ? ['CONFIG_FDT=y'] : []) + \
   (have_vhost_user ? ['CONFIG_VHOST_USER=y'] : []) + \
   (have_vhost_vdpa ? ['CONFIG_VHOST_VDPA=y'] : []) + \
