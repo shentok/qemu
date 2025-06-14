@@ -147,11 +147,8 @@ void etsec_walk_tx_ring(eTSEC *etsec, int ring_nbr);
 void etsec_walk_rx_ring(eTSEC *etsec, int ring_nbr);
 ssize_t etsec_rx_ring_write(eTSEC *etsec, const uint8_t *buf, size_t size);
 
-void etsec_write_miim(eTSEC          *etsec,
-                      eTSEC_Register *reg,
-                      uint32_t        reg_index,
-                      uint32_t        value);
-
+uint16_t fsl_etsec_phy_read(EtsecPhyState *s, uint8_t addr);
+void fsl_etsec_phy_write(EtsecPhyState *s, uint8_t addr, uint16_t value);
 void fsl_etsec_phy_reset(EtsecPhyState *s);
 void fsl_etsec_phy_set_link_status(EtsecPhyState *s, bool link_down);
 
