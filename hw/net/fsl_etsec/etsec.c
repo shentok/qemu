@@ -147,6 +147,63 @@ static void write_rbasex(eTSEC          *etsec,
     etsec->regs[RBPTR0 + (reg_index - RBASE0)].value = value & ~0x7;
 }
 
+static void etsec_write_miim(eTSEC          *etsec,
+                             eTSEC_Register *reg,
+                             uint32_t        reg_index,
+                             uint32_t        value)
+{
+
+    switch (reg_index) {
+
+    case MIIMCOM:
+        /* Read and scan cycle */
+
+        if ((!(reg->value & MIIMCOM_READ)) && (value & MIIMCOM_READ)) {
+            /* Read */
+            uint8_t phy = (etsec->regs[MIIMADD].value >> 8) & 0x1F;
+            uint8_t addr = etsec->regs[MIIMADD].value & 0x1F;
+
+            etsec->regs[MIIMSTAT].value = fsl_etsec_phy_read(&etsec->phy, addr);
+
+            trace_fsl_etsec_phy_read(phy, addr, etsec->regs[MIIMSTAT].value);
+        }
+        reg->value = value;
+        break;
+
+    case MIIMCON:
+        reg->value = value & 0xffff;
+        {
+            uint8_t phy = (etsec->regs[MIIMADD].value >> 8) & 0x1F;
+            uint8_t addr = etsec->regs[MIIMADD].value & 0x1F;
+            uint16_t mii_value = etsec->regs[MIIMCON].value & 0xffff;
+
+            trace_fsl_etsec_phy_write(phy, addr, mii_value);
+
+            fsl_etsec_phy_write(&etsec->phy, addr, mii_value);
+        }
+        break;
+
+    default:
+        /* Default handling */
+        switch (reg->access) {
+
+        case ACC_RW:
+        case ACC_WO:
+            reg->value = value;
+            break;
+
+        case ACC_W1C:
+            reg->value &= ~value;
+            break;
+
+        case ACC_RO:
+        default:
+            /* Read Only or Unknown register */
+            break;
+        }
+    }
+}
+
 static void write_dmactrl(eTSEC          *etsec,
                           eTSEC_Register *reg,
                           uint32_t        reg_index,
