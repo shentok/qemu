@@ -46,8 +46,8 @@ struct CpuOnInfo {
 };
 
 
-static void arm_set_cpu_on_firmware_reset_async_work(CPUState *target_cpu_state,
-                                                     run_on_cpu_data data)
+static void arm_set_cpu_on_async_work(CPUState *target_cpu_state,
+                                      run_on_cpu_data data)
 {
     ARMCPU *target_cpu = ARM_CPU(target_cpu_state);
     struct CpuOnInfo *info = (struct CpuOnInfo *) data.host_ptr;
@@ -81,9 +81,8 @@ static void arm_set_cpu_on_firmware_reset_async_work(CPUState *target_cpu_state,
     target_cpu->power_state = PSCI_ON;
 }
 
-int arm_set_cpu_on_firmware_reset(uint64_t cpuid, uint64_t entry,
-                                  uint64_t context_id, uint32_t target_el,
-                                  bool target_aa64)
+int arm_set_cpu_on(uint64_t cpuid, uint64_t entry, uint64_t context_id,
+                   uint32_t target_el, bool target_aa64)
 {
     CPUState *target_cpu_state;
     ARMCPU *target_cpu;
@@ -169,7 +168,7 @@ int arm_set_cpu_on_firmware_reset(uint64_t cpuid, uint64_t entry,
     info->target_el = target_el;
     info->target_aa64 = target_aa64;
 
-    async_run_on_cpu(target_cpu_state, arm_set_cpu_on_firmware_reset_async_work,
+    async_run_on_cpu(target_cpu_state, arm_set_cpu_on_async_work,
                      RUN_ON_CPU_HOST_PTR(info));
 
     /* We are good to go */

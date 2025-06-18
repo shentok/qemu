@@ -30,7 +30,7 @@
 CPUState *arm_get_cpu_by_id(uint64_t cpuid);
 
 /*
- * arm_set_cpu_on_firmware_reset:
+ * arm_set_cpu_on:
  * @cpuid: the id of the CPU we want to start/wake up.
  * @entry: the address the CPU shall start from.
  * @context_id: the value to put in r0/x0.
@@ -46,9 +46,8 @@ CPUState *arm_get_cpu_by_id(uint64_t cpuid);
  * QEMU_ARM_POWERCTL_ALREADY_ON if the CPU was already started.
  * QEMU_ARM_POWERCTL_ON_PENDING if the CPU is still powering up
  */
-int arm_set_cpu_on_firmware_reset(uint64_t cpuid, uint64_t entry,
-                                  uint64_t context_id, uint32_t target_el,
-                                  bool target_aa64);
+int arm_set_cpu_on(uint64_t cpuid, uint64_t entry, uint64_t context_id,
+                   uint32_t target_el, bool target_aa64);
 
 /*
  * arm_set_cpu_off:

@@ -179,7 +179,7 @@ static void imx6_src_write(void *opaque, hwaddr offset, uint64_t value,
         if (EXTRACT(change_mask, CORE3_ENABLE)) {
             if (EXTRACT(current_value, CORE3_ENABLE)) {
                 /* CORE 3 is brought up */
-                arm_set_cpu_on_firmware_reset(3, s->regs[SRC_GPR7], s->regs[SRC_GPR8],
+                arm_set_cpu_on(3, s->regs[SRC_GPR7], s->regs[SRC_GPR8],
                                3, false);
             } else {
                 /* CORE 3 is shut down */
@@ -192,7 +192,7 @@ static void imx6_src_write(void *opaque, hwaddr offset, uint64_t value,
         if (EXTRACT(change_mask, CORE2_ENABLE)) {
             if (EXTRACT(current_value, CORE2_ENABLE)) {
                 /* CORE 2 is brought up */
-                arm_set_cpu_on_firmware_reset(2, s->regs[SRC_GPR5], s->regs[SRC_GPR6],
+                arm_set_cpu_on(2, s->regs[SRC_GPR5], s->regs[SRC_GPR6],
                                3, false);
             } else {
                 /* CORE 2 is shut down */
@@ -205,7 +205,7 @@ static void imx6_src_write(void *opaque, hwaddr offset, uint64_t value,
         if (EXTRACT(change_mask, CORE1_ENABLE)) {
             if (EXTRACT(current_value, CORE1_ENABLE)) {
                 /* CORE 1 is brought up */
-                arm_set_cpu_on_firmware_reset(1, s->regs[SRC_GPR3], s->regs[SRC_GPR4],
+                arm_set_cpu_on(1, s->regs[SRC_GPR3], s->regs[SRC_GPR4],
                                3, false);
             } else {
                 /* CORE 1 is shut down */
