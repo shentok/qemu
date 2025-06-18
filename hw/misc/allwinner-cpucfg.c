@@ -94,9 +94,8 @@ static void allwinner_cpucfg_cpu_reset(AwCpuCfgState *s, uint8_t cpu_id)
     }
     bool target_aa64 = arm_feature(&target_cpu->env, ARM_FEATURE_AARCH64);
 
-    ret = arm_set_cpu_on_firmware_reset(cpu_id, s->entry_addr, 0,
-                                        CPU_EXCEPTION_LEVEL_ON_RESET,
-                                        target_aa64);
+    ret = arm_set_cpu_on(cpu_id, s->entry_addr, 0,
+                         CPU_EXCEPTION_LEVEL_ON_RESET, target_aa64);
     if (ret != QEMU_ARM_POWERCTL_RET_SUCCESS) {
         error_report("%s: failed to bring up CPU %d: err %d",
                      __func__, cpu_id, ret);
