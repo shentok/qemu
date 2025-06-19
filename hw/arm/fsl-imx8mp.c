@@ -203,6 +203,11 @@ static void fsl_imx8mp_init(Object *obj)
 
     object_initialize_child(obj, "gic", &s->gic, TYPE_ARM_GICV3);
 
+    for (i = 0; i < ARRAY_SIZE(s->split_irq); i++) {
+        object_initialize_child(obj, "splitter[*]", &s->split_irq[i],
+                                TYPE_SPLIT_IRQ);
+    }
+
     object_initialize_child(obj, "ccm", &s->ccm, TYPE_IMX8MP_CCM);
 
     object_initialize_child(obj, "analog", &s->analog, TYPE_IMX8MP_ANALOG);
@@ -272,7 +277,6 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
 {
     MachineState *ms = MACHINE(qdev_get_machine());
     FslImx8mpState *s = FSL_IMX8MP(dev);
-    DeviceState *gicdev = DEVICE(&s->gic);
     int i;
 
     if (ms->smp.cpus > FSL_IMX8MP_NUM_CPUS) {
@@ -311,6 +315,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     /* GIC */
     {
         SysBusDevice *gicsbd = SYS_BUS_DEVICE(&s->gic);
+        DeviceState *gicdev = DEVICE(&s->gic);
         QList *redist_region_count;
 
         qdev_prop_set_uint32(gicdev, "num-cpu", ms->smp.cpus);
@@ -367,6 +372,22 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         }
     }
 
+    /*
+     * GPCv2
+     */
+    sysbus_realize(SYS_BUS_DEVICE(&s->gpcv2), errp);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gpcv2), 0,
+                    fsl_imx8mp_memmap[FSL_IMX8MP_GPC].addr);
+
+    for (i = 0; i < ARRAY_SIZE(s->split_irq); i++) {
+        qdev_prop_set_uint16(DEVICE(&s->split_irq[i]), "num-lines", 2);
+        qdev_realize(DEVICE(&s->split_irq[i]), NULL, errp);
+        qdev_connect_gpio_out(DEVICE(&s->split_irq[i]), 0,
+                              qdev_get_gpio_in(DEVICE(&s->gic), i));
+        qdev_connect_gpio_out(DEVICE(&s->split_irq[i]), 1,
+                              qdev_get_gpio_in(DEVICE(&s->gpcv2), i));
+    }
+
     /* CCM */
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->ccm), errp)) {
         return;
@@ -380,13 +401,6 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     }
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->analog), 0,
                     fsl_imx8mp_memmap[FSL_IMX8MP_ANA_PLL].addr);
-
-    /*
-     * GPCv2
-     */
-    sysbus_realize(SYS_BUS_DEVICE(&s->gpcv2), errp);
-    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gpcv2), 0,
-                    fsl_imx8mp_memmap[FSL_IMX8MP_GPC].addr);
 
     /* SRC */
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->src), errp)) {
@@ -406,9 +420,9 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->sysctr), 2,
                     fsl_imx8mp_memmap[FSL_IMX8MP_SYSCNT_CTRL].addr);
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->sysctr), 0,
-                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_SYSCTR1_IRQ));
+                       qdev_get_gpio_in(DEVICE(&s->split_irq[FSL_IMX8MP_SYSCTR1_IRQ]), 0));
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->sysctr), 1,
-                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_SYSCTR2_IRQ));
+                       qdev_get_gpio_in(DEVICE(&s->split_irq[FSL_IMX8MP_SYSCTR2_IRQ]), 0));
 
     /* UARTs */
     for (i = 0; i < FSL_IMX8MP_NUM_UARTS; i++) {
@@ -429,7 +443,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
 
         sysbus_mmio_map(SYS_BUS_DEVICE(&s->uart[i]), 0, serial_table[i].addr);
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->uart[i]), 0,
-                           qdev_get_gpio_in(gicdev, serial_table[i].irq));
+                           qdev_get_gpio_in(DEVICE(&s->split_irq[serial_table[i].irq]), 0));
     }
 
     /* GPTs */
@@ -440,7 +454,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     }
 
     qdev_connect_gpio_out(DEVICE(&s->gpt5_gpt6_irq), 0,
-                          qdev_get_gpio_in(gicdev, FSL_IMX8MP_GPT5_GPT6_IRQ));
+                          qdev_get_gpio_in(DEVICE(&s->split_irq[FSL_IMX8MP_GPT5_GPT6_IRQ]), 0));
 
     for (i = 0; i < FSL_IMX8MP_NUM_GPTS; i++) {
         hwaddr gpt_addrs[FSL_IMX8MP_NUM_GPTS] = {
@@ -469,7 +483,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
             };
 
             sysbus_connect_irq(SYS_BUS_DEVICE(&s->gpt[i]), 0,
-                               qdev_get_gpio_in(gicdev, gpt_irqs[i]));
+                               qdev_get_gpio_in(DEVICE(&s->split_irq[gpt_irqs[i]]), 0));
         } else {
             int irq = i - FSL_IMX8MP_NUM_GPTS + 2;
 
@@ -498,7 +512,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
 
         sysbus_mmio_map(SYS_BUS_DEVICE(&s->i2c[i]), 0, i2c_table[i].addr);
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->i2c[i]), 0,
-                           qdev_get_gpio_in(gicdev, i2c_table[i].irq));
+                           qdev_get_gpio_in(DEVICE(&s->split_irq[i2c_table[i].irq]), 0));
     }
 
     /* GPIOs */
@@ -545,9 +559,9 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
 
         sysbus_mmio_map(SYS_BUS_DEVICE(&s->gpio[i]), 0, gpio_table[i].addr);
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->gpio[i]), 0,
-                           qdev_get_gpio_in(gicdev, gpio_table[i].irq_low));
+                           qdev_get_gpio_in(DEVICE(&s->split_irq[gpio_table[i].irq_low]), 0));
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->gpio[i]), 1,
-                           qdev_get_gpio_in(gicdev, gpio_table[i].irq_high));
+                           qdev_get_gpio_in(DEVICE(&s->split_irq[gpio_table[i].irq_high]), 0));
     }
 
     /* USDHCs */
@@ -567,7 +581,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
 
         sysbus_mmio_map(SYS_BUS_DEVICE(&s->usdhc[i]), 0, usdhc_table[i].addr);
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->usdhc[i]), 0,
-                           qdev_get_gpio_in(gicdev, usdhc_table[i].irq));
+                           qdev_get_gpio_in(DEVICE(&s->split_irq[usdhc_table[i].irq]), 0));
     }
 
     /* USBs */
@@ -588,7 +602,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         }
         sysbus_mmio_map(SYS_BUS_DEVICE(&s->usb[i]), 0, usb_table[i].addr);
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->usb[i].sysbus_xhci), 0,
-                           qdev_get_gpio_in(gicdev, usb_table[i].irq));
+                           qdev_get_gpio_in(DEVICE(&s->split_irq[usb_table[i].irq]), 0));
     }
 
     /* ECSPIs */
@@ -608,7 +622,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
 
         sysbus_mmio_map(SYS_BUS_DEVICE(&s->spi[i]), 0, spi_table[i].addr);
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->spi[i]), 0,
-                           qdev_get_gpio_in(gicdev, spi_table[i].irq));
+                           qdev_get_gpio_in(DEVICE(&s->split_irq[spi_table[i].irq]), 0));
     }
 
     /* ENET1 */
@@ -622,9 +636,9 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->enet), 0,
                     fsl_imx8mp_memmap[FSL_IMX8MP_ENET1].addr);
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->enet), 0,
-                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_ENET1_MAC_IRQ));
+                       qdev_get_gpio_in(DEVICE(&s->split_irq[FSL_IMX8MP_ENET1_MAC_IRQ]), 0));
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->enet), 1,
-                       qdev_get_gpio_in(gicdev, FSL_IMX6_ENET1_MAC_1588_IRQ));
+                       qdev_get_gpio_in(DEVICE(&s->split_irq[FSL_IMX6_ENET1_MAC_1588_IRQ]), 0));
 
     /* SNVS */
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->snvs), errp)) {
@@ -652,7 +666,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
 
         sysbus_mmio_map(SYS_BUS_DEVICE(&s->wdt[i]), 0, wdog_table[i].addr);
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->wdt[i]), 0,
-                           qdev_get_gpio_in(gicdev, wdog_table[i].irq));
+                           qdev_get_gpio_in(DEVICE(&s->split_irq[wdog_table[i].irq]), 0));
     }
 
     /* PCIe */
@@ -663,15 +677,15 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                     fsl_imx8mp_memmap[FSL_IMX8MP_PCIE1].addr);
 
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 0,
-                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_PCI_INTA_IRQ));
+                       qdev_get_gpio_in(DEVICE(&s->split_irq[FSL_IMX8MP_PCI_INTA_IRQ]), 0));
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 1,
-                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_PCI_INTB_IRQ));
+                       qdev_get_gpio_in(DEVICE(&s->split_irq[FSL_IMX8MP_PCI_INTB_IRQ]), 0));
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 2,
-                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_PCI_INTC_IRQ));
+                       qdev_get_gpio_in(DEVICE(&s->split_irq[FSL_IMX8MP_PCI_INTC_IRQ]), 0));
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 3,
-                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_PCI_INTD_IRQ));
+                       qdev_get_gpio_in(DEVICE(&s->split_irq[FSL_IMX8MP_PCI_INTD_IRQ]), 0));
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->pcie), 4,
-                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_PCI_MSI_IRQ));
+                       qdev_get_gpio_in(DEVICE(&s->split_irq[FSL_IMX8MP_PCI_MSI_IRQ]), 0));
 
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->pcie_phy), errp)) {
         return;

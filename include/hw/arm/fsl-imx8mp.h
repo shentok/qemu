@@ -11,6 +11,7 @@
 
 #include "cpu.h"
 #include "hw/char/imx_serial.h"
+#include "hw/core/split-irq.h"
 #include "hw/gpio/imx_gpio.h"
 #include "hw/i2c/imx_i2c.h"
 #include "hw/intc/arm_gicv3_common.h"
@@ -59,6 +60,7 @@ struct FslImx8mpState {
     GICv3State         gic;
     IMXGPTState        gpt[FSL_IMX8MP_NUM_GPTS];
     IMXSysCtrState     sysctr;
+    SplitIRQ           split_irq[FSL_IMX8MP_NUM_IRQS];
     IMXGPIOState       gpio[FSL_IMX8MP_NUM_GPIOS];
     IMX8MPCCMState     ccm;
     IMX8MPAnalogState  analog;
