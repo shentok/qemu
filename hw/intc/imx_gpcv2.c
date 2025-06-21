@@ -12,6 +12,7 @@
 #include "qemu/osdep.h"
 #include "hw/intc/imx_gpcv2.h"
 #include "hw/registerfields.h"
+#include "target/arm/arm-powerctl.h"
 #include "migration/vmstate.h"
 #include "qemu/module.h"
 #include "trace.h"
@@ -618,6 +619,10 @@ static const struct MemoryRegionOps imx_gpcv2_ops = {
 static void imx_gpcv2_set_irq(void *opaque, int irq, int level)
 {
     trace_imx_gpcv2_set_irq(irq, level);
+
+    if (irq == 47) {
+        arm_set_cpu_on(0, , , , true);
+    }
 }
 
 static void imx_gpcv2_init(Object *obj)
