@@ -230,6 +230,7 @@ gicv3_its_vte_write(uint32_t vpeid, int valid, uint32_t vptsize, uint64_t vptadd
 # imx-gpcv2.c
 imx_gpcv2_read(uint64_t offset, const char *reg_name, uint32_t value) "[0x%" PRIx64 "%s] <- 0x%" PRIx32
 imx_gpcv2_write(uint64_t offset, const char *reg_name, uint64_t value) "[0x%" PRIx64 "%s] <- 0x%" PRIx64
+imx_gpcv2_set_irq(int irq, int level) "[%d] <- %d"
 
 # armv7m_nvic.c
 nvic_recompute_state(int vectpending, int vectpending_prio, int exception_prio) "NVIC state recomputed: vectpending %d vectpending_prio %d exception_prio %d"

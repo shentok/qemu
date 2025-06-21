@@ -617,6 +617,7 @@ static const struct MemoryRegionOps imx_gpcv2_ops = {
 
 static void imx_gpcv2_set_irq(void *opaque, int irq, int level)
 {
+    trace_imx_gpcv2_set_irq(irq, level);
 }
 
 static void imx_gpcv2_init(Object *obj)
