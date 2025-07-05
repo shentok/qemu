@@ -74,8 +74,12 @@ config ECCMEMCTL
 
 config IMX
     bool
+    select IMX_CCM
     select PTIMER
     select SSI
+
+config IMX_CCM
+    bool
 
 config IMX_RNG
     bool
@@ -97,6 +101,7 @@ config FSL_IMX8MP_ANALOG
 
 config FSL_IMX8MP_CCM
     bool
+    select IMX_CCM
 
 config STM32_RCC
     bool
