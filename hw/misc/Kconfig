@@ -75,7 +75,6 @@ config ECCMEMCTL
 config IMX
     bool
     select IMX_CCM
-    select PTIMER
     select SSI
 
 config IMX_CCM
