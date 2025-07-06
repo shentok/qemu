@@ -424,6 +424,7 @@ static void designware_pcie_root_realize(PCIDevice *dev, Error **errp)
         char *name;
 
         viewport = &root->viewports[DESIGNWARE_PCIE_VIEWPORT_INBOUND][i];
+        viewport->root    = root;
         viewport->inbound = true;
         viewport->base    = 0x0000000000000000ULL;
         viewport->target  = 0x0000000000000000ULL;
