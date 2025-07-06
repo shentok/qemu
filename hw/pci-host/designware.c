@@ -30,6 +30,7 @@
 #include "migration/vmstate.h"
 #include "hw/irq.h"
 #include "hw/pci-host/designware.h"
+#include "system/runstate.h"
 
 #define DESIGNWARE_PCIE_PORT_LINK_CONTROL          0x710
 #define DESIGNWARE_PCIE_PHY_DEBUG_R1               0x72C
@@ -341,6 +342,7 @@ static void designware_pcie_root_config_write(PCIDevice *d, uint32_t address,
         break;
 
     case DESIGNWARE_PCIE_ATU_VIEWPORT:
+        qemu_system_vmstop_request(RUN_STATE_PAUSED);
         val &= DESIGNWARE_PCIE_ATU_REGION_INBOUND |
                 (DESIGNWARE_PCIE_NUM_VIEWPORTS - 1);
         root->atu_viewport = val;
@@ -348,6 +350,7 @@ static void designware_pcie_root_config_write(PCIDevice *d, uint32_t address,
 
     case DESIGNWARE_PCIE_ATU_LOWER_BASE:
     case DESIGNWARE_PCIE_ATU_UPPER_BASE:
+        qemu_system_vmstop_request(RUN_STATE_PAUSED);
         viewport->base = deposit64(viewport->base,
                                    address == DESIGNWARE_PCIE_ATU_LOWER_BASE
                                    ? 0 : 32, 32, val);
@@ -355,19 +358,23 @@ static void designware_pcie_root_config_write(PCIDevice *d, uint32_t address,
 
     case DESIGNWARE_PCIE_ATU_LOWER_TARGET:
     case DESIGNWARE_PCIE_ATU_UPPER_TARGET:
+        qemu_system_vmstop_request(RUN_STATE_PAUSED);
         viewport->target = deposit64(viewport->target,
                                      address == DESIGNWARE_PCIE_ATU_LOWER_TARGET
                                      ? 0 : 32, 32, val);
         break;
 
     case DESIGNWARE_PCIE_ATU_LIMIT:
+        qemu_system_vmstop_request(RUN_STATE_PAUSED);
         viewport->limit = val;
         break;
 
     case DESIGNWARE_PCIE_ATU_CR1:
+        qemu_system_vmstop_request(RUN_STATE_PAUSED);
         viewport->cr[0] = val;
         break;
     case DESIGNWARE_PCIE_ATU_CR2:
+        qemu_system_vmstop_request(RUN_STATE_PAUSED);
         viewport->cr[1] = val;
         designware_pcie_update_viewport(root, viewport);
         break;
