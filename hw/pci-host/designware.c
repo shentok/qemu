@@ -222,13 +222,7 @@ designware_pcie_root_config_read(PCIDevice *d, uint32_t address, int len)
 static uint64_t designware_pcie_root_data_access(void *opaque, hwaddr addr,
                                                  uint64_t *val, unsigned len)
 {
-    DesignwarePCIEViewport *viewport = opaque;
-    DesignwarePCIERoot *root = viewport->root;
-
-    const uint8_t busnum = DESIGNWARE_PCIE_ATU_BUS(viewport->target);
-    const uint8_t devfn  = DESIGNWARE_PCIE_ATU_DEVFN(viewport->target);
-    PCIBus    *pcibus    = pci_get_bus(PCI_DEVICE(root));
-    PCIDevice *pcidev    = pci_find_device(pcibus, busnum, devfn);
+    PCIDevice *pcidev = opaque;
 
     if (pcidev) {
         addr &= pci_config_size(pcidev) - 1;
@@ -272,33 +266,49 @@ static const MemoryRegionOps designware_pci_host_conf_ops = {
 static void designware_pcie_update_viewport(DesignwarePCIERoot *root,
                                             DesignwarePCIEViewport *viewport)
 {
+    DesignwarePCIEHost *host = designware_pcie_root_to_host(root);
     const uint64_t target = viewport->target;
     const uint64_t base   = viewport->base;
     const uint64_t size   = (uint64_t)viewport->limit - base + 1;
     const bool enabled    = viewport->cr[1] & DESIGNWARE_PCIE_ATU_ENABLE;
 
-    MemoryRegion *current, *other;
+    memory_region_transaction_begin();
+    if (memory_region_is_mapped(&viewport->mem)) {
+        memory_region_del_subregion(viewport->mem.container, &viewport->mem);
+    }
+    object_unparent(OBJECT(&viewport->mem));
 
     if (viewport->cr[0] == DESIGNWARE_PCIE_ATU_TYPE_MEM) {
-        current = &viewport->mem;
-        other   = &viewport->cfg;
-        memory_region_set_alias_offset(current, target);
+        if (viewport->inbound) {
+            memory_region_init_alias(&viewport->mem, OBJECT(root),
+                                     viewport->name, get_system_memory(),
+                                     target, size);
+            memory_region_add_subregion_overlap(&host->pci.address_space_root,
+                                                base, &viewport->mem, -1);
+        } else {
+            memory_region_init_alias(&viewport->mem, OBJECT(root),
+                                     viewport->name, &host->pci.memory,
+                                     target, size);
+            memory_region_add_subregion(get_system_memory(), base,
+                                        &viewport->mem);
+        }
     } else {
-        current = &viewport->cfg;
-        other   = &viewport->mem;
+        const uint8_t busnum = DESIGNWARE_PCIE_ATU_BUS(viewport->target);
+        const uint8_t devfn  = DESIGNWARE_PCIE_ATU_DEVFN(viewport->target);
+        PCIBus    *pcibus    = pci_get_bus(PCI_DEVICE(root));
+        PCIDevice *pcidev    = pci_find_device(pcibus, busnum, devfn);
+
+        memory_region_init_io(&viewport->mem, OBJECT(root),
+                              &designware_pci_host_conf_ops,
+                              pcidev, viewport->name, size);
+        memory_region_add_subregion(get_system_memory(), base,
+                                    &viewport->mem);
     }
 
-    /*
-     * An outbound viewport can be reconfigure from being MEM to CFG,
-     * to account for that we disable the "other" memory region that
-     * becomes unused due to that fact.
-     */
-    memory_region_set_enabled(other, false);
-    if (enabled) {
-        memory_region_set_size(current, size);
-        memory_region_set_address(current, base);
+    if (memory_region_is_mapped(&viewport->mem)) {
+        memory_region_set_enabled(&viewport->mem, enabled);
     }
-    memory_region_set_enabled(current, enabled);
+    memory_region_transaction_commit();
 }
 
 static void designware_pcie_root_config_write(PCIDevice *d, uint32_t address,
@@ -378,29 +388,33 @@ static void designware_pcie_root_config_write(PCIDevice *d, uint32_t address,
     }
 }
 
-static char *designware_pcie_viewport_name(const char *direction,
-                                           unsigned int i,
-                                           const char *type)
+static const char *designware_pcie_viewport_name[2][DESIGNWARE_PCIE_NUM_VIEWPORTS] =
 {
-    return g_strdup_printf("PCI %s Viewport %u [%s]",
-                           direction, i, type);
-}
+    {
+        "PCI Outbound Viewport 0",
+        "PCI Outbound Viewport 1",
+        "PCI Outbound Viewport 2",
+        "PCI Outbound Viewport 3"
+    },
+    {
+        "PCI Inbound Viewport 0",
+        "PCI Inbound Viewport 1",
+        "PCI Inbound Viewport 2",
+        "PCI Inbound Viewport 3"
+    },
+};
 
 static void designware_pcie_root_realize(PCIDevice *dev, Error **errp)
 {
     DesignwarePCIERoot *root = DESIGNWARE_PCIE_ROOT(dev);
     DesignwarePCIEHost *host = designware_pcie_root_to_host(root);
-    MemoryRegion *host_mem = get_system_memory();
     MemoryRegion *address_space = &host->pci.memory;
     PCIBridge *br = PCI_BRIDGE(dev);
-    DesignwarePCIEViewport *viewport;
     /*
      * Dummy values used for initial configuration of MemoryRegions
      * that belong to a given viewport
      */
     const hwaddr dummy_offset = 0;
-    const uint64_t dummy_size = 4;
-    size_t i;
 
     br->bus_name  = "dw-pcie";
 
@@ -418,61 +432,12 @@ static void designware_pcie_root_realize(PCIDevice *dev, Error **errp)
     msi_nonbroken = true;
     msi_init(dev, 0x50, 32, true, true, &error_fatal);
 
-    for (i = 0; i < DESIGNWARE_PCIE_NUM_VIEWPORTS; i++) {
-        MemoryRegion *source, *destination, *mem;
-        const char *direction;
-        char *name;
-
-        viewport = &root->viewports[DESIGNWARE_PCIE_VIEWPORT_INBOUND][i];
-        viewport->root    = root;
-        viewport->inbound = true;
-
-        source      = &host->pci.address_space_root;
-        destination = host_mem;
-        direction   = "Inbound";
-
-        /*
-         * Configure MemoryRegion implementing PCI -> CPU memory
-         * access
-         */
-        mem  = &viewport->mem;
-        name = designware_pcie_viewport_name(direction, i, "MEM");
-        memory_region_init_alias(mem, OBJECT(root), name, destination,
-                                 dummy_offset, dummy_size);
-        memory_region_add_subregion_overlap(source, dummy_offset, mem, -1);
-        g_free(name);
-
-        viewport = &root->viewports[DESIGNWARE_PCIE_VIEWPORT_OUTBOUND][i];
-        viewport->root    = root;
-        viewport->inbound = false;
-
-        destination = &host->pci.memory;
-        direction   = "Outbound";
-        source      = host_mem;
-
-        /*
-         * Configure MemoryRegion implementing CPU -> PCI memory
-         * access
-         */
-        mem  = &viewport->mem;
-        name = designware_pcie_viewport_name(direction, i, "MEM");
-        memory_region_init_alias(mem, OBJECT(root), name, destination,
-                                 dummy_offset, dummy_size);
-        memory_region_add_subregion(source, dummy_offset, mem);
-        g_free(name);
-
-        /*
-         * Configure MemoryRegion implementing access to configuration
-         * space
-         */
-        mem  = &viewport->cfg;
-        name = designware_pcie_viewport_name(direction, i, "CFG");
-        memory_region_init_io(&viewport->cfg, OBJECT(root),
-                              &designware_pci_host_conf_ops,
-                              viewport, name, dummy_size);
-        memory_region_add_subregion(source, dummy_offset, mem);
-        memory_region_set_enabled(mem, false);
-        g_free(name);
+    for (size_t j = 0; j < ARRAY_SIZE(root->viewports); j++) {
+        for (size_t i = 0; i < DESIGNWARE_PCIE_NUM_VIEWPORTS; i++) {
+            DesignwarePCIEViewport *viewport = &root->viewports[j][i];
+            viewport->name = designware_pcie_viewport_name[j][i];
+            viewport->inbound = j == DESIGNWARE_PCIE_VIEWPORT_INBOUND;
+        }
     }
 
     memory_region_init_io(&root->msi.iomem, OBJECT(root),
