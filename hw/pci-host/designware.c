@@ -426,10 +426,6 @@ static void designware_pcie_root_realize(PCIDevice *dev, Error **errp)
         viewport = &root->viewports[DESIGNWARE_PCIE_VIEWPORT_INBOUND][i];
         viewport->root    = root;
         viewport->inbound = true;
-        viewport->base    = 0x0000000000000000ULL;
-        viewport->target  = 0x0000000000000000ULL;
-        viewport->limit   = UINT32_MAX;
-        viewport->cr[0]   = DESIGNWARE_PCIE_ATU_TYPE_MEM;
 
         source      = &host->pci.address_space_root;
         destination = host_mem;
@@ -444,16 +440,11 @@ static void designware_pcie_root_realize(PCIDevice *dev, Error **errp)
         memory_region_init_alias(mem, OBJECT(root), name, destination,
                                  dummy_offset, dummy_size);
         memory_region_add_subregion_overlap(source, dummy_offset, mem, -1);
-        memory_region_set_enabled(mem, false);
         g_free(name);
 
         viewport = &root->viewports[DESIGNWARE_PCIE_VIEWPORT_OUTBOUND][i];
         viewport->root    = root;
         viewport->inbound = false;
-        viewport->base    = 0x0000000000000000ULL;
-        viewport->target  = 0x0000000000000000ULL;
-        viewport->limit   = UINT32_MAX;
-        viewport->cr[0]   = DESIGNWARE_PCIE_ATU_TYPE_MEM;
 
         destination = &host->pci.memory;
         direction   = "Outbound";
@@ -468,7 +459,6 @@ static void designware_pcie_root_realize(PCIDevice *dev, Error **errp)
         memory_region_init_alias(mem, OBJECT(root), name, destination,
                                  dummy_offset, dummy_size);
         memory_region_add_subregion(source, dummy_offset, mem);
-        memory_region_set_enabled(mem, false);
         g_free(name);
 
         /*
@@ -485,19 +475,6 @@ static void designware_pcie_root_realize(PCIDevice *dev, Error **errp)
         g_free(name);
     }
 
-    /*
-     * If no inbound iATU windows are configured, HW defaults to
-     * letting inbound TLPs to pass in. We emulate that by explicitly
-     * configuring first inbound window to cover all of target's
-     * address space.
-     *
-     * NOTE: This will not work correctly for the case when first
-     * configured inbound window is window 0
-     */
-    viewport = &root->viewports[DESIGNWARE_PCIE_VIEWPORT_INBOUND][0];
-    viewport->cr[1] = DESIGNWARE_PCIE_ATU_ENABLE;
-    designware_pcie_update_viewport(root, viewport);
-
     memory_region_init_io(&root->msi.iomem, OBJECT(root),
                           &designware_pci_host_msi_ops,
                           root, "pcie-msi", 0x4);
@@ -509,6 +486,40 @@ static void designware_pcie_root_realize(PCIDevice *dev, Error **errp)
      */
     memory_region_add_subregion(address_space, dummy_offset, &root->msi.iomem);
     memory_region_set_enabled(&root->msi.iomem, false);
+}
+
+static void designware_pcie_root_reset(DeviceState *dev)
+{
+    DesignwarePCIERoot *root = DESIGNWARE_PCIE_ROOT(dev);
+    DesignwarePCIEViewport *viewport;
+
+    pci_bridge_reset(dev);
+
+    for (int i = 0; i < ARRAY_SIZE(root->viewports); i++) {
+        for (int j = 0; j < DESIGNWARE_PCIE_NUM_VIEWPORTS; j++) {
+            viewport = &root->viewports[i][j];
+
+            viewport->base    = 0x0000000000000000ULL;
+            viewport->target  = 0x0000000000000000ULL;
+            viewport->limit   = UINT32_MAX;
+            viewport->cr[0]   = DESIGNWARE_PCIE_ATU_TYPE_MEM;
+
+            /*
+             * If no inbound iATU windows are configured, HW defaults to
+             * letting inbound TLPs to pass in. We emulate that by explicitly
+             * configuring first inbound window to cover all of target's
+             * address space.
+             *
+             * NOTE: This will not work correctly for the case when first
+             * configured inbound window is window 0
+             */
+            viewport->cr[1] = (i == DESIGNWARE_PCIE_VIEWPORT_INBOUND && j == 1)
+                    ? DESIGNWARE_PCIE_ATU_ENABLE
+                    : 0;
+
+            designware_pcie_update_viewport(root, viewport);
+        }
+    }
 }
 
 static void designware_pcie_set_irq(void *opaque, int irq_num, int level)
@@ -605,7 +616,7 @@ static void designware_pcie_root_class_init(ObjectClass *klass,
     k->config_read = designware_pcie_root_config_read;
     k->config_write = designware_pcie_root_config_write;
 
-    device_class_set_legacy_reset(dc, pci_bridge_reset);
+    device_class_set_legacy_reset(dc, designware_pcie_root_reset);
     /*
      * PCI-facing part of the host bridge, not usable without the
      * host-facing part, which can't be device_add'ed, yet.
