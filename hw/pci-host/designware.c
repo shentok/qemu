@@ -276,6 +276,8 @@ static void designware_pcie_update_viewport(DesignwarePCIERoot *root,
     const uint64_t size   = (uint64_t)viewport->limit - base + 1;
     const bool enabled    = viewport->cr[1] & DESIGNWARE_PCIE_ATU_ENABLE;
 
+    printf("%s: addr=0x%" PRIx64 ", target=0x%" PRIx64 ", cr0=0x%" PRIx32 "\n", __func__, base, target, viewport->cr[0]);
+
     memory_region_transaction_begin();
     if (memory_region_is_mapped(&viewport->mem)) {
         memory_region_del_subregion(viewport->mem.container, &viewport->mem);
