@@ -44,7 +44,11 @@
 #define DESIGNWARE_PCIE_ATU_VIEWPORT               0x900
 #define DESIGNWARE_PCIE_ATU_REGION_INBOUND         BIT(31)
 #define DESIGNWARE_PCIE_ATU_CR1                    0x904
-#define DESIGNWARE_PCIE_ATU_TYPE_MEM               (0x0 << 0)
+#define DESIGNWARE_PCIE_ATU_TYPE_MEM               0x0
+#define DESIGNWARE_PCIE_ATU_TYPE_IO                0x2
+#define DESIGNWARE_PCIE_ATU_TYPE_CFG0              0x4
+#define DESIGNWARE_PCIE_ATU_TYPE_CFG1              0x5
+#define DESIGNWARE_PCIE_ATU_TYPE_MSG               0x10
 #define DESIGNWARE_PCIE_ATU_CR2                    0x908
 #define DESIGNWARE_PCIE_ATU_ENABLE                 BIT(31)
 #define DESIGNWARE_PCIE_ATU_LOWER_BASE             0x90C
@@ -278,36 +282,47 @@ static void designware_pcie_update_viewport(DesignwarePCIERoot *root,
     }
     object_unparent(OBJECT(&viewport->mem));
 
-    if (viewport->cr[0] == DESIGNWARE_PCIE_ATU_TYPE_MEM) {
-        if (viewport->inbound) {
-            memory_region_init_alias(&viewport->mem, OBJECT(root),
-                                     viewport->name, get_system_memory(),
-                                     target, size);
-            memory_region_add_subregion_overlap(&host->pci.address_space_root,
-                                                base, &viewport->mem, -1);
-        } else {
-            memory_region_init_alias(&viewport->mem, OBJECT(root),
-                                     viewport->name, &host->pci.memory,
-                                     target, size);
-            memory_region_add_subregion(get_system_memory(), base,
-                                        &viewport->mem);
+    if (enabled) {
+        switch (viewport->cr[0]) {
+        case DESIGNWARE_PCIE_ATU_TYPE_MEM:
+        case DESIGNWARE_PCIE_ATU_TYPE_IO: {
+            MemoryRegion *mr = viewport->cr[0] == DESIGNWARE_PCIE_ATU_TYPE_IO
+                    ? &host->pci.io
+                    : &host->pci.memory;
+            if (viewport->inbound) {
+                memory_region_init_alias(&viewport->mem, OBJECT(root),
+                                         viewport->name, get_system_memory(),
+                                         target, size);
+                memory_region_add_subregion_overlap(mr, base, &viewport->mem, -1);
+            } else {
+                memory_region_init_alias(&viewport->mem, OBJECT(root),
+                                         viewport->name, mr, target, size);
+                memory_region_add_subregion(get_system_memory(), base,
+                                            &viewport->mem);
+            }
+        } break;
+
+        case DESIGNWARE_PCIE_ATU_TYPE_CFG0:
+        case DESIGNWARE_PCIE_ATU_TYPE_CFG1:
+            if (!viewport->inbound) {
+                const uint8_t busnum = DESIGNWARE_PCIE_ATU_BUS(viewport->target);
+                const uint8_t devfn  = DESIGNWARE_PCIE_ATU_DEVFN(viewport->target);
+                PCIBus    *pcibus    = pci_get_bus(PCI_DEVICE(root));
+                PCIDevice *pcidev    = pci_find_device(pcibus, busnum, devfn);
+
+                memory_region_init_io(&viewport->mem, OBJECT(root),
+                                      &designware_pci_host_conf_ops,
+                                      pcidev, viewport->name, size);
+                memory_region_add_subregion(get_system_memory(), base,
+                                            &viewport->mem);
+            }
+            break;
+
+        default:
+            break;
         }
-    } else {
-        const uint8_t busnum = DESIGNWARE_PCIE_ATU_BUS(viewport->target);
-        const uint8_t devfn  = DESIGNWARE_PCIE_ATU_DEVFN(viewport->target);
-        PCIBus    *pcibus    = pci_get_bus(PCI_DEVICE(root));
-        PCIDevice *pcidev    = pci_find_device(pcibus, busnum, devfn);
-
-        memory_region_init_io(&viewport->mem, OBJECT(root),
-                              &designware_pci_host_conf_ops,
-                              pcidev, viewport->name, size);
-        memory_region_add_subregion(get_system_memory(), base,
-                                    &viewport->mem);
     }
 
-    if (memory_region_is_mapped(&viewport->mem)) {
-        memory_region_set_enabled(&viewport->mem, enabled);
-    }
     memory_region_transaction_commit();
 }
 
