@@ -36,6 +36,7 @@
 #include "system/system.h"
 #include "system/dma.h"
 #include "qemu/iov.h"
+#include "qemu/log.h"
 #include "qemu/module.h"
 #include "qemu/range.h"
 
@@ -1268,20 +1269,24 @@ e1000_mmio_write(void *opaque, hwaddr addr, uint64_t val,
         if (!(mac_reg_access[index] & MAC_ACCESS_FLAG_NEEDED)
             || (s->compat_flags & (mac_reg_access[index] >> 2))) {
             if (mac_reg_access[index] & MAC_ACCESS_PARTIAL) {
-                DBGOUT(GENERAL, "Writing to register at offset: 0x%08x. "
-                       "It is not fully implemented.\n", index<<2);
+                qemu_log_mask(LOG_UNIMP,
+                        "%s: Writing to register at offset: 0x%08x. "
+                        "It is not fully implemented.\n", __func__, index << 2);
             }
             macreg_writeops[index](s, index, val);
         } else {    /* "flag needed" bit is set, but the flag is not active */
-            DBGOUT(MMIO, "MMIO write attempt to disabled reg. addr=0x%08x\n",
-                   index<<2);
+            qemu_log_mask(LOG_GUEST_ERROR,
+                    "%s: write attempt to disabled reg. addr=0x%08x\n",
+                    __func__, index << 2);
         }
     } else if (index < NREADOPS && macreg_readops[index]) {
-        DBGOUT(MMIO, "e1000_mmio_writel RO %x: 0x%04"PRIx64"\n",
-               index<<2, val);
+        qemu_log_mask(LOG_GUEST_ERROR,
+                "%s: write attempt to RO register %x: 0x%04"PRIx64"\n",
+                __func__, index << 2, val);
     } else {
-        DBGOUT(UNKNOWN, "MMIO unknown write addr=0x%08x,val=0x%08"PRIx64"\n",
-               index<<2, val);
+        qemu_log_mask(LOG_GUEST_ERROR,
+                "%s: write to unknown addr=0x%08x,val=0x%08"PRIx64"\n",
+                __func__, index << 2, val);
     }
 }
 
@@ -1295,16 +1300,19 @@ e1000_mmio_read(void *opaque, hwaddr addr, unsigned size)
         if (!(mac_reg_access[index] & MAC_ACCESS_FLAG_NEEDED)
             || (s->compat_flags & (mac_reg_access[index] >> 2))) {
             if (mac_reg_access[index] & MAC_ACCESS_PARTIAL) {
-                DBGOUT(GENERAL, "Reading register at offset: 0x%08x. "
-                       "It is not fully implemented.\n", index<<2);
+                qemu_log_mask(LOG_UNIMP,
+                        "%s: Reading register at offset: 0x%08x. "
+                        "It is not fully implemented.\n", __func__, index << 2);
             }
             return macreg_readops[index](s, index);
         } else {    /* "flag needed" bit is set, but the flag is not active */
-            DBGOUT(MMIO, "MMIO read attempt of disabled reg. addr=0x%08x\n",
-                   index<<2);
+            qemu_log_mask(LOG_GUEST_ERROR,
+                    "%s: read attempt of disabled reg. addr=0x%08x\n",
+                    __func__, index << 2);
         }
     } else {
-        DBGOUT(UNKNOWN, "MMIO unknown read addr=0x%08x\n", index<<2);
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: read of unknown addr=0x%08x\n",
+                      __func__, index << 2);
     }
     return 0;
 }
