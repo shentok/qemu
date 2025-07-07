@@ -105,6 +105,7 @@ net_rx_pkt_rss_add_chunk(void* ptr, size_t size, size_t input_offset) "Add RSS c
 e1000_mmio_read(uint64_t addr, uint64_t val) "[0x%" PRIx64 "] -> 0x%" PRIx64
 e1000_mmio_write(uint64_t addr, uint64_t val) "[0x%" PRIx64 "] <- 0x%" PRIx64
 e1000_receiver_overrun(size_t s, uint32_t rdh, uint32_t rdt) "Receiver overrun: dropped packet of %zu bytes, RDH=%u, RDT=%u"
+e1000_tx_disabled(void) ""
 
 # e1000x_common.c
 e1000x_rx_can_recv_disabled(bool link_up, bool rx_enabled, bool pci_master) "link_up: %d, rx_enabled %d, pci_master %d"
