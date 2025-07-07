@@ -1265,6 +1265,8 @@ e1000_mmio_write(void *opaque, hwaddr addr, uint64_t val,
     E1000State *s = opaque;
     unsigned int index = (addr & 0x1ffff) >> 2;
 
+    trace_e1000_mmio_write(addr, val);
+
     if (index < NWRITEOPS && macreg_writeops[index]) {
         if (!(mac_reg_access[index] & MAC_ACCESS_FLAG_NEEDED)
             || (s->compat_flags & (mac_reg_access[index] >> 2))) {
@@ -1295,6 +1297,7 @@ e1000_mmio_read(void *opaque, hwaddr addr, unsigned size)
 {
     E1000State *s = opaque;
     unsigned int index = (addr & 0x1ffff) >> 2;
+    uint64_t val = 0;
 
     if (index < NREADOPS && macreg_readops[index]) {
         if (!(mac_reg_access[index] & MAC_ACCESS_FLAG_NEEDED)
@@ -1304,7 +1307,7 @@ e1000_mmio_read(void *opaque, hwaddr addr, unsigned size)
                         "%s: Reading register at offset: 0x%08x. "
                         "It is not fully implemented.\n", __func__, index << 2);
             }
-            return macreg_readops[index](s, index);
+            val = macreg_readops[index](s, index);
         } else {    /* "flag needed" bit is set, but the flag is not active */
             qemu_log_mask(LOG_GUEST_ERROR,
                     "%s: read attempt of disabled reg. addr=0x%08x\n",
@@ -1314,7 +1317,10 @@ e1000_mmio_read(void *opaque, hwaddr addr, unsigned size)
         qemu_log_mask(LOG_GUEST_ERROR, "%s: read of unknown addr=0x%08x\n",
                       __func__, index << 2);
     }
-    return 0;
+
+    trace_e1000_mmio_read(addr, val);
+
+    return val;
 }
 
 static const MemoryRegionOps e1000_mmio_ops = {
