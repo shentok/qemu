@@ -45,7 +45,7 @@
 #include "trace.h"
 #include "qom/object.h"
 
-#define E1000_DEBUG
+/* #define E1000_DEBUG */
 
 #ifdef E1000_DEBUG
 enum {
