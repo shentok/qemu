@@ -30,6 +30,7 @@
 #include "migration/vmstate.h"
 #include "hw/irq.h"
 #include "hw/pci-host/designware.h"
+#include "system/runstate.h"
 
 #define DESIGNWARE_PCIE_PORT_LINK_CONTROL          0x710
 #define DESIGNWARE_PCIE_PHY_DEBUG_R1               0x72C
@@ -121,6 +122,7 @@ static const MemoryRegionOps designware_pci_host_msi_ops = {
 static void designware_pcie_root_update_msi_mapping(DesignwarePCIERoot *root)
 
 {
+    qemu_system_vmstop_request(RUN_STATE_PAUSED);
     MemoryRegion *mem   = &root->msi.iomem;
     const uint64_t base = root->msi.base;
     const bool enable   = root->msi.intr[0].enable;
