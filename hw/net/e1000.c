@@ -758,7 +758,7 @@ start_xmit(E1000State *s)
     uint32_t tdh_start = s->mac_reg[TDH], cause = E1000_ICS_TXQE;
 
     if (!(s->mac_reg[TCTL] & E1000_TCTL_EN)) {
-        DBGOUT(TX, "tx disabled\n");
+        trace_e1000_tx_disabled();
         return;
     }
 
