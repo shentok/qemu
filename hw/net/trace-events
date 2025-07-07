@@ -102,6 +102,8 @@ net_rx_pkt_rss_hash(size_t rss_length, uint32_t rss_hash) "RSS hash for %zu byte
 net_rx_pkt_rss_add_chunk(void* ptr, size_t size, size_t input_offset) "Add RSS chunk %p, %zu bytes, RSS input offset %zu bytes"
 
 # e1000.c
+e1000_mmio_read(uint64_t addr, uint64_t val) "[0x%" PRIx64 "] -> 0x%" PRIx64
+e1000_mmio_write(uint64_t addr, uint64_t val) "[0x%" PRIx64 "] <- 0x%" PRIx64
 e1000_receiver_overrun(size_t s, uint32_t rdh, uint32_t rdt) "Receiver overrun: dropped packet of %zu bytes, RDH=%u, RDT=%u"
 
 # e1000x_common.c
