@@ -44,7 +44,6 @@
 #include "e1000x_common.h"
 #include "trace.h"
 #include "qom/object.h"
-#include "system/runstate.h"
 
 /* #define E1000_DEBUG */
 
@@ -1278,18 +1277,15 @@ e1000_mmio_write(void *opaque, hwaddr addr, uint64_t val,
             }
             macreg_writeops[index](s, index, val);
         } else {    /* "flag needed" bit is set, but the flag is not active */
-            qemu_system_vmstop_request(RUN_STATE_PAUSED);
             qemu_log_mask(LOG_GUEST_ERROR,
                     "%s: write attempt to disabled reg. addr=0x%08x\n",
                     __func__, index << 2);
         }
     } else if (index < NREADOPS && macreg_readops[index]) {
-        qemu_system_vmstop_request(RUN_STATE_PAUSED);
         qemu_log_mask(LOG_GUEST_ERROR,
                 "%s: write attempt to RO register %x: 0x%04"PRIx64"\n",
                 __func__, index << 2, val);
     } else {
-        qemu_system_vmstop_request(RUN_STATE_PAUSED);
         qemu_log_mask(LOG_GUEST_ERROR,
                 "%s: write to unknown addr=0x%08x,val=0x%08"PRIx64"\n",
                 __func__, index << 2, val);
@@ -1313,13 +1309,11 @@ e1000_mmio_read(void *opaque, hwaddr addr, unsigned size)
             }
             val = macreg_readops[index](s, index);
         } else {    /* "flag needed" bit is set, but the flag is not active */
-            qemu_system_vmstop_request(RUN_STATE_PAUSED);
             qemu_log_mask(LOG_GUEST_ERROR,
                     "%s: read attempt of disabled reg. addr=0x%08x\n",
                     __func__, index << 2);
         }
     } else {
-        qemu_system_vmstop_request(RUN_STATE_PAUSED);
         qemu_log_mask(LOG_GUEST_ERROR, "%s: read of unknown addr=0x%08x\n",
                       __func__, index << 2);
     }
