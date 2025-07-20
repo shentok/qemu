@@ -410,7 +410,6 @@ static void designware_pcie_root_realize(PCIDevice *dev, Error **errp)
 {
     DesignwarePCIERoot *root = DESIGNWARE_PCIE_ROOT(dev);
     DesignwarePCIEHost *host = designware_pcie_root_to_host(root);
-    MemoryRegion *address_space = &host->pci.address_space_root;
     PCIBridge *br = PCI_BRIDGE(dev);
     /*
      * Dummy values used for initial configuration of MemoryRegions
@@ -451,7 +450,7 @@ static void designware_pcie_root_realize(PCIDevice *dev, Error **errp)
      * in designware_pcie_root_update_msi_mapping() as a part of
      * initialization done by guest OS
      */
-    memory_region_add_subregion(address_space, dummy_offset, &root->msi.iomem);
+    memory_region_add_subregion(&host->pci.memory, dummy_offset, &root->msi.iomem);
     memory_region_set_enabled(&root->msi.iomem, false);
 }
 
