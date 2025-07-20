@@ -310,6 +310,30 @@ static void designware_pcie_update_viewport(DesignwarePCIERoot *root,
     if (memory_region_is_mapped(&viewport->mem)) {
         memory_region_set_enabled(&viewport->mem, enabled);
     }
+
+    bool one_mapped = false;
+    for (int j = 0; j < DESIGNWARE_PCIE_NUM_VIEWPORTS; j++) {
+        one_mapped |= memory_region_is_mapped(&root->viewports[DESIGNWARE_PCIE_VIEWPORT_INBOUND][j].mem);
+    }
+
+    if (!one_mapped) {
+        /*
+         * If no inbound iATU windows are configured, HW defaults to
+         * letting inbound TLPs to pass in. We emulate that by explicitly
+         * configuring first inbound window to cover all of target's
+         * address space.
+         *
+         * NOTE: This will not work correctly for the case when first
+         * configured inbound window is window 0
+         */
+        viewport = &root->viewports[DESIGNWARE_PCIE_VIEWPORT_INBOUND][0];
+        viewport->base    = 0x0000000000000000ULL;
+        viewport->target  = 0x0000000000000000ULL;
+        viewport->limit   = UINT32_MAX;
+        viewport->cr[0]   = DESIGNWARE_PCIE_ATU_TYPE_MEM;
+        viewport->cr[1]   = DESIGNWARE_PCIE_ATU_ENABLE;
+    }
+
     memory_region_transaction_commit();
 }
 
@@ -470,19 +494,6 @@ static void designware_pcie_root_reset(DeviceState *dev)
             viewport->limit   = UINT32_MAX;
             viewport->cr[0]   = DESIGNWARE_PCIE_ATU_TYPE_MEM;
             viewport->cr[1]   = 0;
-
-            /*
-             * If no inbound iATU windows are configured, HW defaults to
-             * letting inbound TLPs to pass in. We emulate that by explicitly
-             * configuring first inbound window to cover all of target's
-             * address space.
-             *
-             * NOTE: This will not work correctly for the case when first
-             * configured inbound window is window 0
-             */
-            viewport->cr[1] = (i == DESIGNWARE_PCIE_VIEWPORT_INBOUND && j == 0)
-                    ? DESIGNWARE_PCIE_ATU_ENABLE
-                    : 0;
 
             designware_pcie_update_viewport(root, viewport);
         }
