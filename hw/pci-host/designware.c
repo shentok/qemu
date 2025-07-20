@@ -228,8 +228,6 @@ static uint64_t designware_pcie_root_data_read(void *opaque, hwaddr addr,
 {
     PCIDevice *pcidev = opaque;
 
-    addr &= pci_config_size(pcidev) - 1;
-
     return pci_host_config_read_common(pcidev, addr, pci_config_size(pcidev),
                                        len);
 }
@@ -238,8 +236,6 @@ static void designware_pcie_root_data_write(void *opaque, hwaddr addr,
                                             uint64_t val, unsigned len)
 {
     PCIDevice *pcidev = opaque;
-
-    addr &= pci_config_size(pcidev) - 1;
 
     pci_host_config_write_common(pcidev, addr, pci_config_size(pcidev), val,
                                  len);
