@@ -323,6 +323,17 @@ static void designware_pcie_update_viewport(DesignwarePCIERoot *root,
         }
     }
 
+    bool one_mapped = false;
+    for (int j = 0; j < DESIGNWARE_PCIE_NUM_VIEWPORTS; j++) {
+        one_mapped |= memory_region_is_mapped(&root->viewports[DESIGNWARE_PCIE_VIEWPORT_INBOUND][j].mem);
+    }
+
+    /*
+     * If no inbound iATU windows are configured, HW defaults to
+     * letting inbound TLPs to pass in.
+     */
+    memory_region_set_enabled(&host->pci.address_space_root_default, !one_mapped);
+
     memory_region_transaction_commit();
 }
 
@@ -483,19 +494,7 @@ static void designware_pcie_root_reset(DeviceState *dev)
             viewport->target  = 0x0000000000000000ULL;
             viewport->limit   = UINT32_MAX;
             viewport->cr[0]   = DESIGNWARE_PCIE_ATU_TYPE_MEM;
-
-            /*
-             * If no inbound iATU windows are configured, HW defaults to
-             * letting inbound TLPs to pass in. We emulate that by explicitly
-             * configuring first inbound window to cover all of target's
-             * address space.
-             *
-             * NOTE: This will not work correctly for the case when first
-             * configured inbound window is window 0
-             */
-            viewport->cr[1] = (i == DESIGNWARE_PCIE_VIEWPORT_INBOUND && j == 1)
-                    ? DESIGNWARE_PCIE_ATU_ENABLE
-                    : 0;
+            viewport->cr[1]   = 0;
 
             designware_pcie_update_viewport(root, viewport);
         }
@@ -696,11 +695,14 @@ static void designware_pcie_host_realize(DeviceState *dev, Error **errp)
                        OBJECT(s),
                        "pcie-bus-address-space-root",
                        UINT64_MAX);
-    memory_region_add_subregion(&s->pci.address_space_root,
-                                0x0, &s->pci.memory);
     address_space_init(&s->pci.address_space,
                        &s->pci.address_space_root,
                        "pcie-bus-address-space");
+    memory_region_init_alias(&s->pci.address_space_root_default, OBJECT(s),
+                             "pcie-bus-inbound-default", get_system_memory(),
+                             0, UINT32_MAX);
+    memory_region_add_subregion_overlap(&s->pci.address_space_root, 0,
+                                        &s->pci.address_space_root_default, -10);
     pci_setup_iommu(pci->bus, &designware_iommu_ops, s);
 
     qdev_realize(DEVICE(&s->root), BUS(pci->bus), &error_fatal);
