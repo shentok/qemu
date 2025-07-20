@@ -443,7 +443,7 @@ static void designware_pcie_root_realize(PCIDevice *dev, Error **errp)
 
     memory_region_init_io(&root->msi.iomem, OBJECT(root),
                           &designware_pci_host_msi_ops,
-                          root, "pcie-msi", 0x4);
+                          root, "dw-pcie-root-msi", 0x4);
     /*
      * We initially place MSI interrupt I/O region at address 0 and
      * disable it. It'll be later moved to correct offset and enabled
@@ -661,12 +661,12 @@ static void designware_pcie_host_realize(DeviceState *dev, Error **errp)
                           OBJECT(s),
                           &designware_pci_mmio_ops,
                           s,
-                          "pcie.reg", 4 * 1024);
+                          "dw-pcie-host.reg", 4 * 1024);
     sysbus_init_mmio(sbd, &s->mmio);
 
-    memory_region_init(&s->pci.io, OBJECT(s), "pcie-pio", UINT16_MAX);
+    memory_region_init(&s->pci.io, OBJECT(s), "dw-pcie-host-pio", UINT16_MAX);
     memory_region_init(&s->pci.memory, OBJECT(s),
-                       "pcie-bus-memory",
+                       "dw-pcie-host-memory",
                        UINT64_MAX);
 
     pci->bus = pci_register_root_bus(dev, "pcie",
@@ -681,11 +681,11 @@ static void designware_pcie_host_realize(DeviceState *dev, Error **errp)
 
     memory_region_init(&s->pci.address_space_root,
                        OBJECT(s),
-                       "pcie-bus-address-space-root",
+                       "dw-pcie-host-memory-region",
                        UINT64_MAX);
     address_space_init(&s->pci.address_space,
                        &s->pci.address_space_root,
-                       "pcie-bus-address-space");
+                       "dw-pcie-host-address-space");
     pci_setup_iommu(pci->bus, &designware_iommu_ops, s);
 
     qdev_realize(DEVICE(&s->root), BUS(pci->bus), &error_fatal);
