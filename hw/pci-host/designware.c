@@ -260,7 +260,7 @@ static void designware_pcie_update_viewport(DesignwarePCIERoot *root,
     const uint64_t size   = (uint64_t)viewport->limit - base + 1;
     const bool enabled    = viewport->cr[1] & DESIGNWARE_PCIE_ATU_ENABLE;
 
-    printf("%s: addr=0x%" PRIx64 ", target=0x%" PRIx64 ", cr0=0x%" PRIx32 "\n", __func__, base, target, viewport->cr[0]);
+    printf("%s: base=0x%" PRIx64 ", target=0x%" PRIx64 ", cr0=0x%" PRIx32 "\n", viewport->name, base, target, viewport->cr[0]);
 
     memory_region_transaction_begin();
     if (memory_region_is_mapped(&viewport->mem)) {
@@ -684,8 +684,6 @@ static void designware_pcie_host_realize(DeviceState *dev, Error **errp)
                        OBJECT(s),
                        "pcie-bus-address-space-root",
                        UINT64_MAX);
-    memory_region_add_subregion(&s->pci.address_space_root,
-                                0x0, &s->pci.memory);
     address_space_init(&s->pci.address_space,
                        &s->pci.address_space_root,
                        "pcie-bus-address-space");
