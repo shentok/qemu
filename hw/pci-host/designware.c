@@ -297,7 +297,7 @@ static void designware_pcie_update_viewport(DesignwarePCIERoot *root,
 
             memory_region_init_io(&viewport->mem, OBJECT(root),
                                   &designware_pci_host_conf_ops,
-                                  pcidev, viewport->name, size);
+                                  pcidev, "designware_pci_host_conf", size);
             memory_region_add_subregion(get_system_memory(), base,
                                         &viewport->mem);
         }
