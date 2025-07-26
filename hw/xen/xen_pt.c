@@ -63,6 +63,7 @@
 #include "hw/xen/xen_igd.h"
 #include "hw/xen/xen.h"
 #include "hw/xen/xen-legacy-backend.h"
+#include "qemu/error-report.h"
 #include "qemu/range.h"
 
 static bool has_igd_gfx_passthru;
