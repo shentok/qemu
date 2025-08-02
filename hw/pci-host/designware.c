@@ -78,7 +78,7 @@ designware_pcie_root_to_host(DesignwarePCIERoot *root)
     return DESIGNWARE_PCIE_HOST(bus->parent);
 }
 
-static uint64_t designware_pcie_root_msi_read(void *opaque, hwaddr addr,
+static uint64_t designware_pcie_host_msi_read(void *opaque, hwaddr addr,
                                               unsigned size)
 {
     /*
@@ -95,22 +95,21 @@ static uint64_t designware_pcie_root_msi_read(void *opaque, hwaddr addr,
     return 0;
 }
 
-static void designware_pcie_root_msi_write(void *opaque, hwaddr addr,
+static void designware_pcie_host_msi_write(void *opaque, hwaddr addr,
                                            uint64_t val, unsigned len)
 {
-    DesignwarePCIERoot *root = DESIGNWARE_PCIE_ROOT(opaque);
-    DesignwarePCIEHost *host = designware_pcie_root_to_host(root);
+    DesignwarePCIEHost *host = opaque;
 
-    root->msi.intr[0].status |= BIT(val) & root->msi.intr[0].enable;
+    host->msi.intr[0].status |= BIT(val) & host->msi.intr[0].enable;
 
-    if (root->msi.intr[0].status & ~root->msi.intr[0].mask) {
+    if (host->msi.intr[0].status & ~host->msi.intr[0].mask) {
         qemu_set_irq(host->pci.msi, 1);
     }
 }
 
 static const MemoryRegionOps designware_pci_host_msi_ops = {
-    .read = designware_pcie_root_msi_read,
-    .write = designware_pcie_root_msi_write,
+    .read = designware_pcie_host_msi_read,
+    .write = designware_pcie_host_msi_write,
     .endianness = DEVICE_LITTLE_ENDIAN,
     .valid = {
         .min_access_size = 4,
@@ -118,12 +117,11 @@ static const MemoryRegionOps designware_pci_host_msi_ops = {
     },
 };
 
-static void designware_pcie_root_update_msi_mapping(DesignwarePCIERoot *root)
-
+static void designware_pcie_host_update_msi_mapping(DesignwarePCIEHost *host)
 {
-    MemoryRegion *mem   = &root->msi.iomem;
-    const uint64_t base = root->msi.base;
-    const bool enable   = root->msi.intr[0].enable;
+    MemoryRegion *mem   = &host->msi.iomem;
+    const uint64_t base = host->msi.base;
+    const bool enable   = host->msi.intr[0].enable;
 
     memory_region_set_address(mem, base);
     memory_region_set_enabled(mem, enable);
@@ -142,6 +140,7 @@ static uint32_t
 designware_pcie_root_config_read(PCIDevice *d, uint32_t address, int len)
 {
     DesignwarePCIERoot *root = DESIGNWARE_PCIE_ROOT(d);
+    DesignwarePCIEHost *host = designware_pcie_root_to_host(root);
     DesignwarePCIEViewport *viewport =
         designware_pcie_root_get_current_viewport(root);
 
@@ -168,20 +167,20 @@ designware_pcie_root_config_read(PCIDevice *d, uint32_t address, int len)
 
     case DESIGNWARE_PCIE_MSI_ADDR_LO:
     case DESIGNWARE_PCIE_MSI_ADDR_HI:
-        val = extract64(root->msi.base,
+        val = extract64(host->msi.base,
                         address == DESIGNWARE_PCIE_MSI_ADDR_LO ? 0 : 32, 32);
         break;
 
     case DESIGNWARE_PCIE_MSI_INTR0_ENABLE:
-        val = root->msi.intr[0].enable;
+        val = host->msi.intr[0].enable;
         break;
 
     case DESIGNWARE_PCIE_MSI_INTR0_MASK:
-        val = root->msi.intr[0].mask;
+        val = host->msi.intr[0].mask;
         break;
 
     case DESIGNWARE_PCIE_MSI_INTR0_STATUS:
-        val = root->msi.intr[0].status;
+        val = host->msi.intr[0].status;
         break;
 
     case DESIGNWARE_PCIE_PHY_DEBUG_R1:
@@ -340,24 +339,24 @@ static void designware_pcie_root_config_write(PCIDevice *d, uint32_t address,
 
     case DESIGNWARE_PCIE_MSI_ADDR_LO:
     case DESIGNWARE_PCIE_MSI_ADDR_HI:
-        root->msi.base = deposit64(root->msi.base,
+        host->msi.base = deposit64(host->msi.base,
                                    address == DESIGNWARE_PCIE_MSI_ADDR_LO
                                    ? 0 : 32, 32, val);
-        designware_pcie_root_update_msi_mapping(root);
+        designware_pcie_host_update_msi_mapping(host);
         break;
 
     case DESIGNWARE_PCIE_MSI_INTR0_ENABLE:
-        root->msi.intr[0].enable = val;
-        designware_pcie_root_update_msi_mapping(root);
+        host->msi.intr[0].enable = val;
+        designware_pcie_host_update_msi_mapping(host);
         break;
 
     case DESIGNWARE_PCIE_MSI_INTR0_MASK:
-        root->msi.intr[0].mask = val;
+        host->msi.intr[0].mask = val;
         break;
 
     case DESIGNWARE_PCIE_MSI_INTR0_STATUS:
-        root->msi.intr[0].status ^= val;
-        if (!root->msi.intr[0].status) {
+        host->msi.intr[0].status ^= val;
+        if (!host->msi.intr[0].status) {
             qemu_set_irq(host->pci.msi, 0);
         }
         break;
@@ -419,14 +418,7 @@ static const char *designware_pcie_viewport_name[2][DESIGNWARE_PCIE_NUM_VIEWPORT
 static void designware_pcie_root_realize(PCIDevice *dev, Error **errp)
 {
     DesignwarePCIERoot *root = DESIGNWARE_PCIE_ROOT(dev);
-    DesignwarePCIEHost *host = designware_pcie_root_to_host(root);
-    MemoryRegion *address_space = &host->pci.memory;
     PCIBridge *br = PCI_BRIDGE(dev);
-    /*
-     * Dummy values used for initial configuration of MemoryRegions
-     * that belong to a given viewport
-     */
-    const hwaddr dummy_offset = 0;
 
     br->bus_name  = "dw-pcie";
 
@@ -451,18 +443,6 @@ static void designware_pcie_root_realize(PCIDevice *dev, Error **errp)
             viewport->inbound = j == DESIGNWARE_PCIE_VIEWPORT_INBOUND;
         }
     }
-
-    memory_region_init_io(&root->msi.iomem, OBJECT(root),
-                          &designware_pci_host_msi_ops,
-                          root, "pcie-msi", 0x4);
-    /*
-     * We initially place MSI interrupt I/O region at address 0 and
-     * disable it. It'll be later moved to correct offset and enabled
-     * in designware_pcie_root_update_msi_mapping() as a part of
-     * initialization done by guest OS
-     */
-    memory_region_add_subregion(address_space, dummy_offset, &root->msi.iomem);
-    memory_region_set_enabled(&root->msi.iomem, false);
 }
 
 static void designware_pcie_root_reset(DeviceState *dev)
@@ -555,11 +535,6 @@ static const VMStateDescription vmstate_designware_pcie_root = {
                                1,
                                vmstate_designware_pcie_viewport,
                                DesignwarePCIEViewport),
-        VMSTATE_STRUCT(msi,
-                       DesignwarePCIERoot,
-                       1,
-                       vmstate_designware_pcie_msi,
-                       DesignwarePCIEMSI),
         VMSTATE_END_OF_LIST()
     }
 };
@@ -649,6 +624,11 @@ static void designware_pcie_host_realize(DeviceState *dev, Error **errp)
     DesignwarePCIEHost *s = DESIGNWARE_PCIE_HOST(dev);
     SysBusDevice *sbd = SYS_BUS_DEVICE(dev);
     size_t i;
+    /*
+     * Dummy values used for initial configuration of MemoryRegions
+     * that belong to a given viewport
+     */
+    const hwaddr dummy_offset = 0;
 
     for (i = 0; i < ARRAY_SIZE(s->pci.irqs); i++) {
         sysbus_init_irq(sbd, &s->pci.irqs[i]);
@@ -691,6 +671,18 @@ static void designware_pcie_host_realize(DeviceState *dev, Error **errp)
                                         &s->pci.address_space_root_default, -10);
     pci_setup_iommu(pci->bus, &designware_iommu_ops, s);
 
+    memory_region_init_io(&s->msi.iomem, OBJECT(s),
+                          &designware_pci_host_msi_ops,
+                          s, "pcie-msi", 0x4);
+    /*
+     * We initially place MSI interrupt I/O region at address 0 and
+     * disable it. It'll be later moved to correct offset and enabled
+     * in designware_pcie_host_update_msi_mapping() as a part of
+     * initialization done by guest OS
+     */
+    memory_region_add_subregion(&s->pci.memory, dummy_offset, &s->msi.iomem);
+    memory_region_set_enabled(&s->msi.iomem, false);
+
     qdev_realize(DEVICE(&s->root), BUS(pci->bus), &error_fatal);
 }
 
@@ -704,6 +696,11 @@ static const VMStateDescription vmstate_designware_pcie_host = {
                        1,
                        vmstate_designware_pcie_root,
                        DesignwarePCIERoot),
+        VMSTATE_STRUCT(msi,
+                       DesignwarePCIEHost,
+                       1,
+                       vmstate_designware_pcie_msi,
+                       DesignwarePCIEMSI),
         VMSTATE_END_OF_LIST()
     }
 };
