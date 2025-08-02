@@ -669,7 +669,7 @@ static void designware_pcie_host_realize(DeviceState *dev, Error **errp)
         }
     }
 
-    qdev_realize(DEVICE(&s->root), BUS(pci->bus), &error_fatal);
+    pci_realize_and_unref(PCI_DEVICE(&s->root), pci->bus, errp);
 }
 
 static const VMStateDescription vmstate_designware_pcie_host = {
