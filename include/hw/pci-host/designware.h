@@ -67,14 +67,6 @@ typedef struct DesignwarePCIEMSI {
 
 struct DesignwarePCIERoot {
     PCIBridge parent_obj;
-
-    uint32_t atu_viewport;
-
-#define DESIGNWARE_PCIE_VIEWPORT_OUTBOUND    0
-#define DESIGNWARE_PCIE_VIEWPORT_INBOUND     1
-#define DESIGNWARE_PCIE_NUM_VIEWPORTS        4
-
-    DesignwarePCIEViewport viewports[2][DESIGNWARE_PCIE_NUM_VIEWPORTS];
 };
 
 struct DesignwarePCIEHost {
@@ -93,6 +85,14 @@ struct DesignwarePCIEHost {
         qemu_irq     irqs[4];
         qemu_irq     msi;
     } pci;
+
+    uint32_t atu_viewport;
+
+#define DESIGNWARE_PCIE_VIEWPORT_OUTBOUND    0
+#define DESIGNWARE_PCIE_VIEWPORT_INBOUND     1
+#define DESIGNWARE_PCIE_NUM_VIEWPORTS        4
+
+    DesignwarePCIEViewport viewports[2][DESIGNWARE_PCIE_NUM_VIEWPORTS];
 
     MemoryRegion mmio;
     DesignwarePCIEMSI msi;
