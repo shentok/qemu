@@ -75,7 +75,6 @@ struct DesignwarePCIERoot {
 #define DESIGNWARE_PCIE_NUM_VIEWPORTS        4
 
     DesignwarePCIEViewport viewports[2][DESIGNWARE_PCIE_NUM_VIEWPORTS];
-    DesignwarePCIEMSI msi;
 };
 
 struct DesignwarePCIEHost {
@@ -96,6 +95,7 @@ struct DesignwarePCIEHost {
     } pci;
 
     MemoryRegion mmio;
+    DesignwarePCIEMSI msi;
 };
 
 #endif /* DESIGNWARE_H */
