@@ -232,9 +232,9 @@ struct BonitoState {
     MemoryRegion dma_mr;
     MemoryRegion pci_mem;
     AddressSpace dma_as;
-    MemoryRegion *pcimem_lo_alias;
-    MemoryRegion *pcimem_hi_alias;
-    MemoryRegion *dma_alias;
+    MemoryRegion pcimem_lo_alias[3];
+    MemoryRegion pcimem_hi_alias;
+    MemoryRegion dma_alias[2];
 };
 
 #define TYPE_PCI_BONITO "Bonito"
@@ -284,7 +284,7 @@ static void bonito_update_pcimap(PCIBonitoState *s)
                                    FIELD_EX32(pcimap, PCIMAP, LO1) << 26);
     memory_region_set_alias_offset(&s->pcihost->pcimem_lo_alias[2],
                                    FIELD_EX32(pcimap, PCIMAP, LO2) << 26);
-    memory_region_set_alias_offset(s->pcihost->pcimem_hi_alias,
+    memory_region_set_alias_offset(&s->pcihost->pcimem_hi_alias,
                                    FIELD_EX32(pcimap, PCIMAP, 2) << 31);
 }
 
@@ -699,7 +699,6 @@ static void bonito_host_realize(DeviceState *dev, Error **errp)
 {
     PCIHostState *phb = PCI_HOST_BRIDGE(dev);
     BonitoState *bs = BONITO_PCI_HOST_BRIDGE(dev);
-    MemoryRegion *pcimem_lo_alias = g_new(MemoryRegion, 3);
 
     memory_region_init(&bs->pci_mem, OBJECT(dev), "pci.mem", BONITO_PCIHI_SIZE);
 
@@ -710,15 +709,13 @@ static void bonito_host_realize(DeviceState *dev, Error **errp)
     for (size_t i = 0; i < 3; i++) {
         char *name = g_strdup_printf("pci.lomem%zu", i);
 
-        memory_region_init_alias(&pcimem_lo_alias[i], NULL, name,
+        memory_region_init_alias(&bs->pcimem_lo_alias[i], NULL, name,
                                  &bs->pci_mem, i * 64 * MiB, 64 * MiB);
         memory_region_add_subregion(get_system_memory(),
                                     BONITO_PCILO_BASE + i * 64 * MiB,
-                                    &pcimem_lo_alias[i]);
+                                    &bs->pcimem_lo_alias[i]);
         g_free(name);
     }
-
-    bs->pcimem_lo_alias = pcimem_lo_alias;
 
     create_unimplemented_device("pci.io", BONITO_PCIIO_BASE, 1 * MiB);
 }
@@ -729,8 +726,6 @@ static void bonito_pci_realize(PCIDevice *dev, Error **errp)
     MemoryRegion *host_mem = get_system_memory();
     PCIHostState *phb = PCI_HOST_BRIDGE(s->pcihost);
     BonitoState *bs = s->pcihost;
-    MemoryRegion *pcimem_hi_alias = g_new(MemoryRegion, 1);
-    MemoryRegion *dma_alias = g_new(MemoryRegion, 2);
 
     /*
      * Bonito North Bridge, built on FPGA,
@@ -787,10 +782,10 @@ static void bonito_pci_realize(PCIDevice *dev, Error **errp)
     create_unimplemented_device("IOCS[3]", BONITO_DEV_BASE + 3 * 256 * KiB,
                                 256 * KiB);
 
-    memory_region_init_alias(pcimem_hi_alias, NULL, "pci.memhi.alias",
+    memory_region_init_alias(&bs->pcimem_hi_alias, NULL, "pci.memhi.alias",
                              &bs->pci_mem, 0, BONITO_PCIHI_SIZE);
-    memory_region_add_subregion(host_mem, BONITO_PCIHI_BASE, pcimem_hi_alias);
-    bs->pcimem_hi_alias = pcimem_hi_alias;
+    memory_region_add_subregion(host_mem, BONITO_PCIHI_BASE,
+                                &bs->pcimem_hi_alias);
     create_unimplemented_device("PCI_2",
                                 (hwaddr)BONITO_PCIHI_BASE + BONITO_PCIHI_SIZE,
                                 2 * GiB);
@@ -799,16 +794,14 @@ static void bonito_pci_realize(PCIDevice *dev, Error **errp)
     memory_region_init(&bs->dma_mr, OBJECT(s), "dma.pciBase", 4 * GiB);
 
     /* pciBase0, mapped to system RAM */
-    memory_region_init_alias(&dma_alias[0], NULL, "pciBase0.mem.alias",
+    memory_region_init_alias(&bs->dma_alias[0], NULL, "pciBase0.mem.alias",
                              host_mem, 0x80000000, 256 * MiB);
-    memory_region_add_subregion_overlap(&bs->dma_mr, 0, &dma_alias[0], 2);
+    memory_region_add_subregion_overlap(&bs->dma_mr, 0, &bs->dma_alias[0], 2);
 
     /* pciBase1, mapped to system RAM */
-    memory_region_init_alias(&dma_alias[1], NULL, "pciBase1.mem.alias",
+    memory_region_init_alias(&bs->dma_alias[1], NULL, "pciBase1.mem.alias",
                             host_mem, 0, 256 * MiB);
-    memory_region_add_subregion_overlap(&bs->dma_mr, 0, &dma_alias[1], 1);
-
-    bs->dma_alias = dma_alias;
+    memory_region_add_subregion_overlap(&bs->dma_mr, 0, &bs->dma_alias[1], 1);
 
     address_space_init(&bs->dma_as, &bs->dma_mr, "pciBase.dma");
     pci_setup_iommu(phb->bus, &bonito_iommu_ops, bs);
