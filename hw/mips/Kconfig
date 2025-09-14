@@ -43,6 +43,7 @@ config FULOONG
     imply TEST_DEVICES
     imply ATI_VGA
     imply RTL8139_PCI
+    select PFLASH_CFI01
     select PCI_BONITO
     select SMBUS_EEPROM
     select VT82C686

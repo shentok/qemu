@@ -222,7 +222,7 @@ static void mips_fuloong2e_init(MachineState *machine)
     const char *initrd_filename = machine->initrd_filename;
     char *filename;
     MemoryRegion *address_space_mem = get_system_memory();
-    MemoryRegion *bios = g_new(MemoryRegion, 1);
+    MemoryRegion *bios;
     long bios_size;
     uint8_t *spd_data;
     uint64_t kernel_entry;
@@ -233,6 +233,7 @@ static void mips_fuloong2e_init(MachineState *machine)
     MIPSCPU *cpu;
     CPUMIPSState *env;
     DeviceState *dev;
+    uint32_t sector_len = 64 * KiB;
 
     cpuclk = clock_new(OBJECT(machine), "cpu-refclk");
     clock_set_hz(cpuclk, 533080000); /* ~533 MHz */
@@ -251,14 +252,18 @@ static void mips_fuloong2e_init(MachineState *machine)
     memory_region_add_subregion(address_space_mem, 0, machine->ram);
 
     /* Boot ROM */
-    memory_region_init_rom(bios, NULL, "fuloong2e.bios", BIOS_SIZE,
-                           &error_fatal);
-    memory_region_add_subregion(address_space_mem, 0x1fc00000LL, bios);
+    dev = qdev_new(TYPE_PFLASH_CFI01);
+    qdev_prop_set_uint32(dev, "num-blocks", BIOS_SIZE / sector_len);
+    qdev_prop_set_uint64(dev, "sector-length", sector_len);
+    qdev_prop_set_uint8(dev, "width", 2);
+    qdev_prop_set_bit(dev, "big-endian", true);
+    qdev_prop_set_uint16(dev, "id1", 0xda);
+    qdev_prop_set_uint16(dev, "id3", 0xd6);
+    qdev_prop_set_string(dev, "name", "fuloong2e.bios");
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
+    bios = pflash_cfi01_get_memory(PFLASH_CFI01(dev));
 
-    /*
-     * We do not support flash operation, just loading pmon.bin as raw BIOS.
-     * Please use -L to set the BIOS path and -bios to set bios name.
-     */
+    memory_region_add_subregion(address_space_mem, 0x1fc00000LL, bios);
 
     if (kernel_filename) {
         loaderparams.ram_size = machine->ram_size;
@@ -271,8 +276,7 @@ static void mips_fuloong2e_init(MachineState *machine)
         filename = qemu_find_file(QEMU_FILE_TYPE_BIOS,
                                   machine->firmware ?: FULOONG_BIOSNAME);
         if (filename) {
-            bios_size = load_image_targphys(filename, 0x1fc00000LL,
-                                            BIOS_SIZE);
+            bios_size = load_image_mr(filename, bios);
             g_free(filename);
         } else {
             bios_size = -1;
