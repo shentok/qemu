@@ -548,6 +548,7 @@ static PCIDevice *bonito_pcihost_cfg_decode(PCIBonitoState *s, hwaddr addr)
     PCIHostState *phb = PCI_HOST_BRIDGE(s->pcihost);
     uint32_t pcimap_cfg = s->regs[BONITO_PCIMAP_CFG];
     uint32_t cycle, dev, func, bus;
+    PCIDevice *pci_dev;
 
     cycle = addr | FIELD_EX32(pcimap_cfg, PCIMAP_CFG, AD16UP) << 16;
 
@@ -565,7 +566,14 @@ static PCIDevice *bonito_pcihost_cfg_decode(PCIBonitoState *s, hwaddr addr)
         bus = 0;
     }
 
-    return pci_find_device(phb->bus, bus, PCI_DEVFN(dev, func));
+    pci_dev = pci_find_device(phb->bus, bus, PCI_DEVFN(dev, func));
+
+    if (!pci_dev) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: PCI device %" PRIu32 ":%" PRIu32
+                      ":%" PRIu32 " not found\n", __func__, bus, dev, func);
+    }
+
+    return pci_dev;
 }
 
 static void bonito_pcihost_signal_mabort(PCIBonitoState *s)
