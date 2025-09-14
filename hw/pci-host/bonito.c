@@ -29,6 +29,7 @@
 #include "qemu/units.h"
 #include "qapi/error.h"
 #include "qemu/error-report.h"
+#include "qemu/log.h"
 #include "hw/pci/pci_device.h"
 #include "hw/irq.h"
 #include "hw/mips/mips.h"
@@ -40,14 +41,6 @@
 #include "hw/registerfields.h"
 #include "qom/object.h"
 #include "trace.h"
-
-/* #define DEBUG_BONITO */
-
-#ifdef DEBUG_BONITO
-#define DPRINTF(fmt, ...) fprintf(stderr, "%s: " fmt, __func__, ##__VA_ARGS__)
-#else
-#define DPRINTF(fmt, ...)
-#endif
 
 /* from linux source code. include/asm-mips/mips-boards/bonito64.h*/
 #define BONITO_BOOT_BASE        0x1fc00000
@@ -348,8 +341,8 @@ static void bonito_writel(void *opaque, hwaddr addr,
 
     saddr = addr >> 2;
 
-    DPRINTF("bonito_writel "HWADDR_FMT_plx" val %lx saddr %x\n",
-            addr, val, saddr);
+    trace_bonito_write(addr, val);
+
     switch (saddr) {
     case BONITO_BONPONCFG:
     case BONITO_IODEVCFG:
@@ -398,10 +391,12 @@ static void bonito_writel(void *opaque, hwaddr addr,
         break;
     case BONITO_INTEN:
     case BONITO_INTISR:
-        DPRINTF("write to readonly bonito register %x\n", saddr);
+        qemu_log_mask(LOG_GUEST_ERROR, "write to readonly bonito register %x\n",
+                      saddr);
         break;
     default:
-        DPRINTF("write to unknown bonito register %x\n", saddr);
+        qemu_log_mask(LOG_GUEST_ERROR, "write to unknown bonito register %x\n",
+                      saddr);
         break;
     }
 }
@@ -411,16 +406,22 @@ static uint64_t bonito_readl(void *opaque, hwaddr addr,
 {
     PCIBonitoState *s = opaque;
     uint32_t saddr;
+    uint64_t val;
 
     saddr = addr >> 2;
 
-    DPRINTF("bonito_readl "HWADDR_FMT_plx"\n", addr);
     switch (saddr) {
     case BONITO_INTISR:
-        return s->regs[saddr];
+        val = s->regs[saddr];
+        break;
     default:
-        return s->regs[saddr];
+        val = s->regs[saddr];
+        break;
     }
+
+    trace_bonito_read(addr, val);
+
+    return val;
 }
 
 static const MemoryRegionOps bonito_ops = {
@@ -439,19 +440,21 @@ static void bonito_pciconf_writel(void *opaque, hwaddr addr,
     PCIBonitoState *s = opaque;
     PCIDevice *d = PCI_DEVICE(s);
 
-    DPRINTF("bonito_pciconf_writel "HWADDR_FMT_plx" val %lx\n", addr, val);
+    trace_bonito_pciconf_write(addr, val);
+
     d->config_write(d, addr, val, 4);
 }
 
 static uint64_t bonito_pciconf_readl(void *opaque, hwaddr addr,
                                      unsigned size)
 {
-
     PCIBonitoState *s = opaque;
     PCIDevice *d = PCI_DEVICE(s);
+    uint32_t val = d->config_read(d, addr, 4);
 
-    DPRINTF("bonito_pciconf_readl "HWADDR_FMT_plx"\n", addr);
-    return d->config_read(d, addr, 4);
+    trace_bonito_pciconf_read(addr, val);
+
+    return val;
 }
 
 /* north bridge PCI configure space. 0x1fe0 0000 - 0x1fe0 00ff */
@@ -593,11 +596,13 @@ static MemTxResult bonito_pcihost_cfg_read(void *opaque, hwaddr addr,
          * Godson variant won't. We need to return all 1s.
          */
         *data = UINT64_MAX;
-        return MEMTX_OK;
+    } else {
+        addr &= PCI_CONFIG_SPACE_SIZE - 1;
+        *data = pci_host_config_read_common(dev, addr, pci_config_size(dev),
+                                            len);
     }
 
-    addr &= PCI_CONFIG_SPACE_SIZE - 1;
-    *data = pci_host_config_read_common(dev, addr, pci_config_size(dev), len);
+    trace_bonito_pcihost_cfg_read(addr, *data);
 
     return MEMTX_OK;
 }
@@ -608,6 +613,8 @@ static MemTxResult bonito_pcihost_cfg_write(void *opaque, hwaddr addr,
 {
     PCIBonitoState *s = opaque;
     PCIDevice *dev;
+
+    trace_bonito_pcihost_cfg_write(addr, data);
 
     dev = bonito_pcihost_cfg_decode(s, addr);
     if (!dev) {
