@@ -359,7 +359,6 @@ static void kbd_write_command(void *opaque, hwaddr addr,
         kbd_queue(s, 0x00, 0);
         break;
     case KBD_CCMD_SELF_TEST:
-        s->status |= KBD_STAT_SELFTEST;
         kbd_queue(s, 0x55, 0);
         break;
     case KBD_CCMD_KBD_TEST:
@@ -439,6 +438,7 @@ static void kbd_write_data(void *opaque, hwaddr addr,
         break;
     case KBD_CCMD_WRITE_MODE:
         s->mode = val;
+        s->status = (s->status & ~KBD_STAT_SELFTEST) | (val & KBD_STAT_SELFTEST);
         ps2_keyboard_set_translation(&s->ps2kbd,
                                      (s->mode & KBD_MODE_KCC) != 0);
         /*
