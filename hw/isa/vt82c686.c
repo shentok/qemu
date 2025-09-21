@@ -899,8 +899,10 @@ struct ViaISAState {
     uint16_t irq_state[ISA_NUM_IRQS];
     ViaSuperIOState via_sio;
     MC146818RtcState rtc;
-    MemoryRegion rtc_io;
-    uint8_t rtc_index;
+    struct {
+        MemoryRegion io;
+        uint8_t index;
+    } rtc_low, rtc_full;
     PCIIDEState ide;
     UHCIState uhci[2];
     ViaPMState pm;
@@ -1086,25 +1088,9 @@ static void via_isa_request_i8259_irq(void *opaque, int irq, int level)
     qemu_set_irq(s->cpu_intr, level);
 }
 
-static uint64_t via_rtc_read(void *opaque, hwaddr addr, unsigned size)
+static void via_cmos_write(ViaISAState *s, uint8_t rtc_index, uint8_t data)
 {
-    ViaISAState *s = opaque;
-
-    if ((addr & 1) == 0) {
-        return s->rtc_index; /* witnessed in AMI BIOS */
-    }
-
-    return mc146818rtc_get_cmos_data(&s->rtc, s->rtc_index);
-}
-
-static void via_rtc_write(void *opaque, hwaddr addr, uint64_t data,
-                          unsigned size)
-{
-    ViaISAState *s = opaque;
-
-    if ((addr & 1) == 0) {
-        s->rtc_index = data & (addr == 0 ? 0x7f : 0xff);
-    } else if (s->rtc_index == RTC_REG_D) {
+    if (rtc_index == RTC_REG_D) {
         PCIDevice *d = PCI_DEVICE(&s->pm);
         if (data & 0x80) {
             d->config[0x42] |= BIT(4);
@@ -1112,13 +1098,69 @@ static void via_rtc_write(void *opaque, hwaddr addr, uint64_t data,
             d->config[0x42] &= ~BIT(4);
         }
     } else {
-        mc146818rtc_set_cmos_data(&s->rtc, s->rtc_index, data);
+        mc146818rtc_set_cmos_data(&s->rtc, rtc_index, data);
     }
 }
 
-static const MemoryRegionOps via_rtc_ops = {
-    .read = via_rtc_read,
-    .write = via_rtc_write,
+static uint64_t via_rtc_low_read(void *opaque, hwaddr addr, unsigned size)
+{
+    ViaISAState *s = opaque;
+
+    if ((addr & 1) == 0) {
+        return s->rtc_low.index; /* witnessed in AMI BIOS */
+    }
+
+    return mc146818rtc_get_cmos_data(&s->rtc, s->rtc_low.index & 0x7f);
+}
+
+static void via_rtc_low_write(void *opaque, hwaddr addr, uint64_t data,
+                              unsigned size)
+{
+    ViaISAState *s = opaque;
+
+    if ((addr & 1) == 0) {
+        s->rtc_low.index = data;
+    } else {
+        via_cmos_write(s, s->rtc_low.index & 0x7f, data);
+    }
+}
+
+static uint64_t via_rtc_full_read(void *opaque, hwaddr addr, unsigned size)
+{
+    ViaISAState *s = opaque;
+
+    if ((addr & 1) == 0) {
+        return s->rtc_full.index; /* witnessed in AMI BIOS */
+    }
+
+    return mc146818rtc_get_cmos_data(&s->rtc, s->rtc_full.index);
+}
+
+static void via_rtc_full_write(void *opaque, hwaddr addr, uint64_t data,
+                               unsigned size)
+{
+    ViaISAState *s = opaque;
+
+    if ((addr & 1) == 0) {
+        s->rtc_full.index = data;
+    } else {
+        via_cmos_write(s, s->rtc_full.index, data);
+    }
+}
+
+static const MemoryRegionOps via_rtc_low_ops = {
+    .read = via_rtc_low_read,
+    .write = via_rtc_low_write,
+    .impl = {
+        .min_access_size = 1,
+        .max_access_size = 1,
+    },
+    .endianness = DEVICE_LITTLE_ENDIAN,
+};
+
+static const MemoryRegionOps via_rtc_full_ops = {
+    .read = via_rtc_full_read,
+    .write = via_rtc_full_write,
     .impl = {
         .min_access_size = 1,
         .max_access_size = 1,
@@ -1173,8 +1215,14 @@ static void via_isa_realize(PCIDevice *d, Error **errp)
     }
     isa_connect_gpio_out(ISA_DEVICE(&s->rtc), 0, s->rtc.isairq);
 
-    memory_region_init_io(&s->rtc_io, OBJECT(s), &via_rtc_ops, s, "rtc", 4);
-    isa_register_ioport(ISA_DEVICE(&s->rtc), &s->rtc_io, s->rtc.io_base);
+    memory_region_init_io(&s->rtc_low.io, OBJECT(s), &via_rtc_low_ops, s,
+                          "rtc-low", 2);
+    isa_register_ioport(ISA_DEVICE(&s->rtc), &s->rtc_low.io, s->rtc.io_base);
+
+    memory_region_init_io(&s->rtc_full.io, OBJECT(s), &via_rtc_full_ops, s,
+                          "rtc-full", 2);
+    isa_register_ioport(ISA_DEVICE(&s->rtc), &s->rtc_full.io,
+                        s->rtc.io_base + 2);
 
     for (i = 0; i < PCI_CONFIG_HEADER_SIZE; i++) {
         if (i < PCI_COMMAND || i >= PCI_REVISION_ID) {
