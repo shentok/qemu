@@ -437,8 +437,6 @@ static void cmos_ioport_write(void *opaque, hwaddr addr,
         if (cmos_index == RTC_IBM_PS2_CENTURY_BYTE) {
             cmos_index = RTC_CENTURY;
         }
-        trace_mc146818_rtc_ioport_write(cmos_index, data);
-
         mc146818rtc_set_cmos_data(s, cmos_index, data);
     }
 }
@@ -450,7 +448,7 @@ void mc146818rtc_set_cmos_data(MC146818RtcState *s, int cmos_index, int data)
 
     assert(cmos_index >= 0 && cmos_index < ARRAY_SIZE(s->cmos_data));
 
-    trace_mc146818_rtc_cmos_write(cmos_index, data);
+    trace_mc146818_rtc_set_cmos_data(cmos_index, data);
 
         switch (cmos_index) {
         case RTC_SECONDS_ALARM:
@@ -677,7 +675,6 @@ static uint64_t cmos_ioport_read(void *opaque, hwaddr addr,
                                  unsigned size)
 {
     MC146818RtcState *s = opaque;
-    int ret;
     uint8_t cmos_index = s->cmos_index;
 
     if ((addr & 1) == 0) {
@@ -688,11 +685,7 @@ static uint64_t cmos_ioport_read(void *opaque, hwaddr addr,
         cmos_index = RTC_CENTURY;
     }
 
-    ret = mc146818rtc_get_cmos_data(s, cmos_index);
-
-    trace_mc146818_rtc_ioport_read(cmos_index, ret);
-
-    return ret;
+    return mc146818rtc_get_cmos_data(s, cmos_index);
 }
 
 int mc146818rtc_get_cmos_data(MC146818RtcState *s, int cmos_index)
@@ -748,6 +741,8 @@ int mc146818rtc_get_cmos_data(MC146818RtcState *s, int cmos_index)
             ret = s->cmos_data[cmos_index];
             break;
         }
+
+    trace_mc146818_rtc_get_cmos_data(cmos_index, ret);
 
     return ret;
 }
