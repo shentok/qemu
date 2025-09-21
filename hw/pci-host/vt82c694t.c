@@ -283,7 +283,7 @@ static void vt82c694t_pci_class_init(ObjectClass *klass, const void *data)
     k->config_write = vt82c694t_pci_write_config;
     k->vendor_id = PCI_VENDOR_ID_VIA;
     k->device_id = PCI_DEVICE_ID_VIA_82C694T_PCI;
-    k->revision = 0x82;
+    k->revision = 0xc2;
     k->class_id = PCI_CLASS_BRIDGE_HOST;
     rc->phases.hold = vt82c694t_pci_reset_hold;
     dc->desc = "Host bridge";
