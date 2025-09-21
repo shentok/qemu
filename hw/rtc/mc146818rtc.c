@@ -434,7 +434,7 @@ static void cmos_ioport_write(void *opaque, hwaddr addr,
         if (cmos_index == RTC_IBM_PS2_CENTURY_BYTE) {
             cmos_index = RTC_CENTURY;
         }
-        trace_cmos_ioport_write(cmos_index, data);
+        trace_mc146818rtc_set_cmos_data(cmos_index, data);
 
         mc146818rtc_set_cmos_data(s, cmos_index, data);
     }
@@ -693,7 +693,7 @@ static uint64_t cmos_ioport_read(void *opaque, hwaddr addr,
 
     ret = mc146818rtc_get_cmos_data(s, cmos_index);
 
-    trace_cmos_ioport_read(cmos_index, ret);
+    trace_mc146818rtc_get_cmos_data(cmos_index, ret);
 
     return ret;
 }
