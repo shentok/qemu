@@ -856,7 +856,6 @@ static int apic_register_read(APICCommonState *s, int index, uint64_t *value)
         break;
     }
 
-    trace_apic_register_read(index, val);
     *value = val;
     return ret;
 }
@@ -878,11 +877,15 @@ static uint64_t apic_mem_read(void *opaque, hwaddr addr, unsigned size)
     index = (addr >> 4) & 0xff;
     apic_register_read(s, index, &val);
 
+    trace_apic_mem_read(s->id, index, val);
+
     return val;
 }
 
 int apic_msr_read(APICCommonState *s, int index, uint64_t *val)
 {
+    int res;
+
     if (!s) {
         return -1;
     }
@@ -891,7 +894,11 @@ int apic_msr_read(APICCommonState *s, int index, uint64_t *val)
         return -1;
     }
 
-    return apic_register_read(s, index, val);
+    res = apic_register_read(s, index, val);
+
+    trace_apic_msr_read(s->id, index, *val);
+
+    return res;
 }
 
 static void apic_send_msi(MSIMessage *msi)
@@ -921,8 +928,6 @@ static void apic_send_msi(MSIMessage *msi)
 
 static int apic_register_write(APICCommonState *s, int index, uint64_t val)
 {
-    trace_apic_register_write(index, val);
-
     switch(index) {
     case 0x02:
         if (is_x2apic_mode(s)) {
@@ -1072,6 +1077,7 @@ static void apic_mem_write(void *opaque, hwaddr addr, uint64_t val,
     }
 
     apic_register_write(s, index, val);
+    trace_apic_mem_write(s->id, index, val);
 }
 
 int apic_msr_write(APICCommonState *s, int index, uint64_t val)
@@ -1079,6 +1085,8 @@ int apic_msr_write(APICCommonState *s, int index, uint64_t val)
     if (!s) {
         return -1;
     }
+
+    trace_apic_msr_write(s->id, index, val);
 
     if (!is_x2apic_mode(s)) {
         return -1;
