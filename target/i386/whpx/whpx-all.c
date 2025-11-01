@@ -1530,7 +1530,7 @@ static void whpx_vcpu_pre_run(CPUState *cpu)
     AccelCPUState *vcpu = cpu->accel;
     X86CPU *x86_cpu = X86_CPU(cpu);
     CPUX86State *env = &x86_cpu->env;
-    int irq;
+    int vector;
     uint8_t tpr;
     WHV_X64_PENDING_INTERRUPTION_REGISTER new_int;
     UINT32 reg_count = 0;
@@ -1578,11 +1578,11 @@ static void whpx_vcpu_pre_run(CPUState *cpu)
             assert(!new_int.InterruptionPending);
             if (cpu_test_interrupt(cpu, CPU_INTERRUPT_HARD)) {
                 cpu_reset_interrupt(cpu, CPU_INTERRUPT_HARD);
-                irq = cpu_get_pic_interrupt(env);
-                if (irq >= 0) {
+                vector = cpu_get_pic_interrupt(env);
+                if (vector >= 0) {
                     new_int.InterruptionType = WHvX64PendingInterrupt;
                     new_int.InterruptionPending = 1;
-                    new_int.InterruptionVector = irq;
+                    new_int.InterruptionVector = vector;
                 }
             }
         }
@@ -1596,14 +1596,14 @@ static void whpx_vcpu_pre_run(CPUState *cpu)
     } else if (vcpu->ready_for_pic_interrupt &&
                cpu_test_interrupt(cpu, CPU_INTERRUPT_HARD)) {
         cpu_reset_interrupt(cpu, CPU_INTERRUPT_HARD);
-        irq = cpu_get_pic_interrupt(env);
-        if (irq >= 0) {
+        vector = cpu_get_pic_interrupt(env);
+        if (vector >= 0) {
             reg_names[reg_count] = WHvRegisterPendingEvent;
             reg_values[reg_count].ExtIntEvent = (WHV_X64_PENDING_EXT_INT_EVENT)
             {
                 .EventPending = 1,
                 .EventType = WHvX64PendingEventExtInt,
-                .Vector = irq,
+                .Vector = vector,
             };
             reg_count += 1;
             /* 
