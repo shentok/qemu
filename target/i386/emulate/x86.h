@@ -272,7 +272,6 @@ enum X86Seg;
 target_ulong linear_addr(CPUState *cpu, target_ulong addr, enum X86Seg seg);
 target_ulong linear_addr_size(CPUState *cpu, target_ulong addr, int size,
                               enum X86Seg seg);
-target_ulong linear_rip(CPUState *cpu, target_ulong rip);
 
 static inline uint64_t rdtscp(void)
 {

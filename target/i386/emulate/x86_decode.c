@@ -56,6 +56,27 @@ uint64_t sign(uint64_t val, int size)
     return val;
 }
 
+target_ulong linear_addr_size(CPUState *cpu, target_ulong addr, int size,
+                              X86Seg seg)
+{
+    switch (size) {
+    case 2:
+        addr = (uint16_t)addr;
+        break;
+    case 4:
+        addr = (uint32_t)addr;
+        break;
+    default:
+        break;
+    }
+    return linear_addr(cpu, addr, seg);
+}
+
+static target_ulong linear_rip(CPUState *cpu, target_ulong rip)
+{
+    return linear_addr(cpu, rip, R_CS);
+}
+
 static inline uint64_t decode_bytes(CPUX86State *env, struct x86_decode *decode,
                                     int size)
 {
