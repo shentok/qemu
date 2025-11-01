@@ -1637,7 +1637,7 @@ static void whpx_vcpu_pre_run(CPUState *cpu)
             (WHV_X64_DELIVERABILITY_NOTIFICATIONS_REGISTER) {
                 .InterruptNotification = 1
             };
-        vcpu->window_registered = 1;
+        vcpu->window_registered = true;
         reg_names[reg_count] = WHvX64RegisterDeliverabilityNotifications;
         reg_count += 1;
     }
@@ -1863,8 +1863,8 @@ int whpx_vcpu_run(CPUState *cpu)
             break;
 
         case WHvRunVpExitReasonX64InterruptWindow:
-            vcpu->ready_for_pic_interrupt = 1;
-            vcpu->window_registered = 0;
+            vcpu->ready_for_pic_interrupt = true;
+            vcpu->window_registered = false;
             ret = 0;
             break;
 
