@@ -1200,18 +1200,11 @@ static int set_x64_registers(const CPUState *cpu, const uint32_t *names,
     return 0;
 }
 
-static inline MemTxAttrs get_mem_attrs(bool is_secure_mode)
-{
-    MemTxAttrs memattr = {0};
-    memattr.secure = is_secure_mode;
-    return memattr;
-}
-
 static void pio_read(uint64_t port, uint8_t *data, uintptr_t size,
                      bool is_secure_mode)
 {
     int ret = 0;
-    MemTxAttrs memattr = get_mem_attrs(is_secure_mode);
+    MemTxAttrs memattr = { .secure = is_secure_mode };
     ret = address_space_rw(&address_space_io, port, memattr, (void *)data, size,
                            false);
     if (ret != MEMTX_OK) {
@@ -1224,7 +1217,7 @@ static int pio_write(uint64_t port, const uint8_t *data, uintptr_t size,
                      bool is_secure_mode)
 {
     int ret = 0;
-    MemTxAttrs memattr = get_mem_attrs(is_secure_mode);
+    MemTxAttrs memattr = { .secure = is_secure_mode };
     ret = address_space_rw(&address_space_io, port, memattr, (void *)data, size,
                            true);
     return ret;
