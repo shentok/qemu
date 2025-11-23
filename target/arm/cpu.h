@@ -996,6 +996,8 @@ struct ArchCPU {
     /* GPIO output for the PMU interrupt */
     qemu_irq pmu_interrupt;
 
+    qemu_irq wfi;
+
     /* MemoryRegion to use for secure physical accesses */
     MemoryRegion *secure_memory;
 
