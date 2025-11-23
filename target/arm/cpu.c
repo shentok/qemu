@@ -36,6 +36,7 @@
 #include "cpu-features.h"
 #include "exec/target_page.h"
 #include "hw/core/qdev-properties.h"
+#include "hw/core/irq.h"
 #if !defined(CONFIG_USER_ONLY)
 #include "hw/core/loader.h"
 #include "hw/core/boards.h"
@@ -877,6 +878,9 @@ bool arm_cpu_exec_halt(CPUState *cs)
     if (leave_halt) {
         /* We're about to come out of WFI/WFE: disable the WFxT timer */
         ARMCPU *cpu = ARM_CPU(cs);
+        bql_lock();
+        qemu_set_irq(cpu->wfi, 0);
+        bql_unlock();
         if (cpu->wfxt_timer) {
             timer_del(cpu->wfxt_timer);
         }
@@ -1273,6 +1277,7 @@ static void arm_cpu_initfn(Object *obj)
                              "gicv3-maintenance-interrupt", 1);
     qdev_init_gpio_out_named(DEVICE(cpu), &cpu->pmu_interrupt,
                              "pmu-interrupt", 1);
+    qdev_init_gpio_out_named(DEVICE(cpu), &cpu->wfi, "wfi", 1);
 #endif
 
     /* DTB consumers generally don't in fact care what the 'compatible'
