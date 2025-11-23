@@ -36,6 +36,7 @@
 #include "cpu-features.h"
 #include "exec/target_page.h"
 #include "hw/core/qdev-properties.h"
+#include "hw/core/irq.h"
 #if !defined(CONFIG_USER_ONLY)
 #include "hw/core/loader.h"
 #include "hw/core/boards.h"
@@ -879,6 +880,9 @@ static void arm_cpu_leaving_halt(CPUState *cs)
     /* We're about to come out of WFI/WFE: disable the WFxT timer */
     if (cpu->wfxt_timer) {
         timer_del(cpu->wfxt_timer);
+        bql_lock();
+        qemu_set_irq(cpu->wfi, 0);
+        bql_unlock();
     }
     /* clear the halt reason */
     qatomic_set(&cpu->env.halt_reason, NOT_HALTED);
@@ -1271,6 +1275,7 @@ static void arm_cpu_initfn(Object *obj)
                              "gicv3-maintenance-interrupt", 1);
     qdev_init_gpio_out_named(DEVICE(cpu), &cpu->pmu_interrupt,
                              "pmu-interrupt", 1);
+    qdev_init_gpio_out_named(DEVICE(cpu), &cpu->wfi, "wfi", 1);
 #endif
 
     /* DTB consumers generally don't in fact care what the 'compatible'
