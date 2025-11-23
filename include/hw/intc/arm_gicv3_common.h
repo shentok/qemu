@@ -117,6 +117,8 @@ typedef struct GICv3CPUState GICv3CPUState;
 #define GICV3_S 0
 #define GICV3_NS 1
 
+#define ARM_CPU_WAKE_REQUEST "wake-request"
+
 typedef struct {
     int irq;
     uint8_t prio;
@@ -133,6 +135,8 @@ struct GICv3CPUState {
     qemu_irq parent_vfiq;
     qemu_irq parent_nmi;
     qemu_irq parent_vnmi;
+
+    qemu_irq wake_request;
 
     /* Redistributor */
     uint32_t level;                  /* Current IRQ level */

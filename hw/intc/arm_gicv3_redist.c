@@ -11,6 +11,7 @@
 
 #include "qemu/osdep.h"
 #include "qemu/log.h"
+#include "hw/core/irq.h"
 #include "trace.h"
 #include "gicv3_internal.h"
 
@@ -521,6 +522,8 @@ static MemTxResult gicr_writel(GICv3CPUState *cs, hwaddr offset,
         value &= GICR_WAKER_ProcessorSleep;
         if (value & GICR_WAKER_ProcessorSleep) {
             value |= GICR_WAKER_ChildrenAsleep;
+        } else {
+            qemu_set_irq(cs->wake_request, 0);
         }
         cs->gicr_waker = value;
         return MEMTX_OK;
