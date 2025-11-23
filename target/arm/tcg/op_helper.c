@@ -26,6 +26,7 @@
 #include "accel/tcg/cpu-loop.h"
 #include "accel/tcg/probe.h"
 #include "cpregs.h"
+#include "hw/core/irq.h"
 
 #define SIGNBIT (uint32_t)0x80000000
 #define SIGNBIT64 ((uint64_t)1 << 63)
@@ -376,6 +377,7 @@ void HELPER(wfi)(CPUARMState *env, uint32_t insn_len)
      */
     return;
 #else
+    ARMCPU *cpu = env_archcpu(env);
     CPUState *cs = env_cpu(env);
     uint32_t excp;
     int target_el = check_wfx_trap(env, false, &excp);
@@ -401,6 +403,9 @@ void HELPER(wfi)(CPUARMState *env, uint32_t insn_len)
     env->halt_reason = HALT_WFI;
     cs->exception_index = EXCP_HLT;
     cs->halted = 1;
+    bql_lock();
+    qemu_set_irq(cpu->wfi, 1);
+    bql_unlock();
     cpu_loop_exit(cs);
 #endif
 }
@@ -463,6 +468,9 @@ void HELPER(wfit)(CPUARMState *env, uint32_t rd)
     env->halt_reason = HALT_WFI;
     cs->exception_index = EXCP_HLT;
     cs->halted = 1;
+    bql_lock();
+    qemu_set_irq(cpu->wfi, 1);
+    bql_unlock();
     cpu_loop_exit(cs);
 #endif
 }
