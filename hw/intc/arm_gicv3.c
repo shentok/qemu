@@ -329,10 +329,9 @@ void gicv3_update(GICv3State *s, int start, int len)
 
     gicv3_update_noirqset(s, start, len);
     for (i = 0; i < s->num_cpu; i++) {
+        gicv3_cpuif_update(&s->cpu[i]);
         if (s->cpu[i].gicr_waker & GICR_WAKER_ProcessorSleep) {
             qemu_set_irq(s->cpu[i].wake_request, 1);
-        } else {
-            gicv3_cpuif_update(&s->cpu[i]);
         }
     }
 }
