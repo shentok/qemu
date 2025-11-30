@@ -15,12 +15,23 @@
 #include "migration/vmstate.h"
 #include "qemu/module.h"
 #include "target/arm/arm-powerctl.h"
-#include "target/arm/cpu-qom.h"
-#include "target/arm/cpu.h"
 #include "trace.h"
 
 REG32(GPC_LPCR_A53_BSC, 0x000)
+    FIELD(GPC_LPCR_A53_BSC, IRQ_SRC_A53_WUP, 30, 1)
+    FIELD(GPC_LPCR_A53_BSC, IRQ_SRC_C1, 29, 1)
+    FIELD(GPC_LPCR_A53_BSC, IRQ_SRC_C0, 28, 1)
+    FIELD(GPC_LPCR_A53_BSC, IRQ_SRC_C3, 23, 1)
+    FIELD(GPC_LPCR_A53_BSC, IRQ_SRC_C2, 22, 1)
+    FIELD(GPC_LPCR_A53_BSC, MASK_CORE3_WFI, 19, 1)
+    FIELD(GPC_LPCR_A53_BSC, MASK_CORE2_WFI, 18, 1)
+    FIELD(GPC_LPCR_A53_BSC, MASK_CORE1_WFI, 17, 1)
+    FIELD(GPC_LPCR_A53_BSC, MASK_CORE0_WFI, 16, 1)
 REG32(GPC_LPCR_A53_AD, 0x004)
+    FIELD(GPC_LPCR_A53_AD, EN_C3_WFI_PDN, 18, 1)
+    FIELD(GPC_LPCR_A53_AD, EN_C2_WFI_PDN, 16, 1)
+    FIELD(GPC_LPCR_A53_AD, EN_C1_WFI_PDN, 2, 1)
+    FIELD(GPC_LPCR_A53_AD, EN_C0_WFI_PDN, 0, 1)
 REG32(GPC_LPCR_M7, 0x008)
 REG32(GPC_SLPCR, 0x014)
 REG32(GPC_MST_CPU_MAPPING, 0x018)
@@ -540,13 +551,55 @@ static const char *fsl_imx8mp_gpc_reg_name(uint32_t reg)
 
 static void fsl_imx8mp_gpc_update_cpu(FslImx8mpGpcState *s, int cpuid)
 {
-    if (s->cpu[cpuid].request_wake_gic && s->cpu[cpuid].wfi) {
-        CPUState *cs = arm_get_cpu_by_id(cpuid);
-        ARMCPU *cpu = ARM_CPU(cs);
+    const bool request_wake_gic = s->cpu[cpuid].request_wake_gic;
+    const bool wfi = s->cpu[cpuid].wfi;
+    bool wfi_masked;
+    bool wfi_pdn;
+    bool gic_mode;
 
-        cpu->power_state = PSCI_OFF;
+    switch (cpuid) {
+    case 0:
+        wfi_masked = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                                MASK_CORE0_WFI);
+        wfi_pdn = FIELD_EX32(s->regs[R_GPC_LPCR_A53_AD], GPC_LPCR_A53_AD,
+                             EN_C0_WFI_PDN);
+        gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                              IRQ_SRC_C0);
+        break;
+    case 1:
+        wfi_masked = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                                MASK_CORE1_WFI);
+        wfi_pdn = FIELD_EX32(s->regs[R_GPC_LPCR_A53_AD], GPC_LPCR_A53_AD,
+                             EN_C1_WFI_PDN);
+        gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                              IRQ_SRC_C1);
+        break;
+    case 2:
+        wfi_masked = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                                MASK_CORE2_WFI);
+        wfi_pdn = FIELD_EX32(s->regs[R_GPC_LPCR_A53_AD], GPC_LPCR_A53_AD,
+                             EN_C2_WFI_PDN);
+        gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                              IRQ_SRC_C2);
+        break;
+    case 3:
+        wfi_masked = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                                MASK_CORE3_WFI);
+        wfi_pdn = FIELD_EX32(s->regs[R_GPC_LPCR_A53_AD], GPC_LPCR_A53_AD,
+                             EN_C3_WFI_PDN);
+        gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                              IRQ_SRC_C3);
+        break;
+    default:
+        g_assert_not_reached();
+    }
 
-        imx8mp_src_start_cpu(s->src, cpuid);
+    if (wfi) {
+        if (request_wake_gic && gic_mode) {
+            imx8mp_src_start_cpu(s->src, cpuid);
+        } else if (wfi_pdn && !wfi_masked) {
+            arm_set_cpu_off(cpuid);
+        }
     }
 }
 
