@@ -15,6 +15,8 @@
 #include "migration/vmstate.h"
 #include "qemu/module.h"
 #include "target/arm/arm-powerctl.h"
+#include "target/arm/cpu-qom.h"
+#include "target/arm/cpu.h"
 #include "trace.h"
 
 REG32(GPC_LPCR_A53_BSC, 0x000)
@@ -549,60 +551,6 @@ static const char *fsl_imx8mp_gpc_reg_name(uint32_t reg)
     }
 }
 
-static void fsl_imx8mp_gpc_update_cpu(FslImx8mpGpcState *s, int cpuid)
-{
-    const bool request_wake_gic = s->cpu[cpuid].request_wake_gic;
-    const bool wfi = s->cpu[cpuid].wfi;
-    bool wfi_masked;
-    bool wfi_pdn;
-    bool gic_mode;
-
-    switch (cpuid) {
-    case 0:
-        wfi_masked = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
-                                MASK_CORE0_WFI);
-        wfi_pdn = FIELD_EX32(s->regs[R_GPC_LPCR_A53_AD], GPC_LPCR_A53_AD,
-                             EN_C0_WFI_PDN);
-        gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
-                              IRQ_SRC_C0);
-        break;
-    case 1:
-        wfi_masked = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
-                                MASK_CORE1_WFI);
-        wfi_pdn = FIELD_EX32(s->regs[R_GPC_LPCR_A53_AD], GPC_LPCR_A53_AD,
-                             EN_C1_WFI_PDN);
-        gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
-                              IRQ_SRC_C1);
-        break;
-    case 2:
-        wfi_masked = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
-                                MASK_CORE2_WFI);
-        wfi_pdn = FIELD_EX32(s->regs[R_GPC_LPCR_A53_AD], GPC_LPCR_A53_AD,
-                             EN_C2_WFI_PDN);
-        gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
-                              IRQ_SRC_C2);
-        break;
-    case 3:
-        wfi_masked = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
-                                MASK_CORE3_WFI);
-        wfi_pdn = FIELD_EX32(s->regs[R_GPC_LPCR_A53_AD], GPC_LPCR_A53_AD,
-                             EN_C3_WFI_PDN);
-        gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
-                              IRQ_SRC_C3);
-        break;
-    default:
-        g_assert_not_reached();
-    }
-
-    if (wfi) {
-        if (request_wake_gic && gic_mode) {
-            imx8mp_src_start_cpu(s->src, cpuid);
-        } else if (wfi_pdn && !wfi_masked) {
-            arm_set_cpu_off(cpuid);
-        }
-    }
-}
-
 static uint64_t fsl_imx8mp_gpc_read(void *opaque, hwaddr offset,
                                     unsigned size)
 {
@@ -696,7 +644,34 @@ static void fsl_imx8mp_gpc_request_wake_gic(void *opaque, int irq, int level)
 
     s->cpu[irq].request_wake_gic = level != 0;
 
-    fsl_imx8mp_gpc_update_cpu(s, irq);
+    if (s->cpu[irq].request_wake_gic) {
+        bool gic_mode;
+
+        switch (irq) {
+        case 0:
+            gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                                  IRQ_SRC_C0);
+            break;
+        case 1:
+            gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                                  IRQ_SRC_C1);
+            break;
+        case 2:
+            gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                                  IRQ_SRC_C2);
+            break;
+        case 3:
+            gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                                  IRQ_SRC_C3);
+            break;
+        default:
+            g_assert_not_reached();
+        }
+
+        if (gic_mode) {
+            imx8mp_src_start_cpu(s->src, irq);
+        }
+    }
 }
 
 static void fsl_imx8mp_gpc_wfi(void *opaque, int irq, int level)
@@ -707,7 +682,46 @@ static void fsl_imx8mp_gpc_wfi(void *opaque, int irq, int level)
 
     s->cpu[irq].wfi = level != 0;
 
-    fsl_imx8mp_gpc_update_cpu(s, irq);
+    if (s->cpu[irq].wfi) {
+        bool wfi_masked;
+        bool wfi_pdn;
+
+        switch (irq) {
+        case 0:
+            wfi_masked = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                                    MASK_CORE0_WFI);
+            wfi_pdn = FIELD_EX32(s->regs[R_GPC_LPCR_A53_AD], GPC_LPCR_A53_AD,
+                                 EN_C0_WFI_PDN);
+            break;
+        case 1:
+            wfi_masked = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                                    MASK_CORE1_WFI);
+            wfi_pdn = FIELD_EX32(s->regs[R_GPC_LPCR_A53_AD], GPC_LPCR_A53_AD,
+                                 EN_C1_WFI_PDN);
+            break;
+        case 2:
+            wfi_masked = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                                    MASK_CORE2_WFI);
+            wfi_pdn = FIELD_EX32(s->regs[R_GPC_LPCR_A53_AD], GPC_LPCR_A53_AD,
+                                 EN_C2_WFI_PDN);
+            break;
+        case 3:
+            wfi_masked = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                                    MASK_CORE3_WFI);
+            wfi_pdn = FIELD_EX32(s->regs[R_GPC_LPCR_A53_AD], GPC_LPCR_A53_AD,
+                                 EN_C3_WFI_PDN);
+            break;
+        default:
+            g_assert_not_reached();
+        }
+
+        if (wfi_pdn && !wfi_masked) {
+            CPUState *cs = arm_get_cpu_by_id(irq);
+            ARMCPU *cpu = ARM_CPU(cs);
+
+            cpu->power_state = PSCI_OFF;
+        }
+    }
 }
 
 static void fsl_imx8mp_gpc_init(Object *obj)
