@@ -98,12 +98,7 @@ typedef struct CanBusClientInfo {
 struct CanBusClientState {
     CanBusClientInfo *info;
     CanBusState *bus;
-    int link_down;
     QTAILQ_ENTRY(CanBusClientState) next;
-    CanBusClientState *peer;
-    char *model;
-    char *name;
-    void (*destructor)(CanBusClientState *);
     bool fd_mode;
 };
 
