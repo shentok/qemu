@@ -520,22 +520,6 @@ static void flexcan_reset_local_state(FlexcanState *s)
     trace_flexcan_reset(DEVICE(s)->canonical_path);
 }
 
-static void flexcan_reset_enter(Object *obj, ResetType type)
-{
-    FlexcanState *s = CAN_FLEXCAN(obj);
-
-    memset(&s->regs, 0, sizeof(s->regs));
-    flexcan_reset_local_state(s);
-}
-
-static void flexcan_reset_hold(Object *obj, ResetType type)
-{
-    FlexcanState *s = CAN_FLEXCAN(obj);
-
-    flexcan_irq_update(s);
-}
-
-
 /* ========== Operation mode control ========== */
 /**
  * flexcan_update_esr() - Update ESR based on mode and CAN bus connection state
@@ -1376,6 +1360,21 @@ static const Property flexcan_properties[] = {
     DEFINE_PROP_LINK("canbus", FlexcanState, canbus, TYPE_CAN_BUS,
                      CanBusState *),
 };
+
+static void flexcan_reset_enter(Object *obj, ResetType type)
+{
+    FlexcanState *s = CAN_FLEXCAN(obj);
+
+    memset(&s->regs, 0, sizeof(s->regs));
+    flexcan_reset_local_state(s);
+}
+
+static void flexcan_reset_hold(Object *obj, ResetType type)
+{
+    FlexcanState *s = CAN_FLEXCAN(obj);
+
+    flexcan_irq_update(s);
+}
 
 static void flexcan_class_init(ObjectClass *klass, const void *data)
 {
