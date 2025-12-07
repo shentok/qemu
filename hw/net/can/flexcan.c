@@ -1378,8 +1378,6 @@ static void flexcan_realize(DeviceState *dev, Error **errp)
         }
     }
 
-    flexcan_reset_local_state(s);
-
     memory_region_init_io(
         &s->iomem, OBJECT(dev), &flexcan_ops, s, TYPE_CAN_FLEXCAN, 0x4000
     );
