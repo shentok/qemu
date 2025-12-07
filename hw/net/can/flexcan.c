@@ -29,8 +29,6 @@
 #include "flexcan_regs.h"
 #include "qemu/timer.h"
 
-#define USE(var) (void)var;
-
 #define DEBUG_FLEXCAN 1
 #ifndef DEBUG_FLEXCAN
 #define DEBUG_FLEXCAN 0
@@ -1362,10 +1360,9 @@ static int flexcan_connect_to_bus(FlexcanState *s, CanBusState *bus)
 static void flexcan_init(Object *obj)
 {
     FlexcanState *s = CAN_FLEXCAN(obj);
-    SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
-    USE(s);
-    USE(sbd);
+    memory_region_init_io(&s->iomem, obj, &flexcan_ops, s, TYPE_CAN_FLEXCAN,
+                          0x4000);
 }
 
 static void flexcan_realize(DeviceState *dev, Error **errp)
@@ -1373,18 +1370,9 @@ static void flexcan_realize(DeviceState *dev, Error **errp)
     FlexcanState *s = CAN_FLEXCAN(dev);
 
     if (s->canbus) {
-        if (flexcan_connect_to_bus(s, s->canbus) < 0) {
-            g_autofree char *path = object_get_canonical_path(OBJECT(s));
-
-            error_setg(errp, "%s: flexcan_connect_to_bus"
-                        " failed.", path);
-            return;
-        }
+        flexcan_connect_to_bus(s, s->canbus);
     }
 
-    memory_region_init_io(
-        &s->iomem, OBJECT(dev), &flexcan_ops, s, TYPE_CAN_FLEXCAN, 0x4000
-    );
     sysbus_init_mmio(SYS_BUS_DEVICE(dev), &s->iomem);
     sysbus_init_irq(SYS_BUS_DEVICE(SYS_BUS_DEVICE(dev)), &s->irq);
 }
