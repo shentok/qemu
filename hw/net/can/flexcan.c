@@ -874,12 +874,6 @@ static void flexcan_mb_unlock(FlexcanState *s)
     }
 }
 
-static bool flexcan_can_receive(CanBusClientState *client)
-{
-    FlexcanState *s = container_of(client, FlexcanState, bus_client);
-    return !(s->regs.mcr & FLEXCAN_MCR_NOT_RDY);
-}
-
 /* --------- RX FIFO ---------- */
 
 /**
@@ -1106,55 +1100,6 @@ static int flexcan_mb_rx(FlexcanState *s, const qemu_can_frame *buf)
     return FLEXCAN_RX_SEARCH_RETRY;
 }
 
-static ssize_t flexcan_receive(CanBusClientState *client,
-                               const qemu_can_frame *frames, size_t frames_cnt)
-{
-    FlexcanState *s = container_of(client, FlexcanState, bus_client);
-    trace_flexcan_receive(DEVICE(s)->canonical_path, frames_cnt);
-
-    if (frames_cnt <= 0) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: Error in the data received.\n",
-                      DEVICE(s)->canonical_path);
-        return 0;
-    }
-
-    /* clear the SMB, as it would be overriden in hardware */
-    memset(&s->regs.rx_smb0, 0, sizeof(FlexcanRegsMessageBuffer));
-    s->smb_target_mbidx = FLEXCAN_SMB_EMPTY;
-
-    for (size_t i = 0; i < frames_cnt; i++) {
-        int r;
-        const qemu_can_frame *frame = &frames[i];
-        if (frame->can_id & QEMU_CAN_ERR_FLAG) {
-            /* todo: error frame handling */
-            continue;
-        }
-        if (frame->flags & QEMU_CAN_FRMF_TYPE_FD) {
-            /* CAN FD supported only in later FlexCAN version */
-            continue;
-        }
-
-        /* todo: this order logic is not complete and needs further work */
-        if (s->regs.mcr & FLEXCAN_MCR_FEN &&
-            s->regs.ctrl2 & FLEXCAN_CTRL2_MRP) {
-            r = flexcan_mb_rx(s, frame);
-            if (r == FLEXCAN_RX_SEARCH_RETRY) {
-                flexcan_fifo_rx(s, frame);
-            }
-        } else if (s->regs.mcr & FLEXCAN_MCR_FEN) {
-            r = flexcan_fifo_rx(s, frame);
-            if (r == FLEXCAN_RX_SEARCH_RETRY) {
-                flexcan_mb_rx(s, frame);
-            }
-        } else {
-            flexcan_mb_rx(s, frame);
-        }
-    }
-
-    flexcan_irq_update(s);
-    return 1;
-}
-
 /* ========== I/O handling ========== */
 static void flexcan_mem_write(void *opaque, hwaddr addr, uint64_t val,
                               unsigned size)
@@ -1320,6 +1265,61 @@ static const struct MemoryRegionOps flexcan_ops = {
         .unaligned = false
     },
 };
+
+static bool flexcan_can_receive(CanBusClientState *client)
+{
+    FlexcanState *s = container_of(client, FlexcanState, bus_client);
+    return !(s->regs.mcr & FLEXCAN_MCR_NOT_RDY);
+}
+
+static ssize_t flexcan_receive(CanBusClientState *client,
+                               const qemu_can_frame *frames, size_t frames_cnt)
+{
+    FlexcanState *s = container_of(client, FlexcanState, bus_client);
+    trace_flexcan_receive(DEVICE(s)->canonical_path, frames_cnt);
+
+    if (frames_cnt <= 0) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: Error in the data received.\n",
+                      DEVICE(s)->canonical_path);
+        return 0;
+    }
+
+    /* clear the SMB, as it would be overriden in hardware */
+    memset(&s->regs.rx_smb0, 0, sizeof(FlexcanRegsMessageBuffer));
+    s->smb_target_mbidx = FLEXCAN_SMB_EMPTY;
+
+    for (size_t i = 0; i < frames_cnt; i++) {
+        int r;
+        const qemu_can_frame *frame = &frames[i];
+        if (frame->can_id & QEMU_CAN_ERR_FLAG) {
+            /* todo: error frame handling */
+            continue;
+        }
+        if (frame->flags & QEMU_CAN_FRMF_TYPE_FD) {
+            /* CAN FD supported only in later FlexCAN version */
+            continue;
+        }
+
+        /* todo: this order logic is not complete and needs further work */
+        if (s->regs.mcr & FLEXCAN_MCR_FEN &&
+            s->regs.ctrl2 & FLEXCAN_CTRL2_MRP) {
+            r = flexcan_mb_rx(s, frame);
+            if (r == FLEXCAN_RX_SEARCH_RETRY) {
+                flexcan_fifo_rx(s, frame);
+            }
+        } else if (s->regs.mcr & FLEXCAN_MCR_FEN) {
+            r = flexcan_fifo_rx(s, frame);
+            if (r == FLEXCAN_RX_SEARCH_RETRY) {
+                flexcan_mb_rx(s, frame);
+            }
+        } else {
+            flexcan_mb_rx(s, frame);
+        }
+    }
+
+    flexcan_irq_update(s);
+    return 1;
+}
 
 static CanBusClientInfo flexcan_bus_client_info = {
     .can_receive = flexcan_can_receive,
