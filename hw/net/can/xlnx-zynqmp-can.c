@@ -1097,13 +1097,7 @@ static void xlnx_zynqmp_can_realize(DeviceState *dev, Error **errp)
     XlnxZynqMPCANState *s = XLNX_ZYNQMP_CAN(dev);
 
     if (s->canbus) {
-        if (can_bus_insert_client(s->canbus, &s->bus_client) < 0) {
-            g_autofree char *path = object_get_canonical_path(OBJECT(s));
-
-            error_setg(errp, "%s: xlnx_zynqmp_can_connect_to_bus"
-                       " failed.", path);
-            return;
-        }
+        can_bus_insert_client(s->canbus, &s->bus_client);
     }
 
     /* Create RX FIFO, TXFIFO, TXHPB storage. */

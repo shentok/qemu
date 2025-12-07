@@ -1852,13 +1852,7 @@ static void canfd_realize(DeviceState *dev, Error **errp)
     sysbus_init_irq(SYS_BUS_DEVICE(dev), &s->irq_canfd_int);
 
     if (s->canfdbus) {
-        if (can_bus_insert_client(s->canfdbus, &s->bus_client) < 0) {
-            g_autofree char *path = object_get_canonical_path(OBJECT(s));
-
-            error_setg(errp, "%s: xlnx_canfd_connect_to_bus failed", path);
-            return;
-        }
-
+        can_bus_insert_client(s->canfdbus, &s->bus_client);
     }
 
     /* Allocate a new timer. */

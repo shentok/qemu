@@ -586,9 +586,7 @@ int ctucan_connect_to_bus(CtuCanCoreState *s, CanBusState *bus)
         return -EINVAL;
     }
 
-    if (can_bus_insert_client(bus, &s->bus_client) < 0) {
-        return -1;
-    }
+    can_bus_insert_client(bus, &s->bus_client);
 
     return 0;
 }

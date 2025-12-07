@@ -93,11 +93,16 @@ void can_bus_client_init(CanBusClientState *client,
     client->info = info;
 }
 
-int can_bus_insert_client(CanBusState *bus, CanBusClientState *client)
+void can_bus_insert_client(CanBusState *bus, CanBusClientState *client)
 {
+    assert(bus);
+    assert(client);
+    assert(client->info);
+    assert(client->info->can_receive);
+    assert(client->info->receive);
+
     client->bus = bus;
     QTAILQ_INSERT_TAIL(&bus->clients, client, next);
-    return 0;
 }
 
 int can_bus_remove_client(CanBusClientState *client)

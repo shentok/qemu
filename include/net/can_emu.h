@@ -107,7 +107,7 @@ void can_bus_client_init(CanBusClientState *client,
 
 int can_bus_filter_match(struct qemu_can_filter *filter, qemu_canid_t can_id);
 
-int can_bus_insert_client(CanBusState *bus, CanBusClientState *client);
+void can_bus_insert_client(CanBusState *bus, CanBusClientState *client);
 
 int can_bus_remove_client(CanBusClientState *client);
 
