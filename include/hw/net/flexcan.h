@@ -137,18 +137,4 @@ typedef struct FlexcanState {
 
 OBJECT_DECLARE_SIMPLE_TYPE(FlexcanState, CAN_FLEXCAN);
 
-void flexcan_init(Object *obj);
-void flexcan_hardware_reset(FlexcanState *s);
-
-bool flexcan_can_receive(CanBusClientState *s);
-ssize_t flexcan_receive(CanBusClientState *s, const qemu_can_frame *frames,
-                        size_t frames_cnt);
-
-void flexcan_mem_write(void *obj, hwaddr addr, uint64_t val, unsigned size);
-uint64_t flexcan_mem_read(void *obj, hwaddr addr, unsigned size);
-bool flexcan_mem_accepts(void *obj, hwaddr addr, unsigned size, bool is_write,
-                         MemTxAttrs attrs);
-
-extern const VMStateDescription vmstate_flexcan;
-
 #endif

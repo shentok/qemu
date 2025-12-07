@@ -272,23 +272,6 @@ static inline void flexcan_trace_mem_op(FlexcanState *s, hwaddr addr,
     }
 }
 
-static const struct MemoryRegionOps flexcan_ops = {
-    .read = flexcan_mem_read,
-    .write = flexcan_mem_write,
-    .endianness = DEVICE_LITTLE_ENDIAN,
-    .valid = {
-        .min_access_size = 1,
-        .max_access_size = 4,
-        .unaligned = true,
-        .accepts = flexcan_mem_accepts
-    },
-    .impl = {
-        .min_access_size = 4,
-        .max_access_size = 4,
-        .unaligned = false
-    },
-};
-
 static int flexcan_mb_rx(FlexcanState *s, const qemu_can_frame *frame);
 static void flexcan_mb_unlock(FlexcanState *s);
 
@@ -899,7 +882,7 @@ static void flexcan_mb_unlock(FlexcanState *s)
     }
 }
 
-bool flexcan_can_receive(CanBusClientState *client)
+static bool flexcan_can_receive(CanBusClientState *client)
 {
     FlexcanState *s = container_of(client, FlexcanState, bus_client);
     return !(s->regs.mcr & FLEXCAN_MCR_NOT_RDY);
@@ -1122,8 +1105,8 @@ static int flexcan_mb_rx(FlexcanState *s, const qemu_can_frame *buf)
     return FLEXCAN_RX_SEARCH_RETRY;
 }
 
-ssize_t flexcan_receive(CanBusClientState *client, const qemu_can_frame *frames,
-                        size_t frames_cnt)
+static ssize_t flexcan_receive(CanBusClientState *client,
+                               const qemu_can_frame *frames, size_t frames_cnt)
 {
     FlexcanState *s = container_of(client, FlexcanState, bus_client);
     trace_flexcan_receive(s, frames_cnt);
@@ -1266,9 +1249,11 @@ static void flexcan_reg_write(FlexcanState *s, hwaddr addr, uint32_t val)
     flexcan_irq_update(s);
 }
 
-void flexcan_mem_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
+static void flexcan_mem_write(void *opaque, hwaddr addr, uint64_t val,
+                              unsigned size)
 {
     FlexcanState *s = opaque;
+
     flexcan_trace_mem_op(s, addr, val, size, true);
 
     if (addr < FLEXCAN_ADDR_SPC_END) {
@@ -1277,9 +1262,10 @@ void flexcan_mem_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         DPRINTF("warn: write outside of defined address space\n");
     }
 }
-uint64_t flexcan_mem_read(void *opaque, hwaddr addr, unsigned size)
+
+static uint64_t flexcan_mem_read(void *opqaue, hwaddr addr, unsigned size)
 {
-    FlexcanState *s = opaque;
+    FlexcanState *s = opqaue;
 
     if (addr < FLEXCAN_ADDR_SPC_END) {
         uint32_t rv = s->regs_raw[addr >> 2];
@@ -1314,7 +1300,8 @@ uint64_t flexcan_mem_read(void *opaque, hwaddr addr, unsigned size)
         return 0;
     }
 }
-bool flexcan_mem_accepts(void *opaque, hwaddr addr,
+
+static bool flexcan_mem_accepts(void *opaque, hwaddr addr,
                                 unsigned size, bool is_write,
                                 MemTxAttrs attrs)
 {
@@ -1340,6 +1327,23 @@ denied:
     return false;
 }
 
+static const struct MemoryRegionOps flexcan_ops = {
+    .read = flexcan_mem_read,
+    .write = flexcan_mem_write,
+    .endianness = DEVICE_LITTLE_ENDIAN,
+    .valid = {
+        .min_access_size = 1,
+        .max_access_size = 4,
+        .unaligned = true,
+        .accepts = flexcan_mem_accepts
+    },
+    .impl = {
+        .min_access_size = 4,
+        .max_access_size = 4,
+        .unaligned = false
+    },
+};
+
 static CanBusClientInfo flexcan_bus_client_info = {
     .can_receive = flexcan_can_receive,
     .receive = flexcan_receive,
@@ -1355,7 +1359,7 @@ static int flexcan_connect_to_bus(FlexcanState *s, CanBusState *bus)
     return 0;
 }
 
-void flexcan_init(Object *obj)
+static void flexcan_init(Object *obj)
 {
     FlexcanState *s = CAN_FLEXCAN(obj);
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
