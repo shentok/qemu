@@ -1255,7 +1255,8 @@ static void flexcan_mem_write(void *opaque, hwaddr addr, uint64_t val,
     if (addr < FLEXCAN_ADDR_SPC_END) {
         flexcan_reg_write(s, addr, (uint32_t)val);
     } else {
-        DPRINTF("warn: write outside of defined address space\n");
+        qemu_log_mask(LOG_GUEST_ERROR,
+                      "warn: write outside of defined address space\n");
     }
 }
 
@@ -1302,26 +1303,35 @@ static bool flexcan_mem_accepts(void *opaque, hwaddr addr,
                                 MemTxAttrs attrs)
 {
     FlexcanState *s = opaque;
+    DeviceState *dev = DEVICE(s);
 
     if ((s->regs.ctrl2 & FLEXCAN_CTRL2_WRMFRZ) &&
         (s->regs.mcr & FLEXCAN_MCR_FRZ_ACK)) {
         /* unrestricted access to FlexCAN memory in freeze mode */
         return true;
-    } else if (attrs.user && (s->regs.mcr & FLEXCAN_MCR_SUPV)) {
-        goto denied;
-    } else if (is_write && attrs.user && addr < 4) {
-        /* illegal user write to MCR */
-        goto denied;
-    } else if (addr >= FLEXCAN_ADDR_SPC_END) {
-        /* illegal write to non-existent register */
-        goto denied;
+    }
+
+    if (attrs.user && (s->regs.mcr & FLEXCAN_MCR_SUPV)) {
+        qemu_log_mask(LOG_GUEST_ERROR,
+                      "%s: illegal user access in supervisor mode\n",
+                      dev->canonical_path);
+        return false;
+    }
+
+    if (is_write && attrs.user && addr < 4) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: illegal user write to MCR\n",
+                      dev->canonical_path);
+        return false;
+    }
+
+    if (addr >= FLEXCAN_ADDR_SPC_END) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s: illegal write to non-existent"
+                      " register 0x%" HWADDR_PRIx "\n", dev->canonical_path,
+                      addr);
+        return false;
     }
 
     return true;
-denied:
-    trace_flexcan_mem_accepts(DEVICE(s)->canonical_path, addr, size, is_write,
-                              !attrs.user);
-    return false;
 }
 
 static const struct MemoryRegionOps flexcan_ops = {

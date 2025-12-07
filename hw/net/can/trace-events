@@ -8,7 +8,6 @@ flexcan_fifo_pop(const char *qom_path, int non_empty_before, int non_empty_after
 flexcan_fifo_push(const char *qom_path, int n_occupied) "%s: n_slots_occupied %i"
 flexcan_reset(const char *qom_path) "%s: resetting"
 flexcan_mem_op(const char *qom_path, const char *op, uint32_t v, int offset, const char *reg_name, int size) "%s: %s 0x%08x at offset %i register %s size %i"
-flexcan_mem_accepts(const char *qom_path, int offset, int size, int is_write, int is_supv) "%s: denied access: offset %i size %i is_write %i is_supv %i"
 flexcan_get_timestamp(const char *qom_path, int64_t time_elapsed_ms, uint32_t bitrate, uint64_t cycles, uint32_t shift, uint32_t timestamp) "%s: time_elapsed %" PRIi64 "ms bitrate %ub/s cycles %" PRIu64 " shift %u timestamp 0x%04x"
 flexcan_get_bitrate(const char *qom_path, uint32_t pe_freq, uint32_t prediv, uint32_t s_freq, uint32_t tseg1, uint32_t tseg2, uint32_t quata_per_bit, uint32_t bitrate) "%s: pe_freq %uHz prescaler %u s_freq %uHz tseg1 %uq tseg2 %uq total %uq/b bitrate %ub/s"
 flexcan_timer_start(const char *qom_path, uint32_t bitrate, uint32_t value) "%s: bitrate %ub/s value 0x%04x"
