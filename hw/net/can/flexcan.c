@@ -520,17 +520,6 @@ static void flexcan_reset_local_state(FlexcanState *s)
     trace_flexcan_reset(DEVICE(s)->canonical_path);
 }
 
-static void flexcan_soft_reset(FlexcanState *s)
-{
-    if (s->regs.mcr & FLEXCAN_MCR_LPM_ACK) {
-        qemu_log_mask(LOG_GUEST_ERROR,
-                      "%s: invalid soft reset request in low-power mode",
-                      DEVICE(s)->canonical_path);
-    }
-
-    flexcan_reset_local_state(s);
-}
-
 static void flexcan_reset_enter(Object *obj, ResetType type)
 {
     FlexcanState *s = CAN_FLEXCAN(obj);
@@ -586,7 +575,13 @@ static void flexcan_set_mcr(FlexcanState *s, const uint32_t pv)
 
     /* -- soft reset -- */
     if (!(cv & FLEXCAN_MCR_LPM_ACK) && (cv & FLEXCAN_MCR_SOFTRST)) {
-        flexcan_soft_reset(s);
+        if (s->regs.mcr & FLEXCAN_MCR_LPM_ACK) {
+            qemu_log_mask(LOG_GUEST_ERROR,
+                          "%s: invalid soft reset request in low-power mode",
+                          DEVICE(s)->canonical_path);
+        }
+
+        flexcan_reset_local_state(s);
         cv = s->regs.mcr;
     }
 
