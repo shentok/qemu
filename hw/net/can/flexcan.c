@@ -1146,8 +1146,10 @@ static ssize_t flexcan_receive(CanBusClientState *client,
 }
 
 /* ========== I/O handling ========== */
-static void flexcan_reg_write(FlexcanState *s, hwaddr addr, uint32_t val)
+static void flexcan_mem_write(void *opaque, hwaddr addr, uint64_t val,
+                              unsigned size)
 {
+    FlexcanState *s = opaque;
     uint32_t write_mask = ((const uint32_t *)
         &flexcan_regs_write_mask)[addr / 4];
     uint32_t old_value = s->regs_raw[addr / 4];
@@ -1158,6 +1160,8 @@ static void flexcan_reg_write(FlexcanState *s, hwaddr addr, uint32_t val)
      */
     const uint32_t freeze_mask_mcr = 0xDF54CC80;
     const uint32_t freeze_mask_ctrl1 = 0x0000E740;
+
+    flexcan_trace_mem_op(s, addr, val, size, true);
 
     switch (addr) {
     case offsetof(FlexcanRegs, mcr):
@@ -1231,16 +1235,6 @@ static void flexcan_reg_write(FlexcanState *s, hwaddr addr, uint32_t val)
     }
 
     flexcan_irq_update(s);
-}
-
-static void flexcan_mem_write(void *opaque, hwaddr addr, uint64_t val,
-                              unsigned size)
-{
-    FlexcanState *s = opaque;
-
-    flexcan_trace_mem_op(s, addr, val, size, true);
-
-    flexcan_reg_write(s, addr, (uint32_t)val);
 }
 
 static uint64_t flexcan_mem_read(void *opqaue, hwaddr addr, unsigned size)
