@@ -1087,7 +1087,7 @@ static ssize_t xlnx_zynqmp_can_receive(CanBusClientState *client,
     return 1;
 }
 
-static CanBusClientInfo can_xilinx_bus_client_info = {
+static const CanBusClientInfo can_xilinx_bus_client_info = {
     .can_receive = xlnx_zynqmp_can_can_receive,
     .receive = xlnx_zynqmp_can_receive,
 };

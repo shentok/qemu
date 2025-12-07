@@ -3213,6 +3213,7 @@ sub process {
 				BdrvActionOps|
 				BlockDevOps|
 				BlockJobDriver|
+				CanBusClientInfo|
 				DisplayChangeListenerOps|
 				GraphicHwOps|
 				IDEDMAOps|

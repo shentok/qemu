@@ -574,7 +574,7 @@ ssize_t ctucan_receive(CanBusClientState *client, const qemu_can_frame *frames,
     return 1;
 }
 
-static CanBusClientInfo ctucan_bus_client_info = {
+static const CanBusClientInfo ctucan_bus_client_info = {
     .can_receive = ctucan_can_receive,
     .receive = ctucan_receive,
 };

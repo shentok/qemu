@@ -1832,7 +1832,7 @@ static ssize_t canfd_xilinx_receive(CanBusClientState *client,
     return 1;
 }
 
-static CanBusClientInfo canfd_xilinx_bus_client_info = {
+static const CanBusClientInfo canfd_xilinx_bus_client_info = {
     .can_receive = can_xilinx_canfd_receive,
     .receive = canfd_xilinx_receive,
 };

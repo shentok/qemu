@@ -96,7 +96,7 @@ typedef struct CanBusClientInfo {
 } CanBusClientInfo;
 
 struct CanBusClientState {
-    CanBusClientInfo *info;
+    const CanBusClientInfo *info;
     CanBusState *bus;
     QTAILQ_ENTRY(CanBusClientState) next;
     bool fd_mode;

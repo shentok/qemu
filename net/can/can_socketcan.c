@@ -182,7 +182,7 @@ static void can_host_socketcan_disconnect(CanHostState *ch)
     c->rfilter_num = 0;
 }
 
-static CanBusClientInfo can_host_socketcan_bus_client_info = {
+static const CanBusClientInfo can_host_socketcan_bus_client_info = {
     .can_receive = can_host_socketcan_can_receive,
     .receive = can_host_socketcan_receive,
 };

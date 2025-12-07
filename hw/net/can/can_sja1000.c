@@ -887,7 +887,7 @@ ssize_t can_sja_receive(CanBusClientState *client, const qemu_can_frame *frames,
     return 1;
 }
 
-static CanBusClientInfo can_sja_bus_client_info = {
+static const CanBusClientInfo can_sja_bus_client_info = {
     .can_receive = can_sja_can_receive,
     .receive = can_sja_receive,
 };
