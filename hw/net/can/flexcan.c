@@ -58,21 +58,25 @@
 #define FLEXCAN_TIMER_STOPPED           -1
 
 /* These constants are returned by flexcan_fifo_rx() and flexcan_mb_rx(), */
+enum FlexcanRx {
 /* Retry the other receiving mechanism (ie. message bufer or mailbox). */
-#define FLEXCAN_RX_SEARCH_RETRY 0
+    FLEXCAN_RX_SEARCH_RETRY,
 /* The frame was received and stored. */
-#define FLEXCAN_RX_SEARCH_ACCEPT 1
+    FLEXCAN_RX_SEARCH_ACCEPT,
 /* The frame was filtered out and dropped. */
-#define FLEXCAN_RX_SEARCH_DROPPED 2
+    FLEXCAN_RX_SEARCH_DROPPED,
+};
 
 /*
  * These constants are returned by flexcan_mb_rx_check_mb().
  * See flexcan_mb_rx_check_mb() kerneldoc for details.
  */
-#define FLEXCAN_CHECK_MB_NIL 0
-#define FLEXCAN_CHECK_MB_MATCH 3
-#define FLEXCAN_CHECK_MB_MATCH_NON_FREE 1
-#define FLEXCAN_CHECK_MB_MATCH_LOCKED 5
+enum FlexcanCheck {
+    FLEXCAN_CHECK_MB_NIL = 0,
+    FLEXCAN_CHECK_MB_MATCH = 3,
+    FLEXCAN_CHECK_MB_MATCH_NON_FREE = 1,
+    FLEXCAN_CHECK_MB_MATCH_LOCKED = 5,
+};
 
 static const FlexcanRegs flexcan_regs_write_mask = {
     .mcr = 0xF6EB337F,
@@ -259,7 +263,7 @@ static inline void flexcan_trace_mem_op(FlexcanState *s, hwaddr addr,
     }
 }
 
-static int flexcan_mb_rx(FlexcanState *s, const qemu_can_frame *frame);
+static enum FlexcanRx flexcan_mb_rx(FlexcanState *s, const qemu_can_frame *frame);
 static void flexcan_mb_unlock(FlexcanState *s);
 
 /* ========== Mailbox Utils ========== */
@@ -934,7 +938,7 @@ static void flexcan_fifo_push(FlexcanState *s, FlexcanRegsMessageBuffer *slot)
     }
 }
 
-static int flexcan_fifo_rx(FlexcanState *s, const qemu_can_frame *buf)
+static enum FlexcanRx flexcan_fifo_rx(FlexcanState *s, const qemu_can_frame *buf)
 {
     /* todo: filtering. return FLEXCAN_FIFO_RX_RETRY if filtered out */
     if ((s->regs.mcr & FLEXCAN_MCR_IDAM_MASK) == FLEXCAN_MCR_IDAM_D) {
@@ -969,8 +973,9 @@ static int flexcan_fifo_rx(FlexcanState *s, const qemu_can_frame *buf)
  *                                         but is not free-to-receive
  *                                         for some other reason.
  */
-static int flexcan_mb_rx_check_mb(FlexcanState *s, const qemu_can_frame *buf,
-                                  int mbid)
+static enum FlexcanCheck flexcan_mb_rx_check_mb(FlexcanState *s,
+                                                const qemu_can_frame *buf,
+                                                int mbid)
 {
     FlexcanRegsMessageBuffer *mb = &s->regs.mbs[mbid];
     const bool is_rtr = !!(buf->can_id & QEMU_CAN_RTR_FLAG);
@@ -1025,7 +1030,8 @@ static int flexcan_mb_rx_check_mb(FlexcanState *s, const qemu_can_frame *buf,
 
     return FLEXCAN_CHECK_MB_MATCH_NON_FREE;
 }
-static int flexcan_mb_rx(FlexcanState *s, const qemu_can_frame *buf)
+
+static enum FlexcanRx flexcan_mb_rx(FlexcanState *s, const qemu_can_frame *buf)
 {
     int last_not_free_to_receive_mbid = -1;
     bool last_not_free_to_receive_locked = false;
@@ -1035,7 +1041,7 @@ static int flexcan_mb_rx(FlexcanState *s, const qemu_can_frame *buf)
     for (FlexcanRegsMessageBuffer *mb = first_mb;
          mb <= last_mb; mb++) {
         int mbid = mb - s->regs.mbs;
-        int r = flexcan_mb_rx_check_mb(s, buf, mbid);
+        enum FlexcanCheck r = flexcan_mb_rx_check_mb(s, buf, mbid);
         if (r == FLEXCAN_CHECK_MB_MATCH) {
             flexcan_mb_move_in(s, buf, mb);
             flexcan_irq_iflag_set(s, mbid);
@@ -1268,7 +1274,7 @@ static ssize_t flexcan_receive(CanBusClientState *client,
     s->smb_target_mbidx = FLEXCAN_SMB_EMPTY;
 
     for (size_t i = 0; i < frames_cnt; i++) {
-        int r;
+        enum FlexcanRx r;
         const qemu_can_frame *frame = &frames[i];
         if (frame->can_id & QEMU_CAN_ERR_FLAG) {
             /* todo: error frame handling */
