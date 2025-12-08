@@ -1135,16 +1135,14 @@ static ssize_t flexcan_receive(CanBusClientState *client,
         if (s->regs.mcr & FLEXCAN_MCR_FEN &&
             s->regs.ctrl2 & FLEXCAN_CTRL2_MRP) {
             r = flexcan_mb_rx(s, frame);
-            if (r != FLEXCAN_RX_SEARCH_RETRY) {
-                continue;
+            if (r == FLEXCAN_RX_SEARCH_RETRY) {
+                flexcan_fifo_rx(s, frame);
             }
-            flexcan_fifo_rx(s, frame);
         } else if (s->regs.mcr & FLEXCAN_MCR_FEN) {
             r = flexcan_fifo_rx(s, frame);
-            if (r != FLEXCAN_RX_SEARCH_RETRY) {
-                continue;
+            if (r == FLEXCAN_RX_SEARCH_RETRY) {
+                flexcan_mb_rx(s, frame);
             }
-            flexcan_mb_rx(s, frame);
         } else {
             flexcan_mb_rx(s, frame);
         }
