@@ -343,42 +343,6 @@ static inline FlexcanRegsMessageBuffer *flexcan_get_last_enabled_mailbox(
     return s->regs.mbs + flexcan_enabled_mailbox_count(s);
 }
 
-/**
- * flexcan_get_first_filter_mailbox() - Get pointer to first queue filter.
- * @s: FlexCAN device pointer
- *
- * This function does not check if FIFO is enabled.
- *
- * Return: Pointer to first queue filter element.
- */
-static inline uint32_t *flexcan_get_first_filter_mailbox(FlexcanState *s)
-{
-    return (uint32_t *)(s->regs.mbs + 6);
-}
-
-/**
- * flexcan_get_last_filter_mailbox() - Get pointer to last queue filter.
- * @s: FlexCAN device pointer
- *
- * This function does not check if FIFO is enabled.
- * All words in range [flexcan_get_first_filter_mailbox(),
- * flexcan_get_last_filter_mailbox()] are queue filter elements, if queue
- * is enabled.
- *
- * Return: Pointer to last queue filter element.
- */
-static inline uint32_t *flexcan_get_last_filter_mailbox(FlexcanState *s)
-{
-    /* adding three to get pointer to the last word of the mailbox */
-    uint32_t *last_enabled_elem =
-        ((uint32_t *)flexcan_get_last_enabled_mailbox(s)) + 3;
-
-    int rffn = (s->regs.ctrl2 & FLEXCAN_CTRL2_RFFN(UINT32_MAX)) >> 24;
-    uint32_t *last_elem = (uint32_t *)(s->regs.mbs + 8 + 2 * rffn) - 1;
-
-    return MIN(last_elem, last_enabled_elem);
-}
-
 /* ========== Free-running Timer ========== */
 static inline int64_t flexcan_get_time(void)
 {
