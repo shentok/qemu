@@ -895,8 +895,6 @@ static const CanBusClientInfo can_sja_bus_client_info = {
 
 int can_sja_connect_to_bus(CanSJA1000State *s, CanBusState *bus)
 {
-    s->bus_client.info = &can_sja_bus_client_info;
-
     if (!bus) {
         return -EINVAL;
     }
@@ -916,6 +914,8 @@ void can_sja_disconnect(CanSJA1000State *s)
 int can_sja_init(CanSJA1000State *s, qemu_irq irq)
 {
     s->irq = irq;
+
+    can_bus_client_init(&s->bus_client, &can_sja_bus_client_info);
 
     return 0;
 }

@@ -82,6 +82,17 @@ static void can_bus_instance_init(Object *object)
     QTAILQ_INIT(&bus->clients);
 }
 
+void can_bus_client_init(CanBusClientState *client,
+                         const CanBusClientInfo *info)
+{
+    assert(client);
+    assert(info);
+    assert(info->can_receive);
+    assert(info->receive);
+
+    client->info = info;
+}
+
 int can_bus_insert_client(CanBusState *bus, CanBusClientState *client)
 {
     client->bus = bus;

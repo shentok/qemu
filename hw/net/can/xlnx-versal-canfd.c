@@ -1837,14 +1837,6 @@ static const CanBusClientInfo canfd_xilinx_bus_client_info = {
     .receive = canfd_xilinx_receive,
 };
 
-static int xlnx_canfd_connect_to_bus(XlnxVersalCANFDState *s,
-                                     CanBusState *bus)
-{
-    s->bus_client.info = &canfd_xilinx_bus_client_info;
-
-    return can_bus_insert_client(bus, &s->bus_client);
-}
-
 static void canfd_realize(DeviceState *dev, Error **errp)
 {
     XlnxVersalCANFDState *s = XILINX_CANFD(dev);
@@ -1860,7 +1852,7 @@ static void canfd_realize(DeviceState *dev, Error **errp)
     sysbus_init_irq(SYS_BUS_DEVICE(dev), &s->irq_canfd_int);
 
     if (s->canfdbus) {
-        if (xlnx_canfd_connect_to_bus(s, s->canfdbus) < 0) {
+        if (can_bus_insert_client(s->canfdbus, &s->bus_client) < 0) {
             g_autofree char *path = object_get_canonical_path(OBJECT(s));
 
             error_setg(errp, "%s: xlnx_canfd_connect_to_bus failed", path);
@@ -1886,6 +1878,8 @@ static void canfd_realize(DeviceState *dev, Error **errp)
 static void canfd_init(Object *obj)
 {
     XlnxVersalCANFDState *s = XILINX_CANFD(obj);
+
+    can_bus_client_init(&s->bus_client, &canfd_xilinx_bus_client_info);
 
     memory_region_init_io(&s->iomem, obj, &canfd_ops, s, TYPE_XILINX_CANFD,
                           XLNX_VERSAL_CANFD_R_MAX * 4);

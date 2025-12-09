@@ -261,7 +261,6 @@ static void can_host_socketcan_connect(CanHostState *ch, Error **errp)
     }
 
     c->fd = s;
-    ch->bus_client.info = &can_host_socketcan_bus_client_info;
     qemu_set_fd_handler(c->fd, can_host_socketcan_read, NULL, c);
     return;
 
@@ -303,8 +302,10 @@ static void can_host_socketcan_set_if(Object *obj, const char *value,
 static void can_host_socketcan_instance_init(Object *obj)
 {
     CanHostSocketCAN *c = CAN_HOST_SOCKETCAN(obj);
+    CanHostState *ch = CAN_HOST(c);
 
     c->fd = -1;
+    can_bus_client_init(&ch->bus_client, &can_host_socketcan_bus_client_info);
 }
 
 static void can_host_socketcan_class_init(ObjectClass *klass,

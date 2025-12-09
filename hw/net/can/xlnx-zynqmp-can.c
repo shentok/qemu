@@ -1092,23 +1092,12 @@ static const CanBusClientInfo can_xilinx_bus_client_info = {
     .receive = xlnx_zynqmp_can_receive,
 };
 
-static int xlnx_zynqmp_can_connect_to_bus(XlnxZynqMPCANState *s,
-                                          CanBusState *bus)
-{
-    s->bus_client.info = &can_xilinx_bus_client_info;
-
-    if (can_bus_insert_client(bus, &s->bus_client) < 0) {
-        return -1;
-    }
-    return 0;
-}
-
 static void xlnx_zynqmp_can_realize(DeviceState *dev, Error **errp)
 {
     XlnxZynqMPCANState *s = XLNX_ZYNQMP_CAN(dev);
 
     if (s->canbus) {
-        if (xlnx_zynqmp_can_connect_to_bus(s, s->canbus) < 0) {
+        if (can_bus_insert_client(s->canbus, &s->bus_client) < 0) {
             g_autofree char *path = object_get_canonical_path(OBJECT(s));
 
             error_setg(errp, "%s: xlnx_zynqmp_can_connect_to_bus"
@@ -1140,6 +1129,8 @@ static void xlnx_zynqmp_can_init(Object *obj)
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
     RegisterInfoArray *reg_array;
+
+    can_bus_client_init(&s->bus_client, &can_xilinx_bus_client_info);
 
     memory_region_init(&s->iomem, obj, TYPE_XLNX_ZYNQMP_CAN,
                         XLNX_ZYNQMP_CAN_R_MAX * 4);

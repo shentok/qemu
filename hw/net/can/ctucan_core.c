@@ -582,8 +582,6 @@ static const CanBusClientInfo ctucan_bus_client_info = {
 
 int ctucan_connect_to_bus(CtuCanCoreState *s, CanBusState *bus)
 {
-    s->bus_client.info = &ctucan_bus_client_info;
-
     if (!bus) {
         return -EINVAL;
     }
@@ -603,6 +601,8 @@ void ctucan_disconnect(CtuCanCoreState *s)
 int ctucan_init(CtuCanCoreState *s, qemu_irq irq)
 {
     s->irq = irq;
+
+    can_bus_client_init(&s->bus_client, &ctucan_bus_client_info);
 
     return 0;
 }

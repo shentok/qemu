@@ -102,6 +102,9 @@ struct CanBusClientState {
     bool fd_mode;
 };
 
+void can_bus_client_init(CanBusClientState *client,
+                         const CanBusClientInfo *info);
+
 int can_bus_filter_match(struct qemu_can_filter *filter, qemu_canid_t can_id);
 
 int can_bus_insert_client(CanBusState *bus, CanBusClientState *client);
