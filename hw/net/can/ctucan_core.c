@@ -604,8 +604,6 @@ int ctucan_init(CtuCanCoreState *s, qemu_irq irq)
 {
     s->irq = irq;
 
-    ctucan_hardware_reset(s);
-
     return 0;
 }
 
