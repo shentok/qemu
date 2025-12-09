@@ -1201,19 +1201,14 @@ static void flexcan_reg_write(FlexcanState *s, hwaddr addr, uint32_t val)
     case offsetof(FlexcanRegs, rx15mask):
         QEMU_FALLTHROUGH;
     case offsetof(FlexcanRegs, rxfgmask):
+        QEMU_FALLTHROUGH;
+    case offsetof(FlexcanRegs, rximr[0]) ... offsetof(FlexcanRegs, rximr[63]):
         /* these registers can only be written in freeze mode */
         if (!(s->regs.mcr & FLEXCAN_MCR_FRZ_ACK)) {
             break;
         }
         QEMU_FALLTHROUGH;
     default:
-        /* RXIMRn can only be written in freeze mode */
-        if (!(s->regs.mcr & FLEXCAN_MCR_FRZ_ACK) &&
-            addr >= offsetof(FlexcanRegs, rximr) &&
-            addr < offsetof(FlexcanRegs, _reserved5)) {
-            break;
-        }
-
         s->regs_raw[addr / 4] = (val & write_mask) | (old_value & ~write_mask);
 
         if (addr >= offsetof(FlexcanRegs, mb) &&
