@@ -917,8 +917,6 @@ int can_sja_init(CanSJA1000State *s, qemu_irq irq)
 {
     s->irq = irq;
 
-    qemu_irq_lower(s->irq);
-
     can_sja_hardware_reset(s);
 
     return 0;
