@@ -240,26 +240,27 @@ static const char *flexcan_dbg_reg_name_fixed(hwaddr addr)
 static inline void flexcan_trace_mem_op(FlexcanState *s, hwaddr addr,
                                         uint32_t value, int size, bool is_wr)
 {
-    if (trace_event_get_state_backends(TRACE_FLEXCAN_MEM_OP)) {
-        const char *reg_name = "unknown";
-        char reg_name_buf[FLEXCAN_DBG_BUF_LEN] = { 0 };
-        const char *reg_name_fixed = flexcan_dbg_reg_name_fixed(addr);
-        const char *op_string = is_wr ? "write" : "read";
+    DeviceState *dev = DEVICE(s);
+    const char *reg_name = "unknown";
+    char reg_name_buf[FLEXCAN_DBG_BUF_LEN] = { 0 };
+    const char *reg_name_fixed = flexcan_dbg_reg_name_fixed(addr);
 
-        if (reg_name_fixed) {
-            reg_name = reg_name_fixed;
-        } else if (addr >= 0x80 && addr < 0x480) {
-            int mbidx = (addr - 0x80) / 16;
-            g_snprintf(reg_name_buf, sizeof(reg_name_buf), "MB%i", mbidx);
-            reg_name = reg_name_buf;
-        } else if (addr >= 0x880 && addr < 0x9e0) {
-            int id = (addr - 0x880) / 4;
-            g_snprintf(reg_name_buf, sizeof(reg_name_buf), "RXIMR%i", id);
-            reg_name = reg_name_buf;
-        }
+    if (reg_name_fixed) {
+        reg_name = reg_name_fixed;
+    } else if (addr >= 0x80 && addr < 0x480) {
+        int mbidx = (addr - 0x80) / 16;
+        g_snprintf(reg_name_buf, sizeof(reg_name_buf), "MB%i", mbidx);
+        reg_name = reg_name_buf;
+    } else if (addr >= 0x880 && addr < 0x9e0) {
+        int id = (addr - 0x880) / 4;
+        g_snprintf(reg_name_buf, sizeof(reg_name_buf), "RXIMR%i", id);
+        reg_name = reg_name_buf;
+    }
 
-        trace_flexcan_mem_op(DEVICE(s)->canonical_path, op_string, value, addr,
-                             reg_name, size);
+    if (is_wr) {
+        trace_flexcan_mem_write(dev->canonical_path, addr, reg_name, value);
+    } else {
+        trace_flexcan_mem_read(dev->canonical_path, addr, reg_name, value);
     }
 }
 
