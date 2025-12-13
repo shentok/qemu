@@ -34,6 +34,7 @@
 #include "hw/southbridge/piix.h"
 #include "hw/display/ramfb.h"
 #include "hw/pci/pci.h"
+#include "hw/pci/pci_bus.h"
 #include "hw/pci/pci_ids.h"
 #include "hw/usb/usb.h"
 #include "net/net.h"
@@ -112,7 +113,6 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     qemu_irq smi_irq;
     GSIState *gsi_state;
     MemoryRegion *ram_memory;
-    MemoryRegion *pci_memory = NULL;
     ram_addr_t lowmem;
     PCIDevice *pci_dev;
     DeviceState *dev;
@@ -189,15 +189,10 @@ static void pc_init1(MachineState *machine, const char *pci_type)
         kvmclock_create(pcmc->kvmclock_create_always);
     }
 
-    pci_memory = g_new(MemoryRegion, 1);
-    memory_region_init(pci_memory, NULL, "pci", UINT64_MAX);
-
     phb = OBJECT(qdev_new(TYPE_I440FX_PCI_HOST_BRIDGE));
     object_property_add_child(OBJECT(machine), "i440fx", phb);
     object_property_set_link(phb, PCI_HOST_PROP_RAM_MEM,
                              OBJECT(ram_memory), &error_fatal);
-    object_property_set_link(phb, PCI_HOST_PROP_PCI_MEM,
-                             OBJECT(pci_memory), &error_fatal);
     object_property_set_link(phb, PCI_HOST_PROP_SYSTEM_MEM,
                              OBJECT(system_memory), &error_fatal);
     object_property_set_link(phb, PCI_HOST_PROP_IO_MEM,
@@ -223,7 +218,8 @@ static void pc_init1(MachineState *machine, const char *pci_type)
                                                    PCI_HOST_PROP_PCI_HOLE64_SIZE,
                                                    &error_abort);
 
-        pc_memory_init(pcms, system_memory, pci_memory, pci_hole64_size);
+        pc_memory_init(pcms, system_memory, pcms->pcibus->address_space_mem,
+                       pci_hole64_size);
     } else {
         assert(machine->ram_size == x86ms->below_4g_mem_size +
                                     x86ms->above_4g_mem_size);
