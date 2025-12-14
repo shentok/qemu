@@ -27,6 +27,7 @@
 #include "qemu/range.h"
 #include "hw/i386/pc.h"
 #include "hw/pci/pci.h"
+#include "hw/pci/pci_bus.h"
 #include "hw/pci/pci_host.h"
 #include "hw/pci-host/i440fx.h"
 #include "hw/core/qdev-properties.h"
@@ -51,6 +52,7 @@ struct I440FXState {
     MemoryRegion *io_memory;
     MemoryRegion pci_address_space;
     MemoryRegion *ram_memory;
+    PCIBus pci_bus;
     Range pci_hole;
     uint64_t below_4g_mem_size;
     uint64_t above_4g_mem_size;
@@ -249,7 +251,6 @@ static void i440fx_pcihost_realize(DeviceState *dev, Error **errp)
     I440FXState *s = I440FX_PCI_HOST_BRIDGE(dev);
     PCIHostState *phb = PCI_HOST_BRIDGE(dev);
     SysBusDevice *sbd = SYS_BUS_DEVICE(dev);
-    PCIBus *b;
     PCIDevice *d;
     PCII440FXState *f;
     unsigned i;
@@ -264,11 +265,11 @@ static void i440fx_pcihost_realize(DeviceState *dev, Error **errp)
     memory_region_set_flush_coalesced(&phb->data_mem);
     memory_region_add_coalescing(&phb->conf_mem, 0, 4);
 
-    b = pci_root_bus_new(dev, NULL, &s->pci_address_space,
-                         s->io_memory, 0, TYPE_PCI_BUS);
-    phb->bus = b;
+    pci_root_bus_init(&s->pci_bus, sizeof(s->pci_bus), dev, NULL,
+                      &s->pci_address_space, s->io_memory, 0, TYPE_PCI_BUS);
+    phb->bus = &s->pci_bus;
 
-    d = pci_create_simple(b, 0, s->pci_type);
+    d = pci_create_simple(&s->pci_bus, 0, s->pci_type);
     f = I440FX_PCI_DEVICE(d);
 
     range_set_bounds(&s->pci_hole, s->below_4g_mem_size,
