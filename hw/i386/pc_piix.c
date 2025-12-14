@@ -114,7 +114,6 @@ static void pc_init1(MachineState *machine, const char *pci_type)
     MemoryRegion *ram_memory;
     MemoryRegion *pci_memory = NULL;
     ram_addr_t lowmem;
-    uint64_t hole64_size = 0;
     PCIDevice *pci_dev;
     DeviceState *dev;
     size_t i;
@@ -216,13 +215,15 @@ static void pc_init1(MachineState *machine, const char *pci_type)
                      xen_enabled() ? xen_pci_slot_get_pirq
                                    : pc_pci_slot_get_pirq);
 
-    hole64_size = object_property_get_uint(phb,
-                                           PCI_HOST_PROP_PCI_HOLE64_SIZE,
-                                           &error_abort);
-
     /* allocate ram and load rom/bios */
     if (!xen_enabled()) {
-        pc_memory_init(pcms, system_memory, pci_memory, hole64_size);
+        uint64_t pci_hole64_size;
+
+        pci_hole64_size = object_property_get_uint(phb,
+                                                   PCI_HOST_PROP_PCI_HOLE64_SIZE,
+                                                   &error_abort);
+
+        pc_memory_init(pcms, system_memory, pci_memory, pci_hole64_size);
     } else {
         assert(machine->ram_size == x86ms->below_4g_mem_size +
                                     x86ms->above_4g_mem_size);
