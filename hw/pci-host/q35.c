@@ -62,10 +62,10 @@ static void q35_host_realize(DeviceState *dev, Error **errp)
     memory_region_set_flush_coalesced(&pci->data_mem);
     memory_region_add_coalescing(&pci->conf_mem, 0, 4);
 
-    pci->bus = pci_root_bus_new(DEVICE(s), "pcie.0",
-                                &s->mch.pci_address_space,
-                                s->mch.address_space_io,
-                                0, TYPE_PCIE_BUS);
+    pci_root_bus_init(&s->pci_bus, sizeof(s->pci_bus), DEVICE(s), "pcie.0",
+                      &s->mch.pci_address_space, s->mch.address_space_io, 0,
+                      TYPE_PCIE_BUS);
+    pci->bus = &s->pci_bus;
 
     qdev_realize(DEVICE(&s->mch), BUS(pci->bus), &error_fatal);
 }

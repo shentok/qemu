@@ -22,6 +22,7 @@
 #ifndef HW_Q35_H
 #define HW_Q35_H
 
+#include "hw/pci/pci_bus.h"
 #include "hw/pci/pci_device.h"
 #include "hw/pci/pcie_host.h"
 #include "hw/pci-host/pam.h"
@@ -63,6 +64,7 @@ struct Q35PCIHost {
     PCIExpressHost parent_obj;
     /*< public >*/
 
+    PCIBus pci_bus;
     bool pci_hole64_fix;
     MCHPCIState mch;
 };
