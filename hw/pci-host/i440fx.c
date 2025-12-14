@@ -295,11 +295,11 @@ static void i440fx_pcihost_realize(DeviceState *dev, Error **errp)
     object_property_add_const_link(qdev_get_machine(), "smram",
                                    OBJECT(&f->smram));
 
-    init_pam(&f->pam_regions[0], OBJECT(d), s->ram_memory, s->system_memory,
+    init_pam(&f->pam_regions[0], OBJECT(d), s->system_memory, s->ram_memory,
              &s->pci_address_space, PAM_BIOS_BASE, PAM_BIOS_SIZE);
     for (i = 0; i < ARRAY_SIZE(f->pam_regions) - 1; ++i) {
-        init_pam(&f->pam_regions[i + 1], OBJECT(d), s->ram_memory,
-                 s->system_memory, &s->pci_address_space,
+        init_pam(&f->pam_regions[i + 1], OBJECT(d), s->system_memory,
+                 s->ram_memory, &s->pci_address_space,
                  PAM_EXPAN_BASE + i * PAM_EXPAN_SIZE, PAM_EXPAN_SIZE);
     }
 

@@ -30,8 +30,8 @@
 #include "qemu/osdep.h"
 #include "hw/pci-host/pam.h"
 
-void init_pam(PAMMemoryRegion *mem, Object *owner, MemoryRegion *ram_memory,
-              MemoryRegion *system_memory, MemoryRegion *pci_address_space,
+void init_pam(PAMMemoryRegion *mem, Object *owner, MemoryRegion *system_memory,
+              MemoryRegion *ram_memory, MemoryRegion *pci_address_space,
               uint32_t start, uint32_t size)
 {
     int i;

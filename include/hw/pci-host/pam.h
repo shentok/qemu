@@ -87,8 +87,8 @@ typedef struct PAMMemoryRegion {
     unsigned current;
 } PAMMemoryRegion;
 
-void init_pam(PAMMemoryRegion *mem, Object *owner, MemoryRegion *ram,
-              MemoryRegion *system, MemoryRegion *pci,
+void init_pam(PAMMemoryRegion *mem, Object *owner, MemoryRegion *system,
+              MemoryRegion *ram, MemoryRegion *pci,
               uint32_t start, uint32_t size);
 void pam_update(PAMMemoryRegion *mem, int idx, uint8_t val);
 
