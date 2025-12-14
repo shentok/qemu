@@ -141,7 +141,6 @@ config CAN_BUS
 
 config CAN_SJA1000
     bool
-    default y if PCI_DEVICES
     select CAN_BUS
 
 config CAN_SJA1000_PCI
@@ -152,7 +151,6 @@ config CAN_SJA1000_PCI
 
 config CAN_CTUCANFD
     bool
-    default y if PCI_DEVICES
     select CAN_BUS
 
 config CAN_CTUCANFD_PCI
