@@ -266,7 +266,8 @@ static inline void flexcan_trace_mem_op(FlexcanState *s, hwaddr addr,
             reg_name = reg_name_buf;
         }
 
-        trace_flexcan_mem_op(s, op_string, value, addr, reg_name, size);
+        trace_flexcan_mem_op(DEVICE(s)->canonical_path, op_string, value, addr,
+                             reg_name, size);
     }
 }
 
@@ -356,8 +357,9 @@ static uint32_t flexcan_get_bitrate(FlexcanState *s)
 
     uint32_t bitrate = s_freq / total_qpb;
 
-    trace_flexcan_get_bitrate(s, pe_freq, 1 + conf_presdiv, s_freq, tseg1,
-                              tseg2, total_qpb, bitrate);
+    trace_flexcan_get_bitrate(DEVICE(s)->canonical_path, pe_freq,
+                              1 + conf_presdiv, s_freq, tseg1, tseg2, total_qpb,
+                              bitrate);
     return bitrate;
 }
 
@@ -381,7 +383,8 @@ static uint32_t flexcan_get_timestamp(FlexcanState *s, bool mk_unique)
 {
     if (s->timer_start == FLEXCAN_TIMER_STOPPED) {
         /* timer is not running, return last value */
-        trace_flexcan_get_timestamp(s, -1, 0, 0, 0, s->regs.timer);
+        trace_flexcan_get_timestamp(DEVICE(s)->canonical_path, -1, 0, 0, 0,
+                                    s->regs.timer);
         return s->regs.timer;
     }
 
@@ -410,8 +413,8 @@ static uint32_t flexcan_get_timestamp(FlexcanState *s, bool mk_unique)
     s->last_rx_timer_cycles = cycles;
     uint32_t rv = (uint32_t)cycles & 0xFFFF;
 
-    trace_flexcan_get_timestamp(s, elapsed_time_ms, s->timer_freq,
-                                cycles, shift, rv);
+    trace_flexcan_get_timestamp(DEVICE(s)->canonical_path, elapsed_time_ms,
+                                s->timer_freq, cycles, shift, rv);
     return rv;
 }
 
@@ -431,7 +434,8 @@ static void flexcan_timer_start(FlexcanState *s)
     s->timer_start = flexcan_get_time();
     s->last_rx_timer_cycles = 0;
 
-    trace_flexcan_timer_start(s, s->timer_freq, s->regs.timer);
+    trace_flexcan_timer_start(DEVICE(s)->canonical_path, s->timer_freq,
+                              s->regs.timer);
 }
 
 /**
@@ -446,7 +450,8 @@ static void flexcan_timer_stop(FlexcanState *s)
     s->regs.timer = flexcan_get_timestamp(s, false);
     s->timer_start = FLEXCAN_TIMER_STOPPED;
 
-    trace_flexcan_timer_stop(s, s->timer_freq, s->regs.timer);
+    trace_flexcan_timer_stop(DEVICE(s)->canonical_path, s->timer_freq,
+                             s->regs.timer);
 }
 
 /* ========== IRQ handling ========== */
@@ -477,7 +482,8 @@ static void flexcan_irq_update(FlexcanState *s)
      */
 
     int irq_setting = (mb_irqs1 | mb_irqs2) ? 1 : 0;
-    trace_flexcan_irq_update(s, mb_irqs1, mb_irqs2, irq_setting);
+    trace_flexcan_irq_update(DEVICE(s)->canonical_path, mb_irqs1, mb_irqs2,
+                             irq_setting);
 
     qemu_set_irq(s->irq, irq_setting);
 }
@@ -523,16 +529,15 @@ static void flexcan_reset_local_state(FlexcanState *s)
     s->smb_target_mbidx = FLEXCAN_SMB_EMPTY;
     s->timer_start = FLEXCAN_TIMER_STOPPED;
 
-    trace_flexcan_reset(s);
+    trace_flexcan_reset(DEVICE(s)->canonical_path);
 }
 
 static void flexcan_soft_reset(FlexcanState *s)
 {
     if (s->regs.mcr & FLEXCAN_MCR_LPM_ACK) {
-        g_autofree char *path = object_get_canonical_path(OBJECT(s));
         qemu_log_mask(LOG_GUEST_ERROR,
                       "%s: invalid soft reset request in low-power mode",
-                      path);
+                      DEVICE(s)->canonical_path);
     }
 
     flexcan_reset_local_state(s);
@@ -645,7 +650,7 @@ static void flexcan_set_mcr(FlexcanState *s, const uint32_t pv)
     s->regs.mcr = cv;
     flexcan_update_esr(s);
     trace_flexcan_set_mcr(
-        s,
+        DEVICE(s)->canonical_path,
         cv & FLEXCAN_MCR_LPM_ACK ? "DISABLED" : "ENABLED",
         (cv & FLEXCAN_MCR_FRZ_ACK || cv & FLEXCAN_MCR_LPM_ACK) ?
             "FROZEN" : "RUNNING",
@@ -720,8 +725,8 @@ static void flexcan_mb_write(FlexcanState *s, int mbid)
     if (trace_event_get_state_backends(TRACE_FLEXCAN_MB_WRITE)) {
         char code_str_buf[FLEXCAN_DBG_BUF_LEN] = { 0 };
         const char *code_str = flexcan_dbg_mb_code(mb->can_ctrl, code_str_buf);
-        trace_flexcan_mb_write(s, mbid, code_str, is_mailbox, mb->can_ctrl,
-                               mb->can_id);
+        trace_flexcan_mb_write(DEVICE(s)->canonical_path, mbid, code_str,
+                               is_mailbox, mb->can_ctrl, mb->can_id);
     }
 
     if (!is_mailbox) {
@@ -835,10 +840,10 @@ static void flexcan_mb_lock(FlexcanState *s, int mbidx)
         QEMU_FALLTHROUGH;
     case FLEXCAN_MB_CODE_RX_RANSWER:
         /* continue */
-        trace_flexcan_mb_lock(s, mbidx, 1);
+        trace_flexcan_mb_lock(DEVICE(s)->canonical_path, mbidx, 1);
         break;
     default:
-        trace_flexcan_mb_lock(s, mbidx, 0);
+        trace_flexcan_mb_lock(DEVICE(s)->canonical_path, mbidx, 0);
         return;
     }
 
@@ -865,7 +870,7 @@ static void flexcan_mb_unlock(FlexcanState *s)
 
     /* try move in from SMB */
     bool has_pending_frame = locked_mbidx == s->smb_target_mbidx;
-    trace_flexcan_mb_unlock(s, locked_mbidx,
+    trace_flexcan_mb_unlock(DEVICE(s)->canonical_path, locked_mbidx,
                             has_pending_frame ? " PENDING FRAME IN SMB" : "");
 
     /* todo: in low-power modes, this should be postponed until exit */
@@ -905,9 +910,10 @@ static void flexcan_fifo_pop(FlexcanState *s)
         memset(&s->regs.mbs[FLEXCAN_FIFO_DEPTH - 1], 0,
                sizeof(FlexcanRegsMessageBuffer));
 
-        trace_flexcan_fifo_pop(s, 1, s->regs.fifo.mb_back.can_ctrl != 0);
+        trace_flexcan_fifo_pop(DEVICE(s)->canonical_path, 1,
+                               s->regs.fifo.mb_back.can_ctrl != 0);
     } else {
-        trace_flexcan_fifo_pop(s, 0, 0);
+        trace_flexcan_fifo_pop(DEVICE(s)->canonical_path, 0, 0);
     }
 
     if (s->regs.fifo.mb_back.can_ctrl != 0) {
@@ -958,11 +964,11 @@ static void flexcan_fifo_push(FlexcanState *s, FlexcanRegsMessageBuffer *slot)
         }
         flexcan_irq_iflag_set(s, I_FIFO_AVAILABLE);
 
-        trace_flexcan_fifo_push(s, n_occupied);
+        trace_flexcan_fifo_push(DEVICE(s)->canonical_path, n_occupied);
     } else {
         flexcan_irq_iflag_set(s, I_FIFO_OVERFLOW);
 
-        trace_flexcan_fifo_push(s, -1);
+        trace_flexcan_fifo_push(DEVICE(s)->canonical_path, -1);
     }
 }
 
@@ -1038,9 +1044,9 @@ static int flexcan_mb_rx_check_mb(FlexcanState *s, const qemu_can_frame *buf,
     if (trace_event_get_state_backends(TRACE_FLEXCAN_MB_RX_CHECK_MB)) {
         char code_str_buf[FLEXCAN_DBG_BUF_LEN] = { 0 };
         const char *code_str = flexcan_dbg_mb_code(mb->can_ctrl, code_str_buf);
-        trace_flexcan_mb_rx_check_mb(s, mbid, code_str, is_matched,
-                                     is_free_to_receive, is_serviced,
-                                     is_locked);
+        trace_flexcan_mb_rx_check_mb(DEVICE(s)->canonical_path, mbid, code_str,
+                                     is_matched, is_free_to_receive,
+                                     is_serviced, is_locked);
     }
 
     if (is_matched && is_free_to_receive && !is_locked) {
@@ -1107,12 +1113,11 @@ static ssize_t flexcan_receive(CanBusClientState *client,
                                const qemu_can_frame *frames, size_t frames_cnt)
 {
     FlexcanState *s = container_of(client, FlexcanState, bus_client);
-    trace_flexcan_receive(s, frames_cnt);
+    trace_flexcan_receive(DEVICE(s)->canonical_path, frames_cnt);
 
     if (frames_cnt <= 0) {
-        g_autofree char *path = object_get_canonical_path(OBJECT(s));
         qemu_log_mask(LOG_GUEST_ERROR, "%s: Error in the data received.\n",
-                      path);
+                      DEVICE(s)->canonical_path);
         return 0;
     }
 
@@ -1223,9 +1228,9 @@ static void flexcan_reg_write(FlexcanState *s, hwaddr addr, uint32_t val)
 
             /* check for invalid writes into FIFO region */
             if (s->regs.mcr & FLEXCAN_MCR_FEN && mbid < FLEXCAN_FIFO_DEPTH) {
-                g_autofree char *path = object_get_canonical_path(OBJECT(s));
                 qemu_log_mask(LOG_GUEST_ERROR,
-                              "%s: Invalid write to Rx-FIFO structure", path);
+                              "%s: Invalid write to Rx-FIFO structure",
+                              DEVICE(s)->canonical_path);
                 return;
             }
 
@@ -1283,9 +1288,9 @@ static uint64_t flexcan_mem_read(void *opqaue, hwaddr addr, unsigned size)
         flexcan_trace_mem_op(s, addr, rv, size, false);
         return rv;
     } else {
-        g_autofree char *path = object_get_canonical_path(OBJECT(s));
         qemu_log_mask(LOG_GUEST_ERROR,
-                      "%s: Invalid write outside valid I/O space", path);
+                      "%s: Invalid write outside valid I/O space",
+                      DEVICE(s)->canonical_path);
 
         flexcan_trace_mem_op(s, addr, 0, size, false);
         return 0;
@@ -1314,7 +1319,8 @@ static bool flexcan_mem_accepts(void *opaque, hwaddr addr,
 
     return true;
 denied:
-    trace_flexcan_mem_accepts(s, addr, size, is_write, !attrs.user);
+    trace_flexcan_mem_accepts(DEVICE(s)->canonical_path, addr, size, is_write,
+                              !attrs.user);
     return false;
 }
 
