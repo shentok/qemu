@@ -114,6 +114,7 @@ typedef struct FlexcanRegs {
 
 typedef struct FlexcanState {
     SysBusDevice        parent_obj;
+
     MemoryRegion        iomem;
     IMXCCMState        *ccm;
     qemu_irq            irq;
