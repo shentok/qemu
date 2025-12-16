@@ -20,13 +20,13 @@
 #include "qemu/error-report.h"
 #include "system/qtest.h"
 
-typedef struct SabreliteMachineState {
+struct SabreliteMachineState {
     MachineState parent_obj;
     FslIMX6State soc;
     CanBusState *canbus[FSL_IMX6_NUM_CANS];
 
     struct arm_boot_info binfo;
-} Sabrelite;
+};
 
 #define TYPE_SABRELITE_MACHINE MACHINE_TYPE_NAME("sabrelite")
 OBJECT_DECLARE_SIMPLE_TYPE(SabreliteMachineState, SABRELITE_MACHINE)
@@ -52,7 +52,7 @@ static void sabrelite_reset_secondary(ARMCPU *cpu,
 
 static void sabrelite_init(MachineState *machine)
 {
-    Sabrelite *s = SABRELITE_MACHINE(machine);
+    SabreliteMachineState *s = SABRELITE_MACHINE(machine);
 
     /* Check the amount of memory is compatible with the SOC */
     if (machine->ram_size > FSL_IMX6_MMDC_SIZE) {
@@ -124,7 +124,7 @@ static void sabrelite_init(MachineState *machine)
 
 static void sabrelite_machine_instance_init(Object *obj)
 {
-    Sabrelite *s = SABRELITE_MACHINE(obj);
+    SabreliteMachineState *s = SABRELITE_MACHINE(obj);
 
     object_property_add_link(obj, "canbus0", TYPE_CAN_BUS,
                              (Object **)&s->canbus[0],
@@ -154,7 +154,7 @@ static const TypeInfo sabrelite_machine_init_typeinfo = {
     .parent     = TYPE_MACHINE,
     .class_init = sabrelite_machine_class_init,
     .instance_init = sabrelite_machine_instance_init,
-    .instance_size = sizeof(Sabrelite),
+    .instance_size = sizeof(SabreliteMachineState),
     .abstract   = false,
     .interfaces = arm_machine_interfaces,
 };
