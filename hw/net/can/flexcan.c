@@ -1266,9 +1266,9 @@ static void flexcan_reg_write(FlexcanState *s, hwaddr addr, uint32_t val)
     flexcan_irq_update(s);
 }
 
-void flexcan_mem_write(void *obj, hwaddr addr, uint64_t val, unsigned size)
+void flexcan_mem_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 {
-    FlexcanState *s = CAN_FLEXCAN(obj);
+    FlexcanState *s = opaque;
     flexcan_trace_mem_op(s, addr, val, size, true);
 
     if (addr < FLEXCAN_ADDR_SPC_END) {
@@ -1277,9 +1277,9 @@ void flexcan_mem_write(void *obj, hwaddr addr, uint64_t val, unsigned size)
         DPRINTF("warn: write outside of defined address space\n");
     }
 }
-uint64_t flexcan_mem_read(void *obj, hwaddr addr, unsigned size)
+uint64_t flexcan_mem_read(void *opaque, hwaddr addr, unsigned size)
 {
-    FlexcanState *s = CAN_FLEXCAN(obj);
+    FlexcanState *s = opaque;
 
     if (addr < FLEXCAN_ADDR_SPC_END) {
         uint32_t rv = s->regs_raw[addr >> 2];
@@ -1314,11 +1314,11 @@ uint64_t flexcan_mem_read(void *obj, hwaddr addr, unsigned size)
         return 0;
     }
 }
-bool flexcan_mem_accepts(void *obj, hwaddr addr,
+bool flexcan_mem_accepts(void *opaque, hwaddr addr,
                                 unsigned size, bool is_write,
                                 MemTxAttrs attrs)
 {
-    FlexcanState *s = CAN_FLEXCAN(obj);
+    FlexcanState *s = opaque;
 
     if ((s->regs.ctrl2 & FLEXCAN_CTRL2_WRMFRZ) &&
         (s->regs.mcr & FLEXCAN_MCR_FRZ_ACK)) {
