@@ -24,8 +24,6 @@ struct SabreliteMachineState {
     MachineState parent_obj;
     FslIMX6State soc;
     CanBusState *canbus[FSL_IMX6_NUM_CANS];
-
-    struct arm_boot_info binfo;
 };
 
 #define TYPE_SABRELITE_MACHINE MACHINE_TYPE_NAME("sabrelite")
