@@ -164,4 +164,5 @@ config CAN_CTUCANFD_PCI
 config CAN_FLEXCAN
     bool
     default y
+    depends on IMX
     select CAN_BUS
