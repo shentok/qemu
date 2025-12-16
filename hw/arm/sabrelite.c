@@ -109,7 +109,6 @@ static void sabrelite_init(MachineState *machine)
         }
     }
 
-
     sabrelite_binfo.ram_size = machine->ram_size;
     sabrelite_binfo.secure_boot = true;
     sabrelite_binfo.write_secondary_boot = sabrelite_write_secondary;
