@@ -275,7 +275,7 @@ static inline void flexcan_trace_mem_op(FlexcanState *s, hwaddr addr,
 static const struct MemoryRegionOps flexcan_ops = {
     .read = flexcan_mem_read,
     .write = flexcan_mem_write,
-    .endianness = DEVICE_NATIVE_ENDIAN,
+    .endianness = DEVICE_LITTLE_ENDIAN,
     .valid = {
         .min_access_size = 1,
         .max_access_size = 4,
