@@ -840,11 +840,12 @@ static void flexcan_mb_lock(FlexcanState *s, int mbidx)
 
 static void flexcan_mb_unlock(FlexcanState *s)
 {
+    int locked_mbidx = s->locked_mbidx;
+
     if (s->locked_mbidx == FLEXCAN_NO_MB_LOCKED) {
         return;
     }
 
-    int locked_mbidx = s->locked_mbidx;
     assert(locked_mbidx >= 0 && locked_mbidx < FLEXCAN_MAILBOX_COUNT);
     FlexcanRegsMessageBuffer *locked_mb = &s->regs.mbs[locked_mbidx];
     s->locked_mbidx = FLEXCAN_NO_MB_LOCKED;
