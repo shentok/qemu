@@ -57,14 +57,6 @@
  */
 #define FLEXCAN_TIMER_STOPPED           -1
 
-/**
- * defines the end of the memory space of the implemented registers
- *
- * also prevents addressing memory after FlexcanRegs end
- */
-#define FLEXCAN_ADDR_SPC_END offsetof(FlexcanRegs, _reserved6)
-QEMU_BUILD_BUG_ON(FLEXCAN_ADDR_SPC_END > sizeof(FlexcanRegs));
-
 /* These constants are returned by flexcan_fifo_rx() and flexcan_mb_rx(), */
 /* Retry the other receiving mechanism (ie. message bufer or mailbox). */
 #define FLEXCAN_RX_SEARCH_RETRY 0
@@ -208,10 +200,6 @@ static const char *flexcan_dbg_mb_code(uint32_t mb_ctrl, char *buf)
 
 static const char *flexcan_dbg_reg_name_fixed(hwaddr addr)
 {
-    if (addr >= FLEXCAN_ADDR_SPC_END) {
-        return "OUT-OF-RANGE";
-    }
-
     switch (addr) {
     case offsetof(FlexcanRegs, mcr):
         return "MCR";
@@ -1252,50 +1240,35 @@ static void flexcan_mem_write(void *opaque, hwaddr addr, uint64_t val,
 
     flexcan_trace_mem_op(s, addr, val, size, true);
 
-    if (addr < FLEXCAN_ADDR_SPC_END) {
-        flexcan_reg_write(s, addr, (uint32_t)val);
-    } else {
-        qemu_log_mask(LOG_GUEST_ERROR,
-                      "warn: write outside of defined address space\n");
-    }
+    flexcan_reg_write(s, addr, (uint32_t)val);
 }
 
 static uint64_t flexcan_mem_read(void *opqaue, hwaddr addr, unsigned size)
 {
     FlexcanState *s = opqaue;
+    uint32_t rv = s->regs_raw[addr >> 2];
 
-    if (addr < FLEXCAN_ADDR_SPC_END) {
-        uint32_t rv = s->regs_raw[addr >> 2];
+    if (addr >= offsetof(FlexcanRegs, mb) &&
+        addr < offsetof(FlexcanRegs, _reserved4)) {
+        /* reading from mailbox */
+        hwaddr offset = addr - offsetof(FlexcanRegs, mb);
+        int mbid = offset / sizeof(FlexcanRegsMessageBuffer);
 
-        if (addr >= offsetof(FlexcanRegs, mb) &&
-            addr < offsetof(FlexcanRegs, _reserved4)) {
-            /* reading from mailbox */
-            hwaddr offset = addr - offsetof(FlexcanRegs, mb);
-            int mbid = offset / sizeof(FlexcanRegsMessageBuffer);
-
-            if (addr % 16 == 0 && s->locked_mbidx != mbid) {
-                /* reading control word locks the mailbox */
-                flexcan_mb_unlock(s);
-                flexcan_mb_lock(s, mbid);
-                flexcan_irq_update(s);
-                rv = s->regs.mbs[mbid].can_ctrl & ~FLEXCAN_MB_CNT_NOT_SRV;
-            }
-        } else if (addr == offsetof(FlexcanRegs, timer)) {
+        if (addr % 16 == 0 && s->locked_mbidx != mbid) {
+            /* reading control word locks the mailbox */
             flexcan_mb_unlock(s);
+            flexcan_mb_lock(s, mbid);
             flexcan_irq_update(s);
-            rv = flexcan_get_timestamp(s, false);
+            rv = s->regs.mbs[mbid].can_ctrl & ~FLEXCAN_MB_CNT_NOT_SRV;
         }
-
-        flexcan_trace_mem_op(s, addr, rv, size, false);
-        return rv;
-    } else {
-        qemu_log_mask(LOG_GUEST_ERROR,
-                      "%s: Invalid write outside valid I/O space",
-                      DEVICE(s)->canonical_path);
-
-        flexcan_trace_mem_op(s, addr, 0, size, false);
-        return 0;
+    } else if (addr == offsetof(FlexcanRegs, timer)) {
+        flexcan_mb_unlock(s);
+        flexcan_irq_update(s);
+        rv = flexcan_get_timestamp(s, false);
     }
+
+    flexcan_trace_mem_op(s, addr, rv, size, false);
+    return rv;
 }
 
 static bool flexcan_mem_accepts(void *opaque, hwaddr addr,
@@ -1321,13 +1294,6 @@ static bool flexcan_mem_accepts(void *opaque, hwaddr addr,
     if (is_write && attrs.user && addr < 4) {
         qemu_log_mask(LOG_GUEST_ERROR, "%s: illegal user write to MCR\n",
                       dev->canonical_path);
-        return false;
-    }
-
-    if (addr >= FLEXCAN_ADDR_SPC_END) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s: illegal write to non-existent"
-                      " register 0x%" HWADDR_PRIx "\n", dev->canonical_path,
-                      addr);
         return false;
     }
 
@@ -1371,7 +1337,7 @@ static void flexcan_init(Object *obj)
     FlexcanState *s = CAN_FLEXCAN(obj);
 
     memory_region_init_io(&s->iomem, obj, &flexcan_ops, s, TYPE_CAN_FLEXCAN,
-                          0x4000);
+                          offsetof(FlexcanRegs, _reserved6));
 }
 
 static void flexcan_realize(DeviceState *dev, Error **errp)
