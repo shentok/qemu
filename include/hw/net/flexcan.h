@@ -34,7 +34,7 @@ typedef struct FlexcanRegsMessageBuffer {
 typedef struct FlexcanRegsRXFifo {
     /* 6 message buffer deep queue, queue back first */
     FlexcanRegsMessageBuffer mb_back;
-    FlexcanRegsMessageBuffer mbs_queue[5];
+    FlexcanRegsMessageBuffer mbs_queue[FLEXCAN_FIFO_DEPTH - 1];
 
     /* number of filter elements depends on ctrl2 | FLEXCAN_CTRL2_RFFN */
     uint32_t                 filter_table_els[128];
@@ -72,11 +72,11 @@ typedef struct FlexcanRegs {
     uint32_t _reserved3[8];      /* 0x60 */
     union {                      /* 0x80 - not affected by soft reset */
         uint32_t mb[256];
-        FlexcanRegsMessageBuffer mbs[64];
+        FlexcanRegsMessageBuffer mbs[FLEXCAN_MAILBOX_COUNT];
         FlexcanRegsRXFifo fifo;
     };
     uint32_t _reserved4[256];    /* 0x480 */
-    uint32_t rximr[64];          /* 0x880 - not affected by soft reset */
+    uint32_t rximr[FLEXCAN_MAILBOX_COUNT]; /* 0x880 - not affected by soft reset */
     uint32_t _reserved5[24];     /* 0x980 */
     uint32_t gfwr_mx6;           /* 0x9E0 - MX6 */
 
