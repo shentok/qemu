@@ -13,7 +13,7 @@
 
 #include "qemu/osdep.h"
 #include "ppce500_ccsr.h"
-#include "hw/qdev-dt-interface.h"
+#include "hw/core/qdev-dt-interface.h"
 #include "trace.h"
 
 static void ppce500_ccsr_handle_device_tree_node_post(DeviceState *dev,
