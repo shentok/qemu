@@ -176,8 +176,10 @@ also possible.
 Examples on how to use CAN emulation for FlexCAN on SabreLite board
 -------------------------------------------------------------------
 FlexCANs are connected to QEMU CAN buses by passing the bus IDs as machine properties:
+
 * property ``canbus0`` for connecting ``flexcan1``
 * property ``canbus1`` for connecting ``flexcan2``
+
 Note that upstream Linux SabreLite DTs have only a single FlexCAN (``flexcan1``) enabled.
 
 An example command to run QEMU emulating a Sabrelite development board
