@@ -51,6 +51,7 @@ const FcTestFrame fc_test_frame_1 = {
     },
     .ide = false
 };
+
 const FcTestFrame fc_test_frame_1_ide = {
     .id = 0x105AF5AF,
     .len = 8,
@@ -93,6 +94,7 @@ static uint64_t fc_get_irqs(hwaddr ba)
     return (uint64_t)readl(FCREG(ba, iflag1)) |
         ((uint64_t)readl(FCREG(ba, iflag2)) << 32);
 }
+
 static void fc_clear_irq(hwaddr ba, int idx)
 {
     if (idx >= 32) {
@@ -103,6 +105,7 @@ static void fc_clear_irq(hwaddr ba, int idx)
 
     g_assert_cmpuint(fc_get_irqs(ba) & ((uint64_t)1 << idx), ==, 0);
 }
+
 static void fc_setup_rx_mb(hwaddr ba, int mbidx)
 {
     writel(FCMB(ba, mbidx, 0), FLEXCAN_MB_CODE_RX_EMPTY);
@@ -113,6 +116,7 @@ static void fc_setup_rx_mb(hwaddr ba, int mbidx)
 
     g_assert_cmpuint(readl(FCMB(ba, mbidx, 0)), ==, FLEXCAN_MB_CODE_RX_EMPTY);
 }
+
 static void fc_tx(hwaddr ba, int mbidx, const FcTestFrame *frame)
 {
     g_assert_cmpuint(frame->len, <=, 8);
@@ -145,6 +149,7 @@ static void fc_tx(hwaddr ba, int mbidx, const FcTestFrame *frame)
     g_assert_cmpuint(readl(FCMB(ba, mbidx, 2)), ==, frame->data[0]);
     g_assert_cmpuint(readl(FCMB(ba, mbidx, 3)), ==, frame->data[1]);
 }
+
 static void fc_rx_check(hwaddr ba, int mbidx, const FcTestFrame *frame)
 {
     uint32_t xpectd_ctrl = frame->expect_overrun ? FLEXCAN_MB_CODE_RX_OVERRUN
@@ -169,6 +174,7 @@ static void fc_rx_check(hwaddr ba, int mbidx, const FcTestFrame *frame)
     g_assert_cmpuint(readl(FCMB(ba, mbidx, 2)), ==, frame->data[0]);
     g_assert_cmpuint(readl(FCMB(ba, mbidx, 3)), ==, frame->data[1]);
 }
+
 static void fc_check_empty_multi(hwaddr ba, int idx_count, int mbidxs[])
 {
     for (int i = 0; i < FLEXCAN_MAILBOX_COUNT; i++) {
@@ -195,6 +201,7 @@ static void fc_check_empty_multi(hwaddr ba, int idx_count, int mbidxs[])
         );
     }
 }
+
 static void fc_check_empty(hwaddr ba, int mbidx)
 {
     fc_check_empty_multi(ba, 1, &mbidx);
@@ -363,6 +370,7 @@ static void flexcan_test_freeze_disable_interaction(void)
     flexcan_test_freeze_disable_interaction_impl(FSL_IMX6_CAN2_ADDR);
     qtest_end();
 }
+
 static void flexcan_test_linux_probe(void)
 {
     qtest_start(FC_QEMU_ARGS);
@@ -370,6 +378,7 @@ static void flexcan_test_linux_probe(void)
     flexcan_test_linux_probe_impl(FSL_IMX6_CAN2_ADDR);
     qtest_end();
 }
+
 static void flexcan_test_dual_transmit_receive(void)
 {
     qtest_start(FC_QEMU_ARGS);
@@ -379,6 +388,7 @@ static void flexcan_test_dual_transmit_receive(void)
                                             FSL_IMX6_CAN1_ADDR);
     qtest_end();
 }
+
 static void flexcan_test_tx_abort(void)
 {
     qtest_start(FC_QEMU_ARGS);
@@ -386,6 +396,7 @@ static void flexcan_test_tx_abort(void)
     flexcan_test_tx_abort_impl(FSL_IMX6_CAN2_ADDR);
     qtest_end();
 }
+
 static void flexcan_test_mailbox_io(void)
 {
     qtest_start(FC_QEMU_ARGS);
