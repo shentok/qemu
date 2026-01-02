@@ -42,7 +42,7 @@ typedef struct FcTestFrame {
     bool expect_overrun;
 } FcTestFrame;
 
-const FcTestFrame fc_test_frame_1 = {
+static const FcTestFrame fc_test_frame_1 = {
     .id = 0x5AF,
     .len = 8,
     .data = {
@@ -52,7 +52,7 @@ const FcTestFrame fc_test_frame_1 = {
     .ide = false
 };
 
-const FcTestFrame fc_test_frame_1_ide = {
+static const FcTestFrame fc_test_frame_1_ide = {
     .id = 0x105AF5AF,
     .len = 8,
     .data = {
