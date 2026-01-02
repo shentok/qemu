@@ -20,7 +20,7 @@
 #define FSL_IMX6_CAN1_ADDR 0x02090000
 #define FSL_IMX6_CAN1_SIZE 0x4000
 
-#define FC_QEMU_ARGS "-nographic -M sabrelite --trace flexcan* " \
+#define FC_QEMU_ARGS "-nographic -M sabrelite " \
                      "-object can-bus,id=qcan0 " \
                      "-machine canbus0=qcan0 -machine canbus1=qcan0"
 
