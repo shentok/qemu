@@ -11,6 +11,7 @@
 #include "qemu/osdep.h"
 #include "hw/misc/imx8mp_src.h"
 #include "hw/core/cpu.h"
+#include "hw/core/qdev-properties.h"
 #include "hw/core/registerfields.h"
 #include "target/arm/arm-powerctl.h"
 #include "migration/vmstate.h"
@@ -372,6 +373,8 @@ static void imx8mp_src_reset(DeviceState *dev)
     s->regs[R_SRC_PCIEPHY_RCR] = 0xa;
     s->regs[R_SRC_SRSR] = 0x1;
     s->regs[R_SRC_SIMR] = 0x3ff;
+    s->regs[R_SRC_SBMR2] = FIELD_DP32(s->regs[R_SRC_SBMR2], SRC_SBMR2,
+                                      IPP_BOOT_MODE, s->boot_mode);
 }
 
 static const VMStateDescription imx8mp_src_vmstate = {
@@ -384,6 +387,10 @@ static const VMStateDescription imx8mp_src_vmstate = {
     },
 };
 
+static const Property imx8mp_src_properties[] = {
+    DEFINE_PROP_UINT8("boot-mode", FslImx8mpSrcState, boot_mode, 0),
+};
+
 static void imx8mp_src_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
@@ -391,6 +398,7 @@ static void imx8mp_src_class_init(ObjectClass *klass, const void *data)
     dc->realize = imx8mp_src_realize;
     device_class_set_legacy_reset(dc, imx8mp_src_reset);
     dc->vmsd = &imx8mp_src_vmstate;
+    device_class_set_props(dc, imx8mp_src_properties);
     dc->desc = "i.MX 8M Plus System Reset Controller";
 }
 

@@ -24,6 +24,7 @@ struct FslImx8mpSrcState {
     MemoryRegion iomem;
 
     uint32_t regs[FSL_IMX8MP_SRC_NUM_REGS];
+    uint8_t boot_mode;
 };
 
 void imx8mp_src_start_cpu(FslImx8mpSrcState *s, int cpuid);

@@ -31,6 +31,7 @@ struct FslImx8mpEvkState {
     CanBusState *canbus[FSL_IMX8MP_NUM_CANS];
 
     struct arm_boot_info boot_info;
+    uint8_t boot_mode;
 };
 
 static void imx8mp_evk_modify_dtb(const struct arm_boot_info *info, void *fdt)
@@ -114,6 +115,8 @@ static void imx8mp_evk_init(MachineState *machine)
 
     object_initialize_child(OBJECT(machine), "soc", &s->soc, TYPE_FSL_IMX8MP);
     object_property_set_uint(OBJECT(&s->soc), "fec1-phy-num", 1, &error_fatal);
+    object_property_set_uint(OBJECT(&s->soc.src), "boot-mode", s->boot_mode,
+                             &error_fatal);
     for (int i = 0; i < FSL_IMX8MP_NUM_CANS; i++) {
         g_autofree char *bus_name = g_strdup_printf("canbus%d", i);
 
@@ -137,7 +140,7 @@ static void imx8mp_evk_init(MachineState *machine)
 
         blk = blk_by_legacy_dinfo(di);
         bus = qdev_get_child_bus(DEVICE(&s->soc.usdhc[i]), "sd-bus");
-        carddev = qdev_new(TYPE_SD_CARD);
+        carddev = qdev_new(i == 2 ? TYPE_EMMC : TYPE_SD_CARD);
         qdev_prop_set_drive_err(carddev, "drive", blk, &error_fatal);
         qdev_realize_and_unref(carddev, bus, &error_fatal);
     }
@@ -170,6 +173,9 @@ static void imx8mp_evk_machine_init(Object *obj)
     object_property_add_link(obj, "canbus1", TYPE_CAN_BUS,
                              (Object **)&s->canbus[1],
                              object_property_allow_set_link, 0);
+
+    object_property_add_uint8_ptr(obj, "boot-mode", &s->boot_mode,
+                                  OBJ_PROP_FLAG_READWRITE);
 }
 
 static void imx8mp_evk_machine_class_init(ObjectClass *oc, const void *data)
