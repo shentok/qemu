@@ -1115,8 +1115,12 @@ static const VMStateDescription sd_vmstate = {
 
 static void sd_blk_read(SDState *sd, uint64_t addr, uint32_t len)
 {
-    trace_sdcard_read_block(addr, len);
-    addr += sd_part_offset(sd);
+    uint32_t part_offset = sd_part_offset(sd);
+
+    addr += part_offset;
+
+    trace_sdcard_read_block(addr, part_offset, len);
+
     if (!sd->blk || blk_pread(sd->blk, addr, len, sd->data, 0) < 0) {
         fprintf(stderr, "sd_blk_read: read error on host side\n");
     }
@@ -1124,8 +1128,12 @@ static void sd_blk_read(SDState *sd, uint64_t addr, uint32_t len)
 
 static void sd_blk_write(SDState *sd, uint64_t addr, uint32_t len)
 {
-    trace_sdcard_write_block(addr, len);
-    addr += sd_part_offset(sd);
+    uint32_t part_offset = sd_part_offset(sd);
+
+    addr += part_offset;
+
+    trace_sdcard_write_block(addr, part_offset, len);
+
     if (!sd->blk || blk_pwrite(sd->blk, addr, len, sd->data, 0) < 0) {
         fprintf(stderr, "sd_blk_write: write error on host side\n");
     }
