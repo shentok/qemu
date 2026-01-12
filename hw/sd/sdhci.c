@@ -1669,13 +1669,6 @@ static uint64_t esdhc_read(void *opaque, hwaddr offset, unsigned size)
         }
         break;
 
-    case SDHC_CLKCON:
-        ret = sdhci_read(opaque, offset, size);
-        if (object_dynamic_cast(OBJECT(s), TYPE_IMX_USDHC)) {
-            ret |= 0xf;
-        }
-        break;
-
     case ESDHC_VENDOR_SPEC:
         ret = s->vendor_spec;
         break;
@@ -1894,12 +1887,32 @@ static void fsl_esdhc_le_init(Object *obj)
     qdev_prop_set_uint8(dev, "sd-spec-version", 2);
 }
 
+static uint64_t usdhc_read(void *opaque, hwaddr offset, unsigned size)
+{
+    if (offset == SDHC_CLKCON) {
+        return esdhc_read(opaque, offset, size) | 0x0f;
+    }
+
+    return esdhc_read(opaque, offset, size);
+}
+
+static const MemoryRegionOps usdhc_mmio_ops = {
+    .read = usdhc_read,
+    .write = esdhc_write,
+    .valid = {
+        .min_access_size = 1,
+        .max_access_size = 4,
+        .unaligned = false
+    },
+    .endianness = DEVICE_LITTLE_ENDIAN,
+};
+
 static void imx_usdhc_init(Object *obj)
 {
     SDHCIState *s = SYSBUS_SDHCI(obj);
     DeviceState *dev = DEVICE(obj);
 
-    s->io_ops = &esdhc_mmio_le_ops;
+    s->io_ops = &usdhc_mmio_ops;
     s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ;
     qdev_prop_set_uint8(dev, "sd-spec-version", 3);
 }
