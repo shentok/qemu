@@ -200,19 +200,19 @@ static void pc_q35_init(MachineState *machine)
     phb = OBJECT(qdev_new(TYPE_Q35_HOST_DEVICE));
     object_property_add_child(OBJECT(machine), "q35", phb);
     object_property_set_link(phb, PCI_HOST_PROP_RAM_MEM,
-                             OBJECT(machine->ram), NULL);
+                             OBJECT(machine->ram), &error_fatal);
     object_property_set_link(phb, PCI_HOST_PROP_SYSTEM_MEM,
-                             OBJECT(system_memory), NULL);
+                             OBJECT(system_memory), &error_fatal);
     object_property_set_link(phb, PCI_HOST_PROP_IO_MEM,
-                             OBJECT(system_io), NULL);
+                             OBJECT(system_io), &error_fatal);
     object_property_set_uint(phb, PCI_HOST_BELOW_4G_MEM_SIZE,
-                             x86ms->below_4g_mem_size, NULL);
+                             x86ms->below_4g_mem_size, &error_fatal);
     object_property_set_uint(phb, PCI_HOST_ABOVE_4G_MEM_SIZE,
-                             x86ms->above_4g_mem_size, NULL);
+                             x86ms->above_4g_mem_size, &error_fatal);
     object_property_set_bool(phb, PCI_HOST_BYPASS_IOMMU,
-                             pcms->default_bus_bypass_iommu, NULL);
+                             pcms->default_bus_bypass_iommu, &error_fatal);
     object_property_set_bool(phb, PCI_HOST_PROP_SMM_RANGES,
-                             x86_machine_is_smm_enabled(x86ms), NULL);
+                             x86_machine_is_smm_enabled(x86ms), &error_fatal);
     sysbus_realize_and_unref(SYS_BUS_DEVICE(phb), &error_fatal);
 
     /* pci */
