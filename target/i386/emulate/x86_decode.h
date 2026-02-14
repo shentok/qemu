@@ -313,23 +313,12 @@ uint32_t decode_instruction(CPUX86State *env, struct x86_decode *decode);
 uint32_t decode_instruction_stream(CPUX86State *env, struct x86_decode *decode,
                                    struct x86_insn_stream *stream);
 
-void *get_reg_ref(CPUX86State *env, int reg, int rex_present,
-                  int is_extended, int size);
-target_ulong get_reg_val(CPUX86State *env, int reg, int rex_present,
-                         int is_extended, int size);
-void calc_modrm_operand(CPUX86State *env, struct x86_decode *decode,
-                        struct x86_decode_op *op);
 target_ulong decode_linear_addr(CPUX86State *env, struct x86_decode *decode,
-                               target_ulong addr, enum X86Seg seg);
+                                target_ulong addr, enum X86Seg seg);
 
 void init_decoder(void);
-void calc_modrm_operand16(CPUX86State *env, struct x86_decode *decode,
-                          struct x86_decode_op *op);
-void calc_modrm_operand32(CPUX86State *env, struct x86_decode *decode,
-                          struct x86_decode_op *op);
-void calc_modrm_operand64(CPUX86State *env, struct x86_decode *decode,
-                          struct x86_decode_op *op);
-void set_addressing_size(CPUX86State *env, struct x86_decode *decode);
-void set_operand_size(CPUX86State *env, struct x86_decode *decode);
+
+void calc_modrm_operand(CPUX86State *env, struct x86_decode *decode,
+                        struct x86_decode_op *op);
 
 #endif

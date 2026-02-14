@@ -24,6 +24,20 @@
 
 #define OPCODE_ESCAPE   0xf
 
+static void *get_reg_ref(CPUX86State *env, int reg, int rex_present,
+                  int is_extended, int size);
+static target_ulong get_reg_val(CPUX86State *env, int reg, int rex_present,
+                         int is_extended, int size);
+
+static void calc_modrm_operand16(CPUX86State *env, struct x86_decode *decode,
+                          struct x86_decode_op *op);
+static void calc_modrm_operand32(CPUX86State *env, struct x86_decode *decode,
+                          struct x86_decode_op *op);
+static void calc_modrm_operand64(CPUX86State *env, struct x86_decode *decode,
+                          struct x86_decode_op *op);
+static void set_addressing_size(CPUX86State *env, struct x86_decode *decode);
+static void set_operand_size(CPUX86State *env, struct x86_decode *decode);
+
 static void decode_invalid(CPUX86State *env, struct x86_decode *decode)
 {
     printf(TARGET_FMT_lx ": failed to decode instruction ", env->eip);
@@ -1713,7 +1727,7 @@ void *get_reg_ref(CPUX86State *env, int reg, int rex_present,
     return ptr;
 }
 
-target_ulong get_reg_val(CPUX86State *env, int reg, int rex_present,
+static target_ulong get_reg_val(CPUX86State *env, int reg, int rex_present,
                          int is_extended, int size)
 {
     uint64_t val = 0;
