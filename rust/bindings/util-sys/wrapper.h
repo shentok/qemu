@@ -20,6 +20,7 @@ typedef struct Visitor Visitor;
 #include "qapi/error.h"
 #include "qapi/error-internal.h"
 #include "qemu/event_notifier.h"
+#include "qemu/fifo8.h"
 #include "qemu/main-loop.h"
 #include "qemu/aio.h"
 #include "qemu/log-for-trace.h"

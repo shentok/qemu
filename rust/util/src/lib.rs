@@ -3,6 +3,7 @@
 pub use util_sys as bindings;
 
 pub mod error;
+pub mod fifo8;
 pub mod log;
 pub mod module;
 
