@@ -37,3 +37,4 @@ typedef struct Visitor Visitor;
 #include "qobject/qobject.h"
 #include "qobject/qstring.h"
 #include "qobject/json-writer.h"
+#include "migration/vmstate.h"

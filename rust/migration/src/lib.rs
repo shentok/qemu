@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pub use migration_sys as bindings;
 pub use qemu_macros::ToMigrationState;
+pub use util_sys as bindings;
 
 pub mod migratable;
 pub use migratable::*;

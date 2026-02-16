@@ -3,7 +3,6 @@
 # invocations below.
 bindgen_dirs = [
   'util-sys',
-  'migration-sys',
   'qom-sys',
   'chardev-sys',
   'hwcore-sys',
@@ -30,7 +29,6 @@ bindgen_kwargs = {
 }
 
 subdir('util-sys')
-subdir('migration-sys')
 subdir('qom-sys')
 subdir('chardev-sys')
 subdir('hwcore-sys')

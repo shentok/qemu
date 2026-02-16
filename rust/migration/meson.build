@@ -2,7 +2,7 @@ _migration_rs = static_library(
   'migration',
   'src/lib.rs',
   link_with: [_util_rs, _bql_rs],
-  dependencies: [common_rs, glib_sys_rs, qemu_macros, migration_sys_rs],
+  dependencies: [common_rs, glib_sys_rs, qemu_macros, util_sys_rs],
 )
 
 migration_rs = declare_dependency(link_with: [_migration_rs],

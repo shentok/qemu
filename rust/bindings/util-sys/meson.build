@@ -6,7 +6,7 @@ _util_sys_rs = static_library(
   structured_sources(['lib.rs', _bindgen_util_rs]),
   override_options: ['rust_std=2021', 'build.rust_std=2021'],
   rust_abi: 'rust',
-  dependencies: [glib_sys_rs],
+  dependencies: [glib_sys_rs, common_rs],
 )
 
 util_sys_rs = declare_dependency(link_with: [_util_sys_rs])

@@ -16,6 +16,7 @@ path = "lib.rs"
 
 [dependencies]
 glib-sys = { workspace = true }
+common = { path = "../../common" }
 
 [lints]
 workspace = true
@@ -23,3 +24,5 @@ workspace = true
 [package.metadata.bindgen]
 header = "wrapper.h"
 rustified-enum = ["module_init_type", "QEMUClockType"]
+bitfield-enum = ["MigrationPolicy", "MigrationPriority", "VMStateFlags"]
+blocklist-function = ["vmstate_register_ram", "vmstate_register_ram_global", "vmstate_unregister_ram"]

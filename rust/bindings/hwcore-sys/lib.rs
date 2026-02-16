@@ -21,12 +21,11 @@
 use chardev_sys::Chardev;
 use common::Zeroable;
 use glib_sys::GSList;
-use migration_sys::VMStateDescription;
 use qom_sys::{
     InterfaceClass, Object, ObjectClass, ObjectProperty, ObjectPropertyAccessor,
     ObjectPropertyRelease,
 };
-use util_sys::{Error, QDict, QList};
+use util_sys::{Error, QDict, QList, VMStateDescription};
 
 #[cfg(MESON)]
 include!("bindings.inc.rs");

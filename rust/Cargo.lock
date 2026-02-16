@@ -182,7 +182,6 @@ dependencies = [
  "chardev-sys",
  "common",
  "glib-sys",
- "migration-sys",
  "qom-sys",
  "system-sys",
  "util-sys",
@@ -226,18 +225,9 @@ dependencies = [
  "bql",
  "common",
  "glib-sys",
- "migration-sys",
+ "util-sys",
  "qemu_macros",
  "util",
-]
-
-[[package]]
-name = "migration-sys"
-version = "0.1.0"
-dependencies = [
- "common",
- "glib-sys",
- "util-sys",
 ]
 
 [[package]]
@@ -431,7 +421,6 @@ version = "0.1.0"
 dependencies = [
  "common",
  "glib-sys",
- "migration-sys",
  "qom-sys",
  "util-sys",
 ]
