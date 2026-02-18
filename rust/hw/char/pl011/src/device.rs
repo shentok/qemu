@@ -13,7 +13,10 @@ use qom::prelude::*;
 use system::prelude::*;
 use util::prelude::*;
 
-use crate::registers::{self, Interrupt, RegisterOffset};
+use crate::{
+    bindings::PL011_FIFO_DEPTH,
+    registers::{self, Interrupt, RegisterOffset},
+};
 
 ::trace::include_trace!("hw_char");
 
@@ -26,9 +29,6 @@ const IBRD_MASK: u32 = 0xffff;
 
 /// Fractional Baud Rate Divider, `UARTFBRD`
 const FBRD_MASK: u32 = 0x3f;
-
-/// QEMU sourced constant.
-pub const PL011_FIFO_DEPTH: u32 = 16;
 
 #[derive(Clone, Copy)]
 struct DeviceId(&'static [u8; 8]);
