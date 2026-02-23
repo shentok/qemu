@@ -30,6 +30,7 @@ use crate::bindings;
 #[derive(common::Wrapper)]
 pub struct Chardev(Opaque<bindings::Chardev>);
 
+pub type SerialParams = bindings::QEMUSerialSetParams;
 pub type ChardevClass = bindings::ChardevClass;
 pub type Event = bindings::QEMUChrEvent;
 
@@ -214,6 +215,20 @@ impl CharFrontend {
     /// that might cause C code to write to the character device.
     pub fn borrow_mut(&self) -> impl Write + '_ {
         CharFrontendMut(self.inner.borrow_mut())
+    }
+
+    pub fn set_params(&self, mut params: &SerialParams) -> io::Result<()> {
+        let mut chr = self.inner.borrow_mut();
+        // SAFETY: the borrow promises that the BQL is taken
+        let r = unsafe {
+            bindings::qemu_chr_fe_ioctl(
+                addr_of_mut!(*chr),
+                bindings::CHR_IOCTL_SERIAL_SET_PARAMS as i32,
+                addr_of_mut!(params).cast::<c_void>(),
+            )
+        };
+
+        errno::into_io_result(r).map(|_| ())
     }
 
     /// Send a continuous stream of zero bits on the line if `enabled` is
