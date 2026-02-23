@@ -18,6 +18,7 @@ use std::{
     slice,
 };
 
+use bilge::prelude::*;
 use bql::{prelude::*, BqlRefMut};
 use common::{callbacks::FnCall, errno, Opaque};
 use qom::prelude::*;
@@ -31,6 +32,20 @@ pub struct Chardev(Opaque<bindings::Chardev>);
 
 pub type ChardevClass = bindings::ChardevClass;
 pub type Event = bindings::QEMUChrEvent;
+
+#[bitsize(32)]
+#[derive(Clone, Copy, Default, DebugBits, FromBits)]
+pub struct Tiocm {
+    reserved9: u23,
+    pub dsr: bool,
+    pub ri: bool,
+    pub car: bool,
+    pub cts: bool,
+    reserved3: u2,
+    pub rts: bool,
+    pub dtr: bool,
+    reserved0: bool,
+}
 
 /// A safe wrapper around [`bindings::CharFrontend`], denoting the character
 /// back-end that is used for example by a device.  Compared to the
@@ -212,6 +227,36 @@ impl CharFrontend {
                 addr_of_mut!(*chr),
                 bindings::CHR_IOCTL_SERIAL_SET_BREAK as i32,
                 addr_of_mut!(duration).cast::<c_void>(),
+            )
+        };
+
+        errno::into_io_result(r).map(|_| ())
+    }
+
+    pub fn get_tiocm(&self) -> io::Result<Tiocm> {
+        let mut chr = self.inner.borrow_mut();
+        let mut tiocm: u32 = 0;
+        // SAFETY: the borrow promises that the BQL is taken
+        let r = unsafe {
+            bindings::qemu_chr_fe_ioctl(
+                addr_of_mut!(*chr),
+                bindings::CHR_IOCTL_SERIAL_GET_TIOCM as i32,
+                addr_of_mut!(tiocm).cast::<c_void>(),
+            )
+        };
+
+        errno::into_io_result(r).map(|_| tiocm.into())
+    }
+
+    pub fn set_tiocm(&self, tiocm: Tiocm) -> io::Result<()> {
+        let mut chr = self.inner.borrow_mut();
+        let mut arg: u32 = tiocm.into();
+        // SAFETY: the borrow promises that the BQL is taken
+        let r = unsafe {
+            bindings::qemu_chr_fe_ioctl(
+                addr_of_mut!(*chr),
+                bindings::CHR_IOCTL_SERIAL_SET_TIOCM as i32,
+                addr_of_mut!(arg).cast::<c_void>(),
             )
         };
 
