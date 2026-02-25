@@ -274,18 +274,6 @@ impl HPETTimer {
         }
     }
 
-    fn init_timer(timer: Pin<&mut Self>) {
-        Timer::init_full(
-            timer,
-            None,
-            CLOCK_VIRTUAL,
-            Timer::NS,
-            0,
-            timer_handler,
-            |t| &mut t.qemu_timer,
-        );
-    }
-
     fn get_state(&self) -> &HPETState {
         // SAFETY:
         // the pointer is convertible to a reference
@@ -685,7 +673,15 @@ impl HPETState {
             )));
             // SAFETY: HPETState is pinned
             let timer = unsafe { Pin::new_unchecked(&mut **timer) };
-            HPETTimer::init_timer(timer);
+            Timer::init_full(
+                timer,
+                None,
+                CLOCK_VIRTUAL,
+                Timer::NS,
+                0,
+                timer_handler,
+                |t| &mut t.qemu_timer,
+            );
         }
     }
 
