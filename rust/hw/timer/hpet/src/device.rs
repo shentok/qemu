@@ -170,12 +170,6 @@ const fn deactivating_bit(old: u64, new: u64, shift: usize) -> bool {
     (old & mask != 0) && (new & mask == 0)
 }
 
-fn timer_handler(t: &HPETTimer) {
-    // SFAETY: state field is valid after timer initialization.
-    let hpet_regs = &unsafe { t.state.as_ref() }.regs;
-    t.callback(&mut hpet_regs.borrow_mut())
-}
-
 #[derive(Debug, Default)]
 pub struct HPETTimerRegisters {
     // Memory-mapped, software visible timer registers
@@ -679,7 +673,11 @@ impl HPETState {
                 CLOCK_VIRTUAL,
                 Timer::NS,
                 0,
-                timer_handler,
+                |t: &HPETTimer| {
+                    // SFAETY: state field is valid after timer initialization.
+                    let hpet_regs = &unsafe { t.state.as_ref() }.regs;
+                    t.callback(&mut hpet_regs.borrow_mut())
+                },
                 |t| &mut t.qemu_timer,
             );
         }
