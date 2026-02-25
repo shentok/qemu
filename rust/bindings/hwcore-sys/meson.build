@@ -1,6 +1,8 @@
 _bindgen_hwcore_rs = rust.bindgen(
   args: bindgen_args_common + bindgen_args_data['hwcore-sys'].split(),
-  kwargs: bindgen_kwargs)
+  kwargs: bindgen_kwargs
+)
+
 _hwcore_sys_rs = static_library(
   'hwcore_sys',
   structured_sources(['lib.rs', _bindgen_hwcore_rs]),
