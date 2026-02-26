@@ -69,10 +69,11 @@ impl Timer {
 
         let timer_cb: unsafe extern "C" fn(*mut c_void) = rust_timer_handler::<T, F>;
 
+        // SAFETY: neither this code nor the C API will move the pinned T
+        let opaque = unsafe { Pin::into_inner_unchecked(opaque) };
+        let timer = field(opaque).as_mut_ptr();
         // SAFETY: the opaque outlives the timer
         unsafe {
-            let opaque = Pin::into_inner_unchecked(opaque);
-            let timer = field(opaque).as_mut_ptr();
             timer_init_full(
                 timer,
                 if let Some(g) = timer_list_group {
