@@ -182,6 +182,10 @@ pub trait DeviceImpl:
     /// with the function pointed to by `REALIZE`.
     const REALIZE: Option<fn(&Self) -> Result<()>> = None;
 
+    /// If not `None`, the parent class's `unrealize` method is overridden
+    /// with the function pointed to by `UNREALIZE`.
+    const UNREALIZE: Option<fn(&Self)> = None;
+
     /// A `VMStateDescription` providing the migration format for the device
     /// Not a `const` because referencing statics in constants is unstable
     /// until Rust 1.83.0.
@@ -204,6 +208,11 @@ unsafe extern "C" fn rust_realize_fn<T: DeviceImpl>(
     unsafe {
         Error::ok_or_propagate(result, errp);
     }
+}
+
+unsafe extern "C" fn rust_unrealize_fn<T: DeviceImpl>(dev: *mut bindings::DeviceState) {
+    let state = NonNull::new(dev).unwrap().cast::<T>();
+    T::UNREALIZE.unwrap()(unsafe { state.as_ref() });
 }
 
 #[repr(transparent)]
@@ -238,6 +247,9 @@ impl DeviceClassExt for DeviceClass {
     fn class_init<T: DeviceImpl>(&mut self) {
         if <T as DeviceImpl>::REALIZE.is_some() {
             self.realize = Some(rust_realize_fn::<T>);
+        }
+        if <T as DeviceImpl>::UNREALIZE.is_some() {
+            self.unrealize = Some(rust_unrealize_fn::<T>);
         }
         if let Some(ref vmsd) = <T as DeviceImpl>::VMSTATE {
             self.vmsd = vmsd.as_ref();
