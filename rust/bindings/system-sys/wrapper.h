@@ -12,10 +12,12 @@
 typedef struct DirtyBitmapSnapshot DirtyBitmapSnapshot;
 typedef struct MemoryRegion MemoryRegion;
 typedef struct RAMBlock RAMBlock;
+typedef struct VMChangeStateEntry;
 
 #include "qemu/osdep.h"
 
 #include "exec/hwaddr.h"
 #include "system/address-spaces.h"
 #include "system/memory.h"
+#include "system/runstate.h"
 #include "hw/core/sysbus.h"

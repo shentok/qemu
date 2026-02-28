@@ -10,5 +10,8 @@ pub use memory::*;
 #[rustfmt::skip]
 pub mod prelude;
 
+mod runstate;
+pub use runstate::*;
+
 mod sysbus;
 pub use sysbus::*;
