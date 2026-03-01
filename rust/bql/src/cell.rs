@@ -39,11 +39,24 @@
 //!
 //! This is enforced by the Rust compiler. However, there are situations where
 //! this rule is not flexible enough. Sometimes it is required to have multiple
-//! references to an object and yet mutate it. In particular, QEMU objects
-//! usually have their pointer shared with the "outside world very early in
-//! their lifetime", for example when they create their [`MemoryRegion`s].
+//! references to an object and yet mutate it. The only legal way in Rust to
+//! share mutable data is to wrap it inside `std::cell::UnsafeCell<T>`. Using it
+//! requires unsafe Rust and certain rules have to be obeyed to avoid undefined
+//! behavior. Safe wrappers such as those in `std::cell` exist to confine this
+//! complexity.
+//!
+//! In QEMU, devices need to be shared between multiple vCPU threads as well as
+//! event handlers running concurrently. To avoid race conditions, QEMU has a
+//! rule where devices may only be accessed when holding the Big QEMU Lock
+//! (BQL).
+
+This means that QEMU objects usually
+//! have their pointer shared with the "outside world very early in their
+//! lifetime", for example when devices create their [`MemoryRegion`s].
 //! Therefore, individual parts of a  device must be made mutable in a
 //! controlled manner; this module provides the tools to do so.
+
+
 //!
 //! [`MemoryRegion`s]: ../../system/memory/struct.MemoryRegion.html
 //!
