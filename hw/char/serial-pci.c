@@ -54,17 +54,18 @@ static void serial_pci_irq(void *opaque, int n, int level)
 static void serial_pci_realize(PCIDevice *dev, Error **errp)
 {
     PCISerialState *pci = DO_UPCAST(PCISerialState, dev, dev);
-    SerialState *s = &pci->state;
+    SysBusDevice *sbd = SYS_BUS_DEVICE(&pci->state);
 
-    if (!qdev_realize(DEVICE(s), NULL, errp)) {
+    if (!sysbus_realize(sbd, errp)) {
         return;
     }
 
     pci->dev.config[PCI_CLASS_PROG] = 2; /* 16550 compatible */
     pci->dev.config[PCI_INTERRUPT_PIN] = 1;
-    s->irq = &pci->irq;
+    sysbus_connect_irq(sbd, 0, &pci->irq);
 
-    pci_register_bar(&pci->dev, 0, PCI_BASE_ADDRESS_SPACE_IO, &s->io);
+    pci_register_bar(&pci->dev, 0, PCI_BASE_ADDRESS_SPACE_IO,
+                     sysbus_mmio_get_region(sbd, 0));
 }
 
 static void serial_pci_exit(PCIDevice *dev)
