@@ -118,6 +118,10 @@ pub struct SerialState {
     baudbase: u32,
     #[property(default = false)]
     wakeup: bool,
+    #[property(default = 0)]
+    regshift: u8,
+    #[property(default = 0)]
+    endianness: u8,
     fifo_timeout_timer: Box<Timer>,
     modem_status_poll: Box<Timer>,
     io: MemoryRegion,
@@ -169,7 +173,23 @@ impl SerialState {
         uninit_field_mut!(*this, irq).write(Default::default());
         uninit_field_mut!(*this, fifo_timeout_timer).write(unsafe { Box::new(Timer::new()) });
         uninit_field_mut!(*this, modem_status_poll).write(unsafe { Box::new(Timer::new()) });
-        /* FIXME: uninit_field_mut!(*this, io).write(Default::default()); */
+
+        static SERIAL_IO_OPS: MemoryRegionOps<SerialState> =
+            MemoryRegionOpsBuilder::<SerialState>::new()
+                .read(&SerialState::read)
+                .write(&SerialState::write)
+                .little_endian()
+                .valid_unaligned()
+                .impl_sizes(1, 1)
+                .build();
+
+        // SAFETY: this and this.io are guaranteed to be valid at this point
+        MemoryRegion::init_io(
+            &mut uninit_field_mut!(*this, io),
+            &SERIAL_IO_OPS,
+            "serial",
+            8,
+        );
 
         Timer::init_full(
             // SAFETY: SerialState is pinned
@@ -789,6 +809,33 @@ impl SerialState {
     }
 
     fn realize(&self) -> util::Result<()> {
+        /*
+        static SERIAL_MM_OPS_LE: MemoryRegionOps<SerialState> =
+            MemoryRegionOpsBuilder::<SerialState>::new()
+                .read(&SerialState::read_mm)
+                .write(&SerialState::write_mm)
+                .little_endian()
+                .impl_sizes(8, 8)
+                .valid_sizes(8, 8)
+                .build();
+        static SERIAL_MM_OPS_BE: MemoryRegionOps<SerialState> =
+            MemoryRegionOpsBuilder::<SerialState>::new()
+                .read(&SerialState::read_mm)
+                .write(&SerialState::write_mm)
+                .big_endian()
+                .impl_sizes(8, 8)
+                .valid_sizes(8, 8)
+                .build();
+
+        // SAFETY: this and this.io are guaranteed to be valid at this point
+        MemoryRegion::init_io(
+        &mut uninit_field_mut!(self as ParentInit<Self>, io),
+            &SERIAL_MM_OPS_LE,
+            "serial",
+            8 << self.regshift,
+        );
+        */
+
         self.chr
             .enable_handlers(self, Self::can_receive, Self::receive1, Self::event);
         Ok(())
@@ -838,16 +885,6 @@ impl SerialState {
         regs.msr &= !ModemStatus::ANY_DELTA;
     }
 }
-
-#[no_mangle]
-pub static serial_io_ops: MemoryRegionOps<SerialState> =
-    MemoryRegionOpsBuilder::<SerialState>::new()
-        .read(&SerialState::read)
-        .write(&SerialState::write)
-        .little_endian()
-        .valid_unaligned()
-        .impl_sizes(1, 1)
-        .build();
 
 /*
 static VMSTATE_SERIAL_THR_PENDING: VMStateDescription<SerialRegisters> =

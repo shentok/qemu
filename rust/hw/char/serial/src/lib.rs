@@ -15,6 +15,4 @@
 mod device;
 mod registers;
 
-pub use device::{serial_io_ops, vmstate_serial};
-
 pub const TYPE_SERIAL: &::std::ffi::CStr = c"serial";
