@@ -130,38 +130,21 @@ unsafe impl Send for MemoryRegion {}
 unsafe impl Sync for MemoryRegion {}
 
 impl MemoryRegion {
-    unsafe fn do_init_io(
-        slot: *mut bindings::MemoryRegion,
-        owner: *mut qom::bindings::Object,
-        ops: &'static bindings::MemoryRegionOps,
-        name: &'static str,
-        size: u64,
-    ) {
-        unsafe {
-            let cstr = CString::new(name).unwrap();
-            memory_region_init_io(
-                slot,
-                owner,
-                ops,
-                owner.cast::<c_void>(),
-                cstr.as_ptr(),
-                size,
-            );
-        }
-    }
-
     pub fn init_io<T: IsA<Object>>(
         this: &mut MaybeUninitField<'_, T, Self>,
         ops: &'static MemoryRegionOps<T>,
         name: &'static str,
         size: u64,
     ) {
+        let cstr = CString::new(name).unwrap();
+        let owner = this.parent_mut().cast();
         unsafe {
-            Self::do_init_io(
+            memory_region_init_io(
                 this.as_mut_ptr().cast(),
-                this.parent_mut().cast(),
+                owner,
                 &ops.0,
-                name,
+                owner.cast::<c_void>(),
+                cstr.as_ptr(),
                 size,
             );
         }
