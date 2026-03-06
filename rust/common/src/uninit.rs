@@ -21,8 +21,8 @@ impl<'a, T, U> MaybeUninitField<'a, T, U> {
     /// Because the `MaybeUninitField` remembers the containing object,
     /// it is possible to use it in foreign APIs that initialize the
     /// child.
-    pub const fn parent(f: &Self) -> *const T {
-        f.parent.as_ptr()
+    pub const fn parent(self: &Self) -> *const T {
+        self.parent.as_ptr()
     }
 
     /// Return a mutable pointer to the containing object.
@@ -30,8 +30,8 @@ impl<'a, T, U> MaybeUninitField<'a, T, U> {
     /// Because the `MaybeUninitField` remembers the containing object,
     /// it is possible to use it in foreign APIs that initialize the
     /// child.
-    pub const fn parent_mut(f: &mut Self) -> *mut T {
-        f.parent.as_mut_ptr()
+    pub const fn parent_mut(self: &mut Self) -> *mut T {
+        self.parent.as_mut_ptr()
     }
 }
 

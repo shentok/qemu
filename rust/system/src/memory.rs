@@ -159,7 +159,7 @@ impl MemoryRegion {
         unsafe {
             Self::do_init_io(
                 this.as_mut_ptr().cast(),
-                MaybeUninitField::parent_mut(this).cast(),
+                this.parent_mut().cast(),
                 &ops.0,
                 name,
                 size,
