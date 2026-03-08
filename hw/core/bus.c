@@ -140,16 +140,18 @@ static void bus_unparent(Object *obj)
     BusState *bus = BUS(obj);
     BusChild *kid;
 
-    /* Only the main system bus has no parent, and that bus is never freed */
-    assert(bus->parent);
-
     while ((kid = QTAILQ_FIRST(&bus->children)) != NULL) {
         DeviceState *dev = kid->child;
         object_unparent(OBJECT(dev));
     }
-    QLIST_REMOVE(bus, sibling);
-    bus->parent->num_child_bus--;
-    bus->parent = NULL;
+
+    /* Only the main system bus has no parent */
+    if (g_strcmp0(bus->name, "main-system-bus") != 0) {
+        assert(bus->parent);
+        QLIST_REMOVE(bus, sibling);
+        bus->parent->num_child_bus--;
+        bus->parent = NULL;
+    }
 }
 
 void qbus_init(void *bus, size_t size, const char *typename,
