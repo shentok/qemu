@@ -1225,6 +1225,7 @@ void object_unref(void *objptr)
     if (!obj) {
         return;
     }
+    trace_object_unref(object_get_canonical_path(obj), obj->ref);
     g_assert(obj->ref > 0);
 
     /* parent always holds a reference to its children */
