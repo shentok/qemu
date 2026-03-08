@@ -1225,7 +1225,11 @@ void object_unref(void *objptr)
     if (!obj) {
         return;
     }
-    trace_object_unref(object_get_canonical_path(obj), obj->ref);
+    if (obj->parent == NULL) {
+        trace_object_unref("unknown", obj->ref);
+    } else {
+        trace_object_unref(object_get_canonical_path(obj), obj->ref);
+    }
     g_assert(obj->ref > 0);
 
     /* parent always holds a reference to its children */
@@ -2116,8 +2120,10 @@ char *object_get_canonical_path(const Object *obj)
             /* A canonical path must be complete, so discard what was
              * collected so far.
              */
+            newpath = g_strdup_printf("...%s", path ? path : "");
             g_free(path);
-            return NULL;
+            path = newpath;
+            return path;
         }
 
         newpath = g_strdup_printf("/%s%s", component, path ? path : "");
