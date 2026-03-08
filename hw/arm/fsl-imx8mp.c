@@ -704,9 +704,19 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
             break;
 
         default:
-            create_unimplemented_device(fsl_imx8mp_memmap[i].name,
-                                        fsl_imx8mp_memmap[i].addr,
-                                        fsl_imx8mp_memmap[i].size);
+        {
+            Object *obj = object_new_with_props(TYPE_UNIMPLEMENTED_DEVICE,
+                                                OBJECT(dev),
+                                                fsl_imx8mp_memmap[i].name,
+                                                errp, NULL);
+
+            qdev_prop_set_string(DEVICE(obj), "name", fsl_imx8mp_memmap[i].name);
+            qdev_prop_set_uint64(DEVICE(obj), "size", fsl_imx8mp_memmap[i].size);
+            sysbus_realize_and_unref(SYS_BUS_DEVICE(obj), &error_fatal);
+
+            sysbus_mmio_map_overlap(SYS_BUS_DEVICE(obj), 0,
+                                    fsl_imx8mp_memmap[i].addr, -1000);
+        }
             break;
         }
     }
