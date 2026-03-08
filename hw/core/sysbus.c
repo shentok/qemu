@@ -311,6 +311,12 @@ static void sysbus_device_class_init(ObjectClass *klass, const void *data)
 
 static BusState *main_system_bus;
 
+static void main_system_bus_free(void *obj)
+{
+    g_free(obj);
+    main_system_bus = NULL;
+}
+
 static void main_system_bus_create(void)
 {
     /*
@@ -320,7 +326,7 @@ static void main_system_bus_create(void)
     main_system_bus = g_new0(BusState, 1);
     qbus_init(main_system_bus, sizeof(BusState),
               TYPE_SYSTEM_BUS, NULL, "main-system-bus");
-    OBJECT(main_system_bus)->free = g_free;
+    OBJECT(main_system_bus)->free = main_system_bus_free;
 }
 
 BusState *sysbus_get_default(void)
