@@ -700,6 +700,8 @@ static void object_property_del_child(Object *obj, Object *child)
             break;
         }
     }
+
+    obj->parent = NULL;
 }
 
 void object_unparent(Object *obj)
@@ -729,7 +731,7 @@ static void object_finalize(void *data)
     object_deinit(obj, ti);
 
     g_assert(obj->ref == 0);
-    g_assert(obj->parent == NULL);
+    obj->parent = NULL;
     if (obj->free) {
         obj->free(obj);
     }
@@ -1818,7 +1820,6 @@ static void object_finalize_child_property(Object *obj, const char *name,
     if (child->class->unparent) {
         (child->class->unparent)(child);
     }
-    child->parent = NULL;
     object_unref(child);
 }
 
