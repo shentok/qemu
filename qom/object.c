@@ -1736,9 +1736,8 @@ static const char *const root_containers[] = {
     "backend"
 };
 
-static Object *object_root_initialize(void)
+static void object_root_initialize(Object *root)
 {
-    Object *root = object_new(TYPE_CONTAINER);
     int i;
 
     /*
@@ -1748,8 +1747,6 @@ static Object *object_root_initialize(void)
     for (i = 0; i < ARRAY_SIZE(root_containers); i++) {
         object_property_add_new_container(root, root_containers[i]);
     }
-
-    return root;
 }
 
 Object *object_get_container(const char *name)
@@ -1767,7 +1764,8 @@ Object *object_get_root(void)
     static Object *root;
 
     if (!root) {
-        root = object_root_initialize();
+        root = object_new(TYPE_CONTAINER);
+        object_root_initialize(root);
     }
 
     return root;
