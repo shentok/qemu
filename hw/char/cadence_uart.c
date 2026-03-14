@@ -126,15 +126,15 @@ static void uart_update_status(CadenceUARTState *s)
 {
     s->r[R_SR] = 0;
 
-    s->r[R_SR] |= s->rx_count == CADENCE_UART_RX_FIFO_SIZE ? UART_SR_INTR_RFUL
-                                                           : 0;
-    s->r[R_SR] |= !s->rx_count ? UART_SR_INTR_REMPTY : 0;
-    s->r[R_SR] |= s->rx_count >= s->r[R_RTRIG] ? UART_SR_INTR_RTRIG : 0;
+    s->r[R_SR] |= fifo8_is_full(&s->rx_fifo) ? UART_SR_INTR_RFUL : 0;
+    s->r[R_SR] |= !fifo8_is_empty(&s->rx_fifo) ? UART_SR_INTR_REMPTY : 0;
+    s->r[R_SR] |= fifo8_num_used(&s->rx_fifo) >= s->r[R_RTRIG]
+                      ? UART_SR_INTR_RTRIG : 0;
 
-    s->r[R_SR] |= s->tx_count == CADENCE_UART_TX_FIFO_SIZE ? UART_SR_INTR_TFUL
-                                                           : 0;
-    s->r[R_SR] |= !s->tx_count ? UART_SR_INTR_TEMPTY : 0;
-    s->r[R_SR] |= s->tx_count >= s->r[R_TTRIG] ? UART_SR_TTRIG : 0;
+    s->r[R_SR] |= fifo8_is_full(&s->tx_fifo) ? UART_SR_INTR_TFUL : 0;
+    s->r[R_SR] |= !fifo8_is_empty(&s->tx_fifo) ? UART_SR_INTR_TEMPTY : 0;
+    s->r[R_SR] |= fifo8_num_used(&s->tx_fifo) >= s->r[R_TTRIG] ? UART_SR_TTRIG
+                                                               : 0;
 
     s->r[R_CISR] |= s->r[R_SR] & UART_SR_TO_CISR_MASK;
     s->r[R_CISR] |= s->r[R_SR] & UART_SR_TTRIG ? UART_INTR_TTRIG : 0;
@@ -153,14 +153,13 @@ static void fifo_trigger_update(void *opaque)
 
 static void uart_rx_reset(CadenceUARTState *s)
 {
-    s->rx_wpos = 0;
-    s->rx_count = 0;
+    fifo8_reset(&s->rx_fifo);
     qemu_chr_fe_accept_input(&s->chr);
 }
 
 static void uart_tx_reset(CadenceUARTState *s)
 {
-    s->tx_count = 0;
+    fifo8_reset(&s->tx_fifo);
 }
 
 static void uart_send_breaks(CadenceUARTState *s)
@@ -249,10 +248,10 @@ static int uart_can_receive(void *opaque)
     ch_mode = s->r[R_MR] & UART_MR_CHMODE;
 
     if (ch_mode == NORMAL_MODE || ch_mode == ECHO_MODE) {
-        ret = MIN(ret, CADENCE_UART_RX_FIFO_SIZE - s->rx_count);
+        ret = MIN(ret, fifo8_num_free(&s->rx_fifo));
     }
     if (ch_mode == REMOTE_LOOPBACK || ch_mode == ECHO_MODE) {
-        ret = MIN(ret, CADENCE_UART_TX_FIFO_SIZE - s->tx_count);
+        ret = MIN(ret, fifo8_num_free(&s->tx_fifo));
     }
     return ret;
 }
@@ -284,13 +283,14 @@ static void uart_write_rx_fifo(void *opaque, const uint8_t *buf, int size)
         return;
     }
 
-    if (s->rx_count == CADENCE_UART_RX_FIFO_SIZE) {
+    if (fifo8_is_full(&s->rx_fifo)) {
         s->r[R_CISR] |= UART_INTR_ROVR;
     } else {
         for (i = 0; i < size; i++) {
-            s->rx_fifo[s->rx_wpos] = buf[i];
-            s->rx_wpos = (s->rx_wpos + 1) % CADENCE_UART_RX_FIFO_SIZE;
-            s->rx_count++;
+            if (fifo8_is_full(&s->rx_fifo)) {
+                fifo8_pop(&s->rx_fifo);
+            }
+            fifo8_push(&s->rx_fifo, buf[i]);
         }
         timer_mod(s->fifo_trigger_handle, new_rx_time +
                                                 (s->char_tx_time * 4));
@@ -302,30 +302,30 @@ static gboolean cadence_uart_xmit(void *do_not_use, GIOCondition cond,
                                   void *opaque)
 {
     CadenceUARTState *s = opaque;
-    int ret;
 
     /* instant drain the fifo when there's no back-end */
     if (!qemu_chr_fe_backend_connected(&s->chr)) {
-        s->tx_count = 0;
+        fifo8_reset(&s->tx_fifo);
         return G_SOURCE_REMOVE;
     }
 
-    if (!s->tx_count) {
+    if (fifo8_is_empty(&s->tx_fifo)) {
         return G_SOURCE_REMOVE;
     }
 
-    ret = qemu_chr_fe_write(&s->chr, s->tx_fifo, s->tx_count);
-
-    if (ret >= 0) {
-        s->tx_count -= ret;
-        memmove(s->tx_fifo, s->tx_fifo + ret, s->tx_count);
+    while (!fifo8_is_empty(&s->tx_fifo)) {
+        uint8_t c = fifo8_pop(&s->tx_fifo);
+        int ret = qemu_chr_fe_write(&s->chr, &c, sizeof(c));
+        if (ret <= 0) {
+            break;
+        }
     }
 
-    if (s->tx_count) {
+    if (!fifo8_is_empty(&s->tx_fifo)) {
         guint r = qemu_chr_fe_add_watch(&s->chr, G_IO_OUT | G_IO_HUP,
                                         cadence_uart_xmit, s);
         if (!r) {
-            s->tx_count = 0;
+            fifo8_reset(&s->tx_fifo);
             return G_SOURCE_REMOVE;
         }
     }
@@ -341,8 +341,8 @@ static void uart_write_tx_fifo(CadenceUARTState *s, const uint8_t *buf,
         return;
     }
 
-    if (size > CADENCE_UART_TX_FIFO_SIZE - s->tx_count) {
-        size = CADENCE_UART_TX_FIFO_SIZE - s->tx_count;
+    if (size > fifo8_num_free(&s->tx_fifo)) {
+        size = fifo8_num_free(&s->tx_fifo);
         /*
          * This can only be a guest error via a bad tx fifo register push,
          * as can_receive() should stop remote loop and echo modes ever getting
@@ -352,8 +352,7 @@ static void uart_write_tx_fifo(CadenceUARTState *s, const uint8_t *buf,
         s->r[R_CISR] |= UART_INTR_ROVR;
     }
 
-    memcpy(s->tx_fifo + s->tx_count, buf, size);
-    s->tx_count += size;
+    fifo8_push_all(&s->rx_fifo, buf, size);
 
     cadence_uart_xmit(NULL, G_IO_OUT, s);
 }
@@ -396,11 +395,8 @@ static void uart_read_rx_fifo(CadenceUARTState *s, uint32_t *c)
         return;
     }
 
-    if (s->rx_count) {
-        uint32_t rx_rpos = (CADENCE_UART_RX_FIFO_SIZE + s->rx_wpos -
-                            s->rx_count) % CADENCE_UART_RX_FIFO_SIZE;
-        *c = s->rx_fifo[rx_rpos];
-        s->rx_count--;
+    if (!fifo8_is_empty(&s->rx_fifo)) {
+        *c = fifo8_pop(&s->rx_fifo);
 
         qemu_chr_fe_accept_input(&s->chr);
     } else {
@@ -559,6 +555,9 @@ static void cadence_uart_init(Object *obj)
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
     CadenceUARTState *s = CADENCE_UART(obj);
 
+    fifo8_create(&s->rx_fifo, CADENCE_UART_RX_FIFO_SIZE);
+    fifo8_create(&s->tx_fifo, CADENCE_UART_TX_FIFO_SIZE);
+
     memory_region_init_io(&s->iomem, obj, &uart_ops, s, "uart", 0x1000);
     sysbus_init_mmio(sbd, &s->iomem);
     sysbus_init_irq(sbd, &s->irq);
@@ -598,19 +597,14 @@ static int cadence_uart_post_load(void *opaque, int version_id)
 
 static const VMStateDescription vmstate_cadence_uart = {
     .name = "cadence_uart",
-    .version_id = 3,
-    .minimum_version_id = 2,
+    .version_id = 4,
+    .minimum_version_id = 4,
     .pre_load = cadence_uart_pre_load,
     .post_load = cadence_uart_post_load,
     .fields = (const VMStateField[]) {
         VMSTATE_UINT32_ARRAY(r, CadenceUARTState, CADENCE_UART_R_MAX),
-        VMSTATE_UINT8_ARRAY(rx_fifo, CadenceUARTState,
-                            CADENCE_UART_RX_FIFO_SIZE),
-        VMSTATE_UINT8_ARRAY(tx_fifo, CadenceUARTState,
-                            CADENCE_UART_TX_FIFO_SIZE),
-        VMSTATE_UINT32(rx_count, CadenceUARTState),
-        VMSTATE_UINT32(tx_count, CadenceUARTState),
-        VMSTATE_UINT32(rx_wpos, CadenceUARTState),
+        VMSTATE_STRUCT(rx_fifo, CadenceUARTState, 1, vmstate_fifo8, Fifo8),
+        VMSTATE_STRUCT(tx_fifo, CadenceUARTState, 1, vmstate_fifo8, Fifo8),
         VMSTATE_TIMER_PTR(fifo_trigger_handle, CadenceUARTState),
         VMSTATE_CLOCK_V(refclk, CadenceUARTState, 3),
         VMSTATE_END_OF_LIST()
