@@ -23,6 +23,7 @@
 #include "hw/core/sysbus.h"
 #include "chardev/char-fe.h"
 #include "qapi/error.h"
+#include "qemu/fifo8.h"
 #include "qemu/timer.h"
 #include "qom/object.h"
 
@@ -41,11 +42,8 @@ struct CadenceUARTState {
     /*< public >*/
     MemoryRegion iomem;
     uint32_t r[CADENCE_UART_R_MAX];
-    uint8_t rx_fifo[CADENCE_UART_RX_FIFO_SIZE];
-    uint8_t tx_fifo[CADENCE_UART_TX_FIFO_SIZE];
-    uint32_t rx_wpos;
-    uint32_t rx_count;
-    uint32_t tx_count;
+    Fifo8 rx_fifo;
+    Fifo8 tx_fifo;
     uint64_t char_tx_time;
     CharFrontend chr;
     qemu_irq irq;
