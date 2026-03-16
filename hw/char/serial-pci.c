@@ -38,10 +38,18 @@
 struct PCISerialState {
     PCIDevice dev;
     SerialState state;
+    IRQState irq;
 };
 
 #define TYPE_PCI_SERIAL "pci-serial"
 OBJECT_DECLARE_SIMPLE_TYPE(PCISerialState, PCI_SERIAL)
+
+static void serial_pci_irq(void *opaque, int n, int level)
+{
+    PCIDevice *pci = opaque;
+
+    pci_set_irq(pci, level);
+}
 
 static void serial_pci_realize(PCIDevice *dev, Error **errp)
 {
@@ -54,7 +62,7 @@ static void serial_pci_realize(PCIDevice *dev, Error **errp)
 
     pci->dev.config[PCI_CLASS_PROG] = 2; /* 16550 compatible */
     pci->dev.config[PCI_INTERRUPT_PIN] = 1;
-    s->irq = pci_allocate_irq(&pci->dev);
+    s->irq = &pci->irq;
 
     memory_region_init_io(&s->io, OBJECT(pci), &serial_io_ops, s, "serial", 8);
     pci_register_bar(&pci->dev, 0, PCI_BASE_ADDRESS_SPACE_IO, &s->io);
@@ -66,7 +74,6 @@ static void serial_pci_exit(PCIDevice *dev)
     SerialState *s = &pci->state;
 
     qdev_unrealize(DEVICE(s));
-    qemu_free_irq(s->irq);
 }
 
 static const VMStateDescription vmstate_pci_serial = {
@@ -99,6 +106,7 @@ static void serial_pci_init(Object *o)
     PCISerialState *ps = PCI_SERIAL(o);
 
     object_initialize_child(o, "serial", &ps->state, TYPE_SERIAL);
+    qemu_init_irq_child(o, "irq", &ps->irq, serial_pci_irq, ps, 0);
 
     qdev_alias_all_properties(DEVICE(&ps->state), o);
 }
