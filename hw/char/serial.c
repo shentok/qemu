@@ -969,14 +969,9 @@ static const MemoryRegionOps serial_mm_ops[] = {
     },
 };
 
-static void serial_realize(DeviceState *dev, Error **errp)
+static void serial_init(Object *obj)
 {
-    SerialState *s = SERIAL(dev);
-
-    memory_region_init_io(&s->io, OBJECT(s),
-                          s->regshift ? &serial_mm_ops[s->endianness]
-                                      : &serial_io_ops,
-                          s, "serial", 8 << s->regshift);
+    SerialState *s = SERIAL(obj);
 
     s->modem_status_poll = timer_new_ns(QEMU_CLOCK_VIRTUAL, (QEMUTimerCB *) serial_update_msl, s);
 
@@ -986,6 +981,16 @@ static void serial_realize(DeviceState *dev, Error **errp)
                              serial_event, serial_be_change, s, NULL, true);
     fifo8_create(&s->recv_fifo, UART_FIFO_LENGTH);
     fifo8_create(&s->xmit_fifo, UART_FIFO_LENGTH);
+}
+
+static void serial_realize(DeviceState *dev, Error **errp)
+{
+    SerialState *s = SERIAL(dev);
+
+    memory_region_init_io(&s->io, OBJECT(s),
+                          s->regshift ? &serial_mm_ops[s->endianness]
+                                      : &serial_io_ops,
+                          s, "serial", 8 << s->regshift);
 
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->io);
     sysbus_init_irq(SYS_BUS_DEVICE(s), &s->irq);
@@ -996,6 +1001,11 @@ static void serial_unrealize(DeviceState *dev)
     SerialState *s = SERIAL(dev);
 
     qemu_chr_fe_deinit(&s->chr, false);
+}
+
+static void serial_finalize(Object *obj)
+{
+    SerialState *s = SERIAL(obj);
 
     timer_free(s->modem_status_poll);
 
@@ -1033,6 +1043,8 @@ static const TypeInfo serial_info = {
     .name = TYPE_SERIAL,
     .parent = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(SerialState),
+    .instance_init = serial_init,
+    .instance_finalize = serial_finalize,
     .class_init = serial_class_init,
 };
 
