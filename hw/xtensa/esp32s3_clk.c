@@ -13,10 +13,10 @@
 #include "qemu/timer.h"
 #include "qapi/error.h"
 #include "qemu/error-report.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/irq.h"
-#include "hw/qdev-properties.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/irq.h"
+#include "hw/core/qdev-properties.h"
 #include "hw/xtensa/esp32s3_clk.h"
 #include "hw/xtensa/esp32s3_clk_defs.h"
 
@@ -152,7 +152,7 @@ static void esp32s3_clock_init(Object *obj)
     }
 }
 
-static void esp32s3_clock_class_init(ObjectClass *klass, void *data)
+static void esp32s3_clock_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ESP32S3ClockClass* esp32s3_clock = ESP32S3_CLOCK_CLASS(klass);

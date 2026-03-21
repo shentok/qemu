@@ -9,7 +9,7 @@
  */
 
 #include "qemu/osdep.h"
-#include "hw/sysbus.h"
+#include "hw/core/sysbus.h"
 #include "hw/nvram/esp_efuse.h"
 #include "hw/misc/esp_hmac.h"
 #include "qemu/bswap.h"
@@ -190,7 +190,7 @@ static void esp_hmac_init(Object *obj)
     sysbus_init_mmio(sbd, &s->iomem);
 }
 
-static void esp_hmac_class_init(ObjectClass *klass, void *data)
+static void esp_hmac_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ESPHmacClass* esp_hmac = ESP_HMAC_CLASS(klass);

@@ -14,10 +14,10 @@
 #include "qemu/timer.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/irq.h"
-#include "hw/qdev-properties.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/irq.h"
+#include "hw/core/qdev-properties.h"
 #include "hw/riscv/riscv_hart.h"
 #include "hw/riscv/esp32c3_intmatrix.h"
 #include "esp_cpu.h"
@@ -260,13 +260,12 @@ static void esp32c3_intmatrix_init(Object *obj)
 }
 
 
-static Property esp32c3_intmatrix_properties[] = {
+static const Property esp32c3_intmatrix_properties[] = {
     DEFINE_PROP_LINK("cpu", ESP32C3IntMatrixState, cpu, TYPE_ESP_RISCV_CPU, EspRISCVCPU*),
-    DEFINE_PROP_END_OF_LIST(),
 };
 
 
-static void esp32c3_intmatrix_class_init(ObjectClass *klass, void *data)
+static void esp32c3_intmatrix_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ResettableClass *rc = RESETTABLE_CLASS(klass);

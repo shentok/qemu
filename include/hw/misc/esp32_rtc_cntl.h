@@ -1,8 +1,8 @@
 #pragma once
 
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/registerfields.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/registerfields.h"
 
 #define TYPE_ESP32_RTC_CNTL "misc.esp32.rtc_cntl"
 #define ESP32_RTC_CNTL(obj) OBJECT_CHECK(Esp32RtcCntlState, (obj), TYPE_ESP32_RTC_CNTL)

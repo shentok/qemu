@@ -1,10 +1,10 @@
 #pragma once
 
 #include "qemu/fifo8.h"
-#include "hw/sysbus.h"
+#include "hw/core/sysbus.h"
 #include "chardev/char-fe.h"
-#include "hw/hw.h"
-#include "hw/registerfields.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/registerfields.h"
 
 #define UART_FIFO_LENGTH 128
 
@@ -81,7 +81,7 @@ typedef struct ESPUARTState {
     SysBusDevice parent_obj;
 
     MemoryRegion iomem;
-    CharBackend chr;
+    CharFrontend chr;
     qemu_irq irq;
     QEMUTimer throttle_timer;
     QEMUTimer rx_timeout_timer;

@@ -10,9 +10,9 @@
 
 #pragma once
 
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/registerfields.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/registerfields.h"
 #include "hw/nvram/esp_efuse.h"
 #include "crypto/hmac256_i.h"
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "hw/hw.h"
-#include "hw/registerfields.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/registerfields.h"
 #include "hw/misc/esp32c3_xts_aes.h"
 #include "hw/ssi/ssi.h"
 

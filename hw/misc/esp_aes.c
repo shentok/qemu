@@ -8,12 +8,12 @@
  * (at your option) any later version.
  */
 #include "qemu/osdep.h"
-#include "hw/sysbus.h"
+#include "hw/core/sysbus.h"
 #include "hw/misc/esp_aes.h"
 #include "qemu/error-report.h"
 #include <gcrypt.h>
 #include "qemu/bswap.h"
-#include "hw/irq.h"
+#include "hw/core/irq.h"
 #include "crypto/aes.h"
 
 #define AES_WARNING 0
@@ -446,7 +446,7 @@ static void esp_aes_init(Object *obj)
     sysbus_init_irq(sbd, &s->irq);
 }
 
-static void esp_aes_class_init(ObjectClass *klass, void *data)
+static void esp_aes_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ESPAesClass* esp_aes = ESP_AES_CLASS(klass);

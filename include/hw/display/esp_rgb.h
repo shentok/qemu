@@ -1,7 +1,7 @@
 #pragma once
 
-#include "hw/hw.h"
-#include "hw/registerfields.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/registerfields.h"
 
 
 #define TYPE_ESP_RGB "display.esp.rgb"

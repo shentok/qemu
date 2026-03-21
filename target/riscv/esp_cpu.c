@@ -12,12 +12,12 @@
 #include "qemu/timer.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/registerfields.h"
-#include "hw/irq.h"
-#include "hw/qdev-properties.h"
-#include "sysemu/reset.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/registerfields.h"
+#include "hw/core/irq.h"
+#include "hw/core/qdev-properties.h"
+#include "system/reset.h"
 #include "esp_cpu.h"
 
 #define BIT_SET(reg, bit)   ((reg) & BIT(bit))
@@ -108,7 +108,7 @@ static RISCVException esp_cpu_csr_read(CPURISCVState *env, int csrno, target_ulo
 }
 
 
-static RISCVException esp_cpu_csr_write(CPURISCVState *env, int csrno, target_ulong new_value) {
+static RISCVException esp_cpu_csr_write(CPURISCVState *env, int csrno, target_ulong new_value, uintptr_t ra) {
     EspRISCVCPU *s = esp_cpu_riscv_to_cpu(env);
 
     if (csrno == ESP_CPU_CSR_MCYCLE_U) {
@@ -313,13 +313,12 @@ static void esp_cpu_init(Object *obj)
     };
 }
 
-static Property riscv_harts_props[] = {
+static const Property riscv_harts_props[] = {
     DEFINE_PROP_UINT32("hartid-base", EspRISCVCPU, hartid_base, 0),
-    DEFINE_PROP_END_OF_LIST(),
 };
 
 
-static void esp_cpu_class_init(ObjectClass *klass, void *data)
+static void esp_cpu_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     EspRISCVCPUClass *cpuclass = ESP_CPU_CLASS(klass);

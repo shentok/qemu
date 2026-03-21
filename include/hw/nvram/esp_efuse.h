@@ -9,10 +9,10 @@
  */
 #pragma once
 
-#include "hw/hw.h"
-#include "hw/registerfields.h"
-#include "hw/sysbus.h"
-#include "sysemu/block-backend.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/registerfields.h"
+#include "hw/core/sysbus.h"
+#include "system/block-backend.h"
 #include "qemu/error-report.h"
 
 #define TYPE_ESP_EFUSE "nvram.esp.efuse"

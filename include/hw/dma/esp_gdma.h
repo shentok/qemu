@@ -10,9 +10,9 @@
 
 #pragma once
 
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/registerfields.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/registerfields.h"
 
 #define TYPE_ESP_GDMA "esp.gdma"
 #define ESP_GDMA(obj)               OBJECT_CHECK(ESPGdmaState, (obj), TYPE_ESP_GDMA)

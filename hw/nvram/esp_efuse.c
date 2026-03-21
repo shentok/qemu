@@ -12,15 +12,15 @@
 #include "qemu/log.h"
 #include "qemu/module.h"
 #include "qapi/error.h"
-#include "qapi/qmp/qdict.h"
+#include "qobject/qdict.h"
 #include "qemu/error-report.h"
-#include "sysemu/sysemu.h"
+#include "system/system.h"
 #include "chardev/char-fe.h"
-#include "hw/registerfields.h"
-#include "hw/sysbus.h"
-#include "hw/irq.h"
-#include "hw/qdev-properties.h"
-#include "hw/qdev-properties-system.h"
+#include "hw/core/registerfields.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/irq.h"
+#include "hw/core/qdev-properties.h"
+#include "hw/core/qdev-properties-system.h"
 #include "hw/nvram/esp_efuse.h"
 
 
@@ -630,12 +630,11 @@ static void esp_efuse_init(Object *obj)
     timer_init_ns(&s->op_timer, QEMU_CLOCK_VIRTUAL, esp_efuse_timer_cb, s);
 }
 
-static Property esp_efuse_properties[] = {
+static const Property esp_efuse_properties[] = {
     DEFINE_PROP_DRIVE("drive", ESPEfuseState, blk),
-    DEFINE_PROP_END_OF_LIST(),
 };
 
-static void esp_efuse_class_init(ObjectClass *klass, void *data)
+static void esp_efuse_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ESPEfuseClass* esp_efuse = ESP_EFUSE_CLASS(klass);

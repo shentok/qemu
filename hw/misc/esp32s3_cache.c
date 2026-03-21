@@ -15,14 +15,14 @@
 #include "qemu/timer.h"
 #include "qapi/error.h"
 #include "qemu/error-report.h"
-#include "exec/address-spaces.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/irq.h"
-#include "hw/qdev-properties.h"
+#include "system/address-spaces.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/irq.h"
+#include "hw/core/qdev-properties.h"
 #include "hw/misc/esp32s3_cache.h"
 #include "hw/misc/esp32s3_xts_aes.h"
-#include "sysemu/block-backend-io.h"
+#include "system/block-backend-io.h"
 #include "hw/misc/esp32s3_reg.h"
 
 
@@ -345,18 +345,13 @@ static void esp32s3_cache_init(Object *obj)
     sysbus_init_mmio(sbd, &s->iomem);
 }
 
-static Property esp32s3_cache_properties[] = {
-    DEFINE_PROP_END_OF_LIST(),
-};
-
-static void esp32s3_cache_class_init(ObjectClass *klass, void *data)
+static void esp32s3_cache_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ResettableClass *rc = RESETTABLE_CLASS(klass);
 
     rc->phases.hold = esp32s3_cache_reset_hold;
     dc->realize = esp32s3_cache_realize;
-    device_class_set_props(dc, esp32s3_cache_properties);
 }
 
 static const TypeInfo esp32s3_cache_info = {
@@ -428,7 +423,7 @@ static int esp32s3_mmu_region_notify_flag_changed(IOMMUMemoryRegion *iommu,
 }
 
 
-static void esp32s3_mmu_region_class_init(ObjectClass *klass, void *data)
+static void esp32s3_mmu_region_class_init(ObjectClass *klass, const void *data)
 {
     IOMMUMemoryRegionClass *imrc = IOMMU_MEMORY_REGION_CLASS(klass);
 

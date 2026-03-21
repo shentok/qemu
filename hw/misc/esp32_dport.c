@@ -11,13 +11,13 @@
 #include "qemu/log.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/irq.h"
-#include "hw/qdev-properties.h"
-#include "hw/qdev-properties-system.h"
-#include "hw/registerfields.h"
-#include "hw/boards.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/irq.h"
+#include "hw/core/qdev-properties.h"
+#include "hw/core/qdev-properties-system.h"
+#include "hw/core/registerfields.h"
+#include "hw/core/boards.h"
 #include "hw/misc/esp32_reg.h"
 #include "hw/misc/esp32_dport.h"
 
@@ -445,13 +445,12 @@ static void esp32_dport_init(Object *obj)
     qdev_init_gpio_out_named(DEVICE(sbd), &s->flash_dec_en_gpio, ESP32_DPORT_FLASH_DEC_EN_GPIO, 1);
 }
 
-static Property esp32_dport_properties[] = {
+static const Property esp32_dport_properties[] = {
     DEFINE_PROP_DRIVE("flash", Esp32DportState, flash_blk),
     DEFINE_PROP_BOOL("has_psram", Esp32DportState, has_psram, false),
-    DEFINE_PROP_END_OF_LIST(),
 };
 
-static void esp32_dport_class_init(ObjectClass *klass, void *data)
+static void esp32_dport_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ResettableClass *rc = RESETTABLE_CLASS(klass);

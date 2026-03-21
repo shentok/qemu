@@ -12,11 +12,11 @@
 #include "qemu/log.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/boards.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/boards.h"
 #include "hw/misc/esp32s3_pms.h"
-#include "hw/irq.h"
+#include "hw/core/irq.h"
 
 #define PMS_DEBUG   0
 #define PMS_WARNING 0

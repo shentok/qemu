@@ -11,12 +11,12 @@
 #include "qemu/osdep.h"
 #include "qemu/log.h"
 #include "qemu/module.h"
-#include "sysemu/sysemu.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/registerfields.h"
-#include "hw/irq.h"
-#include "hw/qdev-properties.h"
+#include "system/system.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/registerfields.h"
+#include "hw/core/irq.h"
+#include "hw/core/qdev-properties.h"
 #include "hw/ssi/ssi.h"
 #include "hw/ssi/esp32_spi.h"
 #include "hw/misc/esp32_flash_enc.h"
@@ -336,18 +336,13 @@ static void esp32_spi_init(Object *obj)
     qdev_init_gpio_out_named(DEVICE(s), &s->cs_gpio[0], SSI_GPIO_CS, ESP32_SPI_CS_COUNT);
 }
 
-static Property esp32_spi_properties[] = {
-    DEFINE_PROP_END_OF_LIST(),
-};
-
-static void esp32_spi_class_init(ObjectClass *klass, void *data)
+static void esp32_spi_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ResettableClass *rc = RESETTABLE_CLASS(klass);
 
     rc->phases.hold = esp32_spi_reset_hold;
     dc->realize = esp32_spi_realize;
-    device_class_set_props(dc, esp32_spi_properties);
 }
 
 static const TypeInfo esp32_spi_info = {

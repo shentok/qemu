@@ -11,10 +11,10 @@
 #include "qemu/osdep.h"
 #include "qemu/log.h"
 #include "qapi/error.h"
-#include "hw/irq.h"
+#include "hw/core/irq.h"
 #include "qemu/module.h"
 #include "qemu/error-report.h"
-#include "hw/qdev-properties.h"
+#include "hw/core/qdev-properties.h"
 #include "hw/misc/ssi_psram.h"
 
 #define PSRAM_WARNING   0
@@ -487,14 +487,13 @@ static void psram_realize(SSIPeripheral *ss, Error **errp)
     s->state = ST_IDLE;
 }
 
-static Property psram_properties[] = {
+static const Property psram_properties[] = {
     DEFINE_PROP_BOOL("is_octal", SsiPsramState, is_octal, false),
     DEFINE_PROP_UINT32("size_mbytes", SsiPsramState, size_mbytes, 4),
-    DEFINE_PROP_END_OF_LIST(),
 };
 
 
-static void psram_class_init(ObjectClass *klass, void *data)
+static void psram_class_init(ObjectClass *klass, const void *data)
 {
     SSIPeripheralClass *k = SSI_PERIPHERAL_CLASS(klass);
     DeviceClass *dc = DEVICE_CLASS(klass);

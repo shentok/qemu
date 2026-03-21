@@ -9,9 +9,9 @@
  */
 #pragma once
 
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/registerfields.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/registerfields.h"
 
 #define TYPE_ESP32C3_CLOCK "esp32c3.soc.clk"
 #define ESP32C3_CLOCK(obj) OBJECT_CHECK(ESP32C3ClockState, (obj), TYPE_ESP32C3_CLOCK)

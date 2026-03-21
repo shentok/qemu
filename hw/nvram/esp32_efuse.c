@@ -13,13 +13,13 @@
 #include "qemu/module.h"
 #include "qapi/error.h"
 #include "qemu/error-report.h"
-#include "sysemu/sysemu.h"
+#include "system/system.h"
 #include "chardev/char-fe.h"
-#include "hw/registerfields.h"
-#include "hw/sysbus.h"
-#include "hw/irq.h"
-#include "hw/qdev-properties.h"
-#include "hw/qdev-properties-system.h"
+#include "hw/core/registerfields.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/irq.h"
+#include "hw/core/qdev-properties.h"
+#include "hw/core/qdev-properties-system.h"
 #include "hw/nvram/esp32_efuse.h"
 
 static void esp32_efuse_read_op(Esp32EfuseState *s);
@@ -277,12 +277,11 @@ static void esp32_efuse_init(Object *obj)
     memset(&s->efuse_wr, 0, sizeof(s->efuse_wr));
 }
 
-static Property esp32_efuse_properties[] = {
+static const Property esp32_efuse_properties[] = {
     DEFINE_PROP_DRIVE("drive", Esp32EfuseState, blk),
-    DEFINE_PROP_END_OF_LIST(),
 };
 
-static void esp32_efuse_class_init(ObjectClass *klass, void *data)
+static void esp32_efuse_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ResettableClass *rc = RESETTABLE_CLASS(klass);

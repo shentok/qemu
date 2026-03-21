@@ -10,9 +10,9 @@
 
 #pragma once
 
-#include "hw/sysbus.h"
-#include "hw/hw.h"
-#include "hw/registerfields.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/registerfields.h"
 #include "hw/misc/esp32s3_xts_aes.h"
 #include "hw/misc/ssi_psram.h"
 

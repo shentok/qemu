@@ -11,9 +11,9 @@
 
 #include "hw/riscv/riscv_hart.h"
 #include "target/riscv/esp_cpu.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/registerfields.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/registerfields.h"
 #include "hw/misc/esp32c3_reg.h"
 
 

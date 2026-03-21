@@ -9,8 +9,8 @@
  */
 #pragma once
 
-#include "hw/hw.h"
-#include "hw/registerfields.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/registerfields.h"
 #include "hw/timer/esp_systimer.h"
 
 #define TYPE_ESP32C3_SYSTIMER           "esp32c3.systimer"

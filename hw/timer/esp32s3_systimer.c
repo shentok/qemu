@@ -8,10 +8,10 @@
  * (at your option) any later version.
  */
 #include "qemu/osdep.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/registerfields.h"
-#include "hw/boards.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/registerfields.h"
+#include "hw/core/boards.h"
 #include "hw/timer/esp32s3_systimer.h"
 
 
@@ -31,7 +31,7 @@ static void esp32c3_systimer_write(void *opaque, hwaddr addr, uint64_t value, un
 
 
 
-static void esp32s3_systimer_class_init(ObjectClass *klass, void *data)
+static void esp32s3_systimer_class_init(ObjectClass *klass, const void *data)
 {
     ESP32S3SysTimerClass* esp32s3 = ESP32S3_SYSTIMER_CLASS(klass);
     ESPSysTimerClass* esp = ESP_SYSTIMER_CLASS(klass);

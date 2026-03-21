@@ -10,9 +10,9 @@
 
 #pragma once
 
-#include "hw/sysbus.h"
-#include "hw/hw.h"
-#include "hw/registerfields.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/registerfields.h"
 #include "cpu.h"
 
 /* Make sure we are not in CONFIG_USER_ONLY */
@@ -20,7 +20,7 @@
 #error "ESP RISC-V Core only works in system emulation and in SOFTMMU configuration"
 #endif
 
-#include "hw/core/tcg-cpu-ops.h"
+#include "accel/tcg/cpu-ops.h"
 
 #define ESP_CPU_IRQ_LINES_NAME "espressif-cpu-irq-lines"
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hw/hw.h"
+#include "hw/core/hw-error.h"
 #include "hw/timer/esp_timg.h"
 
 

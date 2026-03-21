@@ -12,12 +12,12 @@
 #include "qemu/error-report.h"
 #include "qapi/error.h"
 #include "qapi/visitor.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/irq.h"
-#include "hw/qdev-properties.h"
-#include "hw/registerfields.h"
-#include "hw/boards.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/irq.h"
+#include "hw/core/qdev-properties.h"
+#include "hw/core/registerfields.h"
+#include "hw/core/boards.h"
 #include "hw/timer/esp_timg.h"
 
 #define TIMG_DEBUG      0
@@ -822,12 +822,11 @@ static void esp_timg_init(Object *obj)
     esp_timg_reset_hold(obj, RESET_TYPE_COLD);
 }
 
-static Property esp_timg_properties[] = {
+static const Property esp_timg_properties[] = {
     DEFINE_PROP_BOOL("wdt_disable", ESPTimgState, wdt_disable, false),
-    DEFINE_PROP_END_OF_LIST(),
 };
 
-static void esp_timg_class_init(ObjectClass *klass, void *data)
+static void esp_timg_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ResettableClass *rc = RESETTABLE_CLASS(klass);

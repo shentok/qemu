@@ -9,9 +9,9 @@
  */
 #pragma once
 
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/registerfields.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/registerfields.h"
 
 REG32(SYSTEM_CPU_PERI_CLK_EN, 0x000)
     FIELD(SYSTEM_CPU_PERI_CLK_EN, CLK_EN_DEDICATED_GPIO, 7, 1)

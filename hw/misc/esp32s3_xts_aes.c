@@ -9,7 +9,7 @@
  */
 
 #include "qemu/osdep.h"
-#include "hw/sysbus.h"
+#include "hw/core/sysbus.h"
 #include "qemu/error-report.h"
 #include "crypto/aes.h"
 #include "crypto/xts.h"
@@ -401,7 +401,7 @@ static void esp32s3_xts_aes_init(Object *obj)
     sysbus_init_mmio(sbd, &s->iomem);
 }
 
-static void esp32s3_xts_aes_class_init(ObjectClass *klass, void *data)
+static void esp32s3_xts_aes_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ESP32S3XtsAesClass* esp32s3_xts_aes = ESP32S3_XTS_AES_CLASS(klass);

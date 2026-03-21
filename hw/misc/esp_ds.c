@@ -9,7 +9,7 @@
  */
 
 #include "qemu/osdep.h"
-#include "hw/sysbus.h"
+#include "hw/core/sysbus.h"
 #include "qemu/bswap.h"
 #include "qemu/error-report.h"
 #include "hw/misc/esp_ds.h"
@@ -446,7 +446,7 @@ static void esp_ds_init(Object *obj)
     sysbus_init_mmio(sbd, &s->iomem);
 }
 
-static void esp_ds_class_init(ObjectClass *klass, void *data)
+static void esp_ds_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ResettableClass *rc = RESETTABLE_CLASS(klass);

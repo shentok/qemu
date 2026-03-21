@@ -12,10 +12,10 @@
 #include "qemu/log.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/irq.h"
-#include "hw/qdev-properties.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/irq.h"
+#include "hw/core/qdev-properties.h"
 #include "hw/misc/esp32c3_rtc_cntl.h"
 
 
@@ -162,7 +162,7 @@ static void esp32c3_rtc_cntl_init(Object *obj)
 }
 
 
-static void esp32c3_rtc_cntl_class_init(ObjectClass *klass, void *data)
+static void esp32c3_rtc_cntl_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ResettableClass *rc = RESETTABLE_CLASS(klass);

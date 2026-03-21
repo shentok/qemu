@@ -12,11 +12,11 @@
 #include "qemu/log.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/boards.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/boards.h"
 #include "hw/misc/esp_rsa.h"
-#include "hw/irq.h"
+#include "hw/core/irq.h"
 #include <gcrypt.h>
 
 #define ESP_RSA_REGS_SIZE (A_RSA_DATE_REG + 4)
@@ -432,7 +432,7 @@ static void esp_rsa_init(Object *obj)
     sysbus_init_irq(sbd, &s->irq);
 }
 
-static void esp_rsa_class_init(ObjectClass *klass, void *data)
+static void esp_rsa_class_init(ObjectClass *klass, const void *data)
 {
     ESPRsaClass* esp_rsa = ESP_RSA_CLASS(klass);
     ResettableClass *rc = RESETTABLE_CLASS(klass);

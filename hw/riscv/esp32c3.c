@@ -10,22 +10,22 @@
 #include "qemu/osdep.h"
 #include "qemu/log.h"
 #include "qemu/error-report.h"
-#include "hw/qdev-properties.h"
+#include "hw/core/qdev-properties.h"
 #include "qemu/units.h"
 #include "qemu/datadir.h"
 #include "qapi/error.h"
-#include "hw/hw.h"
-#include "hw/boards.h"
-#include "hw/loader.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/boards.h"
+#include "hw/core/loader.h"
 #include "hw/riscv/riscv_hart.h"
 #include "target/riscv/esp_cpu.h"
 #include "hw/riscv/boot.h"
 #include "hw/riscv/numa.h"
-#include "sysemu/device_tree.h"
-#include "sysemu/sysemu.h"
-#include "sysemu/kvm.h"
-#include "sysemu/runstate.h"
-#include "sysemu/reset.h"
+#include "system/device_tree.h"
+#include "system/system.h"
+#include "system/kvm.h"
+#include "system/runstate.h"
+#include "system/reset.h"
 #include "net/net.h"
 #include "elf.h"
 #include "hw/misc/esp32c3_reg.h"
@@ -281,11 +281,8 @@ static void esp32c3_load_firmware(MachineState *machine)
     }
 
     if (bios_filename) {
-        /* Since EspRISCVCPU doens't have a RISCVHartArrayState field, let's bake one on the stack. It will only be
-         * used to get the type of the RISC-V CPU (32 or 64 bits) in `riscv_load_kernel` */
-        RISCVHartArrayState hart = {
-            .harts = &ms->soc.parent_obj,
-            .num_harts = 1,
+        RISCVBootInfo boot_info = {
+            .is_32bit = true,
         };
 
         /* The function `riscv_load_kernel` won't load the ELF file at its entry point, so we have to look
@@ -299,7 +296,7 @@ static void esp32c3_load_firmware(MachineState *machine)
 
         /* On failure, riscv_load_kernel exits the program */
         qemu_log("Loading kernel at address 0x%08" PRIx64 "\n", elf_entry);
-        riscv_load_kernel(machine, &hart, elf_entry, false, NULL);
+        riscv_load_kernel(machine, &boot_info, elf_entry, false, NULL);
         if (elf_entry != ESP32C3_RESET_ADDRESS) {
             qdev_prop_set_uint64(DEVICE(&ms->soc), "resetvec", elf_entry);
         }
@@ -312,7 +309,7 @@ static void esp32c3_load_firmware(MachineState *machine)
         }
 
         /* Load ROM file at the reset address */
-        int size = load_image_targphys_as(rom_binary, ESP32C3_RESET_ADDRESS, 0x60000, CPU(&ms->soc)->as);
+        int size = load_image_targphys_as(rom_binary, ESP32C3_RESET_ADDRESS, 0x60000, CPU(&ms->soc)->as, NULL);
         if (size < 0) {
             error_report("Error: could not load ROM binary '%s'", rom_binary);
             exit(1);
@@ -660,7 +657,7 @@ static void esp32c3_machine_init(MachineState *machine)
 
 
 /* Initialize machine type */
-static void esp32c3_machine_class_init(ObjectClass *oc, void *data)
+static void esp32c3_machine_class_init(ObjectClass *oc, const void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
     mc->desc = "Espressif ESP32-C3 machine";

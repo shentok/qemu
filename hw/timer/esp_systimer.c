@@ -13,12 +13,12 @@
 #include "qemu/error-report.h"
 #include "qapi/error.h"
 #include "qapi/visitor.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/irq.h"
-#include "hw/qdev-properties.h"
-#include "hw/registerfields.h"
-#include "hw/boards.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/irq.h"
+#include "hw/core/qdev-properties.h"
+#include "hw/core/registerfields.h"
+#include "hw/core/boards.h"
 #include "hw/timer/esp_systimer.h"
 
 
@@ -621,7 +621,7 @@ static void esp_systimer_init(Object *obj)
 }
 
 
-static void esp_systimer_class_init(ObjectClass *klass, void *data)
+static void esp_systimer_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ESPSysTimerClass *class = ESP_SYSTIMER_CLASS(klass);

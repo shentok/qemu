@@ -3,7 +3,7 @@
 #include "qemu/module.h"
 #include "qemu/error-report.h"
 #include "hw/i2c/esp32_i2c.h"
-#include "hw/irq.h"
+#include "hw/core/irq.h"
 
 static void esp32_i2c_do_transaction(Esp32I2CState * s);
 static void esp32_i2c_update_irq(Esp32I2CState * s);
@@ -261,7 +261,7 @@ static void esp32_i2c_init(Object * obj)
     fifo8_create(&s->rx_fifo, ESP32_I2C_FIFO_LENGTH);
 }
 
-static void esp32_i2c_class_init(ObjectClass * klass, void * data)
+static void esp32_i2c_class_init(ObjectClass * klass, const void * data)
 {
     ResettableClass *rc = RESETTABLE_CLASS(klass);
     rc->phases.hold = esp32_i2c_reset_hold;

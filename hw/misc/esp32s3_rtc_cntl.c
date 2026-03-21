@@ -14,10 +14,10 @@
 #include "qemu/timer.h"
 #include "qapi/error.h"
 #include "qemu/error-report.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/irq.h"
-#include "hw/qdev-properties.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/irq.h"
+#include "hw/core/qdev-properties.h"
 #include "hw/misc/esp32s3_reg.h"
 #include "hw/misc/esp32s3_rtc_cntl.h"
 
@@ -215,18 +215,13 @@ static void esp32s3_rtc_cntl_init(Object *obj)
     esp32s3_rtc_update_clk(s);
 }
 
-static Property esp32s3_rtc_cntl_properties[] = {
-    DEFINE_PROP_END_OF_LIST(),
-};
-
-static void esp32s3_rtc_cntl_class_init(ObjectClass *klass, void *data)
+static void esp32s3_rtc_cntl_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ResettableClass *rc = RESETTABLE_CLASS(klass);
 
     rc->phases.hold = esp32s3_rtc_cntl_reset_hold;
     dc->realize = esp32s3_rtc_cntl_realize;
-    device_class_set_props(dc, esp32s3_rtc_cntl_properties);
 }
 
 static const TypeInfo esp32s3_rtc_cntl_info = {

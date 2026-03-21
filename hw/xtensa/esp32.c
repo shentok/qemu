@@ -13,28 +13,29 @@
 #include "qemu/error-report.h"
 #include "qemu/units.h"
 #include "qapi/error.h"
-#include "hw/hw.h"
-#include "hw/boards.h"
-#include "hw/loader.h"
-#include "hw/sysbus.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/boards.h"
+#include "hw/core/loader.h"
+#include "hw/core/sysbus.h"
 #include "hw/i2c/esp32_i2c.h"
 #include "hw/xtensa/xtensa_memory.h"
 #include "hw/misc/unimp.h"
-#include "hw/irq.h"
+#include "hw/core/irq.h"
 #include "hw/i2c/i2c.h"
-#include "hw/qdev-properties.h"
+#include "hw/core/qdev-properties.h"
 #include "hw/xtensa/esp32.h"
 #include "hw/misc/ssi_psram.h"
 #include "hw/sd/dwc_sdmmc.h"
 #include "core-esp32/core-isa.h"
 #include "qemu/datadir.h"
-#include "sysemu/sysemu.h"
-#include "sysemu/reset.h"
-#include "sysemu/cpus.h"
-#include "sysemu/runstate.h"
-#include "sysemu/blockdev.h"
-#include "sysemu/block-backend.h"
-#include "exec/exec-all.h"
+#include "system/system.h"
+#include "system/reset.h"
+#include "system/cpus.h"
+#include "system/runstate.h"
+#include "system/blockdev.h"
+#include "system/block-backend.h"
+#include "exec/watchpoint.h"
+
 #include "net/net.h"
 #include "elf.h"
 
@@ -577,7 +578,6 @@ static void esp32_soc_init(Object *obj)
         memory_region_init(&s->cpu_specific_mem[i], NULL, name, UINT32_MAX);
 
         CPUState* cs = CPU(&s->cpu[i]);
-        cs->num_ases = 1;
         cpu_address_space_init(cs, 0, "cpu-memory", &s->cpu_specific_mem[i]);
 
         MemoryRegion *cpu_view_sysmem = g_new(MemoryRegion, 1);
@@ -654,16 +654,11 @@ static void esp32_soc_init(Object *obj)
     qdev_init_gpio_in_named(DEVICE(s), esp32_timg_sys_reset, ESP32_TIMG_WDT_SYS_RESET_GPIO, 2);
 }
 
-static Property esp32_soc_properties[] = {
-    DEFINE_PROP_END_OF_LIST(),
-};
-
-static void esp32_soc_class_init(ObjectClass *klass, void *data)
+static void esp32_soc_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
 
     dc->realize = esp32_soc_realize;
-    device_class_set_props(dc, esp32_soc_properties);
 }
 
 static const TypeInfo esp32_soc_info = {
@@ -883,7 +878,7 @@ static void esp32_machine_init(MachineState *machine)
             exit(1);
         }
 
-        int size = load_image_targphys_as(rom_binary, esp32_memmap[ESP32_MEMREGION_IROM].base, esp32_memmap[ESP32_MEMREGION_IROM].size, CPU(&ss->cpu[0])->as);
+        int size = load_image_targphys_as(rom_binary, esp32_memmap[ESP32_MEMREGION_IROM].base, esp32_memmap[ESP32_MEMREGION_IROM].size, CPU(&ss->cpu[0])->as, NULL);
         if (size < 0) {
             error_report("Error: could not load ROM binary '%s'", rom_binary);
             exit(1);
@@ -896,7 +891,7 @@ static void esp32_machine_init(MachineState *machine)
             exit(1);
         }
 
-        size = load_image_targphys_as(rom_binary, esp32_memmap[ESP32_MEMREGION_IROM].base, esp32_memmap[ESP32_MEMREGION_IROM].size, CPU(&ss->cpu[1])->as);
+        size = load_image_targphys_as(rom_binary, esp32_memmap[ESP32_MEMREGION_IROM].base, esp32_memmap[ESP32_MEMREGION_IROM].size, CPU(&ss->cpu[1])->as, NULL);
         if (size < 0) {
             error_report("Error: could not load ROM binary '%s'", rom_binary);
             exit(1);
@@ -922,7 +917,7 @@ static ram_addr_t esp32_fixup_ram_size(ram_addr_t requested_size)
 }
 
 /* Initialize machine type */
-static void esp32_machine_class_init(ObjectClass *oc, void *data)
+static void esp32_machine_class_init(ObjectClass *oc, const void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
     mc->desc = "Espressif ESP32 machine";

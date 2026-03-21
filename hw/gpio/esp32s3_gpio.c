@@ -12,11 +12,11 @@
 #include "qemu/log.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/registerfields.h"
-#include "hw/irq.h"
-#include "hw/qdev-properties.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/registerfields.h"
+#include "hw/core/irq.h"
+#include "hw/core/qdev-properties.h"
 #include "hw/gpio/esp32s3_gpio.h"
 
 
@@ -28,7 +28,7 @@ static void esp32s3_gpio_init(Object *obj)
 
 /* If we need to override any function from the parent (reset, realize, ...), it shall be done
  * in this class_init function */
-static void esp32s3_gpio_class_init(ObjectClass *klass, void *data)
+static void esp32s3_gpio_class_init(ObjectClass *klass, const void *data)
 {
 }
 

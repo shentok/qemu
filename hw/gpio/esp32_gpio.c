@@ -12,11 +12,11 @@
 #include "qemu/log.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/registerfields.h"
-#include "hw/irq.h"
-#include "hw/qdev-properties.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/registerfields.h"
+#include "hw/core/irq.h"
+#include "hw/core/qdev-properties.h"
 #include "hw/gpio/esp32_gpio.h"
 
 
@@ -69,14 +69,13 @@ static void esp32_gpio_init(Object *obj)
     sysbus_init_irq(sbd, &s->irq);
 }
 
-static Property esp32_gpio_properties[] = {
+static const Property esp32_gpio_properties[] = {
     /* The strap_mode needs to be explicitly set in the instance init, thus, set
      * the default value to 0. */
     DEFINE_PROP_UINT32("strap_mode", Esp32GpioState, strap_mode, 0),
-    DEFINE_PROP_END_OF_LIST(),
 };
 
-static void esp32_gpio_class_init(ObjectClass *klass, void *data)
+static void esp32_gpio_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ResettableClass *rc = RESETTABLE_CLASS(klass);

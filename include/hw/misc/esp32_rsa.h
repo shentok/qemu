@@ -1,8 +1,8 @@
     #pragma once
 
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/registerfields.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/registerfields.h"
 
 #define TYPE_ESP32_RSA "misc.esp32.rsa"
 #define ESP32_RSA(obj) OBJECT_CHECK(Esp32RsaState, (obj), TYPE_ESP32_RSA)

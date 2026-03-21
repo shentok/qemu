@@ -8,9 +8,9 @@
  * (at your option) any later version.
  */
 #include "qemu/osdep.h"
-#include "hw/sysbus.h"
-#include "hw/registerfields.h"
-#include "hw/boards.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/registerfields.h"
+#include "hw/core/boards.h"
 #include "hw/timer/esp32c3_systimer.h"
 
 
@@ -45,7 +45,7 @@ static uint64_t esp32c3_systimer_read(void *opaque, hwaddr addr, unsigned int si
 }
 
 
-static void esp32c3_systimer_class_init(ObjectClass *klass, void *data)
+static void esp32c3_systimer_class_init(ObjectClass *klass, const void *data)
 {
     ESP32C3SysTimerClass* esp32c3 = ESP32C3_SYSTIMER_CLASS(klass);
     ESPSysTimerClass* esp = ESP_SYSTIMER_CLASS(klass);

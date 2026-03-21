@@ -11,8 +11,8 @@
 #include "qemu/log.h"
 #include "qemu/module.h"
 #include "qemu/error-report.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
 #include "hw/misc/esp32c3_jtag.h"
 
 
@@ -57,7 +57,7 @@ static void esp32c3_jtag_init(Object *obj)
     sysbus_init_mmio(sbd, &s->iomem);
 }
 
-static void esp32c3_jtag_class_init(ObjectClass *klass, void *data)
+static void esp32c3_jtag_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ResettableClass *rc = RESETTABLE_CLASS(klass);

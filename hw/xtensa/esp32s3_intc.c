@@ -12,10 +12,10 @@
 #include "qemu/log.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/irq.h"
-#include "hw/qdev-properties.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/irq.h"
+#include "hw/core/qdev-properties.h"
 #include "hw/misc/esp32s3_reg.h"
 #include "hw/xtensa/esp32s3_intc.h"
 
@@ -120,13 +120,12 @@ static void esp32s3_intmatrix_init(Object *obj)
     qdev_init_gpio_in(DEVICE(s), esp32s3_intmatrix_irq_handler, ESP32S3_INT_MATRIX_INPUTS);
 }
 
-static Property esp32s3_intmatrix_properties[] = {
+static const Property esp32s3_intmatrix_properties[] = {
     DEFINE_PROP_LINK("cpu0", Esp32s3IntMatrixState, cpu[0], TYPE_XTENSA_CPU, XtensaCPU *),
     DEFINE_PROP_LINK("cpu1", Esp32s3IntMatrixState, cpu[1], TYPE_XTENSA_CPU, XtensaCPU *),
-    DEFINE_PROP_END_OF_LIST(),
 };
 
-static void esp32s3_intmatrix_class_init(ObjectClass *klass, void *data)
+static void esp32s3_intmatrix_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ResettableClass *rc = RESETTABLE_CLASS(klass);

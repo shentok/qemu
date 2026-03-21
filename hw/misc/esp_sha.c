@@ -12,12 +12,12 @@
 #include "qemu/log.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
-#include "hw/hw.h"
-#include "hw/sysbus.h"
-#include "hw/registerfields.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
+#include "hw/core/registerfields.h"
 #include "hw/dma/esp_gdma.h"
 #include "hw/misc/esp_sha.h"
-#include "hw/irq.h"
+#include "hw/core/irq.h"
 
 #define SHA_WARNING 0
 #define SHA_DEBUG 0
@@ -354,7 +354,7 @@ static void esp_sha_init(Object *obj)
     sysbus_init_irq(sbd, &s->irq);
 }
 
-static void esp_sha_class_init(ObjectClass *klass, void *data)
+static void esp_sha_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ESPShaClass* esp_sha = ESP_SHA_CLASS(klass);

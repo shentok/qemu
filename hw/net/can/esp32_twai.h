@@ -11,9 +11,9 @@
 #ifndef ESP32_TWAI_H
 #define ESP32_TWAI_H
 
-#include "hw/sysbus.h"
+#include "hw/core/sysbus.h"
 #include "net/can_emu.h"
-#include "hw/irq.h"
+#include "hw/core/irq.h"
 #include "hw/net/can/can_sja1000.h"
 
 #define TYPE_ESP32_TWAI "esp32.twai"

@@ -20,14 +20,9 @@
 #include "hw/net/can/esp32_twai.h"
 #include "hw/net/can/can_sja1000.h"
 #include "qom/object.h"
-#include "hw/qdev-properties.h"
+#include "hw/core/qdev-properties.h"
 #include "migration/vmstate.h"
 #include "net/can_emu.h"
-
-/* Device properties */
-static Property esp32_twai_properties[] = {
-    DEFINE_PROP_END_OF_LIST(),
-};
 
 /* Migration state description */
 static const VMStateDescription vmstate_esp32_twai = {
@@ -146,7 +141,7 @@ static void esp32_twai_realize(DeviceState *dev, Error **errp)
 }
 
 /* Class initialization */
-static void esp32_twai_class_init(ObjectClass *klass, void *data)
+static void esp32_twai_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ResettableClass *rc = RESETTABLE_CLASS(klass);
@@ -160,7 +155,6 @@ static void esp32_twai_class_init(ObjectClass *klass, void *data)
     rc->phases.hold = esp32_twai_reset;
     dc->realize = esp32_twai_realize;
     dc->vmsd = &vmstate_esp32_twai;
-    device_class_set_props(dc, esp32_twai_properties);
 }
 
 static const TypeInfo esp32_twai_type_info = {

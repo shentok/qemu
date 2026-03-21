@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include "hw/hw.h"
-#include "hw/sysbus.h"
+#include "hw/core/hw-error.h"
+#include "hw/core/sysbus.h"
 
 #define DR_REG_WDEV_BASE                        0x3ff75000
 
