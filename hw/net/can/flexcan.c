@@ -187,9 +187,9 @@ static const char *flexcan_dbg_mb_code(uint32_t mb_ctrl, char *buf)
     if (code_idx & 1) {
         g_snprintf(buf, FLEXCAN_DBG_BUF_LEN, "%s+BUSY", code_str);
         return buf;
+    } else {
+        return code_str;
     }
-
-    return code_str;
 }
 
 static const char *flexcan_dbg_reg_name_fixed(hwaddr addr)
@@ -286,9 +286,9 @@ static FlexcanRegsMessageBuffer *flexcan_get_first_message_buffer(
     if (s->regs.mcr & FLEXCAN_MCR_FEN) {
         int rffn = (s->regs.ctrl2 & FLEXCAN_CTRL2_RFFN(UINT32_MAX)) >> 24;
         return s->regs.mbs + 8 + 2 * rffn;
+    } else {
+        return s->regs.mbs;
     }
-
-    return s->regs.mbs;
 }
 
 /**
@@ -826,7 +826,6 @@ static void flexcan_mb_lock(FlexcanState *s, int mbidx)
 static void flexcan_mb_unlock(FlexcanState *s)
 {
     int locked_mbidx = s->locked_mbidx;
-    bool has_pending_frame = locked_mbidx == s->smb_target_mbidx;
 
     if (s->locked_mbidx == FLEXCAN_NO_MB_LOCKED) {
         return;
@@ -844,6 +843,7 @@ static void flexcan_mb_unlock(FlexcanState *s)
     }
 
     /* try move in from SMB */
+    bool has_pending_frame = locked_mbidx == s->smb_target_mbidx;
     trace_flexcan_mb_unlock(DEVICE(s)->canonical_path, locked_mbidx,
                             has_pending_frame ? " PENDING FRAME IN SMB" : "");
 
@@ -1055,9 +1055,7 @@ static enum FlexcanRx flexcan_mb_rx(FlexcanState *s, const qemu_can_frame *buf)
             flexcan_mb_move_in(s, buf, mb);
             flexcan_irq_iflag_set(s, mbid);
             return FLEXCAN_RX_SEARCH_ACCEPT;
-        }
-
-        if (r == FLEXCAN_CHECK_MB_MATCH_NON_FREE) {
+        } else if (r == FLEXCAN_CHECK_MB_MATCH_NON_FREE) {
             last_not_free_to_receive_mbid = mbid;
             last_not_free_to_receive_locked = false;
         } else if (r == FLEXCAN_CHECK_MB_MATCH_LOCKED) {
@@ -1081,9 +1079,7 @@ static enum FlexcanRx flexcan_mb_rx(FlexcanState *s, const qemu_can_frame *buf)
             flexcan_mb_move_in(s, buf, &s->regs.rx_smb0);
             s->smb_target_mbidx = last_not_free_to_receive_mbid;
             return FLEXCAN_RX_SEARCH_ACCEPT;
-        }
-
-        if (s->regs.mcr & FLEXCAN_MCR_IRMQ) {
+        } else if (s->regs.mcr & FLEXCAN_MCR_IRMQ) {
             flexcan_mb_move_in(s, buf,
                                &s->regs.mbs[last_not_free_to_receive_mbid]);
             flexcan_irq_iflag_set(s, last_not_free_to_receive_mbid);
@@ -1114,8 +1110,7 @@ static ssize_t flexcan_receive(CanBusClientState *client,
         if (frame->can_id & QEMU_CAN_ERR_FLAG) {
             /* todo: error frame handling */
             continue;
-        }
-        if (frame->flags & QEMU_CAN_FRMF_TYPE_FD) {
+        } else if (frame->flags & QEMU_CAN_FRMF_TYPE_FD) {
             /* CAN FD supported only in later FlexCAN version */
             continue;
         }
@@ -1271,12 +1266,16 @@ static bool flexcan_mem_accepts(void *opaque, hwaddr addr,
         (s->regs.mcr & FLEXCAN_MCR_FRZ_ACK)) {
         /* unrestricted access to FlexCAN memory in freeze mode */
         return true;
-    } else if (attrs.user && (s->regs.mcr & FLEXCAN_MCR_SUPV)) {
+    }
+
+    if (attrs.user && (s->regs.mcr & FLEXCAN_MCR_SUPV)) {
         qemu_log_mask(LOG_GUEST_ERROR,
                       "%s: Invalid user-mode access to restricted register",
                       DEVICE(s)->canonical_path);
         return false;
-    } else if (attrs.user && is_write && addr < 4) {
+    }
+
+    if (is_write && attrs.user && addr < 4) {
         qemu_log_mask(LOG_GUEST_ERROR,
                       "%s: Invalid user-mode access to MCR",
                       DEVICE(s)->canonical_path);
@@ -1322,10 +1321,8 @@ static void flexcan_init(Object *obj)
 {
     FlexcanState *s = CAN_FLEXCAN(obj);
 
-    memory_region_init_io(
-        &s->iomem, obj, &flexcan_ops, s, TYPE_CAN_FLEXCAN,
-        offsetof(FlexcanRegs, _reserved6)
-    );
+    memory_region_init_io(&s->iomem, obj, &flexcan_ops, s, TYPE_CAN_FLEXCAN,
+                          offsetof(FlexcanRegs, _reserved6));
 }
 
 static void flexcan_realize(DeviceState *dev, Error **errp)
