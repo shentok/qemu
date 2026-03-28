@@ -19,10 +19,8 @@
 #include "hw/core/qdev-properties.h"
 #include "hw/ssi/ssi.h"
 #include "hw/ssi/esp32s3_spi.h"
-#include "qemu/error-report.h"
-
-#define SPI1_DEBUG      0
-#define SPI1_WARNING    0
+#include "qemu/log.h"
+#include "trace.h"
 
 
 enum {
@@ -55,6 +53,64 @@ typedef struct ESP32S3SpiTransaction {
     uint32_t tx_bytes;
     uint32_t rx_bytes;
 } ESP32S3SpiTransaction;
+
+
+static const char *esp32s3_spi_reg_name(uint64_t addr)
+{
+    switch (addr) {
+    case 0x000: return "CMD";
+    case 0x004: return "ADDR";
+    case 0x008: return "CTRL";
+    case 0x00C: return "CTRL1";
+    case 0x010: return "CTRL2";
+    case 0x014: return "CLOCK";
+    case 0x018: return "USER";
+    case 0x01C: return "USER1";
+    case 0x020: return "USER2";
+    case 0x024: return "MOSI_DLEN";
+    case 0x028: return "MISO_DLEN";
+    case 0x02C: return "RD_STATUS";
+    case 0x034: return "MISC";
+    case 0x038: return "TX_CRC";
+    case 0x03C: return "CACHE_FCTRL";
+    case 0x054: return "FSM";
+
+    case 0x058: return "W0";
+    case 0x05C: return "W1";
+    case 0x060: return "W2";
+    case 0x064: return "W3";
+    case 0x068: return "W4";
+    case 0x06C: return "W5";
+    case 0x070: return "W6";
+    case 0x074: return "W7";
+    case 0x078: return "W8";
+    case 0x07C: return "W9";
+    case 0x080: return "W10";
+    case 0x084: return "W11";
+    case 0x088: return "W12";
+    case 0x08C: return "W13";
+    case 0x090: return "W14";
+    case 0x094: return "W15";
+
+    case 0x098: return "FLASH_WAITI_CTRL";
+    case 0x09C: return "FLASH_SUS_CTRL";
+    case 0x0A0: return "FLASH_SUS_CMD";
+    case 0x0A4: return "SUS_STATUS";
+    case 0x0A8: return "TIMING_CALI";
+
+    case 0x0C0: return "INT_ENA";
+    case 0x0C4: return "INT_CLR";
+    case 0x0C8: return "INT_RAW";
+    case 0x0CC: return "INT_ST";
+
+    case 0x0E0: return "DDR_CTRL";
+    case 0x0E8: return "CLOCK_GATE";
+
+    case 0x3FC: return "DATE";
+    }
+
+    return "UNKNOWN_REGISTER";
+}
 
 
 static uint64_t esp32s3_spi_read(void *opaque, hwaddr addr, unsigned int size)
@@ -121,15 +177,11 @@ static uint64_t esp32s3_spi_read(void *opaque, hwaddr addr, unsigned int size)
             r = s->clock_gate;
             break;
         default:
-#if SPI1_WARNING
-            warn_report("[SPI1] Unsupported read to 0x%lx", addr);
-#endif
+            qemu_log_mask(LOG_GUEST_ERROR, "[SPI1] Unsupported read from 0x%lx\n", addr);
             break;
     }
 
-#if SPI1_DEBUG
-    info_report("[SPI1] Reading 0x%lx (0x%lx)", addr, r);
-#endif
+    trace_esp32s3_spi_read(addr, esp32s3_spi_reg_name(addr), r);
 
     return r;
 }
@@ -360,9 +412,7 @@ static void esp32s3_spi_special_command(ESP32S3SpiState *s, uint32_t command)
             break;
 
         default:
-#if SPI1_WARNING
-            warn_report("[SPI1] Unsupported special command %x", command);
-#endif
+            qemu_log_mask(LOG_GUEST_ERROR, "[SPI1] Unsupported special command %x\n", command);
             return;
     }
     esp32s3_spi_perform_transaction(s, &t);
@@ -375,9 +425,7 @@ static void esp32s3_spi_write(void *opaque, hwaddr addr,
     ESP32S3SpiState *s = ESP32S3_SPI(opaque);
     uint32_t wvalue = (uint32_t) value;
 
-#if SPI1_DEBUG
-    info_report("[SPI1] Writing 0x%lx = %08lx", addr, value);
-#endif
+    trace_esp32s3_spi_write(addr, esp32s3_spi_reg_name(addr), wvalue);
 
     switch (addr) {
         case A_SPI_MEM_CMD:
@@ -439,9 +487,7 @@ static void esp32s3_spi_write(void *opaque, hwaddr addr,
             s->clock_gate = wvalue;
             break;
         default:
-#if SPI1_WARNING
-            warn_report("[SPI1] Unsupported write to 0x%lx (%08lx)", addr, value);
-#endif
+            qemu_log_mask(LOG_GUEST_ERROR, "[SPI1] Unsupported write to 0x%lx (%08lx)\n", addr, value);
             break;
     }
 }
