@@ -428,6 +428,7 @@ typedef enum {
     RESET_MEMORY = 0x99,
 
     /*
+     * GigaDevice: 0x35 - quad enable
      * Micron: 0x35 - enable QPI
      * Spansion: 0x35 - read control register
      * Winbond: 0x35 - quad enable
@@ -436,6 +437,7 @@ typedef enum {
     RSTQIO = 0xf5,
 
     /*
+     * GigaDevice: 0x31 - write status register 2
      * Winbond: 0x31 - write status register 2
      */
     WRSR2 = 0x31,
@@ -838,6 +840,7 @@ static void complete_collecting_data(Flash *s)
         break;
     case WRSR2:
         switch (get_man(s)) {
+        case MAN_GIGADEVICE:
         case MAN_WINBOND:
             s->quad_enable = !!(s->data[0] & 0x02);
             break;
@@ -1401,6 +1404,7 @@ static void decode_new_cmd(Flash *s, uint32_t value)
         }
 
         switch (get_man(s)) {
+        case MAN_GIGADEVICE:
         case MAN_WINBOND:
             s->needed_bytes = 1;
             s->state = STATE_COLLECTING_DATA;
@@ -1580,6 +1584,7 @@ static void decode_new_cmd(Flash *s, uint32_t value)
         case MAN_MACRONIX:
             s->quad_enable = true;
             break;
+        case MAN_GIGADEVICE:
         case MAN_WINBOND:
             s->data[0] = (!!s->quad_enable) << 1;
             s->pos = 0;
