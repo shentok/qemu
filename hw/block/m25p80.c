@@ -1149,12 +1149,88 @@ static bool is_valid_aai_cmd(uint32_t cmd)
     return cmd == AAI_WP || cmd == WRDI || cmd == RDSR;
 }
 
+static const char *flash_cmd_name(uint8_t cmd)
+{
+    switch (cmd) {
+    case NOP: return "NOP";
+    case WRSR: return "WRSR";
+    case WRDI: return "WRDI";
+    case RDSR: return "RDSR";
+    case WREN: return "WREN";
+    case BRRD: return "BRRD";
+    case BRWR: return "BRWR";
+    case JEDEC_READ: return "JEDEC_READ";
+    case BULK_ERASE_60: return "BULK_ERASE_60";
+    case BULK_ERASE: return "BULK_ERASE";
+    case READ_FSR: return "READ_FSR";
+    case RDCR: return "RDCR";
+    case RDSFDP: return "RDSFDP";
+
+    case READ: return "READ";
+    case READ4: return "READ4";
+    case FAST_READ: return "FAST_READ";
+    case FAST_READ4: return "FAST_READ4";
+    case DOR: return "DOR";
+    case DOR4: return "DOR4";
+    case QOR: return "QOR";
+    case QOR4: return "QOR4";
+    case DIOR: return "DIOR";
+    case DIOR4: return "DIOR4";
+    case QIOR: return "QIOR";
+    case QIOR4: return "QIOR4";
+
+    case PP: return "PP";
+    case PP4: return "PP4";
+    case PP4_4: return "PP4_4";
+    case DPP: return "DPP";
+    case QPP: return "QPP";
+    case QPP_4: return "QPP_4";
+    case RDID_90: return "RDID_90";
+    case RDID_AB: return "RDID_AB";
+    case AAI_WP: return "AAI_WP";
+
+    case ERASE_4K: return "ERASE_4K";
+    case ERASE4_4K: return "ERASE4_4K";
+    case ERASE_32K: return "ERASE_32K";
+    case ERASE4_32K: return "ERASE4_32K";
+    case ERASE_SECTOR: return "ERASE_SECTOR";
+    case ERASE4_SECTOR: return "ERASE4_SECTOR";
+
+    case EN_4BYTE_ADDR: return "EN_4BYTE_ADDR";
+    case EX_4BYTE_ADDR: return "EX_4BYTE_ADDR";
+
+    case EXTEND_ADDR_READ: return "EXTEND_ADDR_READ";
+    case EXTEND_ADDR_WRITE: return "EXTEND_ADDR_WRITE";
+
+    case RESET_ENABLE: return "RESET_ENABLE";
+    case RESET_MEMORY: return "RESET_MEMORY";
+
+    case RDCR_EQIO: return "RDCR_EQIO";
+    case RSTQIO: return "RSTQIO";
+
+    case WRSR2: return "WRSR2";
+
+    case RNVCR: return "RNVCR";
+    case WNVCR: return "WNVCR";
+
+    case RVCR: return "RVCR";
+    case WVCR: return "WVCR";
+
+    case REVCR: return "REVCR";
+    case WEVCR: return "WEVCR";
+
+    case DIE_ERASE: return "DIE_ERASE";
+    }
+
+    return "unknown";
+}
+
 static void decode_new_cmd(Flash *s, uint32_t value)
 {
     int i;
 
     s->cmd_in_progress = value;
-    trace_m25p80_command_decoded(s, value);
+    trace_m25p80_command_decoded(s, value, flash_cmd_name(value));
 
     if (value != RESET_MEMORY) {
         s->reset_enable = false;
