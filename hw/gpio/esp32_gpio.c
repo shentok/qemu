@@ -826,6 +826,14 @@ static uint64_t esp32_gpio_read(void *opaque, hwaddr addr, unsigned int size)
         r = s->strap_mode;
         break;
 
+    case A_GPIO_IN:
+        r = s->gpio_in;
+        break;
+
+    case A_GPIO_IN1:
+        r = s->gpio_in1;
+        break;
+
     default:
         break;
     }
@@ -836,7 +844,32 @@ static uint64_t esp32_gpio_read(void *opaque, hwaddr addr, unsigned int size)
 static void esp32_gpio_write(void *opaque, hwaddr addr,
                        uint64_t value, unsigned int size)
 {
-    trace_esp32_gpio_write(DEVICE(opaque)->canonical_path, addr, esp32_gpio_reg_name(addr), value);
+    Esp32GpioState *s = opaque;
+
+    trace_esp32_gpio_write(DEVICE(s)->canonical_path, addr, esp32_gpio_reg_name(addr), value);
+
+    switch (addr) {
+    case A_GPIO_OUT_W1TS:
+    case A_GPIO_OUT1_W1TS:
+        for (int i = 0; i < (A_GPIO_OUT1_W1TC ? 22 : 32); i++) {
+            if (value & BIT(i)) {
+                qemu_irq_raise(s->pins_out[(A_GPIO_OUT1_W1TC ? 32 : 0) + i]);
+            }
+        }
+        break;
+
+    case A_GPIO_OUT_W1TC:
+    case A_GPIO_OUT1_W1TC:
+        for (int i = 0; i < (A_GPIO_OUT1_W1TC ? 22 : 32); i++) {
+            if (value & BIT(i)) {
+                qemu_irq_lower(s->pins_out[(A_GPIO_OUT1_W1TC ? 32 : 0) + i]);
+            }
+        }
+        break;
+
+    default:
+        break;
+    }
 }
 
 static const MemoryRegionOps uart_ops = {
@@ -845,8 +878,30 @@ static const MemoryRegionOps uart_ops = {
     .endianness = DEVICE_LITTLE_ENDIAN,
 };
 
+static void esp32_gpio_set_gpio(void *opaque, int n, int level)
+{
+    Esp32GpioState *s = opaque;
+
+    if (n < 32) {
+        s->gpio_in &= ~BIT(n);
+        if (level) {
+            s->gpio_in |= BIT(n);
+        }
+    } else {
+        s->gpio_in1 &= ~BIT(n - 32);
+        if (level) {
+            s->gpio_in1 |= BIT(n - 32);
+        }
+    }
+}
+
 static void esp32_gpio_reset_hold(Object *obj, ResetType type)
 {
+    Esp32GpioState *s = ESP32_GPIO(obj);
+
+    for (int i = 0; i < ARRAY_SIZE(s->pins_out); i++) {
+        qemu_irq_lower(s->pins_out[i]);
+    }
 }
 
 static void esp32_gpio_realize(DeviceState *dev, Error **errp)
@@ -860,6 +915,9 @@ static void esp32_gpio_init(Object *obj)
 
     /* Set the default value for the strap_mode property */
     object_property_set_int(obj, "strap_mode", ESP32_STRAP_MODE_FLASH_BOOT, &error_fatal);
+
+    qdev_init_gpio_in(DEVICE(s), esp32_gpio_set_gpio, ARRAY_SIZE(s->pins_in));
+    qdev_init_gpio_out(DEVICE(s), s->pins_out, ARRAY_SIZE(s->pins_out));
 
     memory_region_init_io(&s->iomem, obj, &uart_ops, s,
                           TYPE_ESP32_GPIO, 0x1000);
