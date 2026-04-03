@@ -429,19 +429,16 @@ static int psram_octal_get_density(uint32_t size_mbytes)
 static uint32_t psram_transfer(SSIPeripheral *dev, uint32_t value)
 {
     SsiPsramState *s = SSI_PSRAM(dev);
-    PsramState next_state;
     uint32_t data;
 
     if (s->is_octal) {
-        next_state = psram_octal_write(s, value);
         data = psram_octal_read(s);
+        s->state = psram_octal_write(s, value);
     } else {
-        next_state = psram_quad_write(s, value);
         data = psram_quad_read(s);
+        s->state = psram_quad_write(s, value);
     }
 
-    /* Set the new state AFTER calling read */
-    s->state = next_state;
     return data;
 }
 
