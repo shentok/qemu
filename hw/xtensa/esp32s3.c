@@ -45,6 +45,7 @@
 #include "net/net.h"
 #include "elf.h"
 
+#include "hw/ssi/bitbang_spi.h"
 #include "hw/ssi/esp32s3_spi.h"
 #include "hw/misc/esp32s3_cache.h"
 #include "hw/char/esp32s3_uart.h"
@@ -156,6 +157,8 @@ typedef struct Esp32s3SocState {
     DWCSDMMCState sdmmc;
     DeviceState *eth;
     SsiPsramState *psram;
+
+    GpioSpiState bitbang_spi;
 
     uint32_t requested_reset;
 } Esp32s3SocState;
@@ -659,6 +662,8 @@ static void esp32s3_machine_init(MachineState *machine)
     object_initialize_child(OBJECT(ss), "systimer", &ss->systimer, TYPE_ESP32S3_SYSTIMER);
     object_initialize_child(OBJECT(ss), "rgb", &ss->rgb, TYPE_ESP_RGB);
 
+    object_initialize_child(OBJECT(ss), "bitbang_spi", &ss->bitbang_spi, TYPE_GPIO_SPI);
+
     DeviceState* intmatrix_dev = DEVICE(&ss->intmatrix);
     {
         /* Store the current Machine CPU in the interrupt matrix */
@@ -875,6 +880,12 @@ static void esp32s3_machine_init(MachineState *machine)
 
     
     esp32s3_machine_init_sd(ss);
+
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(&ss->bitbang_spi), &error_fatal);
+    qdev_connect_gpio_out(DEVICE(&ss->gpio), 47, qdev_get_gpio_in_named(DEVICE(&ss->bitbang_spi), "cs", 0));
+    qdev_connect_gpio_out(DEVICE(&ss->gpio), 35, qdev_get_gpio_in_named(DEVICE(&ss->bitbang_spi), "out", 0));
+    qdev_connect_gpio_out(DEVICE(&ss->gpio), 36, qdev_get_gpio_in_named(DEVICE(&ss->bitbang_spi), "clock", 0));
+    qdev_connect_gpio_out_named(DEVICE(&ss->bitbang_spi), "in", 0, qdev_get_gpio_in(DEVICE(&ss->gpio), 37));
 
     /* Need MMU initialized prior to ELF loading,
      * so that ELF gets loaded into virtual addresses
