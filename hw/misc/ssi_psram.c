@@ -426,20 +426,29 @@ static int psram_octal_get_density(uint32_t size_mbytes)
 }
 
 
-static uint32_t psram_transfer(SSIPeripheral *dev, uint32_t value)
+static uint32_t psram_recv(SSIPeripheral *dev)
 {
     SsiPsramState *s = SSI_PSRAM(dev);
     uint32_t data;
 
     if (s->is_octal) {
         data = psram_octal_read(s);
-        s->state = psram_octal_write(s, value);
     } else {
         data = psram_quad_read(s);
-        s->state = psram_quad_write(s, value);
     }
 
     return data;
+}
+
+static void psram_send(SSIPeripheral *dev, uint32_t value)
+{
+    SsiPsramState *s = SSI_PSRAM(dev);
+
+    if (s->is_octal) {
+        s->state = psram_octal_write(s, value);
+    } else {
+        s->state = psram_quad_write(s, value);
+    }
 }
 
 static int psram_cs(SSIPeripheral *ss, bool select)
@@ -495,7 +504,8 @@ static void psram_class_init(ObjectClass *klass, const void *data)
     SSIPeripheralClass *k = SSI_PERIPHERAL_CLASS(klass);
     DeviceClass *dc = DEVICE_CLASS(klass);
 
-    k->transfer = psram_transfer;
+    k->recv = psram_recv;
+    k->send = psram_send;
     k->set_cs = psram_cs;
     k->cs_polarity = SSI_CS_LOW;
     k->realize = psram_realize;

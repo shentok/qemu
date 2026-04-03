@@ -68,14 +68,14 @@ OBJECT_DECLARE_SIMPLE_TYPE(ssi_sd_state, SSI_SD)
 /* data accepted */
 #define DATA_RESPONSE_ACCEPTED  0x05
 
-static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
+static void ssi_sd_send(SSIPeripheral *dev, uint32_t val)
 {
     ssi_sd_state *s = SSI_SD(dev);
     SDRequest request;
     uint8_t longresp[5];
 
     if (!sdbus_get_inserted(&s->sdbus)) {
-        return SSI_DUMMY;
+        return;
     }
 
     /*
@@ -105,13 +105,12 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
         switch (val) {
         case SSI_DUMMY:
             trace_ssi_sd_cmd_dummy();
-            return SSI_DUMMY;
-            break;
+            return;
         case SSI_TOKEN_SINGLE:
         case SSI_TOKEN_MULTI_WRITE:
             trace_ssi_sd_cmd_start_write_block();
             s->mode = SSI_SD_DATA_WRITE;
-            return SSI_DUMMY;
+            return;
         case SSI_TOKEN_STOP_TRAN:
             trace_ssi_sd_cmd_stop_multiple_write();
 
@@ -131,13 +130,13 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
                 s->response[0] = SSI_DUMMY;
             }
 
-            return SSI_DUMMY;
+            return;
         }
 
         s->cmd = val & 0x3f;
         s->mode = SSI_SD_CMDARG;
         s->arglen = 0;
-        return SSI_DUMMY;
+        return;
     case SSI_SD_CMDARG:
         if (s->arglen == 4) {
             /* FIXME: Check CRC.  */
@@ -158,6 +157,50 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
         } else {
             s->cmdarg[s->arglen++] = val;
         }
+        return;
+    case SSI_SD_DATA_WRITE:
+        sdbus_write_byte(&s->sdbus, val);
+        s->write_bytes++;
+        if (!sdbus_receive_ready(&s->sdbus) || s->write_bytes == 512) {
+            trace_ssi_sd_data_write_end(s->write_bytes);
+            s->mode = SSI_SD_SKIP_CRC16;
+            s->response_pos = 0;
+        }
+        return;
+    case SSI_SD_PREP_RESP:
+        QEMU_FALLTHROUGH;
+    case SSI_SD_PREP_DATA:
+        QEMU_FALLTHROUGH;
+    case SSI_SD_RESPONSE:
+        QEMU_FALLTHROUGH;
+    case SSI_SD_DATA_START:
+        QEMU_FALLTHROUGH;
+    case SSI_SD_DATA_READ:
+        QEMU_FALLTHROUGH;
+    case SSI_SD_DATA_CRC16:
+        QEMU_FALLTHROUGH;
+    case SSI_SD_SKIP_CRC16:
+        return;
+    }
+    /* Should never happen.  */
+    return;
+}
+
+static uint32_t ssi_sd_recv(SSIPeripheral *dev)
+{
+    ssi_sd_state *s = SSI_SD(dev);
+    uint32_t val;
+
+    if (!sdbus_get_inserted(&s->sdbus)) {
+        return SSI_DUMMY;
+    }
+
+    switch (s->mode) {
+    case SSI_SD_CMD:
+        QEMU_FALLTHROUGH;
+    case SSI_SD_CMDARG:
+        QEMU_FALLTHROUGH;
+    case SSI_SD_DATA_WRITE:
         return SSI_DUMMY;
     case SSI_SD_PREP_RESP:
         trace_ssi_sd_prepare_response();
@@ -214,15 +257,6 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
             s->response_pos = 0;
         }
         return val;
-    case SSI_SD_DATA_WRITE:
-        sdbus_write_byte(&s->sdbus, val);
-        s->write_bytes++;
-        if (!sdbus_receive_ready(&s->sdbus) || s->write_bytes == 512) {
-            trace_ssi_sd_data_write_end(s->write_bytes);
-            s->mode = SSI_SD_SKIP_CRC16;
-            s->response_pos = 0;
-        }
-        return SSI_DUMMY;
     case SSI_SD_SKIP_CRC16:
         /* we don't verify the crc16 */
         s->response_pos++;
@@ -310,7 +344,8 @@ static void ssi_sd_class_init(ObjectClass *klass, const void *data)
     SSIPeripheralClass *k = SSI_PERIPHERAL_CLASS(klass);
 
     k->realize = ssi_sd_realize;
-    k->transfer = ssi_sd_transfer;
+    k->recv = ssi_sd_recv;
+    k->send = ssi_sd_send;
     k->cs_polarity = SSI_CS_LOW;
     dc->vmsd = &vmstate_ssi_sd;
     device_class_set_legacy_reset(dc, ssi_sd_reset);

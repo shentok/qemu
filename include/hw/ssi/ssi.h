@@ -40,7 +40,8 @@ struct SSIPeripheralClass {
      * This is called when the device cs is active (true by default).
      * See ssi_transfer().
      */
-    uint32_t (*transfer)(SSIPeripheral *dev, uint32_t val);
+    uint32_t (*recv)(SSIPeripheral *dev);
+    void (*send)(SSIPeripheral *dev, uint32_t val);
     /* called when the CS line changes. Optional, devices only need to implement
      * this if they have side effects associated with the cs line (beyond
      * tristating the txrx lines).

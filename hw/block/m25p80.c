@@ -1657,10 +1657,9 @@ static int m25p80_cs(SSIPeripheral *ss, bool select)
     return 0;
 }
 
-static uint32_t m25p80_transfer8(SSIPeripheral *ss, uint32_t tx)
+static void m25p80_send8(SSIPeripheral *ss, uint32_t tx)
 {
     Flash *s = M25P80(ss);
-    uint32_t r = 0;
 
     trace_m25p80_transfer(DEVICE(s)->canonical_path, s->state, s->len,
                           s->needed_bytes, s->pos, s->cur_addr, (uint8_t)tx);
@@ -1685,13 +1684,6 @@ static uint32_t m25p80_transfer8(SSIPeripheral *ss, uint32_t tx)
 
         break;
 
-    case STATE_READ:
-        r = s->storage[s->cur_addr];
-        trace_m25p80_read_byte(DEVICE(s)->canonical_path, s->cur_addr,
-                               (uint8_t)r);
-        s->cur_addr = (s->cur_addr + 1) & (s->size - 1);
-        break;
-
     case STATE_COLLECTING_DATA:
     case STATE_COLLECTING_VAR_LEN_DATA:
 
@@ -1711,6 +1703,32 @@ static uint32_t m25p80_transfer8(SSIPeripheral *ss, uint32_t tx)
         if (s->len == s->needed_bytes) {
             complete_collecting_data(s);
         }
+        break;
+
+    case STATE_READ:
+    case STATE_READING_DATA:
+    case STATE_READING_SFDP:
+        break;
+
+    default:
+    case STATE_IDLE:
+        decode_new_cmd(s, (uint8_t)tx);
+        break;
+    }
+}
+
+static uint32_t m25p80_recv8(SSIPeripheral *ss)
+{
+    Flash *s = M25P80(ss);
+    uint32_t r = 0;
+
+    switch (s->state) {
+
+    case STATE_READ:
+        r = s->storage[s->cur_addr];
+        trace_m25p80_read_byte(DEVICE(s)->canonical_path, s->cur_addr,
+                               (uint8_t)r);
+        s->cur_addr = (s->cur_addr + 1) & (s->size - 1);
         break;
 
     case STATE_READING_DATA:
@@ -1743,9 +1761,11 @@ static uint32_t m25p80_transfer8(SSIPeripheral *ss, uint32_t tx)
         s->cur_addr = (s->cur_addr + 1) & (M25P80_SFDP_MAX_SIZE - 1);
         break;
 
-    default:
+    case STATE_PAGE_PROGRAM:
+    case STATE_COLLECTING_DATA:
+    case STATE_COLLECTING_VAR_LEN_DATA:
     case STATE_IDLE:
-        decode_new_cmd(s, (uint8_t)tx);
+    default:
         break;
     }
 
@@ -1962,7 +1982,8 @@ static void m25p80_class_init(ObjectClass *klass, const void *data)
     M25P80Class *mc = M25P80_CLASS(klass);
 
     k->realize = m25p80_realize;
-    k->transfer = m25p80_transfer8;
+    k->recv = m25p80_recv8;
+    k->send = m25p80_send8;
     k->set_cs = m25p80_cs;
     k->cs_polarity = SSI_CS_LOW;
     dc->vmsd = &vmstate_m25p80;

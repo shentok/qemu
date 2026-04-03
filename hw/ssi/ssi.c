@@ -89,7 +89,9 @@ static uint32_t ssi_transfer_raw_default(SSIPeripheral *dev, uint32_t val)
     if ((dev->cs && ssc->cs_polarity == SSI_CS_HIGH) ||
         (!dev->cs && ssc->cs_polarity == SSI_CS_LOW) ||
         ssc->cs_polarity == SSI_CS_NONE) {
-        return ssc->transfer(dev, val);
+        uint32_t ret = ssc->recv(dev);
+        ssc->send(dev, val);
+        return ret;
     }
     return 0;
 }
