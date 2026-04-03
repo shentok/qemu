@@ -234,7 +234,7 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
             s->mode = SSI_SD_SKIP_CRC16;
             s->response_pos = 0;
         }
-        return val;
+        return SSI_DUMMY;
     case SSI_SD_SKIP_CRC16:
         /* we don't verify the crc16 */
         s->response_pos++;
