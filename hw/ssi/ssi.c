@@ -169,6 +169,43 @@ uint32_t ssi_transfer(SSIBus *bus, uint32_t val)
     return r;
 }
 
+uint32_t ssi_read(SSIBus *bus)
+{
+    BusState *b = BUS(bus);
+    BusChild *kid;
+    uint32_t r = 0;
+
+    QTAILQ_FOREACH(kid, &b->children, sibling) {
+        SSIPeripheral *p = SSI_PERIPHERAL(kid->child);
+        SSIPeripheralClass *ssc = p->spc;
+
+        if ((p->cs && ssc->cs_polarity == SSI_CS_HIGH) ||
+            (!p->cs && ssc->cs_polarity == SSI_CS_LOW) ||
+            ssc->cs_polarity == SSI_CS_NONE) {
+            r |= p->spc->recv(p);
+        }
+    }
+
+    return r;
+}
+
+void ssi_write(SSIBus *bus, uint32_t val)
+{
+    BusState *b = BUS(bus);
+    BusChild *kid;
+
+    QTAILQ_FOREACH(kid, &b->children, sibling) {
+        SSIPeripheral *p = SSI_PERIPHERAL(kid->child);
+        SSIPeripheralClass *ssc = p->spc;
+
+        if ((p->cs && ssc->cs_polarity == SSI_CS_HIGH) ||
+            (!p->cs && ssc->cs_polarity == SSI_CS_LOW) ||
+            ssc->cs_polarity == SSI_CS_NONE) {
+            ssc->send(p, val);
+        }
+    }
+}
+
 const VMStateDescription vmstate_ssi_peripheral = {
     .name = "SSISlave",
     .version_id = 1,

@@ -126,6 +126,8 @@ SSIBus *ssi_create_bus(DeviceState *parent, const char *name);
  * Return: word value received
  */
 uint32_t ssi_transfer(SSIBus *bus, uint32_t val);
+uint32_t ssi_read(SSIBus *bus);
+void ssi_write(SSIBus *bus, uint32_t val);
 
 DeviceState *ssi_get_cs(SSIBus *bus, uint8_t cs_index);
 
