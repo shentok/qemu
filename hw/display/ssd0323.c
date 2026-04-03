@@ -71,7 +71,12 @@ struct ssd0323_state {
 OBJECT_DECLARE_SIMPLE_TYPE(ssd0323_state, SSD0323)
 
 
-static uint32_t ssd0323_transfer(SSIPeripheral *dev, uint32_t data)
+static uint32_t ssd0323_recv(SSIPeripheral *dev)
+{
+    return 0;
+}
+
+static void ssd0323_send(SSIPeripheral *dev, uint32_t data)
 {
     ssd0323_state *s = SSD0323(dev);
 
@@ -109,7 +114,7 @@ static uint32_t ssd0323_transfer(SSIPeripheral *dev, uint32_t data)
         }
         s->cmd_len++;
         switch (s->cmd) {
-#define DATA(x) if (s->cmd_len <= (x)) return 0
+#define DATA(x) if (s->cmd_len <= (x)) return
         case 0x15: /* Set column.  */
             DATA(2);
             s->col = s->col_start = s->cmd_data[0] % 64;
@@ -176,9 +181,7 @@ static uint32_t ssd0323_transfer(SSIPeripheral *dev, uint32_t data)
             BADF("Unknown command: 0x%x\n", data);
         }
         s->cmd_len = 0;
-        return 0;
     }
-    return 0;
 }
 
 static void ssd0323_update_display(void *opaque)
@@ -367,7 +370,8 @@ static void ssd0323_class_init(ObjectClass *klass, const void *data)
     SSIPeripheralClass *k = SSI_PERIPHERAL_CLASS(klass);
 
     k->realize = ssd0323_realize;
-    k->transfer = ssd0323_transfer;
+    k->recv = ssd0323_recv;
+    k->send = ssd0323_send;
     k->cs_polarity = SSI_CS_HIGH;
     dc->vmsd = &vmstate_ssd0323;
     set_bit(DEVICE_CATEGORY_DISPLAY, dc->categories);
