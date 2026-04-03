@@ -29,6 +29,10 @@ config BCM2835_SPI
     bool
     select SSI
 
+config MAX14906_SPI
+    bool
+    depends on SSI
+
 config PNV_SPI
     bool
     select SSI

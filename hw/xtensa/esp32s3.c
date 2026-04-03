@@ -47,6 +47,7 @@
 
 #include "hw/ssi/bitbang_spi.h"
 #include "hw/ssi/esp32s3_spi.h"
+#include "hw/ssi/max14906.h"
 #include "hw/misc/esp32s3_cache.h"
 #include "hw/char/esp32s3_uart.h"
 #include "hw/misc/esp32s3_rng.h"
@@ -159,6 +160,7 @@ typedef struct Esp32s3SocState {
     SsiPsramState *psram;
 
     GpioSpiState bitbang_spi;
+    Max14906State max14906;
 
     uint32_t requested_reset;
 } Esp32s3SocState;
@@ -663,6 +665,7 @@ static void esp32s3_machine_init(MachineState *machine)
     object_initialize_child(OBJECT(ss), "rgb", &ss->rgb, TYPE_ESP_RGB);
 
     object_initialize_child(OBJECT(ss), "bitbang_spi", &ss->bitbang_spi, TYPE_GPIO_SPI);
+    object_initialize_child(OBJECT(ss), "max14906", &ss->max14906, TYPE_MAX14906);
 
     DeviceState* intmatrix_dev = DEVICE(&ss->intmatrix);
     {
@@ -886,6 +889,17 @@ static void esp32s3_machine_init(MachineState *machine)
     qdev_connect_gpio_out(DEVICE(&ss->gpio), 35, qdev_get_gpio_in_named(DEVICE(&ss->bitbang_spi), "out", 0));
     qdev_connect_gpio_out(DEVICE(&ss->gpio), 36, qdev_get_gpio_in_named(DEVICE(&ss->bitbang_spi), "clock", 0));
     qdev_connect_gpio_out_named(DEVICE(&ss->bitbang_spi), "in", 0, qdev_get_gpio_in(DEVICE(&ss->gpio), 37));
+
+    {
+        BusState *spi_bus = qdev_get_child_bus(DEVICE(&ss->bitbang_spi), "spi");
+
+        qdev_prop_set_bit(DEVICE(&ss->max14906), "crc-enable", true);
+        qdev_realize(DEVICE(&ss->max14906), spi_bus, &error_fatal);
+#if 0
+        qdev_connect_gpio_out_named(spi_master, SSI_GPIO_CS, 1,
+                                    qdev_get_gpio_in_named(psram, SSI_GPIO_CS, 0));
+#endif
+    }
 
     /* Need MMU initialized prior to ELF loading,
      * so that ELF gets loaded into virtual addresses

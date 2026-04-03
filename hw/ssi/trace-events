@@ -16,6 +16,11 @@ bitbang_spi_out_handler(const char *path, int level) "%s: %d"
 bitbang_spi_clock_handler(const char *path, int level) "%s: %d"
 bitbang_spi_cs_handler(const char *path, int level) "%s: %d"
 
+# max14906.c
+
+max14906_read(const char *path, uint32_t val) "%s: 0x%" PRIx32
+max14906_write(const char *path, uint32_t val) "%s: 0x%" PRIx32
+
 # npcm7xx_fiu.c
 
 npcm7xx_fiu_enter_reset(const char *id, int reset_type) "%s reset type: %d"
