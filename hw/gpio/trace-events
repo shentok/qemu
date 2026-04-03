@@ -1,5 +1,9 @@
 # See docs/devel/tracing.rst for syntax documentation.
 
+# esp32_gpio.c
+esp32_gpio_read(const char *id, uint64_t offset, const char *name, uint64_t value) "%s: [0x%04" PRIx64 " (%s)] -> 0x%08" PRIx64
+esp32_gpio_write(const char *id, uint64_t offset, const char *name, uint64_t value) "%s: [0x%04" PRIx64 " (%s)] <- 0x%08" PRIx64
+
 # imx_gpio.c
 imx_gpio_read(const char *id, const char *reg, uint32_t value) "%s:[%s] -> 0x%" PRIx32
 imx_gpio_write(const char *id, const char *reg, uint32_t value) "%s:[%s] <- 0x%" PRIx32
