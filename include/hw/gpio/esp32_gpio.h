@@ -11,7 +11,7 @@
 #define ESP32_STRAP_MODE_FLASH_BOOT 0x12
 #define ESP32_STRAP_MODE_UART_BOOT  0x0f
 
-#define ESP32_IMX_GPIO_PIN_COUNT    48
+#define ESP32_IMX_GPIO_PIN_COUNT    64
 
 typedef struct Esp32GpioState {
     SysBusDevice parent_obj;
