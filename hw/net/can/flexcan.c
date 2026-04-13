@@ -52,14 +52,6 @@
  */
 #define FLEXCAN_TIMER_STOPPED           -1
 
-/**
- * defines the end of the memory space of the implemented registers
- *
- * also prevents addressing memory after FlexcanRegs end
- */
-#define FLEXCAN_ADDR_SPC_END offsetof(FlexcanRegs, _reserved6)
-QEMU_BUILD_BUG_ON(FLEXCAN_ADDR_SPC_END > sizeof(FlexcanRegs));
-
 /* These constants are returned by flexcan_fifo_rx() and flexcan_mb_rx(), */
 enum FlexcanRx {
 /* Retry the other receiving mechanism (ie. message bufer or mailbox). */
@@ -202,10 +194,6 @@ static const char *flexcan_dbg_mb_code(uint32_t mb_ctrl, char *buf)
 
 static const char *flexcan_dbg_reg_name_fixed(hwaddr addr)
 {
-    if (addr >= FLEXCAN_ADDR_SPC_END) {
-        return "OUT-OF-RANGE";
-    }
-
     switch (addr) {
     case offsetof(FlexcanRegs, mcr):
         return "MCR";
