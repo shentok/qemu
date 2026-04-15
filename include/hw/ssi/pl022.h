@@ -24,6 +24,7 @@
 
 #include "hw/core/sysbus.h"
 #include "qom/object.h"
+#include "qemu/fifo32.h"
 
 #define TYPE_PL022 "pl022"
 OBJECT_DECLARE_SIMPLE_TYPE(PL022State, PL022)
@@ -39,13 +40,8 @@ struct PL022State {
     uint32_t cpsr;
     uint32_t is;
     uint32_t im;
-    /* The FIFO head points to the next empty entry.  */
-    int tx_fifo_head;
-    int rx_fifo_head;
-    int tx_fifo_len;
-    int rx_fifo_len;
-    uint16_t tx_fifo[8];
-    uint16_t rx_fifo[8];
+    Fifo32 tx_fifo;
+    Fifo32 rx_fifo;
     qemu_irq irq;
     SSIBus *ssi;
 };
