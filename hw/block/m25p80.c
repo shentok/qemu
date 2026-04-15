@@ -636,7 +636,7 @@ static void flash_erase(Flash *s, int offset, FlashCMD cmd)
         abort();
     }
 
-    trace_m25p80_flash_erase(s, offset, len);
+    trace_m25p80_flash_erase(DEVICE(s)->canonical_path, offset, len);
 
     if ((s->pi->flags & capa_to_assert) != capa_to_assert) {
         qemu_log_mask(LOG_GUEST_ERROR, "M25P80: %d erase size not supported by"
@@ -695,7 +695,8 @@ void flash_write8(Flash *s, uint32_t addr, uint8_t data)
     }
 
     if ((prev ^ data) & data) {
-        trace_m25p80_programming_zero_to_one(s, addr, prev, data);
+        trace_m25p80_programming_zero_to_one(DEVICE(s)->canonical_path, addr,
+                                             prev, data);
     }
 
     if (s->pi->flags & EEPROM) {
@@ -751,7 +752,8 @@ static void complete_collecting_data(Flash *s)
 
     s->state = STATE_IDLE;
 
-    trace_m25p80_complete_collecting(s, s->cmd_in_progress, n, s->ear,
+    trace_m25p80_complete_collecting(DEVICE(s)->canonical_path,
+                                     s->cmd_in_progress, n, s->ear,
                                      s->cur_addr);
 
     switch (s->cmd_in_progress) {
@@ -956,7 +958,7 @@ static void reset_memory(Flash *s)
         break;
     }
 
-    trace_m25p80_reset_done(s);
+    trace_m25p80_reset_done(DEVICE(s)->canonical_path);
 }
 
 static uint8_t numonyx_mode(Flash *s)
@@ -1230,7 +1232,8 @@ static void decode_new_cmd(Flash *s, uint32_t value)
     int i;
 
     s->cmd_in_progress = value;
-    trace_m25p80_command_decoded(s, value, flash_cmd_name(value));
+    trace_m25p80_command_decoded(DEVICE(s)->canonical_path, value,
+                                 flash_cmd_name(value));
 
     if (value != RESET_MEMORY) {
         s->reset_enable = false;
@@ -1447,7 +1450,7 @@ static void decode_new_cmd(Flash *s, uint32_t value)
 
     case JEDEC_READ:
         if (get_man(s) != MAN_NUMONYX || numonyx_mode(s) == MODE_STD) {
-            trace_m25p80_populated_jedec(s);
+            trace_m25p80_populated_jedec(DEVICE(s)->canonical_path);
             for (i = 0; i < s->pi->id_len; i++) {
                 s->data[i] = s->pi->id[i];
             }
@@ -1475,7 +1478,7 @@ static void decode_new_cmd(Flash *s, uint32_t value)
     case BULK_ERASE_60:
     case BULK_ERASE:
         if (s->write_enable) {
-            trace_m25p80_chip_erase(s);
+            trace_m25p80_chip_erase(DEVICE(s)->canonical_path);
             flash_erase(s, 0, BULK_ERASE);
         } else {
             qemu_log_mask(LOG_GUEST_ERROR, "M25P80: chip erase with write "
@@ -1635,7 +1638,7 @@ static int m25p80_cs(SSIPeripheral *ss, bool select)
         s->data_read_loop = false;
     }
 
-    trace_m25p80_select(s, select ? "de" : "");
+    trace_m25p80_select(DEVICE(s)->canonical_path, select ? "de" : "");
 
     return 0;
 }
@@ -1645,13 +1648,14 @@ static uint32_t m25p80_transfer8(SSIPeripheral *ss, uint32_t tx)
     Flash *s = M25P80(ss);
     uint32_t r = 0;
 
-    trace_m25p80_transfer(s, s->state, s->len, s->needed_bytes, s->pos,
-                          s->cur_addr, (uint8_t)tx);
+    trace_m25p80_transfer(DEVICE(s)->canonical_path, s->state, s->len,
+                          s->needed_bytes, s->pos, s->cur_addr, (uint8_t)tx);
 
     switch (s->state) {
 
     case STATE_PAGE_PROGRAM:
-        trace_m25p80_page_program(s, s->cur_addr, (uint8_t)tx);
+        trace_m25p80_page_program(DEVICE(s)->canonical_path, s->cur_addr,
+                                  (uint8_t)tx);
         flash_write8(s, s->cur_addr, (uint8_t)tx);
         s->cur_addr = (s->cur_addr + 1) & (s->size - 1);
 
@@ -1669,7 +1673,8 @@ static uint32_t m25p80_transfer8(SSIPeripheral *ss, uint32_t tx)
 
     case STATE_READ:
         r = s->storage[s->cur_addr];
-        trace_m25p80_read_byte(s, s->cur_addr, (uint8_t)r);
+        trace_m25p80_read_byte(DEVICE(s)->canonical_path, s->cur_addr,
+                               (uint8_t)r);
         s->cur_addr = (s->cur_addr + 1) & (s->size - 1);
         break;
 
@@ -1707,7 +1712,7 @@ static uint32_t m25p80_transfer8(SSIPeripheral *ss, uint32_t tx)
         }
 
         r = s->data[s->pos];
-        trace_m25p80_read_data(s, s->pos, (uint8_t)r);
+        trace_m25p80_read_data(DEVICE(s)->canonical_path, s->pos, (uint8_t)r);
         s->pos++;
         if (s->pos == s->len) {
             s->pos = 0;
@@ -1719,7 +1724,8 @@ static uint32_t m25p80_transfer8(SSIPeripheral *ss, uint32_t tx)
     case STATE_READING_SFDP:
         assert(s->pi->sfdp_read);
         r = s->pi->sfdp_read(s->cur_addr);
-        trace_m25p80_read_sfdp(s, s->cur_addr, (uint8_t)r);
+        trace_m25p80_read_sfdp(DEVICE(s)->canonical_path, s->cur_addr,
+                               (uint8_t)r);
         s->cur_addr = (s->cur_addr + 1) & (M25P80_SFDP_MAX_SIZE - 1);
         break;
 
@@ -1759,7 +1765,7 @@ static void m25p80_realize(SSIPeripheral *ss, Error **errp)
             return;
         }
 
-        trace_m25p80_binding(s);
+        trace_m25p80_binding(DEVICE(s)->canonical_path);
         s->storage = blk_blockalign(s->blk, s->size);
 
         if (!blk_check_size_and_read_all(s->blk, DEVICE(s),
@@ -1767,7 +1773,7 @@ static void m25p80_realize(SSIPeripheral *ss, Error **errp)
             return;
         }
     } else {
-        trace_m25p80_binding_no_bdrv(s);
+        trace_m25p80_binding_no_bdrv(DEVICE(s)->canonical_path);
         s->storage = blk_blockalign(NULL, s->size);
         memset(s->storage, 0xFF, s->size);
     }
