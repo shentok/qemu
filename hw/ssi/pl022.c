@@ -51,29 +51,34 @@ static const unsigned char pl022_id[8] =
 static void pl022_update(PL022State *s)
 {
     s->sr = 0;
-    if (s->tx_fifo_len == 0)
+    if (fifo32_is_empty(&s->tx_fifo)) {
         s->sr |= PL022_SR_TFE;
-    if (s->tx_fifo_len != 8)
+    }
+    if (!fifo32_is_full(&s->tx_fifo)) {
         s->sr |= PL022_SR_TNF;
-    if (s->rx_fifo_len != 0)
+    }
+    if (!fifo32_is_empty(&s->rx_fifo)) {
         s->sr |= PL022_SR_RNE;
-    if (s->rx_fifo_len == 8)
+    }
+    if (fifo32_is_full(&s->rx_fifo)) {
         s->sr |= PL022_SR_RFF;
-    if (s->tx_fifo_len)
+    }
+    if (!fifo32_is_empty(&s->tx_fifo)) {
         s->sr |= PL022_SR_BSY;
+    }
     s->is = 0;
-    if (s->rx_fifo_len >= 4)
+    if (fifo32_num_used(&s->rx_fifo) >= 4) {
         s->is |= PL022_INT_RX;
-    if (s->tx_fifo_len <= 4)
+    }
+    if (fifo32_num_used(&s->tx_fifo) <= 4) {
         s->is |= PL022_INT_TX;
+    }
 
     qemu_set_irq(s->irq, (s->is & s->im) != 0);
 }
 
 static void pl022_xfer(PL022State *s)
 {
-    int i;
-    int o;
     int val;
 
     if ((s->cr1 & PL022_CR1_SSE) == 0) {
@@ -82,9 +87,8 @@ static void pl022_xfer(PL022State *s)
         return;
     }
 
-    DPRINTF("Maybe xfer %d/%d\n", s->tx_fifo_len, s->rx_fifo_len);
-    i = (s->tx_fifo_head - s->tx_fifo_len) & 7;
-    o = s->rx_fifo_head;
+    DPRINTF("Maybe xfer %d/%d\n", fifo32_num_used(&s->tx_fifo),
+            fifo32_num_used(&s->rx_fifo));
     /* ??? We do not emulate the line speed.
        This may break some applications.  The are two problematic cases:
         (a) A driver feeds data into the TX FIFO until it is full,
@@ -97,21 +101,16 @@ static void pl022_xfer(PL022State *s)
        cause the RX FIFO to overflow.  In practice much transmit-only code
        falls into (a) because it flushes the RX FIFO to determine when
        the transfer has completed.  */
-    while (s->tx_fifo_len && s->rx_fifo_len < 8) {
+    while (!fifo32_is_empty(&s->tx_fifo) && !fifo32_is_full(&s->rx_fifo)) {
         DPRINTF("xfer\n");
-        val = s->tx_fifo[i];
+        val = fifo32_pop(&s->tx_fifo);
         if (s->cr1 & PL022_CR1_LBM) {
             /* Loopback mode.  */
         } else {
             val = ssi_transfer(s->ssi, val);
         }
-        s->rx_fifo[o] = val & s->bitmask;
-        i = (i + 1) & 7;
-        o = (o + 1) & 7;
-        s->tx_fifo_len--;
-        s->rx_fifo_len++;
+        fifo32_push(&s->rx_fifo, val & s->bitmask);
     }
-    s->rx_fifo_head = o;
     pl022_update(s);
 }
 
@@ -130,10 +129,9 @@ static uint64_t pl022_read(void *opaque, hwaddr offset,
     case 0x04: /* CR1 */
       return s->cr1;
     case 0x08: /* DR */
-        if (s->rx_fifo_len) {
-            val = s->rx_fifo[(s->rx_fifo_head - s->rx_fifo_len) & 7];
+        if (!fifo32_is_empty(&s->rx_fifo)) {
+            val = fifo32_pop(&s->rx_fifo);
             DPRINTF("RX %02x\n", val);
-            s->rx_fifo_len--;
             pl022_xfer(s);
         } else {
             val = 0;
@@ -179,11 +177,9 @@ static void pl022_write(void *opaque, hwaddr offset,
         pl022_xfer(s);
         break;
     case 0x08: /* DR */
-        if (s->tx_fifo_len < 8) {
+        if (!fifo32_is_full(&s->tx_fifo)) {
             DPRINTF("TX %02x\n", (unsigned)value);
-            s->tx_fifo[s->tx_fifo_head] = value & s->bitmask;
-            s->tx_fifo_head = (s->tx_fifo_head + 1) & 7;
-            s->tx_fifo_len++;
+            fifo32_push(&s->tx_fifo, value & s->bitmask);
             pl022_xfer(s);
         }
         break;
@@ -218,8 +214,8 @@ static void pl022_reset(DeviceState *dev)
 {
     PL022State *s = PL022(dev);
 
-    s->rx_fifo_len = 0;
-    s->tx_fifo_len = 0;
+    fifo32_reset(&s->rx_fifo);
+    fifo32_reset(&s->tx_fifo);
     s->im = 0;
     s->is = PL022_INT_TX;
     s->sr = PL022_SR_TFE | PL022_SR_TNF;
@@ -231,24 +227,10 @@ static const MemoryRegionOps pl022_ops = {
     .endianness = DEVICE_NATIVE_ENDIAN,
 };
 
-static int pl022_post_load(void *opaque, int version_id)
-{
-    PL022State *s = opaque;
-
-    if (s->tx_fifo_head < 0 ||
-        s->tx_fifo_head >= ARRAY_SIZE(s->tx_fifo) ||
-        s->rx_fifo_head < 0 ||
-        s->rx_fifo_head >= ARRAY_SIZE(s->rx_fifo)) {
-        return -1;
-    }
-    return 0;
-}
-
 static const VMStateDescription vmstate_pl022 = {
     .name = "pl022_ssp",
     .version_id = 1,
     .minimum_version_id = 1,
-    .post_load = pl022_post_load,
     .fields = (const VMStateField[]) {
         VMSTATE_UINT32(cr0, PL022State),
         VMSTATE_UINT32(cr1, PL022State),
@@ -257,26 +239,8 @@ static const VMStateDescription vmstate_pl022 = {
         VMSTATE_UINT32(cpsr, PL022State),
         VMSTATE_UINT32(is, PL022State),
         VMSTATE_UINT32(im, PL022State),
-        VMSTATE_INT32(tx_fifo_head, PL022State),
-        VMSTATE_INT32(rx_fifo_head, PL022State),
-        VMSTATE_INT32(tx_fifo_len, PL022State),
-        VMSTATE_INT32(rx_fifo_len, PL022State),
-        VMSTATE_UINT16(tx_fifo[0], PL022State),
-        VMSTATE_UINT16(rx_fifo[0], PL022State),
-        VMSTATE_UINT16(tx_fifo[1], PL022State),
-        VMSTATE_UINT16(rx_fifo[1], PL022State),
-        VMSTATE_UINT16(tx_fifo[2], PL022State),
-        VMSTATE_UINT16(rx_fifo[2], PL022State),
-        VMSTATE_UINT16(tx_fifo[3], PL022State),
-        VMSTATE_UINT16(rx_fifo[3], PL022State),
-        VMSTATE_UINT16(tx_fifo[4], PL022State),
-        VMSTATE_UINT16(rx_fifo[4], PL022State),
-        VMSTATE_UINT16(tx_fifo[5], PL022State),
-        VMSTATE_UINT16(rx_fifo[5], PL022State),
-        VMSTATE_UINT16(tx_fifo[6], PL022State),
-        VMSTATE_UINT16(rx_fifo[6], PL022State),
-        VMSTATE_UINT16(tx_fifo[7], PL022State),
-        VMSTATE_UINT16(rx_fifo[7], PL022State),
+        VMSTATE_FIFO32(tx_fifo, PL022State),
+        VMSTATE_FIFO32(rx_fifo, PL022State),
         VMSTATE_END_OF_LIST()
     }
 };
@@ -286,6 +250,8 @@ static void pl022_realize(DeviceState *dev, Error **errp)
     SysBusDevice *sbd = SYS_BUS_DEVICE(dev);
     PL022State *s = PL022(dev);
 
+    fifo32_create(&s->rx_fifo, 8);
+    fifo32_create(&s->tx_fifo, 8);
     memory_region_init_io(&s->iomem, OBJECT(s), &pl022_ops, s, "pl022", 0x1000);
     sysbus_init_mmio(sbd, &s->iomem);
     sysbus_init_irq(sbd, &s->irq);
