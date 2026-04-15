@@ -197,7 +197,8 @@ static void esp32s3_spi_txrx_buffer(ESP32S3SpiState *s,
         if (byte < tx_bytes) {
             memcpy(&byte, tx + i, 1);
         }
-        uint32_t res = ssi_transfer(s->spi, byte);
+        uint32_t res = ssi_read(s->spi);
+        ssi_write(s->spi, byte);
         if (byte < rx_bytes) {
             memcpy(rx + i, &res, 1);
         }
