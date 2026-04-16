@@ -118,7 +118,6 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
         case SSI_DUMMY:
             DPRINTF("NULL command\n");
             return SSI_DUMMY;
-            break;
         case SSI_TOKEN_SINGLE:
         case SSI_TOKEN_MULTI_WRITE:
             DPRINTF("Start write block\n");
