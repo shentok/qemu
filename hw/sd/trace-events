@@ -62,6 +62,23 @@ sdcard_switch(unsigned access, unsigned index, unsigned value, unsigned set) "ac
 sdcard_rpmb_read_block(uint16_t resp, uint16_t read_addr, uint16_t result) "resp 0x%x read_addr 0x%x result 0x%x"
 sdcard_rpmb_write_block(uint16_t req, uint16_t result) "req 0x%x result 0x%x"
 
+# ssi-sd.c
+ssi_sd_cmd_dummy(void) ""
+ssi_sd_cmd_start_write_block(void) ""
+ssi_sd_cmd_stop_multiple_write(void) ""
+ssi_sd_card_busy(void) ""
+ssi_sd_cmd(int cmd, uint32_t arg, int32_t arglen) "CMD%d arg 0x%08" PRIx32 " = %" PRIi32
+ssi_sd_prepare_response(void) "(Ncr)"
+ssi_sd_response(uint8_t data) "0x%02" PRIu8
+ssi_sd_data_read_start(void) ""
+ssi_sd_cmd_end(void) ""
+ssi_sd_prepare_data_block(void) "(Nac)"
+ssi_sd_read_block_start(void) ""
+ssi_sd_data_read_end(int32_t read_bytes) "%" PRIi32
+ssi_sd_crc16_read_end(void) ""
+ssi_sd_data_write_end(int32_t read_bytes) "%" PRIi32
+ssi_sd_crc16_receive_end(void) ""
+
 # pl181.c
 pl181_command_send(uint8_t cmd, uint32_t arg) "sending CMD%02d arg 0x%08" PRIx32
 pl181_command_sent(void) "command sent"
