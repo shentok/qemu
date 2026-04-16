@@ -22,19 +22,7 @@
 #include "qemu/bswap.h"
 #include "qemu/crc-ccitt.h"
 #include "qom/object.h"
-
-//#define DEBUG_SSI_SD 1
-
-#ifdef DEBUG_SSI_SD
-#define DPRINTF(fmt, ...) \
-do { printf("ssi_sd: " fmt , ## __VA_ARGS__); } while (0)
-#define BADF(fmt, ...) \
-do { fprintf(stderr, "ssi_sd: error: " fmt , ## __VA_ARGS__); exit(1);} while (0)
-#else
-#define DPRINTF(fmt, ...) do {} while(0)
-#define BADF(fmt, ...) \
-do { fprintf(stderr, "ssi_sd: error: " fmt , ## __VA_ARGS__);} while (0)
-#endif
+#include "trace.h"
 
 typedef enum {
     SSI_SD_CMD = 0,
@@ -116,15 +104,15 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
     case SSI_SD_CMD:
         switch (val) {
         case SSI_DUMMY:
-            DPRINTF("NULL command\n");
+            trace_ssi_sd_cmd_dummy();
             return SSI_DUMMY;
         case SSI_TOKEN_SINGLE:
         case SSI_TOKEN_MULTI_WRITE:
-            DPRINTF("Start write block\n");
+            trace_ssi_sd_cmd_start_write_block();
             s->mode = SSI_SD_DATA_WRITE;
             return SSI_DUMMY;
         case SSI_TOKEN_STOP_TRAN:
-            DPRINTF("Stop multiple write\n");
+            trace_ssi_sd_cmd_stop_multiple_write();
 
             /* manually issue cmd12 to stop the transfer */
             request.cmd = 12;
@@ -135,7 +123,7 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
                 s->arglen = 1;
                 /* a zero value indicates the card is busy */
                 s->response[0] = 0;
-                DPRINTF("SD card busy\n");
+                trace_ssi_sd_card_busy();
             } else {
                 s->arglen = 1;
                 /* a non-zero value indicates the card is ready */
@@ -156,7 +144,7 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
             request.arg = ldl_be_p(s->cmdarg);
             s->arglen = sdbus_do_command(&s->sdbus, &request,
                                          longresp, sizeof(longresp));
-            DPRINTF("CMD%d arg 0x%08x = %d\n", s->cmd, request.arg, s->arglen);
+            trace_ssi_sd_cmd(s->cmd, request.arg, s->arglen);
             assert(s->arglen > 0);
             memcpy(s->response, longresp, s->arglen);
 
@@ -171,12 +159,12 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
         }
         return SSI_DUMMY;
     case SSI_SD_PREP_RESP:
-        DPRINTF("Prepare card response (Ncr)\n");
+        trace_ssi_sd_prepare_response();
         s->mode = SSI_SD_RESPONSE;
         return SSI_DUMMY;
     case SSI_SD_RESPONSE:
         if (s->response_pos < s->arglen) {
-            DPRINTF("Response 0x%02x\n", s->response[s->response_pos]);
+            trace_ssi_sd_response(s->response[s->response_pos]);
             return s->response[s->response_pos++];
         }
         if (s->stopping) {
@@ -185,19 +173,19 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
             return SSI_DUMMY;
         }
         if (sdbus_data_ready(&s->sdbus)) {
-            DPRINTF("Data read\n");
+            trace_ssi_sd_data_read_start();
             s->mode = SSI_SD_DATA_START;
         } else {
-            DPRINTF("End of command\n");
+            trace_ssi_sd_cmd_end();
             s->mode = SSI_SD_CMD;
         }
         return SSI_DUMMY;
     case SSI_SD_PREP_DATA:
-        DPRINTF("Prepare data block (Nac)\n");
+        trace_ssi_sd_prepare_data_block();
         s->mode = SSI_SD_DATA_START;
         return SSI_DUMMY;
     case SSI_SD_DATA_START:
-        DPRINTF("Start read block\n");
+        trace_ssi_sd_read_block_start();
         s->mode = SSI_SD_DATA_READ;
         s->response_pos = 0;
         return SSI_TOKEN_SINGLE;
@@ -206,7 +194,7 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
         s->read_bytes++;
         s->crc16 = crc_ccitt_false(s->crc16, (uint8_t *)&val, 1);
         if (!sdbus_data_ready(&s->sdbus) || s->read_bytes == 512) {
-            DPRINTF("Data read end\n");
+            trace_ssi_sd_data_read_end(s->read_bytes);
             s->mode = SSI_SD_DATA_CRC16;
         }
         return val;
@@ -215,7 +203,7 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
         s->crc16 <<= 8;
         s->response_pos++;
         if (s->response_pos == 2) {
-            DPRINTF("CRC16 read end\n");
+            trace_ssi_sd_crc16_read_end();
             if (s->read_bytes == 512 && s->cmd != 17) {
                 s->mode = SSI_SD_PREP_DATA;
             } else {
@@ -229,7 +217,7 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
         sdbus_write_byte(&s->sdbus, val);
         s->write_bytes++;
         if (!sdbus_receive_ready(&s->sdbus) || s->write_bytes == 512) {
-            DPRINTF("Data write end\n");
+            trace_ssi_sd_data_write_end(s->write_bytes);
             s->mode = SSI_SD_SKIP_CRC16;
             s->response_pos = 0;
         }
@@ -238,7 +226,7 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
         /* we don't verify the crc16 */
         s->response_pos++;
         if (s->response_pos == 2) {
-            DPRINTF("CRC16 receive end\n");
+            trace_ssi_sd_crc16_receive_end();
             s->mode = SSI_SD_RESPONSE;
             s->write_bytes = 0;
             s->arglen = 1;
