@@ -2671,7 +2671,6 @@ static size_t sd_write_data(SDState *sd, const void *buf, size_t length)
     unsigned int partition_access;
     uint32_t blk_len;
     int i;
-    const uint8_t *value = buf;
 
     if (!sd->blk || !blk_is_inserted(sd->blk)) {
         return length;
@@ -2704,44 +2703,101 @@ static size_t sd_write_data(SDState *sd, const void *buf, size_t length)
         break;
 
     case 25:  /* CMD25:  WRITE_MULTIPLE_BLOCK */
-        /*
-         * Only read one byte at a time. We will be called again with the
-         * remaining.
-         */
-        length = 1;
-
         if (sd->data_offset == 0) {
             /* Start of the block - let's check the address is valid */
             if (!address_in_range(sd, "WRITE_MULTIPLE_BLOCK",
-                                  sd->data_start, blk_len)) {
-                break;
-            }
-            if (sd->size <= SDSC_MAX_CAPACITY) {
-                if (sd_wp_addr(sd, sd->data_start)) {
-                    sd->card_status |= WP_VIOLATION;
+                                      sd->data_start, MAX(blk_len, length))) {
+                /* Limit writing data to our device size */
+                length = MIN(sd->size - sd->data_start, length);
+
+                if (length == 0) {
+                    /* We've read past the end, return a dummy write. */
+                    length = 1;
                     break;
                 }
             }
-        }
-        sd->data[sd->data_offset++] = value[0];
-        if (sd->data_offset >= blk_len) {
-            /* TODO: Check CRC before committing */
-            sd->state = sd_programming_state;
-            partition_access = sd->ext_csd[EXT_CSD_PART_CONFIG]
-                    & EXT_CSD_PART_CONFIG_ACC_MASK;
-            if (partition_access == EXT_CSD_PART_CONFIG_ACC_RPMB) {
-                emmc_rpmb_blk_write(sd, sd->data_start, sd->data_offset);
-            } else {
-                sd_blk_write(sd, sd->data, sd->data_start, sd->data_offset);
+
+            if (sd->size <= SDSC_MAX_CAPACITY) {
+                uint64_t start = sd->data_start;
+
+                /*
+                 * Check if any covered address violates WP. If so, limit our
+                 * write up to the allowed address.
+                 */
+                for (uint64_t addr = start; addr < start + length;
+                     addr = ROUND_UP(addr + 1, WPGROUP_SIZE)) {
+                    if (sd_wp_addr(sd, addr)) {
+                        sd->card_status |= WP_VIOLATION;
+
+                        length = addr - start;
+
+                        if (length == 0) {
+                            /*
+                             * length != 0 asserted by caller, return a dummy
+                             * write.
+                             */
+                            length = 1;
+                        }
+
+                        break;
+                    }
+                }
             }
-            sd->blk_written++;
-            sd->data_start += blk_len;
-            sd->data_offset = 0;
+        }
+
+        partition_access = sd->ext_csd[EXT_CSD_PART_CONFIG]
+                            & EXT_CSD_PART_CONFIG_ACC_MASK;
+
+        /* Partial write or RPMB (single block only for now) */
+        if (length < blk_len || sd->data_offset > 0
+            || partition_access == EXT_CSD_PART_CONFIG_ACC_RPMB) {
+            length = MIN(blk_len - sd->data_offset, length);
+
+            memcpy(sd->data + sd->data_offset, buf, length);
+            sd->data_offset += length;
+
+            if (sd->data_offset >= blk_len) {
+                sd->state = sd_programming_state;
+                if (partition_access == EXT_CSD_PART_CONFIG_ACC_RPMB) {
+                    emmc_rpmb_blk_write(sd, sd->data_start, sd->data_offset);
+                } else {
+                    sd_blk_write(sd, sd->data, sd->data_start, sd->data_offset);
+                }
+                sd->blk_written++;
+                sd->data_start += blk_len;
+                sd->data_offset = 0;
+                sd->csd[14] |= 0x40;
+
+                /* Bzzzzzzztt .... Operation complete.  */
+                if (sd->multi_blk_cnt != 0) {
+                    if (--sd->multi_blk_cnt == 0) {
+                        /* Stop! */
+                        sd->state = sd_transfer_state;
+                        break;
+                    }
+                }
+
+                sd->state = sd_receivingdata_state;
+            }
+        }
+        /* Try to write multiple of block sizes */
+        else {
+            length = QEMU_ALIGN_DOWN(length, blk_len);
+
+            if (sd->multi_blk_cnt > 0) {
+                length = MIN(length, sd->multi_blk_cnt * blk_len);
+            }
+
+            sd->state = sd_programming_state;
+            sd_blk_write(sd, buf, sd->data_start, length);
+            sd->blk_written += length / blk_len;
+            sd->data_start += length;
             sd->csd[14] |= 0x40;
 
-            /* Bzzzzzzztt .... Operation complete.  */
             if (sd->multi_blk_cnt != 0) {
-                if (--sd->multi_blk_cnt == 0) {
+                sd->multi_blk_cnt -= length / blk_len;
+
+                if (sd->multi_blk_cnt == 0) {
                     /* Stop! */
                     sd->state = sd_transfer_state;
                     break;
@@ -2750,6 +2806,7 @@ static size_t sd_write_data(SDState *sd, const void *buf, size_t length)
 
             sd->state = sd_receivingdata_state;
         }
+
         break;
 
     case 26:  /* CMD26:  PROGRAM_CID */
@@ -2820,7 +2877,6 @@ static size_t sd_read_data(SDState *sd, void *buf, size_t length)
     const uint8_t dummy_byte = 0x00;
     unsigned int partition_access;
     uint32_t blk_len;
-    uint8_t *value = buf;
 
     if (!sd->blk || !blk_is_inserted(sd->blk)) {
         memset(buf, dummy_byte, length);
@@ -2860,37 +2916,69 @@ static size_t sd_read_data(SDState *sd, void *buf, size_t length)
         break;
 
     case 18:  /* CMD18:  READ_MULTIPLE_BLOCK */
-        /*
-         * We will only read one byte at a time. We will be called again with
-         * the remaining buffer.
-         */
-        length = 1;
-
         if (sd->data_offset == 0) {
             if (!address_in_range(sd, "READ_MULTIPLE_BLOCK",
-                                  sd->data_start, blk_len)) {
-                *value = dummy_byte;
-                return length;
-            }
-            partition_access = sd->ext_csd[EXT_CSD_PART_CONFIG]
-                    & EXT_CSD_PART_CONFIG_ACC_MASK;
-            if (partition_access == EXT_CSD_PART_CONFIG_ACC_RPMB) {
-                emmc_rpmb_blk_read(sd, sd->data_start, blk_len);
-            } else {
-                sd_blk_read(sd, sd->data, sd->data_start, blk_len);
+                                  sd->data_start, MAX(blk_len, length))) {
+                /* Limit reading data to our device size */
+                length = MIN(sd->size - sd->data_start, length);
+
+                if (length == 0) {
+                    /* We read past the end, return a dummy read. */
+                    memset(buf, dummy_byte, 1);
+                    length = 1;
+                    break;
+                }
             }
         }
-        *value = sd->data[sd->data_offset++];
 
-        if (sd->data_offset >= blk_len) {
-            sd->data_start += blk_len;
-            sd->data_offset = 0;
+        partition_access = sd->ext_csd[EXT_CSD_PART_CONFIG]
+                & EXT_CSD_PART_CONFIG_ACC_MASK;
+
+        if (length < blk_len || sd->data_offset > 0
+            || partition_access == EXT_CSD_PART_CONFIG_ACC_RPMB) {
+            if (sd->data_offset == 0) {
+                /* Fill the buffer */
+                if (partition_access == EXT_CSD_PART_CONFIG_ACC_RPMB) {
+                    emmc_rpmb_blk_read(sd, sd->data_start, blk_len);
+                } else {
+                    sd_blk_read(sd, sd->data, sd->data_start, blk_len);
+                }
+            }
+
+            length = MIN(blk_len - sd->data_offset, length);
+
+            memcpy(buf, sd->data + sd->data_offset, length);
+            sd->data_offset += length;
+
+            if (sd->data_offset >= blk_len) {
+                sd->data_start += blk_len;
+                sd->data_offset = 0;
+
+                if (sd->multi_blk_cnt != 0) {
+                    if (--sd->multi_blk_cnt == 0) {
+                        /* Stop! */
+                        sd->state = sd_transfer_state;
+                        break;
+                    }
+                }
+            }
+        } else {
+            length = QEMU_ALIGN_DOWN(length, blk_len);
+
+            /* For limited reads, only read the requested block count. */
+            if (sd->multi_blk_cnt != 0) {
+                length = MIN(length, sd->multi_blk_cnt * blk_len);
+            }
+
+            sd_blk_read(sd, buf, sd->data_start, length);
+
+            sd->data_start += length;
 
             if (sd->multi_blk_cnt != 0) {
-                if (--sd->multi_blk_cnt == 0) {
-                    /* Stop! */
+                sd->multi_blk_cnt -= length / blk_len;
+
+                if (sd->multi_blk_cnt == 0) {
                     sd->state = sd_transfer_state;
-                    break;
                 }
             }
         }
