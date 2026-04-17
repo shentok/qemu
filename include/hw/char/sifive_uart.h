@@ -77,9 +77,7 @@ struct SiFiveUARTState {
     uint32_t rxctrl;
     uint32_t div;
 
-    uint8_t rx_fifo[SIFIVE_UART_RX_FIFO_SIZE];
-    uint8_t rx_fifo_len;
-
+    Fifo8 rx_fifo;
     Fifo8 tx_fifo;
 
     QEMUTimer *fifo_trigger_handle;

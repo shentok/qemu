@@ -40,7 +40,7 @@ static uint32_t sifive_uart_ip(SiFiveUARTState *s)
         ret |= SIFIVE_UART_IP_TXWM;
     }
 
-    if (s->rx_fifo_len > rxcnt) {
+    if (fifo8_num_used(&s->rx_fifo) > rxcnt) {
         ret |= SIFIVE_UART_IP_RXWM;
     }
 
@@ -163,10 +163,8 @@ sifive_uart_read(void *opaque, hwaddr addr, unsigned int size)
     unsigned char r;
     switch (addr) {
     case SIFIVE_UART_RXFIFO:
-        if (s->rx_fifo_len) {
-            r = s->rx_fifo[0];
-            memmove(s->rx_fifo, s->rx_fifo + 1, s->rx_fifo_len - 1);
-            s->rx_fifo_len--;
+        if (!fifo8_is_empty(&s->rx_fifo)) {
+            r = fifo8_pop(&s->rx_fifo);
             qemu_chr_fe_accept_input(&s->chr);
             sifive_uart_update_irq(s);
             return r;
@@ -248,11 +246,11 @@ static void sifive_uart_rx(void *opaque, const uint8_t *buf, int size)
     SiFiveUARTState *s = opaque;
 
     /* Got a byte.  */
-    if (s->rx_fifo_len >= sizeof(s->rx_fifo)) {
+    if (fifo8_is_full(&s->rx_fifo)) {
         printf("WARNING: UART dropped char.\n");
         return;
     }
-    s->rx_fifo[s->rx_fifo_len++] = *buf;
+    fifo8_push(&s->rx_fifo, *buf);
 
     sifive_uart_update_irq(s);
 }
@@ -261,7 +259,7 @@ static int sifive_uart_can_rx(void *opaque)
 {
     SiFiveUARTState *s = opaque;
 
-    return SIFIVE_UART_RXEN(s->rxctrl) && (s->rx_fifo_len < sizeof(s->rx_fifo));
+    return SIFIVE_UART_RXEN(s->rxctrl) && !fifo8_is_full(&s->rx_fifo);
 }
 
 static void sifive_uart_event(void *opaque, QEMUChrEvent event)
@@ -289,9 +287,7 @@ static void sifive_uart_reset_enter(Object *obj, ResetType type)
     s->rxctrl = 0;
     s->div = 0;
 
-    s->rx_fifo_len = 0;
-
-    memset(s->rx_fifo, 0, SIFIVE_UART_RX_FIFO_SIZE);
+    fifo8_reset(&s->rx_fifo);
     fifo8_reset(&s->tx_fifo);
 }
 
@@ -314,6 +310,7 @@ static void sifive_uart_realize(DeviceState *dev, Error **errp)
 {
     SiFiveUARTState *s = SIFIVE_UART(dev);
 
+    fifo8_create(&s->rx_fifo, SIFIVE_UART_RX_FIFO_SIZE);
     fifo8_create(&s->tx_fifo, SIFIVE_UART_TX_FIFO_SIZE);
 
     s->fifo_trigger_handle = timer_new_ns(QEMU_CLOCK_VIRTUAL,
@@ -342,16 +339,14 @@ static void sifive_uart_reset_hold(Object *obj, ResetType type)
 
 static const VMStateDescription vmstate_sifive_uart = {
     .name = TYPE_SIFIVE_UART,
-    .version_id = 3,
-    .minimum_version_id = 3,
+    .version_id = 4,
+    .minimum_version_id = 4,
     .fields = (const VMStateField[]) {
-        VMSTATE_UINT8_ARRAY(rx_fifo, SiFiveUARTState,
-                            SIFIVE_UART_RX_FIFO_SIZE),
-        VMSTATE_UINT8(rx_fifo_len, SiFiveUARTState),
         VMSTATE_UINT32(ie, SiFiveUARTState),
         VMSTATE_UINT32(txctrl, SiFiveUARTState),
         VMSTATE_UINT32(rxctrl, SiFiveUARTState),
         VMSTATE_UINT32(div, SiFiveUARTState),
+        VMSTATE_FIFO8(rx_fifo, SiFiveUARTState),
         VMSTATE_UINT32(txfifo, SiFiveUARTState),
         VMSTATE_FIFO8(tx_fifo, SiFiveUARTState),
         VMSTATE_TIMER_PTR(fifo_trigger_handle, SiFiveUARTState),
