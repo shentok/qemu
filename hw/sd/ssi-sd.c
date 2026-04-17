@@ -138,7 +138,9 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
         s->arglen = 0;
         return SSI_DUMMY;
     case SSI_SD_CMDARG:
-        if (s->arglen == 4) {
+        if (s->arglen < 4) {
+            s->cmdarg[s->arglen++] = val;
+        } else {
             /* FIXME: Check CRC.  */
             request.cmd = s->cmd;
             request.arg = ldl_be_p(s->cmdarg);
@@ -154,8 +156,6 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
             }
             s->mode = SSI_SD_PREP_RESP;
             s->response_pos = 0;
-        } else {
-            s->cmdarg[s->arglen++] = val;
         }
         return SSI_DUMMY;
     case SSI_SD_PREP_RESP:
