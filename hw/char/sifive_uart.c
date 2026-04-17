@@ -93,7 +93,7 @@ static gboolean sifive_uart_xmit(void *do_not_use, GIOCondition cond,
         fifo8_pop_bufptr(&s->tx_fifo, ret, NULL);
     }
 
-    if (!fifo8_is_empty(&s->tx_fifo)) {
+    if (!fifo8_is_empty(&s->tx_fifo) && (ret == -1 && errno == EAGAIN)) {
         guint r = qemu_chr_fe_add_watch(&s->chr, G_IO_OUT | G_IO_HUP,
                                         sifive_uart_xmit, s);
         if (!r) {
