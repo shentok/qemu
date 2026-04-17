@@ -49,6 +49,7 @@ const size_t hw_compat_11_1_len = G_N_ELEMENTS(hw_compat_11_1);
 GlobalProperty hw_compat_11_0[] = {
     { "virtio-mmio", VIRTIO_QUEUE_SIZE_OVERRIDE, "1024" },
     { "chardev-vc", "encoding", "cp437" },
+    { "sdmmc-common", "erase-blocks-as-zero", "false" },
     { "tpm-crb", "cap-chunk", "off" },
     { "tpm-crb", "x-allow-chunk-migration", "off" },
     { "tpm-tis-device", "ppi", "off" },
