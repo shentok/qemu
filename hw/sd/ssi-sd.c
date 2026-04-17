@@ -72,7 +72,6 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
 {
     ssi_sd_state *s = SSI_SD(dev);
     SDRequest request;
-    uint8_t longresp[5];
 
     if (!sdbus_get_inserted(&s->sdbus)) {
         return SSI_DUMMY;
@@ -118,7 +117,7 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
             request.cmd = 12;
             request.arg = 0;
             s->arglen = sdbus_do_command(&s->sdbus, &request,
-                                         longresp, sizeof(longresp));
+                                         s->response, sizeof(s->response));
             if (s->arglen == 0) {
                 s->arglen = 1;
                 /* a zero value indicates the card is busy */
@@ -145,10 +144,9 @@ static uint32_t ssi_sd_transfer(SSIPeripheral *dev, uint32_t val)
             request.cmd = s->cmd;
             request.arg = ldl_be_p(s->cmdarg);
             s->arglen = sdbus_do_command(&s->sdbus, &request,
-                                         longresp, sizeof(longresp));
+                                         s->response, sizeof(s->response));
             trace_ssi_sd_cmd(s->cmd, request.arg, s->arglen);
             assert(s->arglen > 0);
-            memcpy(s->response, longresp, s->arglen);
 
             /* handle R1b (busy signal) */
             if (s->cmd == 28 || s->cmd == 29 || s->cmd == 38) {
