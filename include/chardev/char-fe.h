@@ -243,7 +243,7 @@ guint qemu_chr_fe_add_watch(CharFrontend *c, GIOCondition cond,
  * is thread-safe.
  *
  * Returns: the number of bytes consumed (0 if no associated Chardev)
- *          or -1 on error.
+ *          or -errno on error.
  */
 int qemu_chr_fe_write(CharFrontend *c, const uint8_t *buf, int len);
 

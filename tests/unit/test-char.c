@@ -673,16 +673,14 @@ static void char_hub_test(void)
          * power of two to fit nicely the whole pipe buffer.
          */
         len = 0;
-        while ((ret = qemu_chr_fe_write(&chr_fe, (void *)"thisisit", 8))
-               != -1) {
+        while ((ret = qemu_chr_fe_write(&chr_fe, (void *)"thisisit", 8)) >= 0) {
             len += ret;
         }
-        g_assert_cmpint(errno, ==, EAGAIN);
+        g_assert_cmpint(ret, ==, -EAGAIN);
 
         /* Further all writes should cause EAGAIN */
         ret = qemu_chr_fe_write(&chr_fe, (void *)"b", 1);
-        g_assert_cmpint(ret, ==, -1);
-        g_assert_cmpint(errno, ==, EAGAIN);
+        g_assert_cmpint(ret, ==, -EAGAIN);
 
         /*
          * Add watch. Non 0 indicates we have a blocked chardev, which

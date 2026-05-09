@@ -34,12 +34,19 @@
 int qemu_chr_fe_write(CharFrontend *c, const uint8_t *buf, int len)
 {
     Chardev *s = c->chr;
+    int ret;
 
     if (!s) {
         return 0;
     }
 
-    return qemu_chr_write(s, buf, len, false);
+    ret = qemu_chr_write(s, buf, len, false);
+
+    if (ret == -1) {
+        ret = -errno;
+    }
+
+    return ret;
 }
 
 int qemu_chr_fe_write_all(CharFrontend *c, const uint8_t *buf, int len)

@@ -263,9 +263,7 @@ static void serial_xmit(SerialState *s)
         } else {
             int rc = qemu_chr_fe_write(&s->chr, &s->tsr, 1);
 
-            if ((rc == 0 ||
-                 (rc == -1 && errno == EAGAIN)) &&
-                s->tsr_retry < MAX_XMIT_RETRY) {
+            if ((rc == 0 || rc == -EAGAIN) && s->tsr_retry < MAX_XMIT_RETRY) {
                 assert(s->watch_tag == 0);
                 s->watch_tag =
                     qemu_chr_fe_add_watch(&s->chr, G_IO_OUT | G_IO_HUP,

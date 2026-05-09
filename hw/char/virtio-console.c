@@ -67,10 +67,7 @@ static ssize_t flush_buf(VirtIOSerialPort *port,
         VirtIOSerialPortClass *k = VIRTIO_SERIAL_PORT_GET_CLASS(port);
 
         /*
-         * Ideally we'd get a better error code than just -1, but
-         * that's what the chardev interface gives us right now.  If
-         * we had a finer-grained message, like -EPIPE, we could close
-         * this connection.
+         * TODO: Add error handling, e.g. close connection upon -EPIPE.
          */
         if (ret < 0)
             ret = 0;

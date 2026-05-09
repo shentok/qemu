@@ -162,7 +162,7 @@ void monitor_flush_locked(Monitor *mon)
 
     if (len && !mon->mux_out) {
         rc = qemu_chr_fe_write(&mon->chr, (const uint8_t *) buf, len);
-        if ((rc < 0 && errno != EAGAIN) || (rc == len)) {
+        if ((rc < 0 && rc != -EAGAIN) || (rc == len)) {
             /* all flushed or error */
             g_string_truncate(mon->outbuf, 0);
             return;
