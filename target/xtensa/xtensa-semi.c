@@ -227,8 +227,9 @@ void HELPER(simcall)(CPUXtensaState *env)
                     len -= io_sz;
                     if (fd < 3 && sim_console) {
                         if (is_write && (fd == 1 || fd == 2)) {
-                            io_done = qemu_chr_fe_write_all(&sim_console->fe,
-                                                            buf, io_sz);
+                            int rc = qemu_chr_fe_write_all(&sim_console->fe,
+                                                           buf, io_sz);
+                            io_done = (rc < 0) ? -1 : rc;
                             regs[3] = errno_h2g(errno);
                         } else if (!is_write && fd == 0) {
                             if (sim_console->input.offset) {

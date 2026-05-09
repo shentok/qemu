@@ -90,7 +90,7 @@ static int _filter_send(MirrorState *s,
     return size;
 
 err:
-    return ret < 0 ? ret : -EIO;
+    return ret < 0 ? -1 : -EIO;
 }
 
 static void coroutine_fn filter_send_co(void *opaque)

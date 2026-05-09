@@ -404,10 +404,9 @@ static int vhost_user_write(struct vhost_dev *dev, VhostUserMsg *msg,
 
     ret = qemu_chr_fe_write_all(chr, (const uint8_t *) msg, size);
     if (ret != size) {
-        int saved_errno = errno;
         error_report("Failed to write msg."
-                     " Wrote %d instead of %d.", ret, size);
-        return ret < 0 ? -saved_errno : -EIO;
+                     " Wrote %d instead of %d.", MAX(ret, 0), size);
+        return ret < 0 ? ret : -EIO;
     }
 
     trace_vhost_user_write(msg->hdr.request, msg->hdr.flags);

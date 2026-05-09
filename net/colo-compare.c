@@ -780,7 +780,7 @@ err:
         g_free(entry->buf);
         g_slice_free(SendEntry, entry);
     }
-    sendco->ret = ret < 0 ? ret : -EIO;
+    sendco->ret = ret < 0 ? -1 : -EIO;
 out:
     sendco->co = NULL;
     sendco->done = true;
