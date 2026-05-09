@@ -105,8 +105,6 @@
 #define UART_FCR_RFR        0x02    /* RCVR Fifo Reset */
 #define UART_FCR_FE         0x01    /* FIFO Enable */
 
-#define MAX_XMIT_RETRY      4
-
 static void serial_receive1(void *opaque, const uint8_t *buf, int size);
 static void serial_xmit(SerialState *s);
 
@@ -229,7 +227,6 @@ static gboolean serial_watch_cb(void *do_not_use, GIOCondition cond,
                                 void *opaque)
 {
     SerialState *s = opaque;
-    s->watch_tag = 0;
     serial_xmit(s);
     return G_SOURCE_REMOVE;
 }
@@ -238,7 +235,7 @@ static void serial_xmit(SerialState *s)
 {
     do {
         assert(!(s->lsr & UART_LSR_TEMT));
-        if (s->tsr_retry == 0) {
+        if (s->watch_tag == 0) {
             assert(!(s->lsr & UART_LSR_THRE));
 
             if (s->fcr & UART_FCR_FE) {
@@ -255,6 +252,8 @@ static void serial_xmit(SerialState *s)
                 s->thr_ipending = 1;
                 serial_update_irq(s);
             }
+        } else {
+            s->watch_tag = 0;
         }
 
         if (s->mcr & UART_MCR_LOOP) {
@@ -263,18 +262,16 @@ static void serial_xmit(SerialState *s)
         } else {
             int rc = qemu_chr_fe_write(&s->chr, &s->tsr, 1);
 
-            if ((rc == 0 || rc == -EAGAIN) && s->tsr_retry < MAX_XMIT_RETRY) {
+            if (rc == 0 || rc == -EAGAIN) {
                 assert(s->watch_tag == 0);
                 s->watch_tag =
                     qemu_chr_fe_add_watch(&s->chr, G_IO_OUT | G_IO_HUP,
                                           serial_watch_cb, s);
                 if (s->watch_tag > 0) {
-                    s->tsr_retry++;
                     return;
                 }
             }
         }
-        s->tsr_retry = 0;
 
         /* Transmit another byte if it is already available. It is only
            possible when FIFO is enabled and not empty. */
@@ -355,7 +352,7 @@ static void serial_ioport_write(void *opaque, hwaddr addr, uint64_t val,
             s->lsr &= ~UART_LSR_THRE;
             s->lsr &= ~UART_LSR_TEMT;
             serial_update_irq(s);
-            if (s->tsr_retry == 0) {
+            if (s->watch_tag == 0) {
                 serial_xmit(s);
             }
         }
@@ -655,16 +652,12 @@ static int serial_post_load(void *opaque, int version_id)
         s->thr_ipending = ((s->iir & UART_IIR_ID) == UART_IIR_THRI);
     }
 
-    if (s->tsr_retry > 0) {
+    if (s->watch_tag) {
         /* tsr_retry > 0 implies LSR.TEMT = 0 (transmitter not empty).  */
         if (s->lsr & UART_LSR_TEMT) {
             error_report("inconsistent state in serial device "
-                         "(tsr empty, tsr_retry=%d", s->tsr_retry);
+                         "(tsr empty, tsr_retry=%d", (int)s->watch_tag);
             return -1;
-        }
-
-        if (s->tsr_retry > MAX_XMIT_RETRY) {
-            s->tsr_retry = MAX_XMIT_RETRY;
         }
 
         assert(s->watch_tag == 0);
@@ -716,7 +709,7 @@ static const VMStateDescription vmstate_serial_thr_ipending = {
 static bool serial_tsr_needed(void *opaque)
 {
     SerialState *s = opaque;
-    return s->tsr_retry != 0;
+    return s->watch_tag != 0;
 }
 
 static const VMStateDescription vmstate_serial_tsr = {
@@ -725,7 +718,7 @@ static const VMStateDescription vmstate_serial_tsr = {
     .minimum_version_id = 1,
     .needed = serial_tsr_needed,
     .fields = (const VMStateField[]) {
-        VMSTATE_UINT32(tsr_retry, SerialState),
+        VMSTATE_UINT32(dummy_tsr_retry, SerialState),
         VMSTATE_UINT8(thr, SerialState),
         VMSTATE_UINT8(tsr, SerialState),
         VMSTATE_END_OF_LIST()
@@ -866,7 +859,6 @@ static void serial_reset(void *opaque)
     s->divider = 0x0C;
     s->mcr = UART_MCR_OUT2;
     s->scr = 0;
-    s->tsr_retry = 0;
     s->char_transmit_time = (NANOSECONDS_PER_SECOND / 9600) * 10;
     s->poll_msl = 0;
 

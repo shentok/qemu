@@ -58,7 +58,7 @@ struct SerialState {
     CharFrontend chr;
     int last_break_enable;
     uint32_t baudbase;
-    uint32_t tsr_retry;
+    uint32_t dummy_tsr_retry; /* not used any longer */
     guint watch_tag;
     bool wakeup;
 
