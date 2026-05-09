@@ -76,7 +76,7 @@ static int mux_chr_write(Chardev *chr, const uint8_t *buf, int len)
                                       (uint8_t *)buf1, strlen(buf1));
                 d->linestart = false;
             }
-            ret += qemu_chr_fe_write(&d->chr, buf + i, 1);
+            ret += MAX(qemu_chr_fe_write(&d->chr, buf + i, 1), 0);
             if (buf[i] == '\n') {
                 d->linestart = true;
             }
