@@ -366,7 +366,11 @@ vhost_user_gpu_chr_read(void *opaque)
     r = qemu_chr_fe_read_all(&g->vhost_chr,
                              (uint8_t *)&request, sizeof(uint32_t));
     if (r != sizeof(uint32_t)) {
-        error_report("failed to read msg header: %d, %d", r, errno);
+        if (r < 0) {
+            error_report("failed to read msg header: errno=%d", -r);
+        } else {
+            error_report("failed to read msg header: %d", r);
+        }
         goto end;
     }
 

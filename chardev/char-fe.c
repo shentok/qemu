@@ -95,6 +95,7 @@ int qemu_chr_fe_read_all(CharFrontend *c, uint8_t *buf, int len)
         }
 
         if (res < 0) {
+            res = -errno;
             if (qemu_chr_replay(s) && replay_mode == REPLAY_MODE_RECORD) {
                 replay_char_read_all_save_error(res);
             }

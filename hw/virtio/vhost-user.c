@@ -276,10 +276,9 @@ static int vhost_user_read_header(struct vhost_dev *dev, VhostUserMsg *msg)
 
     r = qemu_chr_fe_read_all(chr, p, size);
     if (r != size) {
-        int saved_errno = errno;
         error_report("Failed to read msg header. Read %d instead of %d."
                      " Original request %d.", r, size, msg->hdr.request);
-        return r < 0 ? -saved_errno : -EIO;
+        return r < 0 ? r : -EIO;
     }
 
     /* validate received flags */
@@ -320,10 +319,9 @@ static int vhost_user_read(struct vhost_dev *dev, VhostUserMsg *msg)
         size = msg->hdr.size;
         r = qemu_chr_fe_read_all(chr, p, size);
         if (r != size) {
-            int saved_errno = errno;
             error_report("Failed to read msg payload."
                          " Read %d instead of %d.", r, msg->hdr.size);
-            return r < 0 ? -saved_errno : -EIO;
+            return r < 0 ? r : -EIO;
         }
     }
 

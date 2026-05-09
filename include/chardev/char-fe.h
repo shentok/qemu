@@ -270,7 +270,7 @@ int qemu_chr_fe_write_all(CharFrontend *c, const uint8_t *buf, int len);
  * Read data to a buffer from the back end.
  *
  * Returns: the number of bytes read (0 if no associated Chardev)
- *          or -1 on error.
+ *          or -errno on error.
  */
 int qemu_chr_fe_read_all(CharFrontend *c, uint8_t *buf, int len);
 
