@@ -22,6 +22,7 @@
 #include "chardev/char-fe.h"
 #include "qom/object.h"
 #include "qemu/fifo32.h"
+#include "qemu/timer.h"
 
 #define TYPE_IMX_SERIAL "imx.serial"
 OBJECT_DECLARE_SIMPLE_TYPE(IMXSerialState, IMX_SERIAL)

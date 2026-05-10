@@ -12,6 +12,7 @@
 #include "chardev/char-fe.h"
 #include "hw/core/sysbus.h"
 #include "qom/object.h"
+#include "qemu/timer.h"
 
 #define TYPE_RENESAS_SCI "renesas-sci"
 typedef struct RSCIState RSCIState;
