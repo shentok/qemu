@@ -21,7 +21,7 @@
 use common::Zeroable;
 use glib_sys::{gboolean, guint, GIOCondition, GMainContext, GSource, GSourceFunc};
 use qom_sys::{Object, ObjectClass};
-use util_sys::{Error, IOCanReadHandler, IOReadHandler, QemuOpts};
+use util_sys::{Error, QemuOpts};
 
 #[cfg(MESON)]
 include!("bindings.inc.rs");
