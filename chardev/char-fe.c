@@ -241,10 +241,10 @@ void qemu_chr_fe_deinit(CharFrontend *c, bool del)
 }
 
 void qemu_chr_fe_set_handlers_full(CharFrontend *c,
-                                   IOCanReadHandler *fd_can_read,
-                                   IOReadHandler *fd_read,
-                                   IOEventHandler *fd_event,
-                                   BackendChangeHandler *be_change,
+                                   ChrFeCanReadHandler *fd_can_read,
+                                   ChrFeReadHandler *fd_read,
+                                   ChrFeEventHandler *fd_event,
+                                   ChrFeBackendChangeHandler *be_change,
                                    void *opaque,
                                    GMainContext *context,
                                    bool set_open,
@@ -287,10 +287,10 @@ void qemu_chr_fe_set_handlers_full(CharFrontend *c,
 }
 
 void qemu_chr_fe_set_handlers(CharFrontend *c,
-                              IOCanReadHandler *fd_can_read,
-                              IOReadHandler *fd_read,
-                              IOEventHandler *fd_event,
-                              BackendChangeHandler *be_change,
+                              ChrFeCanReadHandler *fd_can_read,
+                              ChrFeReadHandler *fd_read,
+                              ChrFeEventHandler *fd_event,
+                              ChrFeBackendChangeHandler *be_change,
                               void *opaque,
                               GMainContext *context,
                               bool set_open)

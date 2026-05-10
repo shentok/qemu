@@ -3,14 +3,14 @@
 
 #include "chardev/char.h"
 
-typedef void IOReadHandler(void *opaque, const uint8_t *buf, int size);
+typedef void ChrFeReadHandler(void *opaque, const uint8_t *buf, int size);
 
 /**
- * IOCanReadHandler: Return the number of bytes that #IOReadHandler can accept
+ * ChrFeCanReadHandler: Return the number of bytes that #ChrFeReadHandler can accept
  *
- * This function reports how many bytes #IOReadHandler is prepared to accept.
- * #IOReadHandler may be invoked with up to this number of bytes.  If this
- * function returns 0 then #IOReadHandler is not invoked.
+ * This function reports how many bytes #ChrFeReadHandler is prepared to accept.
+ * #ChrFeReadHandler may be invoked with up to this number of bytes.  If this
+ * function returns 0 then #ChrFeReadHandler is not invoked.
  *
  * This function is typically called from an event loop.  If the number of
  * bytes changes outside the event loop (e.g. because a vcpu thread drained the
@@ -18,10 +18,10 @@ typedef void IOReadHandler(void *opaque, const uint8_t *buf, int size);
  * is called again.  aio_notify() or qemu_notify_event() can be used to kick
  * the event loop.
  */
-typedef int IOCanReadHandler(void *opaque);
+typedef int ChrFeCanReadHandler(void *opaque);
 
-typedef void IOEventHandler(void *opaque, QEMUChrEvent event);
-typedef int BackendChangeHandler(void *opaque);
+typedef void ChrFeEventHandler(void *opaque, QEMUChrEvent event);
+typedef int ChrFeBackendChangeHandler(void *opaque);
 
 /**
  * struct CharFrontend - Chardev as seen by front end
@@ -31,10 +31,10 @@ typedef int BackendChangeHandler(void *opaque);
  */
 struct CharFrontend {
     Chardev *chr;
-    IOEventHandler *chr_event;
-    IOCanReadHandler *chr_can_read;
-    IOReadHandler *chr_read;
-    BackendChangeHandler *chr_be_change;
+    ChrFeEventHandler *chr_event;
+    ChrFeCanReadHandler *chr_can_read;
+    ChrFeReadHandler *chr_read;
+    ChrFeBackendChangeHandler *chr_be_change;
     void *opaque;
     unsigned int tag;
     bool fe_is_open;
@@ -107,10 +107,10 @@ bool qemu_chr_fe_backend_open(CharFrontend *c);
  * Without associated Chardev, nothing is changed.
  */
 void qemu_chr_fe_set_handlers_full(CharFrontend *c,
-                                   IOCanReadHandler *fd_can_read,
-                                   IOReadHandler *fd_read,
-                                   IOEventHandler *fd_event,
-                                   BackendChangeHandler *be_change,
+                                   ChrFeCanReadHandler *fd_can_read,
+                                   ChrFeReadHandler *fd_read,
+                                   ChrFeEventHandler *fd_event,
+                                   ChrFeBackendChangeHandler *be_change,
                                    void *opaque,
                                    GMainContext *context,
                                    bool set_open,
@@ -122,10 +122,10 @@ void qemu_chr_fe_set_handlers_full(CharFrontend *c,
  * Version of qemu_chr_fe_set_handlers_full() with sync_state = true.
  */
 void qemu_chr_fe_set_handlers(CharFrontend *c,
-                              IOCanReadHandler *fd_can_read,
-                              IOReadHandler *fd_read,
-                              IOEventHandler *fd_event,
-                              BackendChangeHandler *be_change,
+                              ChrFeCanReadHandler *fd_can_read,
+                              ChrFeReadHandler *fd_read,
+                              ChrFeEventHandler *fd_event,
+                              ChrFeBackendChangeHandler *be_change,
                               void *opaque,
                               GMainContext *context,
                               bool set_open);
