@@ -15,6 +15,7 @@
 #include "qemu/osdep.h"
 #include "qemu/thread.h"
 #include "qemu/error-report.h"
+#include "qemu/main-loop.h"
 #include "qemu/module.h"
 
 #include "hw/s390x/sclp.h"

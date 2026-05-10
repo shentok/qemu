@@ -26,7 +26,9 @@
  */
 
 #include "qemu/osdep.h"
+#include "qemu/aio.h"
 #include "qemu/cutils.h"
+#include "qemu/main-loop.h"
 #include "qemu/units.h"
 #include "qapi/error.h"
 #include "qemu/timer.h"

@@ -12,6 +12,7 @@
 
 #include "qemu/osdep.h"
 #include "qemu/error-report.h"
+#include "qemu/main-loop.h"
 #include "qemu/sockets.h"
 #include "hw/core/qdev-properties.h"
 #include "hw/virtio/virtio-gpu.h"
