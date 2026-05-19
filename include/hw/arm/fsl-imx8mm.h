@@ -62,7 +62,9 @@ struct FslImx8mmState {
     IMXSPIState        spi[FSL_IMX8MM_NUM_ECSPIS];
     IMXI2CState        i2c[FSL_IMX8MM_NUM_I2CS];
     IMXSerialState     uart[FSL_IMX8MM_NUM_UARTS];
-    MemoryRegion ocram;
+    MemoryRegion       ocram;
+    MemoryRegion       tcm_dtcm;
+    MemoryRegion       tcm_itcm;
     IMXFECState        enet;
     SDHCIState         usdhc[FSL_IMX8MM_NUM_USDHCS];
     IMX2WdtState       wdt[FSL_IMX8MM_NUM_WDTS];
