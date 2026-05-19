@@ -400,6 +400,28 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
                                 fsl_imx8mm_memmap[FSL_IMX8MM_OCRAM].addr,
                                 &s->ocram);
 
+    /* Tightly Coupled Memory (data) */
+    if (!memory_region_init_ram(&s->tcm_dtcm, OBJECT(dev),
+                                fsl_imx8mm_memmap[FSL_IMX8MM_TCM_DTCM].name,
+                                fsl_imx8mm_memmap[FSL_IMX8MM_TCM_DTCM].size,
+                                errp)) {
+        return;
+    }
+    memory_region_add_subregion(get_system_memory(),
+                                fsl_imx8mm_memmap[FSL_IMX8MM_TCM_DTCM].addr,
+                                &s->tcm_dtcm);
+
+    /* Tightly Coupled Memory (instruction) */
+    if (!memory_region_init_ram(&s->tcm_itcm, OBJECT(dev),
+                                fsl_imx8mm_memmap[FSL_IMX8MM_TCM_ITCM].name,
+                                fsl_imx8mm_memmap[FSL_IMX8MM_TCM_ITCM].size,
+                                errp)) {
+        return;
+    }
+    memory_region_add_subregion(get_system_memory(),
+                                fsl_imx8mm_memmap[FSL_IMX8MM_TCM_ITCM].addr,
+                                &s->tcm_itcm);
+
     /* GPTs */
     object_property_set_int(OBJECT(&s->gpt5_gpt6_irq), "num-lines", 2,
                             &error_abort);
@@ -661,6 +683,8 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MM_RAM:
         case FSL_IMX8MM_OCRAM:
         case FSL_IMX8MM_SNVS_HP:
+        case FSL_IMX8MM_TCM_DTCM:
+        case FSL_IMX8MM_TCM_ITCM:
         case FSL_IMX8MM_UART1 ... FSL_IMX8MM_UART4:
         case FSL_IMX8MM_USB1 ... FSL_IMX8MM_USB2:
         case FSL_IMX8MM_USDHC1 ... FSL_IMX8MM_USDHC3:
