@@ -693,6 +693,13 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
                                 fsl_imx8mm_memmap[FSL_IMX8MM_BOOT_ROM].addr,
                                 &s->boot_rom);
 
+    {
+        uint8_t *rom = memory_region_get_ram_ptr(&s->boot_rom);
+        stq_le_p(rom + 0x000009e8, 0x000009e8 + 8);
+        stb_p(rom + 0x000009e8 + 8 + 1, 1); /* instance 1 */
+        stb_p(rom + 0x000009e8 + 8 + 2, 1); /* type SD */
+    }
+
     /* Unimplemented devices */
     for (i = 0; i < ARRAY_SIZE(fsl_imx8mm_memmap); i++) {
         switch (i) {
