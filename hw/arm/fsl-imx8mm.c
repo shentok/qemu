@@ -682,10 +682,22 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->pcie_phy), 0,
                     fsl_imx8mm_memmap[FSL_IMX8MM_PCIE_PHY1].addr);
 
+    /* ROM memory */
+    if (!memory_region_init_rom(&s->boot_rom, OBJECT(dev),
+                                fsl_imx8mm_memmap[FSL_IMX8MM_BOOT_ROM].name,
+                                fsl_imx8mm_memmap[FSL_IMX8MM_BOOT_ROM].size,
+                                errp)) {
+        return;
+    }
+    memory_region_add_subregion(get_system_memory(),
+                                fsl_imx8mm_memmap[FSL_IMX8MM_BOOT_ROM].addr,
+                                &s->boot_rom);
+
     /* Unimplemented devices */
     for (i = 0; i < ARRAY_SIZE(fsl_imx8mm_memmap); i++) {
         switch (i) {
         case FSL_IMX8MM_ANA_PLL:
+        case FSL_IMX8MM_BOOT_ROM:
         case FSL_IMX8MM_CCM:
         case FSL_IMX8MM_GIC_DIST:
         case FSL_IMX8MM_GIC_REDIST:
