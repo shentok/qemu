@@ -69,6 +69,7 @@ struct FslImx8mmState {
     MemoryRegion       ocram;
     MemoryRegion       tcm_dtcm;
     MemoryRegion       tcm_itcm;
+    MemoryRegion       boot_rom;
     IMXFECState        enet;
     SDHCIState         usdhc[FSL_IMX8MM_NUM_USDHCS];
     IMX2WdtState       wdt[FSL_IMX8MM_NUM_WDTS];
