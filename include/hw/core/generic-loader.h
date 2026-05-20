@@ -18,7 +18,6 @@
 #ifndef GENERIC_LOADER_H
 #define GENERIC_LOADER_H
 
-#include "elf.h"
 #include "hw/core/qdev.h"
 #include "qom/object.h"
 
