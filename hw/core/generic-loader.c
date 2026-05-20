@@ -57,6 +57,7 @@
 #include "qapi/error.h"
 #include "qemu/module.h"
 #include "hw/core/generic-loader.h"
+#include "elf.h"
 
 #define CPU_NONE 0xFFFFFFFF
 
