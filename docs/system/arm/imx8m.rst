@@ -25,6 +25,7 @@ following devices:
  * 3 Watchdogs
  * 6 General Purpose Timers
  * Secure Non-Volatile Storage (SNVS) including an RTC
+ * System Reset Controller
  * Clock Tree
  * 1 System Counter
 
