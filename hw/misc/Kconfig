@@ -107,6 +107,10 @@ config FSL_IMX8MP_DDR
 config FSL_IMX8MP_DDR_PHY
     bool
 
+config FSL_IMX8MP_SRC
+    bool
+    depends on AARCH64
+
 config STM32_RCC
     bool
 
