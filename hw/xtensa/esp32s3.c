@@ -579,7 +579,7 @@ static uint64_t translate_phys_addr(void *opaque, uint64_t addr)
 {
     XtensaCPU *cpu = opaque;
 
-    return cpu_get_phys_page_debug(CPU(cpu), addr);
+    return xtensa_cpu_get_phys_addr_debug(CPU(cpu), addr);
 }
 
 OBJECT_DECLARE_SIMPLE_TYPE(Esp32s3MachineState, ESP32S3_MACHINE)
