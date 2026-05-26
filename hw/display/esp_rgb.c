@@ -47,7 +47,7 @@ static void update_rgb_surface(ESPRgbState* s){
             return;
     }
     surface->flags = QEMU_ALLOCATED_FLAG;
-    dpy_gfx_replace_surface(s->con, surface);
+    qemu_console_set_surface(s->con, surface);
 };
 
 static uint64_t esp_rgb_read(void *opaque, hwaddr addr, unsigned int size)
@@ -173,7 +173,7 @@ static void esp_rgb_write(void *opaque, hwaddr addr,
 }
 
 
-static void rgb_update(void* opaque)
+static bool rgb_update(void* opaque)
 {
     ESPRgbState* s = (ESPRgbState*) opaque;
 
@@ -206,7 +206,7 @@ static void rgb_update(void* opaque)
 #if RGB_WARNING
             warn_report("[ESP RGB] Invalid color content address or length");
 #endif
-            return;
+            return true;
         }
 
         /* Only perform the copy if the area is valid */
@@ -224,7 +224,7 @@ static void rgb_update(void* opaque)
                 src += width * bytes_per_pixel;
             }
 
-            dpy_gfx_update(s->con, s->from_x, s->from_y, width, height);
+            qemu_console_update(s->con, s->from_x, s->from_y, width, height);
         }
 #if RGB_WARNING
         else {
@@ -236,6 +236,8 @@ static void rgb_update(void* opaque)
          * It must set it again to trigger another update. */
         s->update_area = false;
     }
+
+    return true;
 }
 
 
@@ -291,7 +293,7 @@ static void esp_rgb_init(Object *obj)
     s->bpp = DEFAULT_BPP;
 
     if (s->con == NULL) {
-        s->con = graphic_console_init(DEVICE(s), 0, &fb_ops, s);
+        s->con = qemu_graphic_console_create(DEVICE(s), 0, &fb_ops, s);
         /* Resize and use corrent color bpp*/
         update_rgb_surface(s);
         void * data = surface_data(qemu_console_surface(s->con));
