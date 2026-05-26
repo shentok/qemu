@@ -599,80 +599,32 @@ static void sdhci_write_dataport(SDHCIState *s, uint32_t value, unsigned size)
 /* Multi block SDMA transfer */
 static void sdhci_sdma_transfer_multi_blocks(SDHCIState *s)
 {
-    bool stop_at_page_boundary = false;
-    unsigned int begin;
-    const uint16_t block_size = s->blksize & BLOCK_SIZE_MASK;
-    uint32_t boundary_chk = 1 << (((s->blksize & ~BLOCK_SIZE_MASK) >> 12) + 12);
-    uint32_t boundary_count = boundary_chk - (s->sdmasysad % boundary_chk);
+    dma_addr_t len = s->blkcnt * (s->blksize & BLOCK_SIZE_MASK);
 
     if (!(s->trnmod & SDHC_TRNS_BLK_CNT_EN) || !s->blkcnt) {
         qemu_log_mask(LOG_UNIMP, "infinite transfer is not supported\n");
         return;
     }
 
-    /*
-     * XXX: Some sd/mmc drivers (for example, u-boot-spl) do not account for
-     * possible stop at page boundary if initial address is not page aligned,
-     * allow them to work properly
-     */
-    if ((s->sdmasysad % boundary_chk == 0) &&
-        !(s->quirks & SDHCI_QUIRK_NO_SDMA_PAGE_BOUNDARY)) {
-        stop_at_page_boundary = true;
-    }
-
     s->prnsts |= SDHC_DATA_INHIBIT | SDHC_DAT_LINE_ACTIVE;
     if (s->trnmod & SDHC_TRNS_READ) {
+        void *ptr = dma_memory_map(s->dma_as, s->sdmasysad, &len,
+                                   DMA_DIRECTION_FROM_DEVICE,
+                                   MEMTXATTRS_UNSPECIFIED);
         s->prnsts |= SDHC_DOING_READ;
-        while (s->blkcnt) {
-            if (s->data_count == 0) {
-                sdbus_read_data(&s->sdbus, s->fifo_buffer, block_size);
-            }
-            begin = s->data_count;
-            if (((boundary_count + begin) < block_size) && stop_at_page_boundary) {
-                s->data_count = boundary_count + begin;
-                boundary_count = 0;
-             } else {
-                s->data_count = block_size;
-                boundary_count -= block_size - begin;
-                if (s->trnmod & SDHC_TRNS_BLK_CNT_EN) {
-                    s->blkcnt--;
-                }
-            }
-            dma_memory_write(s->dma_as, s->sdmasysad, &s->fifo_buffer[begin],
-                             s->data_count - begin, MEMTXATTRS_UNSPECIFIED);
-            s->sdmasysad += s->data_count - begin;
-            if (s->data_count == block_size) {
-                s->data_count = 0;
-            }
-            if (stop_at_page_boundary && boundary_count == 0) {
-                break;
-            }
-        }
+        sdbus_read_data(&s->sdbus, ptr, len);
+        dma_memory_unmap(s->dma_as, ptr, len, DMA_DIRECTION_FROM_DEVICE, len);
     } else {
+        void *ptr = dma_memory_map(s->dma_as, s->sdmasysad, &len,
+                                   DMA_DIRECTION_TO_DEVICE,
+                                   MEMTXATTRS_UNSPECIFIED);
         s->prnsts |= SDHC_DOING_WRITE;
-        while (s->blkcnt) {
-            begin = s->data_count;
-            if (((boundary_count + begin) < block_size) && stop_at_page_boundary) {
-                s->data_count = boundary_count + begin;
-                boundary_count = 0;
-             } else {
-                s->data_count = block_size;
-                boundary_count -= block_size - begin;
-            }
-            dma_memory_read(s->dma_as, s->sdmasysad, &s->fifo_buffer[begin],
-                            s->data_count - begin, MEMTXATTRS_UNSPECIFIED);
-            s->sdmasysad += s->data_count - begin;
-            if (s->data_count == block_size) {
-                sdbus_write_data(&s->sdbus, s->fifo_buffer, block_size);
-                s->data_count = 0;
-                if (s->trnmod & SDHC_TRNS_BLK_CNT_EN) {
-                    s->blkcnt--;
-                }
-            }
-            if (stop_at_page_boundary && boundary_count == 0) {
-                break;
-            }
-        }
+        sdbus_write_data(&s->sdbus, ptr, len);
+        dma_memory_unmap(s->dma_as, ptr, len, DMA_DIRECTION_TO_DEVICE, len);
+    }
+    s->sdmasysad += len;
+    if (s->trnmod & SDHC_TRNS_BLK_CNT_EN) {
+        s->blkcnt = 0;
     }
 
     if (s->norintstsen & SDHC_NISEN_DMA) {
@@ -1878,7 +1830,7 @@ static void fsl_esdhc_be_init(Object *obj)
     DeviceState *dev = DEVICE(obj);
 
     s->io_ops = &esdhc_mmio_be_ops;
-    s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ | SDHCI_QUIRK_NO_SDMA_PAGE_BOUNDARY;
+    s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ;
     qdev_prop_set_uint8(dev, "sd-spec-version", 2);
 }
 
@@ -1903,7 +1855,7 @@ static void fsl_esdhc_le_init(Object *obj)
     DeviceState *dev = DEVICE(obj);
 
     s->io_ops = &esdhc_mmio_le_ops;
-    s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ | SDHCI_QUIRK_NO_SDMA_PAGE_BOUNDARY;
+    s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ;
     qdev_prop_set_uint8(dev, "sd-spec-version", 2);
 }
 
@@ -1924,7 +1876,7 @@ static void imx_usdhc_init(Object *obj)
     DeviceState *dev = DEVICE(obj);
 
     s->io_ops = &usdhc_mmio_ops;
-    s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ | SDHCI_QUIRK_NO_SDMA_PAGE_BOUNDARY;
+    s->quirks = SDHCI_QUIRK_NO_BUSY_IRQ;
     qdev_prop_set_uint8(dev, "sd-spec-version", 3);
 }
 
