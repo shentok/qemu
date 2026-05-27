@@ -611,7 +611,7 @@ static void sdhci_sdma_transfer_multi_blocks(SDHCIState *s)
     }
 
     /*
-     * XXX: Some sd/mmc drivers (for example, u-boot-slp) do not account for
+     * XXX: Some sd/mmc drivers (for example, u-boot-spl) do not account for
      * possible stop at page boundary if initial address is not page aligned,
      * allow them to work properly
      */
