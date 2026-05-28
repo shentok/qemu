@@ -2735,6 +2735,8 @@ static size_t sd_write_data(SDState *sd, const void *buf, size_t length)
         break;
 
     case 25:  /* CMD25:  WRITE_MULTIPLE_BLOCK */
+        trace_sdcard_cmd25(sd->data_start);
+
         if (sd->data_offset == 0) {
             /* Start of the block - let's check the address is valid */
             if (!address_in_range(sd, "WRITE_MULTIPLE_BLOCK",
@@ -2948,6 +2950,8 @@ static size_t sd_read_data(SDState *sd, void *buf, size_t length)
         break;
 
     case 18:  /* CMD18:  READ_MULTIPLE_BLOCK */
+        trace_sdcard_cmd18(sd->data_start);
+
         if (sd->data_offset == 0) {
             if (!address_in_range(sd, "READ_MULTIPLE_BLOCK",
                                   sd->data_start, MAX(blk_len, length))) {
