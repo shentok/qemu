@@ -89,6 +89,9 @@ config IMX_FEC
     bool
     select LAN9118_PHY
 
+config FSL_IMX93_DWMAC
+    bool
+
 config CADENCE
     bool
 
