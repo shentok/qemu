@@ -247,6 +247,7 @@ static void fsl_imx8mp_init(Object *obj)
     }
 
     object_initialize_child(obj, "eth0", &s->enet, TYPE_IMX_ENET);
+    object_initialize_child(obj, "eth1", &s->eqos, TYPE_IMX93_DWMAC);
 
     object_initialize_child(obj, "pcie", &s->pcie, TYPE_DESIGNWARE_PCIE_HOST);
     object_initialize_child(obj, "pcie_phy", &s->pcie_phy,
@@ -616,6 +617,16 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->enet), 1,
                        qdev_get_gpio_in(gicdev, FSL_IMX6_ENET1_MAC_1588_IRQ));
 
+    /* ENET2 */
+    qemu_configure_nic_device(DEVICE(&s->eqos), true, NULL);
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->eqos), errp)) {
+        return;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->eqos), 0,
+                    fsl_imx8mp_memmap[FSL_IMX8MP_ENET2_TSN].addr);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->eqos), 0,
+                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_ENET_QOS_IRQ));
+
     /* SNVS */
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->snvs), errp)) {
         return;
@@ -690,6 +701,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MP_GPT1 ... FSL_IMX8MP_GPT6:
         case FSL_IMX8MP_ECSPI1 ... FSL_IMX8MP_ECSPI3:
         case FSL_IMX8MP_ENET1:
+        case FSL_IMX8MP_ENET2_TSN:
         case FSL_IMX8MP_I2C1 ... FSL_IMX8MP_I2C6:
         case FSL_IMX8MP_OCRAM:
         case FSL_IMX8MP_PCIE1:
