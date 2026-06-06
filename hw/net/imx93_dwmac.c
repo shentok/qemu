@@ -108,7 +108,7 @@ static void imx93_dwmac_mdio(IMX93DwmacState *s, uint32_t val)
     unsigned phy = (val >> MDIO_PHY_SHIFT) & 0x1f;
     unsigned reg = (val >> MDIO_REG_SHIFT) & 0x1f;
 
-    if (phy == IMX93_DWMAC_PHY_ADDR) {
+    if (phy == s->phy_num) {
         if ((val & MDIO_GOC_MASK) == MDIO_GOC_READ) {
             s->mdio_data = imx93_dwmac_phy_read(s, reg);
         } else if ((val & MDIO_GOC_MASK) == MDIO_GOC_WRITE) {
@@ -395,6 +395,7 @@ static const VMStateDescription vmstate_imx93_dwmac = {
 
 static const Property imx93_dwmac_props[] = {
     DEFINE_NIC_PROPERTIES(IMX93DwmacState, conf),
+    DEFINE_PROP_UINT8("phy-num", IMX93DwmacState, phy_num, 0),
 };
 
 static void imx93_dwmac_class_init(ObjectClass *oc, const void *data)

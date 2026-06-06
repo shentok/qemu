@@ -250,6 +250,7 @@ static void fsl_imx8mp_init(Object *obj)
     }
 
     object_initialize_child(obj, "eth0", &s->enet, TYPE_IMX_ENET);
+    object_initialize_child(obj, "eth1", &s->eqos, TYPE_IMX93_DWMAC);
 
     object_initialize_child(obj, "pcie", &s->pcie, TYPE_DESIGNWARE_PCIE_HOST);
     object_initialize_child(obj, "pcie_phy", &s->pcie_phy,
@@ -618,7 +619,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     }
 
     /* ENET1 */
-    object_property_set_uint(OBJECT(&s->enet), "phy-num", s->phy_num,
+    object_property_set_uint(OBJECT(&s->enet), "phy-num", s->phy_num[0],
                              &error_abort);
     object_property_set_uint(OBJECT(&s->enet), "tx-ring-num", 3, &error_abort);
     qemu_configure_nic_device(DEVICE(&s->enet), true, NULL);
@@ -631,6 +632,18 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                        qdev_get_gpio_in(gicdev, FSL_IMX8MP_ENET1_MAC_IRQ));
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->enet), 1,
                        qdev_get_gpio_in(gicdev, FSL_IMX6_ENET1_MAC_1588_IRQ));
+
+    /* ENET2 */
+    object_property_set_uint(OBJECT(&s->eqos), "phy-num", s->phy_num[1],
+                             &error_abort);
+    qemu_configure_nic_device(DEVICE(&s->eqos), true, NULL);
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->eqos), errp)) {
+        return;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->eqos), 0,
+                    fsl_imx8mp_memmap[FSL_IMX8MP_ENET2_TSN].addr);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->eqos), 0,
+                       qdev_get_gpio_in(gicdev, FSL_IMX8MP_ENET_QOS_IRQ));
 
     /* SNVS */
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->snvs), errp)) {
@@ -708,6 +721,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MP_GPT1 ... FSL_IMX8MP_GPT6:
         case FSL_IMX8MP_ECSPI1 ... FSL_IMX8MP_ECSPI3:
         case FSL_IMX8MP_ENET1:
+        case FSL_IMX8MP_ENET2_TSN:
         case FSL_IMX8MP_I2C1 ... FSL_IMX8MP_I2C6:
         case FSL_IMX8MP_OCRAM:
         case FSL_IMX8MP_PCIE1:
@@ -731,7 +745,8 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
 }
 
 static const Property fsl_imx8mp_properties[] = {
-    DEFINE_PROP_UINT32("fec1-phy-num", FslImx8mpState, phy_num, 0),
+    DEFINE_PROP_UINT32("fec1-phy-num", FslImx8mpState, phy_num[0], 0),
+    DEFINE_PROP_UINT32("eqos-phy-num", FslImx8mpState, phy_num[1], 0),
     DEFINE_PROP_BOOL("fec1-phy-connected", FslImx8mpState, phy_connected, true),
 };
 

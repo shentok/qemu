@@ -23,7 +23,6 @@
 OBJECT_DECLARE_SIMPLE_TYPE(IMX93DwmacState, IMX93_DWMAC)
 
 #define IMX93_DWMAC_REG_SIZE    0x10000
-#define IMX93_DWMAC_PHY_ADDR    1       /* ethphy1 on the 11x11 EVK */
 
 struct IMX93DwmacState {
     SysBusDevice parent_obj;
@@ -58,6 +57,7 @@ struct IMX93DwmacState {
     uint32_t cur_rx_desc;
 
     uint16_t phy[32];           /* internal PHY register file */
+    uint8_t  phy_num;
 
     uint8_t  frame[4096];       /* TX frame assembly buffer */
     uint32_t frame_len;
