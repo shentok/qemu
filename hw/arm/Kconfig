@@ -512,6 +512,24 @@ config FSL_IMX31
     select WDT_IMX2
     select LAN9118
 
+config FSL_IMX53
+    bool
+    imply PCIE_DEVICES
+    imply I2C_DEVICES
+    select FSL_TZIC
+    select IMX
+    select IMX_FEC
+    select IMX_I2C
+    select WDT_IMX2
+    select SDHCI
+    select USB_CHIPIDEA
+
+config FSL_IMX53_QSB
+    bool
+    default y
+    depends on TCG && ARM
+    select FSL_IMX53
+
 config FSL_IMX6
     bool
     imply PCIE_DEVICES
