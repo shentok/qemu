@@ -322,6 +322,13 @@ xive_escalate_esb(uint8_t end_blk, uint32_t end_idx, uint32_t lisn) "Escalate fr
 # pnv_xive.c
 pnv_xive_ic_hw_trigger(uint64_t addr, uint64_t val) "@0x%"PRIx64" val=0x%"PRIx64
 
+# fsl_tzic.c
+
+fsl_tzic_irq_raise(int irq, int prio) "%d, prio %d"
+fsl_tzic_irq_clear(int irq, int prio) "%d, prio %d"
+fsl_tzic_read(uint64_t addr, const char *regname, uint64_t value) "[0x%02" PRIu64 " (%s)] -> 0x%" PRIx64
+fsl_tzic_write(uint64_t addr, const char *regname, uint64_t value) "[0x%02" PRIu64 " (%s)] <- 0x%" PRIx64
+
 # goldfish_pic.c
 goldfish_irq_request(void *dev, int idx, int irq, int level) "pic: %p goldfish-irq.%d irq: %d level: %d"
 goldfish_pic_read(void *dev, int idx, unsigned int addr, unsigned int size, uint64_t value) "pic: %p goldfish-irq.%d reg: 0x%02x size: %d value: 0x%"PRIx64
