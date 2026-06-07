@@ -181,6 +181,8 @@ static void fsl_imx53_init(Object *obj)
 
     object_initialize_child(obj, "tzic", &s->tzic, TYPE_FSL_TZIC);
 
+    object_initialize_child(obj, "ccm", &s->ccm, TYPE_IMX53_CCM);
+
     for (size_t i = 0; i < ARRAY_SIZE(s->uart); i++) {
         g_autofree char *name = g_strdup_printf("uart%zu", i + 1);
         object_initialize_child(obj, name, &s->uart[i], TYPE_IMX_SERIAL);
@@ -239,6 +241,20 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
                        qdev_get_gpio_in(DEVICE(&s->cpu), ARM_CPU_IRQ));
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->tzic), 1,
                        qdev_get_gpio_in(DEVICE(&s->cpu), ARM_CPU_FIQ));
+
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->ccm), errp)) {
+        return;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ccm), 0,
+                    fsl_imx53_memmap[FSL_IMX53_CCM].addr);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ccm), 1,
+                    fsl_imx53_memmap[FSL_IMX53_DPLLC1].addr);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ccm), 2,
+                    fsl_imx53_memmap[FSL_IMX53_DPLLC2].addr);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ccm), 3,
+                    fsl_imx53_memmap[FSL_IMX53_DPLLC3].addr);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ccm), 4,
+                    fsl_imx53_memmap[FSL_IMX53_DPLLC4].addr);
 
     /* Initialize all UARTs */
     for (size_t i = 0; i < ARRAY_SIZE(s->uart); i++) {
@@ -469,7 +485,9 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
     /* Unimplemented devices */
     for (size_t i = 0; i < ARRAY_SIZE(fsl_imx53_memmap); i++) {
         switch (i) {
+        case FSL_IMX53_CCM:
         case FSL_IMX53_CSD0 ... FSL_IMX53_CSD1:
+        case FSL_IMX53_DPLLC1 ... FSL_IMX53_DPLLC4:
         case FSL_IMX53_ECSPI1 ... FSL_IMX53_ECSPI2:
         case FSL_IMX53_ESDHC1 ... FSL_IMX53_ESDHC4:
         case FSL_IMX53_FEC:
