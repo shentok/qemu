@@ -18,6 +18,7 @@
 #define FSL_IMX53_H
 
 #include "hw/intc/fsl_tzic.h"
+#include "hw/misc/imx53_ccm.h"
 #include "hw/watchdog/wdt_imx2.h"
 #include "hw/char/imx_serial.h"
 #include "hw/i2c/imx_i2c.h"
@@ -46,6 +47,7 @@ struct FslImx53State {
 
     ARMCPU             cpu;
     FslTzicState       tzic;
+    Imx53CcmState      ccm;
     IMXSerialState     uart[5];
     IMXI2CState        i2c[3];
     IMXGPIOState       gpio[7];
