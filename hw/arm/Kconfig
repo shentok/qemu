@@ -512,6 +512,7 @@ config FSL_IMX53
     bool
     imply PCIE_DEVICES
     imply I2C_DEVICES
+    select FSL_IMX53_CCM
     select FSL_TZIC
     select GPIO_IMX
     select IMX_FEC
