@@ -224,6 +224,8 @@ static void fsl_imx53_init(Object *obj)
         object_initialize_child(obj, name, &s->wdt[i], TYPE_IMX2_WDT);
     }
 
+    object_initialize_child(obj, "ahci", &s->sata, TYPE_SYSBUS_AHCI);
+
     object_initialize_child(obj, "eth", &s->eth, TYPE_IMX_FEC);
 }
 
@@ -455,6 +457,16 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
                            qdev_get_gpio_in(gic, table[i].irq));
     }
 
+    object_property_set_int(OBJECT(&s->sata), "num-ports", 1, &error_abort);
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->sata), errp)) {
+        return;
+    }
+
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->sata), 0,
+                    fsl_imx53_memmap[FSL_IMX53_SATA].addr);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->sata), 0,
+                       qdev_get_gpio_in(gic, FSL_IMX53_SATA_IRQ));
+
     object_property_set_uint(OBJECT(&s->eth), "phy-num", s->phy_num,
                              &error_abort);
     qemu_configure_nic_device(DEVICE(&s->eth), true, NULL);
@@ -534,6 +546,7 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
         case FSL_IMX53_GPT:
         case FSL_IMX53_I2C1 ... FSL_IMX53_I2C3:
         case FSL_IMX53_OCRAM:
+        case FSL_IMX53_SATA:
         case FSL_IMX53_TZIC:
         case FSL_IMX53_UART1 ... FSL_IMX53_UART4:
         case FSL_IMX53_USB1 ... FSL_IMX53_USB4:
