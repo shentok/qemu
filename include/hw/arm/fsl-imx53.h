@@ -18,6 +18,7 @@
 #define FSL_IMX53_H
 
 #include "hw/intc/fsl_tzic.h"
+#include "hw/ide/ahci-sysbus.h"
 #include "hw/misc/imx53_ccm.h"
 #include "hw/watchdog/wdt_imx2.h"
 #include "hw/char/imx_serial.h"
@@ -59,6 +60,7 @@ struct FslImx53State {
     IMXSPIState        spi[2];
     IMX2WdtState       wdt[2];
     ChipideaState      usb[4];
+    SysbusAHCIState    sata;
     IMXFECState        eth;
     MemoryRegion       rom;
     MemoryRegion       caam;
@@ -193,6 +195,8 @@ enum FslImx53Irqs {
     FSL_IMX53_ESDHC2_IRQ      = 2,
     FSL_IMX53_ESDHC3_IRQ      = 3,
     FSL_IMX53_ESDHC4_IRQ      = 4,
+
+    FSL_IMX53_SATA_IRQ        = 28,
 
     FSL_IMX53_UART1_IRQ       = 31,
     FSL_IMX53_UART2_IRQ       = 32,
