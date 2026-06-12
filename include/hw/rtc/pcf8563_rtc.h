@@ -11,9 +11,9 @@
 #define HW_PCF8563_RTC_H
 
 #include "qemu/osdep.h"
-#include "hw/sysbus.h"
+#include "hw/core/sysbus.h"
 #include "qemu/bitops.h"
-#include "hw/qdev-properties.h"
+#include "hw/core/qdev-properties.h"
 #include "qemu/timer.h"
 #include "hw/i2c/i2c.h"
 
