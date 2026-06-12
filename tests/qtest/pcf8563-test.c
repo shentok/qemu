@@ -11,9 +11,7 @@
 #include "libqtest-single.h"
 #include "libqos/qgraph.h"
 #include "libqos/i2c.h"
-#include "sysemu/rtc.h"
-#include "qapi/qmp/qdict.h"
-#include "qapi/qmp/qnum.h"
+#include "system/rtc.h"
 #include "qemu/bitops.h"
 #include "qemu/bcd.h"
 

@@ -8,20 +8,20 @@
  */
 
 #include "qemu/osdep.h"
-#include "hw/sysbus.h"
+#include "hw/core/sysbus.h"
 #include "qemu/bitops.h"
-#include "hw/qdev-properties.h"
+#include "hw/core/qdev-properties.h"
 #include "qemu/timer.h"
 #include "hw/i2c/i2c.h"
 #include "qemu/bcd.h"
 #include "qom/object.h"
-#include "sysemu/sysemu.h"
-#include "sysemu/rtc.h"
+#include "system/system.h"
+#include "system/rtc.h"
 #include "migration/vmstate.h"
 #include "qapi/visitor.h"
-#include "hw/register.h"
-#include "hw/registerfields.h"
-#include "hw/irq.h"
+#include "hw/core/register.h"
+#include "hw/core/registerfields.h"
+#include "hw/core/irq.h"
 #include "trace.h"
 
 #include "hw/rtc/pcf8563_rtc.h"
@@ -639,7 +639,7 @@ static void pcf8563_reset_hold(Object *obj, ResetType type)
     timer_del(s->timer);
 }
 
-static void pcf8563_class_init(ObjectClass *klass, void *data)
+static void pcf8563_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     I2CSlaveClass *k = I2C_SLAVE_CLASS(klass);
