@@ -376,3 +376,7 @@ canokey_handle_data_out(uint8_t ep_out, uint32_t out_len) "ep %d len %d"
 canokey_handle_data_in(uint8_t ep_in, uint32_t in_len) "ep %d len %d"
 canokey_realize(void)
 canokey_unrealize(void)
+
+# imx53-usb-misc.c
+imx53_usb_misc_read(const char *reg_name, uint64_t offset, uint64_t data) "[%s (0x%" PRIx64 ")] -> 0x%" PRIx64
+imx53_usb_misc_write(const char *reg_name, uint64_t offset, uint64_t data) "[%s (0x%" PRIx64 ")] <- 0x%" PRIx64
