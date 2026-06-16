@@ -31,6 +31,7 @@
 #include "hw/net/flexcan.h"
 #include "hw/net/imx_fec.h"
 #include "hw/usb/chipidea.h"
+#include "hw/usb/imx53-usb-misc.h"
 #include "system/memory.h"
 #include "target/arm/cpu.h"
 #include "qom/object.h"
@@ -62,6 +63,7 @@ struct FslImx53State {
     IMXSPIState        spi[2];
     IMX2WdtState       wdt[2];
     ChipideaState      usb[4];
+    Imx53UsbMiscState  usb_misc;
     SysbusAHCIState    sata;
     IMXFECState        eth;
     FlexcanState       flexcan[FSL_IMX53_NUM_CANS];

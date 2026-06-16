@@ -214,6 +214,7 @@ static void fsl_imx53_init(Object *obj)
         g_autofree char *name = g_strdup_printf("usb%zu", i);
         object_initialize_child(obj, name, &s->usb[i], TYPE_CHIPIDEA);
     }
+    object_initialize_child(obj, "usb_misc", &s->usb_misc, TYPE_IMX53_USB_MISC);
 
     for (size_t i = 0; i < ARRAY_SIZE(s->spi); i++) {
         g_autofree char *name = g_strdup_printf("spi%zu", i + 1);
@@ -442,6 +443,10 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
                            qdev_get_gpio_in(gic, table[i].irq));
     }
 
+    sysbus_realize(SYS_BUS_DEVICE(&s->usb_misc), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->usb_misc), 0,
+                    fsl_imx53_memmap[FSL_IMX53_USB_MISC].addr);
+
     /* Initialize all ECSPI */
     for (size_t i = 0; i < ARRAY_SIZE(s->spi); i++) {
         static const struct {
@@ -578,6 +583,7 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
         case FSL_IMX53_TZIC:
         case FSL_IMX53_UART1 ... FSL_IMX53_UART4:
         case FSL_IMX53_USB1 ... FSL_IMX53_USB4:
+        case FSL_IMX53_USB_MISC:
         case FSL_IMX53_WDOG1 ... FSL_IMX53_WDOG2:
             /* device implemented and treated above */
             break;

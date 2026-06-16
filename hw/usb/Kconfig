@@ -134,6 +134,9 @@ config IMX_USBPHY
     bool
     depends on USB
 
+config IMX53_USB_MISC
+    bool
+
 config USB_DWC3
     bool
     select USB_XHCI_SYSBUS
