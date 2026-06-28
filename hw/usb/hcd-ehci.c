@@ -395,9 +395,9 @@ static void ehci_trace_sitd(EHCIState *s, hwaddr addr,
                         (bool)(sitd->results & SITD_RESULTS_ACTIVE));
 }
 
-static void ehci_trace_guest_bug(EHCIState *s, const char *message)
+static void ehci_log_guest_error(EHCIState *s, const char *message)
 {
-    trace_usb_ehci_guest_bug(message);
+    qemu_log_mask(LOG_GUEST_ERROR, "ehci: %s", message);
 }
 
 static inline bool ehci_enabled(EHCIState *s)
@@ -656,7 +656,7 @@ static void ehci_free_queue(EHCIQueue *q, const char *warn)
     trace_usb_ehci_queue_action(q, "free");
     cancelled = ehci_cancel_queue(q);
     if (warn && cancelled > 0) {
-        ehci_trace_guest_bug(q->ehci, warn);
+        ehci_log_guest_error(q->ehci, warn);
     }
     QTAILQ_REMOVE(head, q, next);
     g_free(q);
@@ -1414,7 +1414,7 @@ static int ehci_execute(EHCIPacket *p, const char *action)
     }
 
     if (get_field(p->qtd.token, QTD_TOKEN_TBYTES) > BUFF_SIZE) {
-        ehci_trace_guest_bug(p->queue->ehci,
+        ehci_log_guest_error(p->queue->ehci,
                              "guest requested more bytes than allowed");
         return -1;
     }
@@ -1511,7 +1511,7 @@ static int ehci_process_itd(EHCIState *ehci,
 
             dev = ehci_find_device(ehci, devaddr);
             if (dev == NULL) {
-                ehci_trace_guest_bug(ehci, "no device found");
+                ehci_log_guest_error(ehci, "no device found");
                 ehci->ipacket.status = USB_RET_NODEV;
                 ehci->ipacket.actual_length = 0;
             } else {
@@ -1716,7 +1716,7 @@ static EHCIQueue *ehci_state_fetchqh(EHCIState *ehci, int async)
      */
     if (!ehci_verify_qh(q, &qh)) {
         if (ehci_reset_queue(q) > 0) {
-            ehci_trace_guest_bug(ehci, "guest updated active QH");
+            ehci_log_guest_error(ehci, "guest updated active QH");
         }
     }
     q->qh = qh;
@@ -1889,7 +1889,7 @@ static int ehci_state_fetchqtd(EHCIQueue *q)
         if (!ehci_verify_qtd(p, &qtd)) {
             ehci_cancel_queue(q);
             if (qtd.token & QTD_TOKEN_ACTIVE) {
-                ehci_trace_guest_bug(q->ehci, "guest updated active qTD");
+                ehci_log_guest_error(q->ehci, "guest updated active qTD");
             }
             p = NULL;
         } else {
@@ -1919,7 +1919,7 @@ static int ehci_state_fetchqtd(EHCIQueue *q)
             break;
         }
     } else if (q->dev == NULL) {
-        ehci_trace_guest_bug(q->ehci, "no device attached to queue");
+        ehci_log_guest_error(q->ehci, "no device attached to queue");
         ehci_set_state(q->ehci, q->async, EST_HORIZONTALQH);
     } else {
         p = ehci_alloc_packet(q);
@@ -1980,7 +1980,7 @@ static int ehci_fill_queue(EHCIPacket *p)
             break;
         }
         if (!ehci_verify_pid(q, &qtd)) {
-            ehci_trace_guest_bug(q->ehci, "guest queued token with wrong pid");
+            ehci_log_guest_error(q->ehci, "guest queued token with wrong pid");
             break;
         }
         p = ehci_alloc_packet(q);
