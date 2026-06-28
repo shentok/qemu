@@ -515,7 +515,9 @@ config FSL_IMX53
     select FSL_IMX53_CCM
     select FSL_TZIC
     select GPIO_IMX
+    select IMX_EPIT
     select IMX_FEC
+    select IMX_GPT
     select IMX_I2C
     select IMX_SERIAL
     select IMX_SPI
