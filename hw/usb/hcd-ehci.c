@@ -397,7 +397,7 @@ static void ehci_trace_sitd(EHCIState *s, hwaddr addr,
 
 static void ehci_trace_guest_bug(EHCIState *s, const char *message)
 {
-    trace_usb_ehci_guest_bug(message);
+    qemu_log_mask(LOG_GUEST_ERROR, "ehci: %s", message);
 }
 
 static inline bool ehci_enabled(EHCIState *s)
