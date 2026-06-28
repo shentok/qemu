@@ -188,6 +188,13 @@ static void fsl_imx53_init(Object *obj)
         object_initialize_child(obj, name, &s->uart[i], TYPE_IMX_SERIAL);
     }
 
+    object_initialize_child(obj, "gpt", &s->gpt, TYPE_IMX53_GPT);
+
+    for (size_t i = 0; i < ARRAY_SIZE(s->epit); i++) {
+        g_autofree char *name = g_strdup_printf("epit%zu", i + 1);
+        object_initialize_child(obj, name, &s->epit[i], TYPE_IMX_EPIT);
+    }
+
     for (size_t i = 0; i < ARRAY_SIZE(s->i2c); i++) {
         g_autofree char *name = g_strdup_printf("i2c%zu", i + 1);
         object_initialize_child(obj, name, &s->i2c[i], TYPE_IMX_I2C);
@@ -277,6 +284,37 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
 
         sysbus_mmio_map(SYS_BUS_DEVICE(&s->uart[i]), 0, table[i].addr);
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->uart[i]), 0,
+                           qdev_get_gpio_in(gic, table[i].irq));
+    }
+
+    s->gpt.ccm = IMX_CCM(&s->ccm);
+
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->gpt), errp)) {
+        return;
+    }
+
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gpt), 0, fsl_imx53_memmap[FSL_IMX53_GPT].addr);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->gpt), 0,
+                       qdev_get_gpio_in(gic, FSL_IMX53_GPT_IRQ));
+
+    /* Initialize all EPIT timers */
+    for (size_t i = 0; i < ARRAY_SIZE(s->epit); i++) {
+        static const struct {
+            hwaddr addr;
+            unsigned int irq;
+        } table[ARRAY_SIZE(s->epit)] = {
+            { fsl_imx53_memmap[FSL_IMX53_EPIT1].addr, FSL_IMX53_EPIT1_IRQ },
+            { fsl_imx53_memmap[FSL_IMX53_EPIT2].addr, FSL_IMX53_EPIT2_IRQ },
+        };
+
+        s->epit[i].ccm = IMX_CCM(&s->ccm);
+
+        if (!sysbus_realize(SYS_BUS_DEVICE(&s->epit[i]), errp)) {
+            return;
+        }
+
+        sysbus_mmio_map(SYS_BUS_DEVICE(&s->epit[i]), 0, table[i].addr);
+        sysbus_connect_irq(SYS_BUS_DEVICE(&s->epit[i]), 0,
                            qdev_get_gpio_in(gic, table[i].irq));
     }
 
@@ -489,9 +527,11 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
         case FSL_IMX53_CSD0 ... FSL_IMX53_CSD1:
         case FSL_IMX53_DPLLC1 ... FSL_IMX53_DPLLC4:
         case FSL_IMX53_ECSPI1 ... FSL_IMX53_ECSPI2:
+        case FSL_IMX53_EPIT1 ... FSL_IMX53_EPIT2:
         case FSL_IMX53_ESDHC1 ... FSL_IMX53_ESDHC4:
         case FSL_IMX53_FEC:
         case FSL_IMX53_GPIO1 ... FSL_IMX53_GPIO7:
+        case FSL_IMX53_GPT:
         case FSL_IMX53_I2C1 ... FSL_IMX53_I2C3:
         case FSL_IMX53_OCRAM:
         case FSL_IMX53_TZIC:
