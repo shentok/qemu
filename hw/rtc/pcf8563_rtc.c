@@ -622,7 +622,7 @@ static void pcf8563_reset_hold(Object *obj, ResetType type)
 
     s->cs1 = 0x8;
     s->cs2 = 0x0;
-    s->vls = s->vls | 0x80;
+    s->vls = s->vls & ~0x80;
     s->minute_a = s->minute_a | 0x80;
     s->hour_a = s->hour_a | 0x80;
     s->day_a = s->day_a | 0x80;
