@@ -21,6 +21,8 @@
 #include "hw/misc/imx53_ccm.h"
 #include "hw/watchdog/wdt_imx2.h"
 #include "hw/char/imx_serial.h"
+#include "hw/timer/imx_gpt.h"
+#include "hw/timer/imx_epit.h"
 #include "hw/i2c/imx_i2c.h"
 #include "hw/gpio/imx_gpio.h"
 #include "hw/sd/sdhci.h"
@@ -49,6 +51,8 @@ struct FslImx53State {
     FslTzicState       tzic;
     Imx53CcmState      ccm;
     IMXSerialState     uart[5];
+    IMXGPTState        gpt;
+    IMXEPITState       epit[2];
     IMXI2CState        i2c[3];
     IMXGPIOState       gpio[7];
     SDHCIState         esdhc[FSL_IMX53_NUM_ESDHCS];
