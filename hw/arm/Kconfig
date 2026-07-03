@@ -517,6 +517,7 @@ config FSL_IMX53
     imply PCIE_DEVICES
     imply I2C_DEVICES
     select AHCI_SYSBUS
+    select CAN_FLEXCAN
     select FSL_IMX53_CCM
     select FSL_TZIC
     select IMX

@@ -224,6 +224,11 @@ static void fsl_imx53_init(Object *obj)
         object_initialize_child(obj, name, &s->wdt[i], TYPE_IMX2_WDT);
     }
 
+    for (size_t i = 0; i < ARRAY_SIZE(s->flexcan); i++) {
+        g_autofree char *name = g_strdup_printf("flexcan%zu", i);
+        object_initialize_child(obj, name, &s->flexcan[i], TYPE_CAN_FLEXCAN2);
+    }
+
     object_initialize_child(obj, "ahci", &s->sata, TYPE_SYSBUS_AHCI);
 
     object_initialize_child(obj, "eth", &s->eth, TYPE_IMX_FEC);
@@ -499,6 +504,28 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
                            qdev_get_gpio_in(gic, table[i].irq));
     }
 
+    /* FlexCANs */
+    for (size_t i = 0; i < ARRAY_SIZE(s->flexcan); i++) {
+        static const struct {
+            hwaddr addr;
+            unsigned int irq;
+        } table[ARRAY_SIZE(s->flexcan)] = {
+            { fsl_imx53_memmap[FSL_IMX53_FLEXCAN1].addr, FSL_IMX53_FLEXCAN1_IRQ },
+            { fsl_imx53_memmap[FSL_IMX53_FLEXCAN2].addr, FSL_IMX53_FLEXCAN2_IRQ },
+        };
+
+        object_property_set_link(OBJECT(&s->flexcan[i]), "clock-control-module",
+                                 OBJECT(&s->ccm), &error_abort);
+        object_property_set_link(OBJECT(&s->flexcan[i]), "canbus",
+                                 OBJECT(s->canbus[i]), &error_abort);
+
+        sysbus_realize(SYS_BUS_DEVICE(&s->flexcan[i]), &error_abort);
+
+        sysbus_mmio_map(SYS_BUS_DEVICE(&s->flexcan[i]), 0, table[i].addr);
+        sysbus_connect_irq(SYS_BUS_DEVICE(&s->flexcan[i]), 0,
+                           qdev_get_gpio_in(gic, table[i].irq));
+    }
+
     /* ROM memory */
     if (!memory_region_init_rom(&s->rom, OBJECT(dev),
                                 fsl_imx53_memmap[FSL_IMX53_BOOT_ROM].name,
@@ -542,6 +569,7 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
         case FSL_IMX53_EPIT1 ... FSL_IMX53_EPIT2:
         case FSL_IMX53_ESDHC1 ... FSL_IMX53_ESDHC4:
         case FSL_IMX53_FEC:
+        case FSL_IMX53_FLEXCAN1 ... FSL_IMX53_FLEXCAN2:
         case FSL_IMX53_GPIO1 ... FSL_IMX53_GPIO7:
         case FSL_IMX53_GPT:
         case FSL_IMX53_I2C1 ... FSL_IMX53_I2C3:
@@ -565,6 +593,10 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
 
 static const Property fsl_imx53_properties[] = {
     DEFINE_PROP_UINT32("fec-phy-num", FslImx53State, phy_num, 0),
+    DEFINE_PROP_LINK("canbus0", FslImx53State, canbus[0], TYPE_CAN_BUS,
+                     CanBusState *),
+    DEFINE_PROP_LINK("canbus1", FslImx53State, canbus[1], TYPE_CAN_BUS,
+                     CanBusState *),
 };
 
 static void fsl_imx53_class_init(ObjectClass *oc, const void *data)
