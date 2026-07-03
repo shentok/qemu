@@ -28,6 +28,7 @@
 #include "hw/gpio/imx_gpio.h"
 #include "hw/sd/sdhci.h"
 #include "hw/ssi/imx_spi.h"
+#include "hw/net/flexcan.h"
 #include "hw/net/imx_fec.h"
 #include "hw/usb/chipidea.h"
 #include "system/memory.h"
@@ -43,6 +44,7 @@ OBJECT_DECLARE_SIMPLE_TYPE(FslImx53State, FSL_IMX53)
 
 enum FslImx8mpConfiguration {
     FSL_IMX53_NUM_ESDHCS = 4,
+    FSL_IMX53_NUM_CANS = 2,
 };
 
 struct FslImx53State {
@@ -62,10 +64,13 @@ struct FslImx53State {
     ChipideaState      usb[4];
     SysbusAHCIState    sata;
     IMXFECState        eth;
+    FlexcanState       flexcan[FSL_IMX53_NUM_CANS];
     MemoryRegion       rom;
     MemoryRegion       caam;
     MemoryRegion       ocram;
     uint32_t           phy_num;
+
+    CanBusState       *canbus[FSL_IMX53_NUM_CANS];
 };
 
 enum FslImx53MemoryRegions {
@@ -237,6 +242,9 @@ enum FslImx53Irqs {
 
     FSL_IMX53_WDOG1_IRQ       = 58,
     FSL_IMX53_WDOG2_IRQ       = 59,
+
+    FSL_IMX53_FLEXCAN1_IRQ    = 82,
+    FSL_IMX53_FLEXCAN2_IRQ    = 83,
 
     FSL_IMX53_ENET_MAC_IRQ    = 87
 };
