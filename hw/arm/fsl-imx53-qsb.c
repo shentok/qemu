@@ -21,6 +21,7 @@ struct FslImx53QsbMachineState {
 
     FslImx53State soc;
     struct arm_boot_info boot_info;
+    CanBusState *canbus[FSL_IMX53_NUM_CANS];
 };
 
 #define TYPE_IMX53QSB_MACHINE MACHINE_TYPE_NAME("imx53-qsb")
@@ -49,6 +50,13 @@ static void imx53_qsb_init(MachineState *machine)
     /* Ethernet PHY address is 6 */
     object_property_set_int(OBJECT(&s->soc), "fec-phy-num", 6, &error_fatal);
 
+    for (int i = 0; i < FSL_IMX53_NUM_CANS; i++) {
+        g_autofree char *bus_name = g_strdup_printf("canbus%d", i);
+
+        object_property_set_link(OBJECT(&s->soc), bus_name,
+                                 OBJECT(s->canbus[i]), &error_fatal);
+    }
+
     qdev_realize(DEVICE(&s->soc), NULL, &error_fatal);
 
     memory_region_add_subregion(get_system_memory(), FSL_IMX53_RAM_START,
@@ -76,6 +84,21 @@ static void imx53_qsb_init(MachineState *machine)
     }
 }
 
+static void imx53_qsb_machine_instance_init(Object *obj)
+{
+    FslImx53QsbMachineState *s = IMX53QSB_MACHINE(obj);
+
+    object_property_add_link(obj, "canbus0", TYPE_CAN_BUS,
+                             (Object **)&s->canbus[0],
+                             object_property_allow_set_link,
+                             0);
+
+    object_property_add_link(obj, "canbus1", TYPE_CAN_BUS,
+                             (Object **)&s->canbus[1],
+                             object_property_allow_set_link,
+                             0);
+}
+
 static void imx53_qsb_machine_class_init(ObjectClass *oc, const void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
@@ -90,8 +113,9 @@ static const TypeInfo imx53_qsb_machine_init_types[] = {
     {
         .name          = TYPE_IMX53QSB_MACHINE,
         .parent        = TYPE_MACHINE,
-        .class_init    = imx53_qsb_machine_class_init,
         .instance_size = sizeof(FslImx53QsbMachineState),
+        .instance_init = imx53_qsb_machine_instance_init,
+        .class_init    = imx53_qsb_machine_class_init,
         .interfaces    = arm_machine_interfaces,
     }
 };
