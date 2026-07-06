@@ -10,6 +10,7 @@
 #define FSL_IMX8MP_H
 
 #include "target/arm/cpu.h"
+#include "hw/arm/armv7m.h"
 #include "hw/char/imx_serial.h"
 #include "hw/gpio/imx_gpio.h"
 #include "hw/i2c/imx_i2c.h"
@@ -31,6 +32,7 @@
 #include "hw/timer/imx_gpt.h"
 #include "hw/usb/hcd-dwc3.h"
 #include "hw/watchdog/wdt_imx2.h"
+#include "hw/core/qdev-clock.h"
 #include "hw/core/sysbus.h"
 #include "qom/object.h"
 #include "qemu/units.h"
@@ -45,7 +47,7 @@ OBJECT_DECLARE_SIMPLE_TYPE(FslImx8mpState, FSL_IMX8MP)
 
 enum FslImx8mpConfiguration {
     FSL_IMX8MP_NUM_CANS         = 2,
-    FSL_IMX8MP_NUM_CPUS         = 4,
+    FSL_IMX8MP_NUM_CPUS         = 5,
     FSL_IMX8MP_NUM_ECSPIS       = 3,
     FSL_IMX8MP_NUM_GPIOS        = 5,
     FSL_IMX8MP_NUM_GPTS         = 6,
@@ -67,6 +69,10 @@ struct FslImx8mpState {
     SysBusDevice   parent_obj;
 
     ARMCPU             cpu[FSL_IMX8MP_NUM_CPUS];
+    ARMv7MState        cm7;
+    bool               enable_cm7;
+    bool               cm7_booted;
+    uint32_t           cm7_vector_base;
     GICv3State         gic;
     IMX8MPGPCState     gpc;
     IMX8MPGPRState     gpr;
@@ -94,6 +100,11 @@ struct FslImx8mpState {
     bool               phy_connected;
 
     CanBusState       *canbus[FSL_IMX8MP_NUM_CANS];
+};
+
+struct CM7CtlReq {
+    FslImx8mpState *s;
+    bool run;
 };
 
 enum FslImx8mpMemoryRegions {
