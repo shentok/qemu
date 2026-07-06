@@ -28,6 +28,7 @@ following devices:
  * Clock Tree
  * General Power Controller (GPC)
  * General Purpose Register (GPR)
+ * System Reset Controller (SRC)
 
 Boot options
 ------------
