@@ -185,7 +185,7 @@ static void imx_serial_reset_at_boot(DeviceState *dev)
 static uint64_t imx_serial_read(void *opaque, hwaddr offset,
                                 unsigned size)
 {
-    IMXSerialState *s = (IMXSerialState *)opaque;
+    IMXSerialState *s = opaque;
     Chardev *chr = qemu_chr_fe_get_driver(&s->chr);
     uint32_t c, rx_used;
     uint8_t rxtl = s->ufcr & TL_MASK;
@@ -276,7 +276,7 @@ static uint64_t imx_serial_read(void *opaque, hwaddr offset,
 static void imx_serial_write(void *opaque, hwaddr offset,
                              uint64_t value, unsigned size)
 {
-    IMXSerialState *s = (IMXSerialState *)opaque;
+    IMXSerialState *s = opaque;
     Chardev *chr = qemu_chr_fe_get_driver(&s->chr);
     unsigned char ch;
 
@@ -385,14 +385,14 @@ static void imx_serial_write(void *opaque, hwaddr offset,
 
 static int imx_can_receive(void *opaque)
 {
-    IMXSerialState *s = (IMXSerialState *)opaque;
+    IMXSerialState *s = opaque;
 
     return s->ucr2 & UCR2_RXEN ? fifo32_num_free(&s->rx_fifo) : 0;
 }
 
 static void imx_put_data(void *opaque, uint32_t value)
 {
-    IMXSerialState *s = (IMXSerialState *)opaque;
+    IMXSerialState *s = opaque;
     Chardev *chr = qemu_chr_fe_get_driver(&s->chr);
     uint8_t rxtl = s->ufcr & TL_MASK;
 
@@ -415,7 +415,7 @@ static void imx_put_data(void *opaque, uint32_t value)
 
 static void imx_receive(void *opaque, const uint8_t *buf, int size)
 {
-    IMXSerialState *s = (IMXSerialState *)opaque;
+    IMXSerialState *s = opaque;
 
     s->usr2 |= USR2_WAKE;
 
