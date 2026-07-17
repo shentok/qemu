@@ -524,6 +524,7 @@ config FSL_IMX53
     select IMX_I2C
     select IMX_SERIAL
     select IMX_SPI
+    select IMX_SRTC
     select SDHCI
     select USB_CHIPIDEA
     select WDT_IMX2

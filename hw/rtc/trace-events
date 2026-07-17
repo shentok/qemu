@@ -26,6 +26,10 @@ aspeed_rtc_write(uint64_t addr, uint64_t value) "addr 0x%02" PRIx64 " value 0x%0
 ds1338_recv(uint32_t addr, uint8_t value) "[0x%" PRIx32 "] -> 0x%02" PRIx8
 ds1338_send(uint32_t addr, uint8_t value) "[0x%" PRIx32 "] <- 0x%02" PRIx8
 
+# imx_srtc.c
+imx_srtc_read(uint64_t addr, const char *regname, uint64_t value) "[0x%02" PRIu64 " (%s)] -> 0x%" PRIx64
+imx_srtc_write(uint64_t addr, const char *regname, uint64_t value) "[0x%02" PRIu64 " (%s)] <- 0x%" PRIx64
+
 # m48t59.c
 m48txx_nvram_io_read(uint64_t addr, uint64_t value) "io read addr:0x%04" PRIx64 " value:0x%02" PRIx64
 m48txx_nvram_io_write(uint64_t addr, uint64_t value) "io write addr:0x%04" PRIx64 " value:0x%02" PRIx64
