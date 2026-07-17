@@ -30,6 +30,7 @@
 #include "hw/ssi/imx_spi.h"
 #include "hw/net/flexcan.h"
 #include "hw/net/imx_fec.h"
+#include "hw/rtc/imx_srtc.h"
 #include "hw/usb/chipidea.h"
 #include "hw/usb/imx53-usb-misc.h"
 #include "system/memory.h"
@@ -54,6 +55,7 @@ struct FslImx53State {
     ARMCPU             cpu;
     FslTzicState       tzic;
     Imx53CcmState      ccm;
+    ImxSrtcState       srtc;
     IMXSerialState     uart[5];
     IMXGPTState        gpt;
     IMXEPITState       epit[2];
