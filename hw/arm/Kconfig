@@ -523,6 +523,7 @@ config FSL_IMX53
     select IMX
     select IMX_FEC
     select IMX_I2C
+    select IMX_SRTC
     select IMX53_USB_MISC
     select WDT_IMX2
     select SDHCI

@@ -183,6 +183,8 @@ static void fsl_imx53_init(Object *obj)
 
     object_initialize_child(obj, "ccm", &s->ccm, TYPE_IMX53_CCM);
 
+    object_initialize_child(obj, "srtc", &s->srtc, TYPE_IMX_SRTC);
+
     for (size_t i = 0; i < ARRAY_SIZE(s->uart); i++) {
         g_autofree char *name = g_strdup_printf("uart%zu", i + 1);
         object_initialize_child(obj, name, &s->uart[i], TYPE_IMX_SERIAL);
@@ -489,6 +491,13 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
                        qdev_get_gpio_in(gic, FSL_IMX53_ENET_MAC_IRQ));
 
     /*
+     * SRTC
+     */
+    sysbus_realize(SYS_BUS_DEVICE(&s->srtc), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->srtc), 0,
+                    fsl_imx53_memmap[FSL_IMX53_SRTC].addr);
+
+    /*
      * Watchdog
      */
     for (size_t i = 0; i < ARRAY_SIZE(s->wdt); i++) {
@@ -580,6 +589,7 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
         case FSL_IMX53_I2C1 ... FSL_IMX53_I2C3:
         case FSL_IMX53_OCRAM:
         case FSL_IMX53_SATA:
+        case FSL_IMX53_SRTC:
         case FSL_IMX53_TZIC:
         case FSL_IMX53_UART1 ... FSL_IMX53_UART4:
         case FSL_IMX53_USB1 ... FSL_IMX53_USB4:
