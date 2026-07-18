@@ -46,7 +46,8 @@ static const struct {
     [FSL_IMX53_SATA]                  = { 0x10000000, 16 * KiB, "SATA" },
     [FSL_IMX53_SATA_ALIAS]            = { 0x10004000, 64 * MiB - 16 * KiB, "SATA Aliasing" },
     [FSL_IMX53_RESERVED_1400]         = { 0x14000000, 64 * MiB, "Reserved" },
-    [FSL_IMX53_IPU]                   = { 0x18000000, 128 * MiB, "IPU" },
+    [FSL_IMX53_IPU_MEM]               = { 0x18000000, 96 * MiB, "IPU_MEM" },
+    [FSL_IMX53_IPU_REGS]              = { 0x1e000000, 32 * MiB, "IPU_REGS" },
     [FSL_IMX53_GPU2D]                 = { 0x20000000, 256 * MiB, "GPU2D" },
     [FSL_IMX53_GPU3D]                 = { 0x30000000, 256 * MiB, "GPU3D" },
 
@@ -231,6 +232,8 @@ static void fsl_imx53_init(Object *obj)
         g_autofree char *name = g_strdup_printf("flexcan%zu", i);
         object_initialize_child(obj, name, &s->flexcan[i], TYPE_CAN_FLEXCAN2);
     }
+
+    object_initialize_child(obj, "ipu", &s->ipu, TYPE_IMX_IPU);
 
     object_initialize_child(obj, "ahci", &s->sata, TYPE_SYSBUS_AHCI);
 
@@ -498,6 +501,15 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
                     fsl_imx53_memmap[FSL_IMX53_SRTC].addr);
 
     /*
+     * IPU
+     */
+    sysbus_realize(SYS_BUS_DEVICE(&s->ipu), &error_abort);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ipu), 0,
+                    fsl_imx53_memmap[FSL_IMX53_IPU_REGS].addr);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->ipu), 0,
+                       qdev_get_gpio_in(gic, 11));
+
+    /*
      * Watchdog
      */
     for (size_t i = 0; i < ARRAY_SIZE(s->wdt); i++) {
@@ -587,6 +599,7 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
         case FSL_IMX53_GPIO1 ... FSL_IMX53_GPIO7:
         case FSL_IMX53_GPT:
         case FSL_IMX53_I2C1 ... FSL_IMX53_I2C3:
+        case FSL_IMX53_IPU_REGS:
         case FSL_IMX53_OCRAM:
         case FSL_IMX53_SATA:
         case FSL_IMX53_SRTC:
