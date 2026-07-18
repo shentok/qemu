@@ -100,7 +100,7 @@ static void fsl_imx6_init(Object *obj)
     }
     for (i = 0; i < FSL_IMX6_NUM_IPUS; i++) {
         snprintf(name, NAME_SIZE, "ipu%d", i);
-        object_initialize_child(obj, name, &s->ipu[i], TYPE_IMX_IPU);
+        object_initialize_child(obj, name, &s->ipu[i], TYPE_IMX_IPUV3H);
     }
 
 
