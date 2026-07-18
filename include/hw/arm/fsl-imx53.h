@@ -22,6 +22,7 @@
 #include "hw/misc/imx53_ccm.h"
 #include "hw/watchdog/wdt_imx2.h"
 #include "hw/char/imx_serial.h"
+#include "hw/display/imx_ipu.h"
 #include "hw/timer/imx_gpt.h"
 #include "hw/timer/imx_epit.h"
 #include "hw/i2c/imx_i2c.h"
@@ -69,6 +70,7 @@ struct FslImx53State {
     SysbusAHCIState    sata;
     IMXFECState        eth;
     FlexcanState       flexcan[FSL_IMX53_NUM_CANS];
+    ImxIpuState        ipu;
     MemoryRegion       rom;
     MemoryRegion       caam;
     MemoryRegion       ocram;
@@ -146,7 +148,8 @@ enum FslImx53MemoryRegions {
     FSL_IMX53_I2C3,
     FSL_IMX53_IIM,
     FSL_IMX53_IOMUXC,
-    FSL_IMX53_IPU,
+    FSL_IMX53_IPU_MEM,
+    FSL_IMX53_IPU_REGS,
     FSL_IMX53_KPP,
     FSL_IMX53_MLB,
     FSL_IMX53_NAND_BUF,
