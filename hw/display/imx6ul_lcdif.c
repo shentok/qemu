@@ -43,15 +43,6 @@ REG32(AS_NEXT_BUF, 0x230)
 
 #define FRAME_PERIOD_NS             (16 * 1000 * 1000ULL)
 
-enum IMX6ULLCDIFReg {
-    IMX6UL_LCDIF_REG_CTRL = A_CTRL >> 4,
-    IMX6UL_LCDIF_REG_CTRL1 = A_CTRL1 >> 4,
-    IMX6UL_LCDIF_REG_V4_TRANSFER_COUNT = A_V4_TRANSFER_COUNT >> 4,
-    IMX6UL_LCDIF_REG_V4_CUR_BUF = A_V4_CUR_BUF >> 4,
-    IMX6UL_LCDIF_REG_V4_NEXT_BUF = A_V4_NEXT_BUF >> 4,
-    IMX6UL_LCDIF_REG_AS_NEXT_BUF = A_AS_NEXT_BUF >> 4,
-};
-
 static inline bool imx6ul_lcdif_reg_exists(hwaddr reg)
 {
     return (reg >> 4) < IMX6UL_LCDIF_REGS_NUM;
@@ -70,14 +61,14 @@ static inline bool imx6ul_lcdif_reg_has_setclr(hwaddr reg)
 
 static inline bool imx6ul_lcdif_is_running(IMX6ULLCDIFState *s)
 {
-    uint32_t ctrl = s->regs[IMX6UL_LCDIF_REG_CTRL];
+    uint32_t ctrl = s->regs[R_CTRL];
 
     return FIELD_EX32(ctrl, CTRL, RUN);
 }
 
 static inline bool imx6ul_lcdif_frame_done_pending(IMX6ULLCDIFState *s)
 {
-    uint32_t ctrl1 = s->regs[IMX6UL_LCDIF_REG_CTRL1];
+    uint32_t ctrl1 = s->regs[R_CTRL1];
 
     return FIELD_EX32(ctrl1, CTRL1, CUR_FRAME_DONE_IRQ);
 }
@@ -100,7 +91,7 @@ static void imx6ul_lcdif_maybe_schedule_frame(IMX6ULLCDIFState *s)
 
 static void imx6ul_lcdif_update_irq(IMX6ULLCDIFState *s)
 {
-    uint32_t ctrl1 = s->regs[IMX6UL_LCDIF_REG_CTRL1];
+    uint32_t ctrl1 = s->regs[R_CTRL1];
     bool level = FIELD_EX32(ctrl1, CTRL1, CUR_FRAME_DONE_IRQ_EN) &&
                  FIELD_EX32(ctrl1, CTRL1, CUR_FRAME_DONE_IRQ);
 
@@ -109,10 +100,10 @@ static void imx6ul_lcdif_update_irq(IMX6ULLCDIFState *s)
 
 static void imx6ul_lcdif_frame_done(IMX6ULLCDIFState *s)
 {
-    uint32_t ctrl1 = s->regs[IMX6UL_LCDIF_REG_CTRL1];
+    uint32_t ctrl1 = s->regs[R_CTRL1];
 
     ctrl1 = FIELD_DP32(ctrl1, CTRL1, CUR_FRAME_DONE_IRQ, 1);
-    s->regs[IMX6UL_LCDIF_REG_CTRL1] = ctrl1;
+    s->regs[R_CTRL1] = ctrl1;
     imx6ul_lcdif_update_irq(s);
 }
 
@@ -156,11 +147,11 @@ static bool imx6ul_lcdif_update_display(void *opaque)
 {
     IMX6ULLCDIFState *s = opaque;
     DisplaySurface *surface = qemu_console_surface(s->con);
-    uint32_t transfer_count = s->regs[IMX6UL_LCDIF_REG_V4_TRANSFER_COUNT];
+    uint32_t transfer_count = s->regs[R_V4_TRANSFER_COUNT];
     uint32_t width = FIELD_EX32(transfer_count, V4_TRANSFER_COUNT, H_COUNT);
     uint32_t height = FIELD_EX32(transfer_count, V4_TRANSFER_COUNT, V_COUNT);
-    uint32_t ctrl = s->regs[IMX6UL_LCDIF_REG_CTRL];
-    uint32_t frame_base = s->regs[IMX6UL_LCDIF_REG_V4_CUR_BUF];
+    uint32_t ctrl = s->regs[R_CTRL];
+    uint32_t frame_base = s->regs[R_V4_CUR_BUF];
     drawfn fn;
     int first = 0;
     int last = 0;
@@ -325,7 +316,7 @@ static void imx6ul_lcdif_write(void *opaque, hwaddr offset,
         qemu_console_hw_invalidate(s->con);
         break;
     case A_V4_NEXT_BUF:
-        s->regs[IMX6UL_LCDIF_REG_V4_CUR_BUF] = s->regs[idx];
+        s->regs[R_V4_CUR_BUF] = s->regs[idx];
         imx6ul_lcdif_frame_done(s);
         s->invalidate = true;
         qemu_console_hw_invalidate(s->con);
@@ -358,7 +349,7 @@ static void imx6ul_lcdif_reset(DeviceState *dev)
     IMX6ULLCDIFState *s = IMX6UL_LCDIF(dev);
 
     memset(s->regs, 0, sizeof(s->regs));
-    s->regs[IMX6UL_LCDIF_REG_CTRL1] = LCDIF_RESET_CTRL1;
+    s->regs[R_CTRL1] = LCDIF_RESET_CTRL1;
     s->fb_base = 0;
     s->src_width = 0;
     s->rows = 0;
