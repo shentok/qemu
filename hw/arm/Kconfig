@@ -534,6 +534,7 @@ config FSL_IMX53_QSB
     default y
     depends on TCG && ARM
     select FSL_IMX53
+    select MC13XXX
 
 config FSL_IMX6
     bool
