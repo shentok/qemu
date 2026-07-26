@@ -64,6 +64,9 @@ config MAX78000_ICC
 config MAX78000_TRNG
     bool
 
+config MC13XXX
+    bool
+
 config MOS6522
     bool
 

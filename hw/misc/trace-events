@@ -104,6 +104,14 @@ aspeed_ast2700_scu_read(uint64_t offset, unsigned size, uint32_t data) "To 0x%" 
 aspeed_ast2700_scuio_write(uint64_t offset, unsigned size, uint32_t data) "To 0x%" PRIx64 " of size %u: 0x%" PRIx32
 aspeed_ast2700_scuio_read(uint64_t offset, unsigned size, uint32_t data) "To 0x%" PRIx64 " of size %u: 0x%" PRIx32
 
+# mc13xxx.c
+mc34708_event(uint8_t event) "%" PRIu8
+mc34708_recv(uint8_t addr, const char *name, uint32_t value) "[%" PRIu8 " (%s)] -> 0x%06" PRIx32
+mc34708_send(uint8_t addr, const char *name, uint32_t value) "[%" PRIu8 " (%s)] <- 0x%06" PRIx32
+mc34708_input_event_abs(int axis, int64_t value) "axis: %d, value: %" PRIi64
+mc34708_input_event_btn(int button, int down) "button: %d, down: %d"
+mc34708_input_sync(void) ""
+
 # mps2-scc.c
 mps2_scc_read(uint64_t offset, uint64_t data, unsigned size) "MPS2 SCC read: offset 0x%" PRIx64 " data 0x%" PRIx64 " size %u"
 mps2_scc_write(uint64_t offset, uint64_t data, unsigned size) "MPS2 SCC write: offset 0x%" PRIx64 " data 0x%" PRIx64 " size %u"

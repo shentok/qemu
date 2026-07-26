@@ -13,6 +13,7 @@
 #include "hw/arm/boot.h"
 #include "hw/arm/machines-qom.h"
 #include "hw/core/boards.h"
+#include "hw/i2c/i2c.h"
 #include "qemu/error-report.h"
 #include "system/qtest.h"
 
@@ -30,6 +31,7 @@ OBJECT_DECLARE_SIMPLE_TYPE(FslImx53QsbMachineState, IMX53QSB_MACHINE)
 static void imx53_qsb_init(MachineState *machine)
 {
     FslImx53QsbMachineState *s = IMX53QSB_MACHINE(machine);
+    DeviceState *dev;
 
     /* Check the amount of memory is compatible with the SOC */
     if (machine->ram_size > FSL_IMX53_RAM_SIZE_MAX) {
@@ -78,6 +80,11 @@ static void imx53_qsb_init(MachineState *machine)
         qdev_prop_set_drive_err(carddev, "drive", blk, &error_fatal);
         qdev_realize_and_unref(carddev, bus, &error_fatal);
     }
+
+    dev = DEVICE(i2c_slave_create_simple(
+        I2C_BUS(qdev_get_child_bus(DEVICE(&s->soc.i2c[1]), "i2c-bus.1")),
+        "mc34708", 8));
+    qdev_connect_gpio_out(dev, 0, qdev_get_gpio_in(DEVICE(&s->soc.gpio[1]), 6));
 
     if (!qtest_enabled()) {
         arm_load_kernel(&s->soc.cpu, machine, &s->boot_info);
