@@ -16,6 +16,7 @@
 #include "hw/i2c/i2c.h"
 #include "qemu/error-report.h"
 #include "system/qtest.h"
+#include <libfdt.h>
 
 struct FslImx53QsbMachineState {
     MachineState parent_obj;
@@ -27,6 +28,26 @@ struct FslImx53QsbMachineState {
 
 #define TYPE_IMX53QSB_MACHINE MACHINE_TYPE_NAME("imx53-qsb")
 OBJECT_DECLARE_SIMPLE_TYPE(FslImx53QsbMachineState, IMX53QSB_MACHINE)
+
+static void imx53_qsb_modify_dtb(const struct arm_boot_info *info, void *fdt)
+{
+    int i, offset;
+
+    /* Temporarily disable following nodes until they are implemented */
+    const char *nodes_to_remove[] = {
+        "amd,imageon",
+    };
+
+    for (i = 0; i < ARRAY_SIZE(nodes_to_remove); i++) {
+        const char *dev_str = nodes_to_remove[i];
+
+        offset = fdt_node_offset_by_compatible(fdt, -1, dev_str);
+        while (offset >= 0) {
+            fdt_nop_node(fdt, offset);
+            offset = fdt_node_offset_by_compatible(fdt, offset, dev_str);
+        }
+    }
+}
 
 static void imx53_qsb_init(MachineState *machine)
 {
@@ -45,6 +66,7 @@ static void imx53_qsb_init(MachineState *machine)
         .loader_start = FSL_IMX53_RAM_START,
         .board_id = -1,
         .secure_boot = false,
+        .modify_dtb = imx53_qsb_modify_dtb,
     };
 
     object_initialize_child(OBJECT(machine), "soc", &s->soc, TYPE_FSL_IMX53);
