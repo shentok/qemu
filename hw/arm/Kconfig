@@ -550,6 +550,7 @@ config FSL_IMX6
     select IMX_FEC
     select IMX_GPT
     select IMX_I2C
+    select IMX_IPU
     select IMX_SERIAL
     select IMX_SPI
     select IMX_USBPHY
