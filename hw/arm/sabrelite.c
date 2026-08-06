@@ -19,6 +19,7 @@
 #include "hw/core/qdev-properties.h"
 #include "qemu/error-report.h"
 #include "system/qtest.h"
+#include <libfdt.h>
 
 struct SabreliteMachineState {
     MachineState parent_obj;
@@ -30,6 +31,27 @@ struct SabreliteMachineState {
 
 #define TYPE_SABRELITE_MACHINE MACHINE_TYPE_NAME("sabrelite")
 OBJECT_DECLARE_SIMPLE_TYPE(SabreliteMachineState, SABRELITE_MACHINE)
+
+static void sabrelite_modify_dtb(const struct arm_boot_info *info, void *fdt)
+{
+    int i, offset;
+
+    /* Temporarily disable following nodes until they are implemented */
+    const char *nodes_to_remove[] = {
+        "vivante,gc",
+        "cnm,coda960"
+    };
+
+    for (i = 0; i < ARRAY_SIZE(nodes_to_remove); i++) {
+        const char *dev_str = nodes_to_remove[i];
+
+        offset = fdt_node_offset_by_compatible(fdt, -1, dev_str);
+        while (offset >= 0) {
+            fdt_nop_node(fdt, offset);
+            offset = fdt_node_offset_by_compatible(fdt, offset, dev_str);
+        }
+    }
+}
 
 /* No need to do any particular setup for secondary boot */
 static void sabrelite_write_secondary(ARMCPU *cpu,
@@ -112,6 +134,7 @@ static void sabrelite_init(MachineState *machine)
     s->bootinfo.secure_boot = true;
     s->bootinfo.write_secondary_boot = sabrelite_write_secondary;
     s->bootinfo.secondary_cpu_reset_hook = sabrelite_reset_secondary;
+    s->bootinfo.modify_dtb = sabrelite_modify_dtb;
 
     if (!qtest_enabled()) {
         arm_load_kernel(&s->soc.cpu[0], machine, &s->bootinfo);
