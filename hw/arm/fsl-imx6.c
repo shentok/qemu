@@ -98,6 +98,10 @@ static void fsl_imx6_init(Object *obj)
         snprintf(name, NAME_SIZE, "wdt%d", i);
         object_initialize_child(obj, name, &s->wdt[i], TYPE_IMX2_WDT);
     }
+    for (i = 0; i < FSL_IMX6_NUM_IPUS; i++) {
+        snprintf(name, NAME_SIZE, "ipu%d", i);
+        object_initialize_child(obj, name, &s->ipu[i], TYPE_IMX_IPU);
+    }
 
 
     object_initialize_child(obj, "eth", &s->eth, TYPE_IMX_ENET);
@@ -441,6 +445,26 @@ static void fsl_imx6_realize(DeviceState *dev, Error **errp)
         sysbus_mmio_map(SYS_BUS_DEVICE(&s->wdt[i]), 0, FSL_IMX6_WDOGn_ADDR[i]);
         sysbus_connect_irq(SYS_BUS_DEVICE(&s->wdt[i]), 0,
                            qdev_get_gpio_in(gic, FSL_IMX6_WDOGn_IRQ[i]));
+    }
+
+    /*
+     * IPUs
+     */
+    for (i = 0; i < FSL_IMX6_NUM_IPUS; i++) {
+        static const hwaddr FSL_IMX6_IPUn_ADDR[FSL_IMX6_NUM_IPUS] = {
+            FSL_IMX6_IPU_1_ADDR,
+            FSL_IMX6_IPU_2_ADDR,
+        };
+        static const int FSL_IMX6_IPUn_IRQ[FSL_IMX6_NUM_IPUS] = {
+            FSL_IMX6_IPU1_SYNC_IRQ,
+            FSL_IMX6_IPU2_SYNC_IRQ,
+        };
+
+        sysbus_realize(SYS_BUS_DEVICE(&s->ipu[i]), &error_abort);
+
+        sysbus_mmio_map(SYS_BUS_DEVICE(&s->ipu[i]), 0, FSL_IMX6_IPUn_ADDR[i]);
+        sysbus_connect_irq(SYS_BUS_DEVICE(&s->ipu[i]), 0,
+                           qdev_get_gpio_in(gic, FSL_IMX6_IPUn_IRQ[i]));
     }
 
     /*
