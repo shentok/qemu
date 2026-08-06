@@ -545,6 +545,7 @@ config FSL_IMX6
     select IMX
     select IMX_FEC
     select IMX_I2C
+    select IMX_IPU
     select IMX_USBPHY
     select CAN_FLEXCAN
     select WDT_IMX2
