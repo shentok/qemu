@@ -18,6 +18,7 @@
 #define FSL_IMX6_H
 
 #include "hw/cpu/a9mpcore.h"
+#include "hw/display/imx_ipu.h"
 #include "hw/misc/imx6_ccm.h"
 #include "hw/misc/imx6_src.h"
 #include "hw/misc/imx7_snvs.h"
@@ -47,6 +48,7 @@ OBJECT_DECLARE_SIMPLE_TYPE(FslIMX6State, FSL_IMX6)
 #define FSL_IMX6_NUM_UARTS 5
 #define FSL_IMX6_NUM_EPITS 2
 #define FSL_IMX6_NUM_I2CS 3
+#define FSL_IMX6_NUM_IPUS 2
 #define FSL_IMX6_NUM_GPIOS 7
 #define FSL_IMX6_NUM_USDHCS 4
 #define FSL_IMX6_NUM_ECSPIS 5
@@ -79,6 +81,7 @@ struct FslIMX6State {
     FlexcanState       flexcan[FSL_IMX6_NUM_CANS];
     DesignwarePCIEHost pcie;
     OrIRQState         pcie4_msi_irq;
+    ImxIpuState        ipu[FSL_IMX6_NUM_IPUS];
     MemoryRegion       rom;
     MemoryRegion       caam;
     MemoryRegion       ocram;
