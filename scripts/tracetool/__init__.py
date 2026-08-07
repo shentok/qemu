@@ -402,10 +402,6 @@ class Event(object):
         self.lineno = int(lineno)
         self.filename = str(filename)
 
-        if len(args) > 10:
-            raise ValueError("Event '%s' has more than maximum permitted "
-                             "argument count" % name)
-
         unknown_props = set(self.properties) - self._VALID_PROPS
         if len(unknown_props) > 0:
             raise ValueError("Unknown properties: %s"
