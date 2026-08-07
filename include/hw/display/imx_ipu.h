@@ -28,7 +28,9 @@ struct ImxIpuState {
     SysBusDevice parent_obj;
 
     MemoryRegion io;
-    MemoryRegion io_regs;
+    MemoryRegion io_common;
+    MemoryRegion io_idmac;
+    MemoryRegion io_cpmem;
     MemoryRegionSection fbsection;
     qemu_irq irq_sync;
     QemuConsole *con;
