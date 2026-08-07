@@ -461,10 +461,10 @@ static bool imx_ipu_update_display(void *opaque)
     ImxIpuState *s = opaque;
     struct Channel *ch = &s->channel;
     DisplaySurface *surface = qemu_console_surface(ch->con);
-    uint32_t width = imx_ipu_frame_width(s, 28);
-    uint32_t height = imx_ipu_frame_height(s, 28);
-    uint32_t frame_base = imx_ipu_extmem_buffer_0_address(s, 28);
-    uint8_t bpp = imx_ipu_bpp(s, 28);
+    uint32_t width = imx_ipu_frame_width(s, 23);
+    uint32_t height = imx_ipu_frame_height(s, 23);
+    uint32_t frame_base = imx_ipu_extmem_buffer_0_address(s, 23);
+    uint8_t bpp = imx_ipu_bpp(s, 23);
     drawfn fn;
     int first = 0;
     int last = 0;
