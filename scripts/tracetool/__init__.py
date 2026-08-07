@@ -399,10 +399,6 @@ class Event(object):
         self.lineno = int(lineno)
         self.filename = str(filename)
 
-        if len(args) > 10:
-            raise ValueError("Event '%s' has more than maximum permitted "
-                             "argument count" % name)
-
 
     @staticmethod
     def build(line_str, lineno, filename):
