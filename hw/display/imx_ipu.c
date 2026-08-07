@@ -458,13 +458,13 @@ static uint32_t imx_ipu_extmem_buffer_1_address(const ImxIpuState *s, int channe
 
 static bool imx_ipu_update_display(void *opaque)
 {
-    ImxIpuState *s = opaque;
-    struct Channel *ch = &s->channel;
+    struct Channel *ch = opaque;
+    ImxIpuState *s = ch->self;
     DisplaySurface *surface = qemu_console_surface(ch->con);
-    uint32_t width = imx_ipu_frame_width(s, 23);
-    uint32_t height = imx_ipu_frame_height(s, 23);
-    uint32_t frame_base = imx_ipu_extmem_buffer_0_address(s, 23);
-    uint8_t bpp = imx_ipu_bpp(s, 23);
+    uint32_t width = imx_ipu_frame_width(s, ch->index);
+    uint32_t height = imx_ipu_frame_height(s, ch->index);
+    uint32_t frame_base = imx_ipu_extmem_buffer_0_address(s, ch->index);
+    uint8_t bpp = imx_ipu_bpp(s, ch->index);
     drawfn fn;
     int first = 0;
     int last = 0;
@@ -502,7 +502,7 @@ static bool imx_ipu_update_display(void *opaque)
 
     framebuffer_update_display(surface, &ch->fbsection, width, height,
                                src_width, surface_stride(surface), 0,
-                               ch->invalidate, fn, s, &first, &last);
+                               ch->invalidate, fn, ch, &first, &last);
     if (first >= 0) {
         qemu_console_update(ch->con, 0, first, width, last - first + 1);
     }
@@ -514,8 +514,7 @@ static bool imx_ipu_update_display(void *opaque)
 
 static void imx_ipu_invalidate_display(void *opaque)
 {
-    ImxIpuState *s = opaque;
-    struct Channel *ch = &s->channel;
+    struct Channel *ch = opaque;
 
     ch->invalidate = true;
 }
@@ -585,14 +584,18 @@ static void imx_ipu_common_write(void *opaque, hwaddr offset, uint64_t val,
     case R_IPU_CONF:
         if (val & BIT(7)) {
             s->common[R_IPU_INT_STAT_1] |= s->common[R_IPU_INT_CTRL_1];
-            s->channel.invalidate = true;
+            for (int i = 0; i < ARRAY_SIZE(s->channels); i++) {
+                s->channels[i].invalidate = true;
+            }
         }
         QEMU_FALLTHROUGH;
     case R_IPU_SISG_CTRL0... R_IPU_SNOOP:
     case R_IPU_PM ... R_IPU_ALT_CH_TRB_MODE_SEL0:
     case R_IPU_CH_BUF0_RDY0 ... R_IPU_CH_BUF2_RDY1:
         s->common[reg] = val;
-        s->channel.invalidate = true;
+        for (int i = 0; i < ARRAY_SIZE(s->channels); i++) {
+            s->channels[i].invalidate = true;
+        }
         break;
 
     case R_IPU_MEM_RST:
@@ -637,12 +640,12 @@ static void imx_ipu_idmac_write(void *opaque, hwaddr offset, uint64_t val,
                         ipu_ch_param_read_field(s, ch, IPU_FIELD_OFS1),
                         ipu_ch_param_read_field(s, ch, IPU_FIELD_OFS2),
                         ipu_ch_param_read_field(s, ch, IPU_FIELD_OFS3));
-                s->channel.con = qemu_graphic_console_create(DEVICE(s), 0,
-                        &imx_ipu_graphic_ops, s);
+                s->channels[ch].con = qemu_graphic_console_create(DEVICE(s), 0,
+                        &imx_ipu_graphic_ops, &s->channels[ch]);
             } else if (!(val & BIT(ch)) && (s->idmac[reg] & BIT(ch))) {
-                if (s->channel.con) {
-                    qemu_graphic_console_close(s->channel.con);
-                    s->channel.con = NULL;
+                if (s->channels[ch].con) {
+                    qemu_graphic_console_close(s->channels[ch].con);
+                    s->channels[ch].con = NULL;
                 }
             }
         }
@@ -692,20 +695,23 @@ static const MemoryRegionOps imx_ipu_cpmem_ops = {
 static void imx_ipu_reset(DeviceState *dev)
 {
     ImxIpuState *s = IMX_IPU(dev);
-    struct Channel *ch = &s->channel;
 
     memset(s->common, 0, sizeof(s->common));
     memset(s->idmac, 0, sizeof(s->idmac));
     memset(s->cpmem, 0, sizeof(s->cpmem));
 
-    if (ch->con) {
-        qemu_graphic_console_close(ch->con);
-        ch->con = NULL;
+    for (int i = 0; i < ARRAY_SIZE(s->channels); i++) {
+        struct Channel *ch = &s->channels[i];
+
+        if (ch->con) {
+            qemu_graphic_console_close(ch->con);
+            ch->con = NULL;
+        }
+        ch->fb_base = 0;
+        ch->src_width = 0;
+        ch->rows = 0;
+        ch->invalidate = false;
     }
-    ch->fb_base = 0;
-    ch->src_width = 0;
-    ch->rows = 0;
-    ch->invalidate = false;
 
 #if 0
     /* DC */
@@ -730,6 +736,12 @@ static void imx_ipu_reset(DeviceState *dev)
 
 static void imx_ipu_realize(DeviceState *dev, Error **errp)
 {
+    ImxIpuState *s = IMX_IPU(dev);
+
+    for (int i = 0; i < ARRAY_SIZE(s->channels); i++) {
+        s->channels[i].self = s;
+        s->channels[i].index = i;
+    }
 }
 
 static const VMStateDescription vmstate_imx_ipu = {
