@@ -227,6 +227,12 @@ apple_gfx_iosfc_unmap_memory_region(void* mem, void *region) "unmapping @ %p fro
 apple_gfx_iosfc_raise_irq(uint32_t vector) "vector=0x%x"
 
 # imx_ipu.c
-imx_ipu_read(uint64_t addr, const char *regname, uint64_t value) "[0x%06" PRIx64 " (%s)] -> 0x%" PRIx64
-imx_ipu_write(uint64_t addr, const char *regname, uint64_t value) "[0x%06" PRIx64 " (%s)] <- 0x%" PRIx64
+imx_ipu_read(uint64_t addr, uint64_t value) "[0x%06" PRIx64 "] -> 0x%" PRIx64
+imx_ipu_write(uint64_t addr, uint64_t value) "[0x%06" PRIx64 "] <- 0x%" PRIx64
 imx_ipu_enable_channel(int ch, unsigned int pfs, unsigned int bpp, unsigned int npb, unsigned int fw, unsigned int fh, unsigned int eba0, unsigned int eba1, unsigned int stride, unsigned int so, unsigned int uv_stride, unsigned int u_offset, unsigned int v_offset, unsigned int wid0, unsigned int wid1, unsigned int wid2, unsigned int wid3, unsigned int ofs0,  unsigned int ofs1, unsigned int ofs2, unsigned int ofs3) "ch: %d: PFS=0x%x BPP=0x%x NPB=0x%x FW=%u+1 FH=%u+1 EBA0=0x%x EBA1=0x%x Stride=%u+1 SO=%u UVStride=%u UOffset=0x%x VOffset=0x%x WID0=%u+1 WID1=%u+1 WID2=%u+1 WID3=%u+1 OFS0=%u OFS1=%u OFS2=%u OFS3=%u"
+imx_ipu_common_read(uint64_t addr, const char *regname, uint64_t value) "[0x%06" PRIx64 " (%s)] -> 0x%" PRIx64
+imx_ipu_common_write(uint64_t addr, const char *regname, uint64_t value) "[0x%06" PRIx64 " (%s)] <- 0x%" PRIx64
+imx_ipu_idmac_read(uint64_t addr, const char *regname, uint64_t value) "[0x%06" PRIx64 " (%s)] -> 0x%" PRIx64
+imx_ipu_idmac_write(uint64_t addr, const char *regname, uint64_t value) "[0x%06" PRIx64 " (%s)] <- 0x%" PRIx64
+imx_ipu_cpmem_read(uint64_t addr, uint64_t value) "[0x%06" PRIx64 "] -> 0x%" PRIx64
+imx_ipu_cpmem_write(uint64_t addr, uint64_t value) "[0x%06" PRIx64 "] <- 0x%" PRIx64
