@@ -31,13 +31,16 @@ struct ImxIpuState {
     MemoryRegion io_common;
     MemoryRegion io_idmac;
     MemoryRegion io_cpmem;
-    MemoryRegionSection fbsection;
     qemu_irq irq_sync;
-    QemuConsole *con;
-    uint32_t fb_base;
-    uint32_t src_width;
-    uint32_t rows;
-    bool invalidate;
+
+    struct Channel {
+        MemoryRegionSection fbsection;
+        QemuConsole *con;
+        uint32_t fb_base;
+        uint32_t src_width;
+        uint32_t rows;
+        bool invalidate;
+    } channel;
 
     uint32_t common[IMX_IPU_COMMON_SIZE];
     uint32_t idmac[IMX_IPU_IDMAC_SIZE];
