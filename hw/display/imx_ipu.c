@@ -459,7 +459,8 @@ static uint32_t imx_ipu_extmem_buffer_1_address(const ImxIpuState *s, int channe
 static bool imx_ipu_update_display(void *opaque)
 {
     ImxIpuState *s = opaque;
-    DisplaySurface *surface = qemu_console_surface(s->con);
+    struct Channel *ch = &s->channel;
+    DisplaySurface *surface = qemu_console_surface(ch->con);
     uint32_t width = imx_ipu_frame_width(s, 28);
     uint32_t height = imx_ipu_frame_height(s, 28);
     uint32_t frame_base = imx_ipu_extmem_buffer_0_address(s, 28);
@@ -481,32 +482,32 @@ static bool imx_ipu_update_display(void *opaque)
     }
 
     if (surface_width(surface) != width || surface_height(surface) != height) {
-        qemu_console_resize(s->con, width, height);
-        surface = qemu_console_surface(s->con);
-        s->invalidate = true;
+        qemu_console_resize(ch->con, width, height);
+        surface = qemu_console_surface(ch->con);
+        ch->invalidate = true;
     }
 
     src_width = (width * bpp) / 8;
-    if (s->invalidate || s->fb_base != frame_base ||
-        s->src_width != src_width || s->rows != height) {
-        framebuffer_update_memory_section(&s->fbsection, get_system_memory(),
+    if (ch->invalidate || ch->fb_base != frame_base ||
+        ch->src_width != src_width || ch->rows != height) {
+        framebuffer_update_memory_section(&ch->fbsection, get_system_memory(),
                                           frame_base, height, src_width);
-        s->fb_base = frame_base;
-        s->src_width = src_width;
-        s->rows = height;
+        ch->fb_base = frame_base;
+        ch->src_width = src_width;
+        ch->rows = height;
 
         s->common[R_IPU_INT_STAT_1] |= s->common[R_IPU_INT_CTRL_1];
         imx_ipu_check_interrupts(s);
     }
 
-    framebuffer_update_display(surface, &s->fbsection, width, height,
+    framebuffer_update_display(surface, &ch->fbsection, width, height,
                                src_width, surface_stride(surface), 0,
-                               s->invalidate, fn, s, &first, &last);
+                               ch->invalidate, fn, s, &first, &last);
     if (first >= 0) {
-        qemu_console_update(s->con, 0, first, width, last - first + 1);
+        qemu_console_update(ch->con, 0, first, width, last - first + 1);
     }
 
-    s->invalidate = false;
+    ch->invalidate = false;
 
     return true;
 }
@@ -514,8 +515,9 @@ static bool imx_ipu_update_display(void *opaque)
 static void imx_ipu_invalidate_display(void *opaque)
 {
     ImxIpuState *s = opaque;
+    struct Channel *ch = &s->channel;
 
-    s->invalidate = true;
+    ch->invalidate = true;
 }
 
 static const GraphicHwOps imx_ipu_graphic_ops = {
@@ -583,14 +585,14 @@ static void imx_ipu_common_write(void *opaque, hwaddr offset, uint64_t val,
     case R_IPU_CONF:
         if (val & BIT(7)) {
             s->common[R_IPU_INT_STAT_1] |= s->common[R_IPU_INT_CTRL_1];
-            s->invalidate = true;
+            s->channel.invalidate = true;
         }
         QEMU_FALLTHROUGH;
     case R_IPU_SISG_CTRL0... R_IPU_SNOOP:
     case R_IPU_PM ... R_IPU_ALT_CH_TRB_MODE_SEL0:
     case R_IPU_CH_BUF0_RDY0 ... R_IPU_CH_BUF2_RDY1:
         s->common[reg] = val;
-        s->invalidate = true;
+        s->channel.invalidate = true;
         break;
 
     case R_IPU_MEM_RST:
@@ -635,12 +637,12 @@ static void imx_ipu_idmac_write(void *opaque, hwaddr offset, uint64_t val,
                         ipu_ch_param_read_field(s, ch, IPU_FIELD_OFS1),
                         ipu_ch_param_read_field(s, ch, IPU_FIELD_OFS2),
                         ipu_ch_param_read_field(s, ch, IPU_FIELD_OFS3));
-                s->con = qemu_graphic_console_create(DEVICE(s), 0,
+                s->channel.con = qemu_graphic_console_create(DEVICE(s), 0,
                         &imx_ipu_graphic_ops, s);
             } else if (!(val & BIT(ch)) && (s->idmac[reg] & BIT(ch))) {
-                if (s->con) {
-                    qemu_graphic_console_close(s->con);
-                    s->con = NULL;
+                if (s->channel.con) {
+                    qemu_graphic_console_close(s->channel.con);
+                    s->channel.con = NULL;
                 }
             }
         }
@@ -690,19 +692,20 @@ static const MemoryRegionOps imx_ipu_cpmem_ops = {
 static void imx_ipu_reset(DeviceState *dev)
 {
     ImxIpuState *s = IMX_IPU(dev);
+    struct Channel *ch = &s->channel;
 
     memset(s->common, 0, sizeof(s->common));
     memset(s->idmac, 0, sizeof(s->idmac));
     memset(s->cpmem, 0, sizeof(s->cpmem));
 
-    if (s->con) {
-        qemu_graphic_console_close(s->con);
-        s->con = NULL;
+    if (ch->con) {
+        qemu_graphic_console_close(ch->con);
+        ch->con = NULL;
     }
-    s->fb_base = 0;
-    s->src_width = 0;
-    s->rows = 0;
-    s->invalidate = false;
+    ch->fb_base = 0;
+    ch->src_width = 0;
+    ch->rows = 0;
+    ch->invalidate = false;
 
 #if 0
     /* DC */
