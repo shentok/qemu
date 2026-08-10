@@ -635,6 +635,13 @@ static void imx_ipu_idmac_write(void *opaque, hwaddr offset, uint64_t val,
                         ipu_ch_param_read_field(s, ch, IPU_FIELD_OFS1),
                         ipu_ch_param_read_field(s, ch, IPU_FIELD_OFS2),
                         ipu_ch_param_read_field(s, ch, IPU_FIELD_OFS3));
+                s->con = qemu_graphic_console_create(DEVICE(s), 0,
+                        &imx_ipu_graphic_ops, s);
+            } else if (!(val & BIT(ch)) && (s->idmac[reg] & BIT(ch))) {
+                if (s->con) {
+                    qemu_graphic_console_close(s->con);
+                    s->con = NULL;
+                }
             }
         }
         break;
@@ -683,9 +690,15 @@ static const MemoryRegionOps imx_ipu_cpmem_ops = {
 static void imx_ipu_reset(DeviceState *dev)
 {
     ImxIpuState *s = IMX_IPU(dev);
+
     memset(s->common, 0, sizeof(s->common));
     memset(s->idmac, 0, sizeof(s->idmac));
     memset(s->cpmem, 0, sizeof(s->cpmem));
+
+    if (s->con) {
+        qemu_graphic_console_close(s->con);
+        s->con = NULL;
+    }
     s->fb_base = 0;
     s->src_width = 0;
     s->rows = 0;
@@ -714,9 +727,6 @@ static void imx_ipu_reset(DeviceState *dev)
 
 static void imx_ipu_realize(DeviceState *dev, Error **errp)
 {
-    ImxIpuState *s = IMX_IPU(dev);
-
-    s->con = qemu_graphic_console_create(DEVICE(s), 0, &imx_ipu_graphic_ops, s);
 }
 
 static const VMStateDescription vmstate_imx_ipu = {
