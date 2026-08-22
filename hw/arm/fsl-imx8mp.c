@@ -280,7 +280,7 @@ static void fsl_imx8mp_init(Object *obj)
                             TYPE_FSL_IMX8M_PCIE_PHY);
 }
 
-static void imx8mp_cm7_ctrl_apply(CPUState *cpu, run_on_cpu_data data)
+static void fsl_imx8mp_cm7_ctrl_apply(CPUState *cpu, run_on_cpu_data data)
 {
     struct CM7CtlReq *r = data.host_ptr;
     FslImx8mpState *s = r->s;
@@ -308,7 +308,7 @@ static void imx8mp_cm7_ctrl_apply(CPUState *cpu, run_on_cpu_data data)
     g_free(r);
 };
 
-static void imx8mp_cm7_cpuwait_handler(void *opaque, int n, int level)
+static void fsl_imx8mp_cm7_cpuwait_handler(void *opaque, int n, int level)
 {
     FslImx8mpState *s = opaque;
     (void)n;
@@ -321,7 +321,7 @@ static void imx8mp_cm7_cpuwait_handler(void *opaque, int n, int level)
     r->s = s;
     r->run = !!level;
 
-    async_run_on_cpu(CPU(s->cm7.cpu), imx8mp_cm7_ctrl_apply,
+    async_run_on_cpu(CPU(s->cm7.cpu), fsl_imx8mp_cm7_ctrl_apply,
                      RUN_ON_CPU_HOST_PTR(r));
 }
 
@@ -510,7 +510,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                     fsl_imx8mp_memmap[FSL_IMX8MP_IOMUXC_GPR].addr);
 
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->gpr), 0,
-                   qemu_allocate_irq(imx8mp_cm7_cpuwait_handler, s, 0));
+                   qemu_allocate_irq(fsl_imx8mp_cm7_cpuwait_handler, s, 0));
 
     /* Realize Cortex-M7 subsystem */
     {
