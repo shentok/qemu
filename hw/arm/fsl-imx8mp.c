@@ -278,6 +278,8 @@ static void fsl_imx8mp_init(Object *obj)
     object_initialize_child(obj, "pcie", &s->pcie, TYPE_DESIGNWARE_PCIE_HOST);
     object_initialize_child(obj, "pcie_phy", &s->pcie_phy,
                             TYPE_FSL_IMX8M_PCIE_PHY);
+
+    memory_region_init(&s->cm7_memory, obj, "cm7_memory", 4 * GiB);
 }
 
 static void fsl_imx8mp_cm7_ctrl_apply(CPUState *cpu, run_on_cpu_data data)
@@ -530,7 +532,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         qdev_connect_clock_in(cm7dev, "refclk",
                               qdev_get_clock_out(ccmdev, "cm7_refclk"));
         object_property_set_link(OBJECT(&s->cm7), "memory",
-                                 OBJECT(get_system_memory()), &error_abort);
+                                 OBJECT(&s->cm7_memory), &error_abort);
 
         if (!sysbus_realize(SYS_BUS_DEVICE(&s->cm7), errp)) {
             return;
@@ -853,6 +855,28 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     memory_region_add_subregion(get_system_memory(),
                                 fsl_imx8mp_memmap[FSL_IMX8MP_OCRAM].addr,
                                 &s->ocram);
+
+    /* ITCM */
+    if (!memory_region_init_ram(&s->itcm, OBJECT(dev),
+                                fsl_imx8mp_memmap[FSL_IMX8MP_TCM_ITCM].name,
+                                fsl_imx8mp_memmap[FSL_IMX8MP_TCM_ITCM].size,
+                                errp)) {
+        return;
+    }
+    memory_region_add_subregion(get_system_memory(),
+                                fsl_imx8mp_memmap[FSL_IMX8MP_TCM_ITCM].addr,
+                                &s->itcm);
+
+    memory_region_init_alias(&s->cm7_shared, OBJECT(s), "cm7_shared",
+                             get_system_memory(), 0x28000000,
+                             0xc0000000 - 0x28000000);
+    memory_region_add_subregion(&s->cm7_memory, 0x28000000, &s->cm7_shared);
+
+    memory_region_init_alias(&s->cm7_itcm, OBJECT(s), "cm7_itcm",
+                             get_system_memory(),
+                             fsl_imx8mp_memmap[FSL_IMX8MP_TCM_ITCM].addr,
+                             fsl_imx8mp_memmap[FSL_IMX8MP_TCM_ITCM].size);
+    memory_region_add_subregion(&s->cm7_memory, 0, &s->cm7_itcm);
 
     /* Unimplemented devices */
     for (i = 0; i < ARRAY_SIZE(fsl_imx8mp_memmap); i++) {
