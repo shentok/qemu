@@ -561,7 +561,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         qdev_prop_set_string(cm7dev, "cpu-type",
                              ARM_CPU_TYPE_NAME("cortex-m7"));
         qdev_prop_set_uint32(cm7dev, "num-irq", 64);
-        qdev_prop_set_bit(cm7dev, "enable-bitband", true);
+        qdev_prop_set_bit(cm7dev, "enable-bitband", false);
 
         /* CM7 vector table base (configurable) */
         qdev_prop_set_uint32(cm7dev, "init-nsvtor", s->cm7_vector_base);
