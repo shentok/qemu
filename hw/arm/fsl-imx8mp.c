@@ -280,24 +280,6 @@ static void fsl_imx8mp_init(Object *obj)
                             TYPE_FSL_IMX8M_PCIE_PHY);
 }
 
-static inline void imx8mp_cm7_halt(CPUState *m7cs)
-{
-    cpu_interrupt(m7cs, CPU_INTERRUPT_HALT);
-    m7cs->halted = 1;
-    qemu_cpu_kick(m7cs);
-}
-
-static inline void imx8mp_cm7_resume(CPUState *m7cs)
-{
-    /* Clear HALT interrupt (from STOP) and resume */
-    cpu_reset_interrupt(m7cs, CPU_INTERRUPT_HALT);
-    m7cs->halted = 0;
-    m7cs->stopped = 0;
-    cpu_resume(m7cs);
-    cpu_interrupt(m7cs, CPU_INTERRUPT_EXITTB);
-    qemu_cpu_kick(m7cs);
-}
-
 static void imx8mp_cm7_ctrl_apply(CPUState *cpu, run_on_cpu_data data)
 {
     struct CM7CtlReq *r = data.host_ptr;
@@ -305,48 +287,24 @@ static void imx8mp_cm7_ctrl_apply(CPUState *cpu, run_on_cpu_data data)
     ARMCPU *m7 = s->cm7.cpu;
     CPUState *m7cs = CPU(m7);
 
-    if (!r->run) {
-        /* STOP: halt the M7 */
-    imx8mp_cm7_halt(m7cs);
-        goto out;
+    if (r->run) {
+        if (!s->cm7_booted) {
+            cpu_reset(m7cs);
+            s->cm7_booted = true;
+        }
+
+        cpu_reset_interrupt(m7cs, CPU_INTERRUPT_HALT);
+        m7cs->halted = 0;
+        m7cs->stopped = 0;
+        cpu_resume(m7cs);
+        cpu_interrupt(m7cs, CPU_INTERRUPT_EXITTB);
+    } else {
+        cpu_interrupt(m7cs, CPU_INTERRUPT_HALT);
+        m7cs->halted = 1;
     }
 
-    /*
-     * RUN:
-     * CPUWAIT is modeled as a run/stop gate. On first RUN, boot from vector
-     * table. Subsequent RUN resumes execution without resetting CM7 state.
-     */
-    if (s->cm7_booted) {
-        imx8mp_cm7_resume(m7cs);
-        goto out;
-    }
+    qemu_cpu_kick(m7cs);
 
-    uint32_t msp_le = 0, pc_le = 0;
-    uint32_t msp, pc;
-    hwaddr vbase = s->cm7_vector_base;
-
-    address_space_read(&address_space_memory, vbase,
-                       MEMTXATTRS_UNSPECIFIED, &msp_le, sizeof(msp_le));
-    address_space_read(&address_space_memory, vbase + 4,
-                       MEMTXATTRS_UNSPECIFIED, &pc_le, sizeof(pc_le));
-    msp = le32_to_cpu(msp_le);
-    pc  = le32_to_cpu(pc_le);
-
-
-    /* Clear Thumb indicator bit (bit0) */
-    pc &= ~1u;
-
-    cpu_reset(m7cs);
-
-    /* Set SP (R13) and PC (R15). Cortex-M uses Thumb */
-    m7->env.regs[13] = msp;
-    m7->env.regs[15] = pc;
-    m7->env.thumb = 1;
-
-    imx8mp_cm7_resume(m7cs);
-
-    s->cm7_booted = true;
-out:
     g_free(r);
 };
 
