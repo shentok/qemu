@@ -949,7 +949,6 @@ static void usb_audio_realize(USBDevice *dev, Error **errp)
 
     usb_desc_create_serial(dev);
     usb_desc_init(dev);
-    s->dev.opaque = s;
 
     s->out.altset        = ALTSET_OFF;
     s->out.vol.mute      = false;
