@@ -230,7 +230,6 @@ struct USBDevice {
     USBPort *port;
     char *port_path;
     char *serial;
-    void *opaque;
     uint32_t flags;
 
     char *pcap_filename;
