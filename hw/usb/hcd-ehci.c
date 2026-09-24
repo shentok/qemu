@@ -1245,11 +1245,13 @@ static int ehci_init_transfer(EHCIPacket *p)
 {
     uint32_t cpage, offset, bytes, plen;
     dma_addr_t page;
+    USBBus *bus = &p->queue->ehci->bus;
+    BusState *qbus = BUS(bus);
 
     cpage  = get_field(p->qtd.token, QTD_TOKEN_CPAGE);
     bytes  = get_field(p->qtd.token, QTD_TOKEN_TBYTES);
     offset = p->qtd.bufptr[0] & ~QTD_BUFPTR_MASK;
-    qemu_sglist_init(&p->sgl, p->queue->ehci->device, 5, p->queue->ehci->as);
+    qemu_sglist_init(&p->sgl, qbus->parent, 5, p->queue->ehci->as);
 
     while (bytes > 0) {
         if (cpage > 4) {
@@ -1489,7 +1491,7 @@ static int ehci_process_itd(EHCIState *ehci,
 
             ptr1 = ehci_get_buf_addr(ehci, itd->bufptr_hi[pg],
                                      itd->bufptr[pg], ITD_BUFPTR_MASK);
-            qemu_sglist_init(&ehci->isgl, ehci->device, 2, ehci->as);
+            qemu_sglist_init(&ehci->isgl, BUS(&ehci->bus)->parent, 2, ehci->as);
             if (off + len > 4096) {
                 /* transfer crosses page border */
                 if (pg == 6) {
@@ -2645,7 +2647,6 @@ void usb_ehci_realize(EHCIState *s, DeviceState *dev, Error **errp)
     s->frame_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, ehci_work_timer, s);
     s->async_bh = qemu_bh_new_guarded(ehci_work_bh, s,
                                       &dev->mem_reentrancy_guard);
-    s->device = dev;
 
     s->vmstate = qemu_add_vm_change_state_handler(usb_ehci_vm_state_change, s);
 }
