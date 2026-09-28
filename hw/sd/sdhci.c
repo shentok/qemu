@@ -350,7 +350,6 @@ static void sdhci_poweron_reset(DeviceState *dev)
 }
 
 static void sdhci_data_transfer(SDHCIState *s);
-static void sdhci_adma_engine(void *opaque);
 
 static void sdhci_set_transfer_active(SDHCIState *s)
 {
