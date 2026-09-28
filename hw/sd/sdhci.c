@@ -349,8 +349,6 @@ static void sdhci_poweron_reset(DeviceState *dev)
     }
 }
 
-static void sdhci_data_transfer(SDHCIState *s);
-
 static void sdhci_set_transfer_active(SDHCIState *s)
 {
     s->prnsts |= SDHC_DATA_INHIBIT | SDHC_DAT_LINE_ACTIVE;
@@ -376,6 +374,8 @@ static bool sdhci_adma_transfer_active(SDHCIState *s)
            !(s->admaerr & SDHC_ADMAERR_STATE_MASK) &&
            !(s->errintsts & SDHC_EIS_ADMAERR);
 }
+
+static void sdhci_data_transfer(SDHCIState *s);
 
 #define BLOCK_SIZE_MASK (4 * KiB - 1)
 
