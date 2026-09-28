@@ -883,14 +883,45 @@ static void get_adma_description(SDHCIState *s, ADMADescr *dscr)
 
 /* Advanced DMA data transfer */
 
-static void sdhci_adma_run_batch(SDHCIState *s)
+/* Run one independently scheduled, quota-bounded ADMA batch */
+static void sdhci_adma_run_batch(void *opaque)
 {
+    SDHCIState *s = opaque;
     unsigned int begin, length;
     const uint16_t block_size = s->blksize & BLOCK_SIZE_MASK;
     const MemTxAttrs attrs = { .memory = true };
     ADMADescr dscr = {};
     MemTxResult res = MEMTX_ERROR;
     int i;
+
+    if (!sdhci_adma_transfer_active(s)) {
+        return;
+    }
+
+    switch (sdhci_get_dma_type(s)) {
+    case SDHC_CTRL_ADMA1_32:
+        if (!(s->capareg & R_SDHC_CAPAB_ADMA1_MASK)) {
+            trace_sdhci_error("ADMA1 not supported");
+            return;
+        }
+        break;
+    case SDHC_CTRL_ADMA2_32:
+        if (!(s->capareg & R_SDHC_CAPAB_ADMA2_MASK)) {
+            trace_sdhci_error("ADMA2 not supported");
+            return;
+        }
+        break;
+    case SDHC_CTRL_ADMA2_64:
+        if (!(s->capareg & R_SDHC_CAPAB_ADMA2_MASK) ||
+            !(s->capareg & R_SDHC_CAPAB_BUS64BIT_MASK)) {
+            trace_sdhci_error("64 bit ADMA not supported");
+            return;
+        }
+        break;
+    default:
+        trace_sdhci_error("Unsupported ADMA type");
+        return;
+    }
 
     if (s->trnmod & SDHC_TRNS_BLK_CNT_EN && !s->blkcnt) {
         /* Stop Multiple Transfer */
@@ -1048,43 +1079,6 @@ static void sdhci_adma_run_batch(SDHCIState *s)
 
     /* we have unfinished business - reschedule to continue ADMA */
     sdhci_schedule_adma(s);
-}
-
-/* Run one independently scheduled, quota-bounded ADMA batch */
-static void sdhci_adma_engine(void *opaque)
-{
-    SDHCIState *s = (SDHCIState *)opaque;
-
-    if (!sdhci_adma_transfer_active(s)) {
-        return;
-    }
-
-    switch (sdhci_get_dma_type(s)) {
-    case SDHC_CTRL_ADMA1_32:
-        if (!(s->capareg & R_SDHC_CAPAB_ADMA1_MASK)) {
-            trace_sdhci_error("ADMA1 not supported");
-            return;
-        }
-        break;
-    case SDHC_CTRL_ADMA2_32:
-        if (!(s->capareg & R_SDHC_CAPAB_ADMA2_MASK)) {
-            trace_sdhci_error("ADMA2 not supported");
-            return;
-        }
-        break;
-    case SDHC_CTRL_ADMA2_64:
-        if (!(s->capareg & R_SDHC_CAPAB_ADMA2_MASK) ||
-            !(s->capareg & R_SDHC_CAPAB_BUS64BIT_MASK)) {
-            trace_sdhci_error("64 bit ADMA not supported");
-            return;
-        }
-        break;
-    default:
-        trace_sdhci_error("Unsupported ADMA type");
-        return;
-    }
-
-    sdhci_adma_run_batch(s);
 }
 
 /* Perform synchronous PIO or SDMA data transfer */
@@ -1551,7 +1545,7 @@ void sdhci_initfn(SDHCIState *s)
     s->insert_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL,
                                    sdhci_raise_insertion_irq, s);
     s->transfer_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL,
-                                     sdhci_adma_engine, s);
+                                     sdhci_adma_run_batch, s);
 
     s->io_ops = &sdhci_mmio_ops;
 }
