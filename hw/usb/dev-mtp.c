@@ -15,7 +15,7 @@
 #include <wchar.h>
 #include <dirent.h>
 #include <glib/gstdio.h>
-#include <sys/statvfs.h>
+#include <gio/gio.h>
 
 
 #include "qemu/iov.h"
@@ -862,8 +862,9 @@ static MTPData *usb_mtp_get_storage_ids(MTPState *s, MTPControl *c)
 static MTPData *usb_mtp_get_storage_info(MTPState *s, MTPControl *c)
 {
     MTPData *d = usb_mtp_data_alloc(c);
-    struct statvfs buf;
-    int rc;
+    GFile *file;
+    GFileInfo *info;
+    GError *error = NULL;
 
     trace_usb_mtp_op_get_storage_info(s->dev.addr);
 
@@ -877,14 +878,27 @@ static MTPData *usb_mtp_get_storage_info(MTPState *s, MTPControl *c)
         usb_mtp_add_u16(d, 0x0001);
     }
 
-    rc = statvfs(s->root, &buf);
-    if (rc == 0) {
-        usb_mtp_add_u64(d, (uint64_t)buf.f_frsize * buf.f_blocks);
-        usb_mtp_add_u64(d, (uint64_t)buf.f_frsize * buf.f_bavail);
+    file = g_file_new_for_path(s->root);
+    info = g_file_query_filesystem_info(
+        file,
+        G_FILE_ATTRIBUTE_FILESYSTEM_SIZE ","
+        G_FILE_ATTRIBUTE_FILESYSTEM_FREE,
+        NULL,
+        &error);
+
+    if (info) {
+        usb_mtp_add_u64(d, g_file_info_get_attribute_uint64(
+                            info, G_FILE_ATTRIBUTE_FILESYSTEM_SIZE));
+        usb_mtp_add_u64(d, g_file_info_get_attribute_uint64(
+                            info, G_FILE_ATTRIBUTE_FILESYSTEM_FREE));
+        g_object_unref(info);
     } else {
         usb_mtp_add_u64(d, 0xffffffff);
         usb_mtp_add_u64(d, 0xffffffff);
+        g_clear_error(&error);
     }
+
+    g_object_unref(file);
 
     usb_mtp_add_u32(d, 0xffffffff);
     usb_mtp_add_str(d, s->desc);
