@@ -376,6 +376,15 @@ static const USBDesc desc = {
 
 /* ----------------------------------------------------------------------- */
 
+static int usb_mtp_lstat(const char *path, struct stat *st)
+{
+#ifdef _WIN32
+    return stat(path, st);
+#else
+    return lstat(path, st);
+#endif
+}
+
 static MTPObject *usb_mtp_object_alloc(MTPState *s, uint32_t handle,
                                        MTPObject *parent, const char *name)
 {
@@ -395,7 +404,7 @@ static MTPObject *usb_mtp_object_alloc(MTPState *s, uint32_t handle,
         o->path = g_strdup_printf("%s/%s", parent->path, name);
     }
 
-    if (lstat(o->path, &o->stat) != 0) {
+    if (usb_mtp_lstat(o->path, &o->stat) != 0) {
         goto ignore;
     }
     if (S_ISREG(o->stat.st_mode)) {
@@ -1598,7 +1607,7 @@ static int usb_mtp_update_object(MTPObject *parent, char *name)
         usb_mtp_object_lookup_name(parent, name, strlen(name));
 
     if (o) {
-        ret = lstat(o->path, &o->stat);
+        ret = usb_mtp_lstat(o->path, &o->stat);
     }
 
     return ret;
