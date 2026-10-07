@@ -29,6 +29,11 @@
 #include "qemu/units.h"
 #include "qom/object.h"
 
+#ifdef _WIN32
+#define O_CLOEXEC O_NOINHERIT
+#define O_NOFOLLOW 0
+#endif
+
 /* ----------------------------------------------------------------------- */
 
 enum mtp_container_type {
