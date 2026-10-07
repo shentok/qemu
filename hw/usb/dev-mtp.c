@@ -606,9 +606,8 @@ static void usb_mtp_file_monitor_cleanup(MTPState *s)
 
 static void usb_mtp_object_readdir(MTPState *s, MTPObject *o)
 {
-    struct dirent *entry;
-    DIR *dir;
-    int fd;
+    GDir *dir;
+    const char *name;
     Error *err = NULL;
 
     if (o->have_children) {
@@ -616,13 +615,8 @@ static void usb_mtp_object_readdir(MTPState *s, MTPObject *o)
     }
     o->have_children = true;
 
-    fd = open(o->path, O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
-    if (fd < 0) {
-        return;
-    }
-    dir = fdopendir(fd);
+    dir = g_dir_open(o->path, 0, NULL);
     if (!dir) {
-        close(fd);
         return;
     }
 
@@ -640,10 +634,11 @@ static void usb_mtp_object_readdir(MTPState *s, MTPObject *o)
         }
     }
 
-    while ((entry = readdir(dir)) != NULL) {
-        usb_mtp_add_child(s, o, entry->d_name);
+    while ((name = g_dir_read_name(dir)) != NULL) {
+        usb_mtp_add_child(s, o, name);
     }
-    closedir(dir);
+
+    g_dir_close(dir);
 }
 
 /* ----------------------------------------------------------------------- */
