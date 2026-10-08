@@ -994,7 +994,7 @@ static MTPData *usb_mtp_get_object(MTPState *s, MTPControl *c,
 
     trace_usb_mtp_op_get_object(s->dev.addr, o->handle, o->path);
 
-    d->fd = open(o->path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+    d->fd = open(o->path, O_RDONLY | O_CLOEXEC | O_BINARY | O_NOFOLLOW);
     if (d->fd == -1) {
         usb_mtp_data_free(d);
         return NULL;
@@ -1018,7 +1018,7 @@ static MTPData *usb_mtp_get_partial_object(MTPState *s, MTPControl *c,
                                         c->argv[1], c->argv[2]);
 
     d = usb_mtp_data_alloc(c);
-    d->fd = open(o->path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+    d->fd = open(o->path, O_RDONLY | O_CLOEXEC | O_BINARY | O_NOFOLLOW);
     if (d->fd == -1) {
         usb_mtp_data_free(d);
         return NULL;
@@ -1652,7 +1652,7 @@ static void usb_mtp_write_data(MTPState *s, uint32_t handle)
                 goto done;
             }
 
-            d->fd = open(path, O_CREAT | O_WRONLY |
+            d->fd = open(path, O_CREAT | O_WRONLY | O_BINARY |
                          O_CLOEXEC | O_NOFOLLOW, mask & 0666);
             if (d->fd == -1) {
                 ret = 1;
