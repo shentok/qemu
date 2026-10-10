@@ -881,13 +881,12 @@ static MTPData *usb_mtp_get_storage_info(MTPState *s, MTPControl *c)
     if (rc == 0) {
         usb_mtp_add_u64(d, (uint64_t)buf.f_frsize * buf.f_blocks);
         usb_mtp_add_u64(d, (uint64_t)buf.f_frsize * buf.f_bavail);
-        usb_mtp_add_u32(d, buf.f_ffree);
     } else {
         usb_mtp_add_u64(d, 0xffffffff);
         usb_mtp_add_u64(d, 0xffffffff);
-        usb_mtp_add_u32(d, 0xffffffff);
     }
 
+    usb_mtp_add_u32(d, 0xffffffff);
     usb_mtp_add_str(d, s->desc);
     usb_mtp_add_wstr(d, L"123456789abcdef");
     return d;
