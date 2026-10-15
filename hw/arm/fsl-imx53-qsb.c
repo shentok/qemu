@@ -103,7 +103,7 @@ static void imx53_qsb_init(MachineState *machine)
     }
 
     dev = DEVICE(i2c_slave_create_simple(
-        I2C_BUS(qdev_get_child_bus(DEVICE(&s->soc.i2c[1]), "i2c-bus.1")),
+        I2C_BUS(qdev_get_child_bus(DEVICE(&s->soc.i2c[0]), "i2c-bus.0")),
         "mc34708", 8));
     qdev_connect_gpio_out(dev, 0, qdev_get_gpio_in(DEVICE(&s->soc.gpio[1]), 6));
 
