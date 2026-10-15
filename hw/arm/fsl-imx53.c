@@ -475,7 +475,6 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
     /* Unimplemented devices */
     for (size_t i = 0; i < ARRAY_SIZE(fsl_imx53_memmap); i++) {
         switch (i) {
-        case FSL_IMX53_CSD0 ... FSL_IMX53_CSD1:
         case FSL_IMX53_ECSPI1 ... FSL_IMX53_ECSPI2:
         case FSL_IMX53_ESDHC1 ... FSL_IMX53_ESDHC4:
         case FSL_IMX53_FEC:
