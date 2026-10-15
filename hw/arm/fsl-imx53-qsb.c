@@ -28,6 +28,8 @@ struct FslImx53QsbMachineState {
 #define TYPE_IMX53QSB_MACHINE MACHINE_TYPE_NAME("imx53-qsb")
 OBJECT_DECLARE_SIMPLE_TYPE(FslImx53QsbMachineState, IMX53QSB_MACHINE)
 
+#define TYPE_TQMA53_MACHINE MACHINE_TYPE_NAME("imx53-tqma53")
+
 static void imx53_qsb_modify_dtb(const struct arm_boot_info *info, void *fdt)
 {
     int i, offset;
@@ -102,17 +104,26 @@ static void imx53_qsb_init(MachineState *machine)
         qdev_realize_and_unref(carddev, bus, &error_fatal);
     }
 
-    dev = DEVICE(i2c_slave_create_simple(
-        I2C_BUS(qdev_get_child_bus(DEVICE(&s->soc.i2c[1]), "i2c-bus.1")),
-        "mc34708", 8));
-    qdev_connect_gpio_out(dev, 0, qdev_get_gpio_in(DEVICE(&s->soc.gpio[1]), 6));
+    if (object_dynamic_cast(OBJECT(machine), TYPE_IMX53QSB_MACHINE)) {
+        dev = DEVICE(i2c_slave_create_simple(
+            I2C_BUS(qdev_get_child_bus(DEVICE(&s->soc.i2c[0]), "i2c-bus.0")),
+            "mc34708", 8));
+        qdev_connect_gpio_out(dev, 0,
+                              qdev_get_gpio_in(DEVICE(&s->soc.gpio[4]), 23));
+    } else {
+        dev = DEVICE(i2c_slave_create_simple(
+            I2C_BUS(qdev_get_child_bus(DEVICE(&s->soc.i2c[1]), "i2c-bus.1")),
+            "mc34708", 8));
+        qdev_connect_gpio_out(dev, 0,
+                              qdev_get_gpio_in(DEVICE(&s->soc.gpio[1]), 6));
+    }
 
     if (!qtest_enabled()) {
         arm_load_kernel(&s->soc.cpu, machine, &s->boot_info);
     }
 }
 
-static void imx53_qsb_machine_instance_init(Object *obj)
+static void imx53_machine_instance_init(Object *obj)
 {
     FslImx53QsbMachineState *s = IMX53QSB_MACHINE(obj);
 
@@ -137,13 +148,28 @@ static void imx53_qsb_machine_class_init(ObjectClass *oc, const void *data)
     mc->default_ram_size = 1 * GiB;
 }
 
+static void imx53_tqma53_machine_class_init(ObjectClass *oc, const void *data)
+{
+    MachineClass *mc = MACHINE_CLASS(oc);
+
+    mc->desc = "TQ MBa53 starter kit";
+    mc->init = imx53_qsb_init;
+    mc->default_ram_id = "imx53-tqma53.ram";
+    mc->default_ram_size = 1 * GiB;
+}
+
 static const TypeInfo imx53_qsb_machine_init_types[] = {
     {
         .name          = TYPE_IMX53QSB_MACHINE,
         .parent        = TYPE_MACHINE,
         .class_init    = imx53_qsb_machine_class_init,
-        .instance_init = imx53_qsb_machine_instance_init,
+        .instance_init = imx53_machine_instance_init,
         .instance_size = sizeof(FslImx53QsbMachineState),
+    },
+    {
+        .name          = TYPE_TQMA53_MACHINE,
+        .parent        = TYPE_IMX53QSB_MACHINE,
+        .class_init    = imx53_tqma53_machine_class_init,
     }
 };
 
