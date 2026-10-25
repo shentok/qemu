@@ -889,7 +889,10 @@ static uint64_t sd_part_offset(SDState *sd)
     case EXT_CSD_PART_CONFIG_ACC_RPMB:
         return sd->boot_part_size * 2;
     default:
-         g_assert_not_reached();
+        qemu_log_mask(LOG_GUEST_ERROR,
+                      "MMC partition access %u not supported\n",
+                      partition_access);
+        return 0;
     }
 }
 
