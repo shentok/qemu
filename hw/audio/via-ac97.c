@@ -272,7 +272,7 @@ static uint64_t sgd_read(void *opaque, hwaddr addr, unsigned size)
         val = s->aur.table_curr + 8;
         break;
     case 0xc:
-        val = 0;
+        val = CLEN_LEN(&s->aur);
         break;
     case 0x10:
         /* silence unimplemented log message that happens at every IRQ */
