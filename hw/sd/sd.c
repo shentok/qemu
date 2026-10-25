@@ -893,6 +893,29 @@ static uint64_t sd_part_offset(SDState *sd)
     }
 }
 
+static uint64_t sd_part_size(SDState *sd)
+{
+    unsigned partition_access;
+
+    if (!sd_is_emmc(sd)) {
+        return sd->size;
+    }
+
+    partition_access = sd->ext_csd[EXT_CSD_PART_CONFIG]
+                                 & EXT_CSD_PART_CONFIG_ACC_MASK;
+    switch (partition_access) {
+    case EXT_CSD_PART_CONFIG_ACC_DEFAULT:
+        return sd->size;
+    case EXT_CSD_PART_CONFIG_ACC_BOOT1:
+    case EXT_CSD_PART_CONFIG_ACC_BOOT2:
+        return sd->boot_part_size;
+    case EXT_CSD_PART_CONFIG_ACC_RPMB:
+        return sd->rpmb_part_size;
+    default:
+        return 0;
+    }
+}
+
 /*
  * Write protect groups always refer to the user area, independently of the
  * currently selected partition.
@@ -1338,6 +1361,7 @@ static void sd_erase(SDState *sd)
     uint64_t wpnum;
     uint64_t erase_addr;
     int erase_len = 1 << HWBLOCK_SHIFT;
+    uint64_t part_size = sd_part_size(sd);
 
     trace_sdcard_erase(sd->erase_start, sd->erase_end);
     if (sd->erase_start == INVALID_ADDRESS
@@ -1355,7 +1379,7 @@ static void sd_erase(SDState *sd)
         sdsc = false;
     }
 
-    if (erase_start > sd->size || erase_end > sd->size) {
+    if (erase_start > part_size || erase_end > part_size) {
         sd->card_status |= OUT_OF_RANGE;
         sd->erase_start = INVALID_ADDRESS;
         sd->erase_end = INVALID_ADDRESS;
@@ -1573,12 +1597,13 @@ static void sd_lock_command(SDState *sd)
 }
 
 static bool address_in_range(SDState *sd, const char *desc,
-                             uint64_t addr, uint32_t length)
+                             uint64_t addr, uint32_t length,
+                             uint64_t part_size)
 {
-    if (addr + length > sd->size) {
+    if (addr + length > part_size) {
         qemu_log_mask(LOG_GUEST_ERROR,
-                      "%s offset %"PRIu64" > card %"PRIu64" [%%%u]\n",
-                      desc, addr, sd->size, length);
+                      "%s offset %"PRIu64" > partition %"PRIu64" [%%%u]\n",
+                      desc, addr, part_size, length);
         sd->card_status |= ADDRESS_ERROR;
         return false;
     }
@@ -2000,7 +2025,8 @@ static sd_rsp_type_t sd_cmd_READ_SINGLE_BLOCK(SDState *sd, SDRequest req)
     }
 
     addr = sd_req_get_address(sd, req);
-    if (!address_in_range(sd, "READ_SINGLE_BLOCK", addr, sd->blk_len)) {
+    if (!address_in_range(sd, "READ_SINGLE_BLOCK", addr, sd->blk_len,
+                          sd_part_size(sd))) {
         return sd_r1;
     }
 
@@ -2050,7 +2076,8 @@ static sd_rsp_type_t sd_cmd_WRITE_SINGLE_BLOCK(SDState *sd, SDRequest req)
     }
 
     addr = sd_req_get_address(sd, req);
-    if (!address_in_range(sd, "WRITE_SINGLE_BLOCK", addr, sd->blk_len)) {
+    if (!address_in_range(sd, "WRITE_SINGLE_BLOCK", addr, sd->blk_len,
+                          sd_part_size(sd))) {
         return sd_r1;
     }
 
@@ -2094,7 +2121,7 @@ static sd_rsp_type_t sd_cmd_SET_CLR_WRITE_PROT(SDState *sd, SDRequest req,
 
     addr = sd_req_get_address(sd, req);
     if (!address_in_range(sd, is_write ? "SET_WRITE_PROT" : "CLR_WRITE_PROT",
-                          addr, 1)) {
+                          addr, 1, sd->size)) {
         return sd_r1b;
     }
 
@@ -2136,7 +2163,8 @@ static sd_rsp_type_t sd_cmd_SEND_WRITE_PROT(SDState *sd, SDRequest req)
     }
 
     addr = sd_req_get_address(sd, req);
-    if (!address_in_range(sd, "SEND_WRITE_PROT", addr, sd->blk_len)) {
+    if (!address_in_range(sd, "SEND_WRITE_PROT", addr, sd->blk_len,
+                          sd->size)) {
         return sd_r1;
     }
 
@@ -2391,7 +2419,8 @@ static sd_rsp_type_t sd_normal_command(SDState *sd, SDRequest req)
         switch (sd->state) {
         case sd_transfer_state:
 
-            if (!address_in_range(sd, "READ_BLOCK", addr, sd->blk_len)) {
+            if (!address_in_range(sd, "READ_BLOCK", addr, sd->blk_len,
+                                  sd_part_size(sd))) {
                 return sd_r1;
             }
 
@@ -2411,7 +2440,8 @@ static sd_rsp_type_t sd_normal_command(SDState *sd, SDRequest req)
         switch (sd->state) {
         case sd_transfer_state:
 
-            if (!address_in_range(sd, "WRITE_BLOCK", addr, sd->blk_len)) {
+            if (!address_in_range(sd, "WRITE_BLOCK", addr, sd->blk_len,
+                                  sd_part_size(sd))) {
                 return sd_r1;
             }
 
@@ -2723,7 +2753,8 @@ static size_t sd_write_data(SDState *sd, const void *buf, size_t length)
         if (sd->data_offset == 0) {
             /* Start of the block - let's check the address is valid */
             if (!address_in_range(sd, "WRITE_MULTIPLE_BLOCK",
-                                  sd->data_start, sd->blk_len)) {
+                                  sd->data_start, sd->blk_len,
+                                  sd_part_size(sd))) {
                 break;
             }
             if (sd->size <= SDSC_MAX_CAPACITY && sd_wp_groups_apply(sd)) {
@@ -2878,7 +2909,8 @@ static size_t sd_read_data(SDState *sd, void *buf, size_t length)
 
         if (sd->data_offset == 0) {
             if (!address_in_range(sd, "READ_MULTIPLE_BLOCK",
-                                  sd->data_start, io_len)) {
+                                  sd->data_start, io_len,
+                                  sd_part_size(sd))) {
                 *value = dummy_byte;
                 return length;
             }
