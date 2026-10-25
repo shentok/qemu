@@ -893,6 +893,20 @@ static uint32_t sd_part_offset(SDState *sd)
     }
 }
 
+/*
+ * Write protect groups always refer to the user area, independently of the
+ * currently selected partition.
+ */
+static bool sd_wp_groups_apply(SDState *sd)
+{
+    if (!sd_is_emmc(sd)) {
+        return true;
+    }
+
+    return (sd->ext_csd[EXT_CSD_PART_CONFIG] & EXT_CSD_PART_CONFIG_ACC_MASK)
+           == EXT_CSD_PART_CONFIG_ACC_DEFAULT;
+}
+
 static uint64_t sd_req_get_address(SDState *sd, SDRequest req)
 {
     uint64_t addr;
@@ -1355,7 +1369,7 @@ static void sd_erase(SDState *sd)
     memset(sd->data, 0xff, erase_len);
     for (erase_addr = erase_start; erase_addr <= erase_end;
          erase_addr += erase_len) {
-        if (sdsc) {
+        if (sdsc && sd_wp_groups_apply(sd)) {
             /* Only SDSC cards support write protect groups */
             wpnum = sd_addr_to_wpnum(erase_addr);
             assert(wpnum < sd->wp_group_bits);
@@ -1478,7 +1492,12 @@ static void sd_function_switch(SDState *sd, uint32_t arg)
 
 static inline bool sd_wp_addr(SDState *sd, uint64_t addr)
 {
-    return test_bit(sd_addr_to_wpnum(addr), sd->wp_group_bmap);
+    uint32_t wpnum = sd_addr_to_wpnum(addr);
+
+    if (wpnum >= sd->wp_group_bits) {
+        return false;
+    }
+    return test_bit(wpnum, sd->wp_group_bmap);
 }
 
 static void sd_lock_command(SDState *sd)
@@ -2035,7 +2054,7 @@ static sd_rsp_type_t sd_cmd_WRITE_SINGLE_BLOCK(SDState *sd, SDRequest req)
         return sd_r1;
     }
 
-    if (sd->size <= SDSC_MAX_CAPACITY) {
+    if (sd->size <= SDSC_MAX_CAPACITY && sd_wp_groups_apply(sd)) {
         if (sd_wp_addr(sd, addr)) {
             sd->card_status |= WP_VIOLATION;
         }
@@ -2401,7 +2420,7 @@ static sd_rsp_type_t sd_normal_command(SDState *sd, SDRequest req)
             sd->data_offset = 0;
             sd->blk_written = 0;
 
-            if (sd->size <= SDSC_MAX_CAPACITY) {
+            if (sd->size <= SDSC_MAX_CAPACITY && sd_wp_groups_apply(sd)) {
                 if (sd_wp_addr(sd, sd->data_start)) {
                     sd->card_status |= WP_VIOLATION;
                 }
@@ -2707,7 +2726,7 @@ static size_t sd_write_data(SDState *sd, const void *buf, size_t length)
                                   sd->data_start, sd->blk_len)) {
                 break;
             }
-            if (sd->size <= SDSC_MAX_CAPACITY) {
+            if (sd->size <= SDSC_MAX_CAPACITY && sd_wp_groups_apply(sd)) {
                 if (sd_wp_addr(sd, sd->data_start)) {
                     sd->card_status |= WP_VIOLATION;
                     break;
