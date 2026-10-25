@@ -869,7 +869,7 @@ static uint32_t sd_blk_len(SDState *sd)
  * partitions is the "boot-partition-size" property, the one of the RPMB
  * partition is 'rpmb-partition-size'.
  */
-static uint32_t sd_part_offset(SDState *sd)
+static uint64_t sd_part_offset(SDState *sd)
 {
     unsigned partition_access;
 
