@@ -164,6 +164,7 @@ struct SDState {
     uint8_t spec_version;
     uint64_t boot_part_size;
     uint64_t rpmb_part_size;
+    uint64_t gp_part_size[4];
     BlockBackend *blk;
     uint8_t boot_config;
 
@@ -504,6 +505,13 @@ static void emmc_set_cid(SDState *sd)
 #define CMULT_SHIFT     9        /* 512 times HWBLOCK_SIZE */
 #define WPGROUP_SIZE    (1 << (HWBLOCK_SHIFT + SECTOR_SHIFT + WPGROUP_SHIFT))
 
+/*
+ * The general purpose partition size is expressed in units of HC_WP_GRP_SIZE *
+ * HC_ERASE_GRP_SIZE * 512 KiB. Both are hardcoded to 1 by emmc_set_ext_csd().
+ */
+#define EMMC_GP_SIZE_UNIT   (512 * KiB)
+#define EMMC_GP_SIZE_MAX    (0xffffffULL * EMMC_GP_SIZE_UNIT)
+
 static const uint8_t sd_csd_rw_mask[16] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0xfe,
@@ -512,6 +520,7 @@ static const uint8_t sd_csd_rw_mask[16] = {
 static void emmc_set_ext_csd(SDState *sd, uint64_t size)
 {
     uint32_t sectcount = size >> HWBLOCK_SHIFT;
+    int i;
 
     memset(sd->ext_csd, 0, sizeof(sd->ext_csd)); /* FIXME only RW at reset */
 
@@ -540,6 +549,16 @@ static void emmc_set_ext_csd(SDState *sd, uint64_t size)
     sd->ext_csd[EXT_CSD_REV] = 5;
     sd->ext_csd[EXT_CSD_RPMB_MULT] = sd->rpmb_part_size / (128 * KiB);
     sd->ext_csd[EXT_CSD_PARTITION_SUPPORT] = 0b111;
+
+    /* General purpose partitions are configured via device properties */
+    for (i = 0; i < ARRAY_SIZE(sd->gp_part_size); i++) {
+        if (sd->gp_part_size[i]) {
+            uint32_t size_mult = sd->gp_part_size[i] / EMMC_GP_SIZE_UNIT;
+
+            st24_le_p(&sd->ext_csd[EXT_CSD_GP_SIZE_MULT + 3 * i], size_mult);
+            sd->ext_csd[EXT_CSD_PARTITION_SETTING_COMPLETED] = 1;
+        }
+    }
 
     /* Mode segment (RW) */
     sd->ext_csd[EXT_CSD_PART_CONFIG] = sd->boot_config;
@@ -865,10 +884,28 @@ static uint32_t sd_blk_len(SDState *sd)
 
 /*
  * This requires a disk image that has two boot partitions inserted at the
- * beginning of it, followed by an RPMB partition. The size of the boot
- * partitions is the "boot-partition-size" property, the one of the RPMB
- * partition is 'rpmb-partition-size'.
+ * beginning of it, followed by an RPMB partition, up to four general purpose
+ * partitions and the user area. The size of the boot partitions is the
+ * "boot-partition-size" property, the one of the RPMB partition is
+ * "rpmb-partition-size", and the ones of the general purpose partitions are
+ * "gp0-partition-size" to "gp3-partition-size".
  */
+
+/*
+ * Offset of general purpose partition @gp in the image. Passing the number of
+ * general purpose partitions yields the offset of the user area.
+ */
+static uint64_t sd_gp_offset(SDState *sd, unsigned int gp)
+{
+    uint64_t offset = sd->boot_part_size * 2 + sd->rpmb_part_size;
+    unsigned int i;
+
+    for (i = 0; i < gp; i++) {
+        offset += sd->gp_part_size[i];
+    }
+    return offset;
+}
+
 static uint64_t sd_part_offset(SDState *sd)
 {
     unsigned partition_access;
@@ -881,13 +918,21 @@ static uint64_t sd_part_offset(SDState *sd)
                                  & EXT_CSD_PART_CONFIG_ACC_MASK;
     switch (partition_access) {
     case EXT_CSD_PART_CONFIG_ACC_DEFAULT:
-        return sd->boot_part_size * 2 + sd->rpmb_part_size;
+        return sd_gp_offset(sd, ARRAY_SIZE(sd->gp_part_size));
     case EXT_CSD_PART_CONFIG_ACC_BOOT1:
         return 0;
     case EXT_CSD_PART_CONFIG_ACC_BOOT2:
         return sd->boot_part_size * 1;
     case EXT_CSD_PART_CONFIG_ACC_RPMB:
         return sd->boot_part_size * 2;
+    case EXT_CSD_PART_CONFIG_ACC_GP0:
+        return sd_gp_offset(sd, 0);
+    case EXT_CSD_PART_CONFIG_ACC_GP1:
+        return sd_gp_offset(sd, 1);
+    case EXT_CSD_PART_CONFIG_ACC_GP2:
+        return sd_gp_offset(sd, 2);
+    case EXT_CSD_PART_CONFIG_ACC_GP3:
+        return sd_gp_offset(sd, 3);
     default:
         qemu_log_mask(LOG_GUEST_ERROR,
                       "MMC partition access %u not supported\n",
@@ -914,6 +959,14 @@ static uint64_t sd_part_size(SDState *sd)
         return sd->boot_part_size;
     case EXT_CSD_PART_CONFIG_ACC_RPMB:
         return sd->rpmb_part_size;
+    case EXT_CSD_PART_CONFIG_ACC_GP0:
+        return sd->gp_part_size[0];
+    case EXT_CSD_PART_CONFIG_ACC_GP1:
+        return sd->gp_part_size[1];
+    case EXT_CSD_PART_CONFIG_ACC_GP2:
+        return sd->gp_part_size[2];
+    case EXT_CSD_PART_CONFIG_ACC_GP3:
+        return sd->gp_part_size[3];
     default:
         return 0;
     }
@@ -966,7 +1019,7 @@ static void sd_reset(DeviceState *dev)
     }
     size = sect << HWBLOCK_SHIFT;
     if (sd_is_emmc(sd)) {
-        size -= sd->boot_part_size * 2 + sd->rpmb_part_size;
+        size -= sd_gp_offset(sd, ARRAY_SIZE(sd->gp_part_size));
     }
 
     sect = sd_addr_to_wpnum(size) + 1;
@@ -1470,12 +1523,28 @@ static void emmc_function_switch(SDState *sd, uint32_t arg)
         break;
     }
 
+    /*
+     * The general purpose partitions are fixed by the device properties, so
+     * the guest must not be able to change their sizes or to clear the
+     * partitioning completed flag.
+     */
+    if ((index >= EXT_CSD_GP_SIZE_MULT &&
+         index < EXT_CSD_GP_SIZE_MULT + 3 * ARRAY_SIZE(sd->gp_part_size)) ||
+        index == EXT_CSD_PARTITION_SETTING_COMPLETED) {
+        qemu_log_mask(LOG_GUEST_ERROR,
+                      "MMC general purpose partition configuration is fixed\n");
+        sd->card_status |= R_CSR_SWITCH_ERROR_MASK;
+        return;
+    }
+
     if (index == EXT_CSD_PART_CONFIG) {
         uint8_t part = b & EXT_CSD_PART_CONFIG_ACC_MASK;
 
         if (((part == EXT_CSD_PART_CONFIG_ACC_BOOT1 ||
               part == EXT_CSD_PART_CONFIG_ACC_BOOT2) && !sd->boot_part_size) ||
-            (part == EXT_CSD_PART_CONFIG_ACC_RPMB && !sd->rpmb_part_size)) {
+            (part == EXT_CSD_PART_CONFIG_ACC_RPMB && !sd->rpmb_part_size) ||
+            (part >= EXT_CSD_PART_CONFIG_ACC_GP0 &&
+             !sd->gp_part_size[part - EXT_CSD_PART_CONFIG_ACC_GP0])) {
             qemu_log_mask(LOG_GUEST_ERROR,
                           "MMC switching to illegal partition\n");
             sd->card_status |= R_CSR_SWITCH_ERROR_MASK;
@@ -3155,6 +3224,7 @@ static void sd_realize(DeviceState *dev, Error **errp)
 {
     SDState *sd = SDMMC_COMMON(dev);
     int ret;
+    int i;
 
     switch (sd->spec_version) {
     case SD_PHY_SPECv2_00_VERS
@@ -3173,7 +3243,7 @@ static void sd_realize(DeviceState *dev, Error **errp)
 
         int64_t blk_size = blk_getlength(sd->blk);
         if (blk_size >= 0) {
-            blk_size -= sd->boot_part_size * 2 + sd->rpmb_part_size;
+            blk_size -= sd_gp_offset(sd, ARRAY_SIZE(sd->gp_part_size));
             if (blk_size > SDSC_MAX_CAPACITY) {
                 if (sd_is_emmc(sd) &&
                     !QEMU_IS_ALIGNED(blk_size, 1 << HWBLOCK_SHIFT)) {
@@ -3194,7 +3264,7 @@ static void sd_realize(DeviceState *dev, Error **errp)
                                   "a power of 2", errp);
                 return;
             } else if (blk_size < 0) {
-                error_setg(errp, "eMMC image smaller than boot partitions");
+                error_setg(errp, "eMMC image smaller than its partitions");
                 return;
             }
         }
@@ -3224,6 +3294,18 @@ static void sd_realize(DeviceState *dev, Error **errp)
         error_append_hint(errp,
                           "The RPMB partition size must be multiples of 128K"
                           "and not larger than 16384K.\n");
+    }
+    for (i = 0; i < ARRAY_SIZE(sd->gp_part_size); i++) {
+        if (!QEMU_IS_ALIGNED(sd->gp_part_size[i], EMMC_GP_SIZE_UNIT) ||
+            sd->gp_part_size[i] > EMMC_GP_SIZE_MAX) {
+            g_autofree char *size_str = size_to_str(sd->gp_part_size[i]);
+
+            error_setg(errp, "Invalid GP%d partition size: %s", i, size_str);
+            error_append_hint(errp,
+                              "The GP partition size must be multiples of 512K"
+                              " and must not exceed 0xffffff units of 512K.\n");
+            return;
+        }
     }
     if (sd_is_emmc(sd) && sd->preset_auth_key) {
         if (strlen(sd->preset_auth_key) != 64) {
@@ -3270,6 +3352,10 @@ static const Property emmc_properties[] = {
     DEFINE_PROP_UINT64("boot-partition-size", SDState, boot_part_size, 0),
     DEFINE_PROP_UINT8("boot-config", SDState, boot_config, 0x0),
     DEFINE_PROP_UINT64("rpmb-partition-size", SDState, rpmb_part_size, 0),
+    DEFINE_PROP_UINT64("gp0-partition-size", SDState, gp_part_size[0], 0),
+    DEFINE_PROP_UINT64("gp1-partition-size", SDState, gp_part_size[1], 0),
+    DEFINE_PROP_UINT64("gp2-partition-size", SDState, gp_part_size[2], 0),
+    DEFINE_PROP_UINT64("gp3-partition-size", SDState, gp_part_size[3], 0),
     DEFINE_PROP_STRING("auth-key", SDState, preset_auth_key),
 };
 
