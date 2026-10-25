@@ -150,17 +150,8 @@ static void codec_write(ViaAC97State *s, uint8_t addr, uint16_t val)
     }
 }
 
-static int get_scale(ViaAC97State *s)
-{
-    const int num_channels = (s->aur.type & BIT(4)) ? 2 : 1;
-    const int sample_size = (s->aur.type & BIT(5)) ? 2 : 1;
-
-    return num_channels * sample_size;
-}
-
 static void fetch_sgd(ViaAC97SGDChannel *c, PCIDevice *d)
 {
-    ViaAC97State *s = VIA_AC97(d);
     uint32_t b[2];
 
     if (c->table_curr < c->table_base) {
@@ -175,7 +166,7 @@ static void fetch_sgd(ViaAC97SGDChannel *c, PCIDevice *d)
     c->block_clen = le32_to_cpu(b[1]);
     trace_via_ac97_sgd_fetch(c->table_curr, c->block_addr, CLEN_IS_STOP(c) ? 'S' : '-',
                              CLEN_IS_EOL(c) ? 'E' : '-',
-                             CLEN_IS_FLAG(c) ? 'F' : '-', CLEN_LEN(c) / get_scale(s));
+                             CLEN_IS_FLAG(c) ? 'F' : '-', CLEN_LEN(c));
 }
 
 static void out_cb(void *opaque, int avail)
@@ -199,7 +190,7 @@ static void out_cb(void *opaque, int avail)
         while (temp) {
             to_copy = MIN(temp, sizeof(tmpbuf));
             result = pci_dma_read(&s->dev, c->block_addr, tmpbuf, to_copy);
-            trace_via_ac97_sgd_fetch_pci(c->block_addr, CLEN_LEN(c) / get_scale(s), to_copy / get_scale(s), result);
+            trace_via_ac97_sgd_fetch_pci(c->block_addr, CLEN_LEN(c), to_copy, result);
             if (result != MEMTX_OK) {
                 qemu_log_mask(LOG_GUEST_ERROR,
                               "via-ac97: DMA error reading block\n");
