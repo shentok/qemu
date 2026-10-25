@@ -27,6 +27,10 @@ usage() {
     echo "  -r RPMB_IMG[:SIZE]    Add RPMB partition. SIZE must be multiples of 128K. If"
     echo "                          no SIZE is specified, the size of RPMB_IMG will be"
     echo "                          used (rounded up)."
+    echo "  -g GP_IMG[:SIZE]      Add a general purpose partition. SIZE must be"
+    echo "                          multiples of 512K. If omitted, the size of"
+    echo "                          GP_IMG is used, rounded up. May be given up"
+    echo "                          to four times, the first one defining GP0."
     echo "  -h, --help            This help"
     echo ""
     echo "All SIZE parameters support the units K, M, G. If SIZE is smaller than the"
@@ -46,6 +50,8 @@ process_size() {
         fi
         if [ "$alignment" = 128 ]; then
             size=$(( (size + 128 * 1024 - 1) & ~(128 * 1024 - 1) ))
+        elif [ "$alignment" = 512K ]; then
+            size=$(( (size + 512 * 1024 - 1) & ~(512 * 1024 - 1) ))
         elif [ $size -gt $((2 * 1024 * 1024 * 1024)) ]; then
             size=$(( (size + 511) & ~511 ))
         elif [ $(( size & (size - 1) )) -gt 0 ]; then
@@ -83,6 +89,11 @@ process_size() {
                 echo "The $name image size must be multiples of 128K." >&2
                 exit 1
             fi
+        elif [ "$alignment" = 512K ]; then
+            if [ $(( size & (512 * 1024 - 1) )) -ne 0 ]; then
+                echo "The $name image size must be multiples of 512K." >&2
+                exit 1
+            fi
         elif [ $size -gt $((2 * 1024 * 1024 * 1024)) ]; then
             if [ $(( size & 511)) -ne 0 ]; then
                 echo "The $name image size must be multiples of 512 (if >2G)." >&2
@@ -111,6 +122,19 @@ check_truncation() {
     fi
 }
 
+format_size() {
+    size=$1
+    if [ "$size" -lt 1024 ]; then
+        echo "$size bytes"
+    elif [ "$size" -lt $((1024 * 1024)) ]; then
+        echo "$(( (size + 1023) / 1024 ))K ($size)"
+    elif [ "$size" -lt $((1024 * 1024 * 1024)) ]; then
+        echo "$(( (size + 1048575) / 1048576 ))M ($size)"
+    else
+        echo "$(( (size + 1073741823) / 1073741824 ))G ($size)"
+    fi
+}
+
 userimg=
 outimg=
 bootimg1=
@@ -118,6 +142,9 @@ bootimg2=/dev/zero
 bootsz=0
 rpmbimg=
 rpmbsz=0
+gpcnt=0
+gp_entries=
+gp_args=
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -139,6 +166,21 @@ while [ $# -gt 0 ]; do
             [ $# -ge 1 ] || usage 1
             rpmbimg=${1%%:*}
             rpmbsz=$(process_size RPMB "$rpmbimg" 128 "$1")
+            shift
+            ;;
+        -g)
+            shift
+            [ $# -ge 1 ] || usage 1
+            if [ "$gpcnt" -ge 4 ]; then
+                echo "At most 4 general purpose partitions are supported." >&2
+                exit 1
+            fi
+            gpimg=${1%%:*}
+            gpsz=$(process_size "GP$gpcnt" "$gpimg" 512K "$1")
+            gp_entries="${gp_entries}${gpimg}:${gpsz}
+"
+            gp_args="$gp_args,gp$gpcnt-partition-size=$gpsz"
+            gpcnt=$((gpcnt + 1))
             shift
             ;;
         -h|--help)
@@ -195,15 +237,23 @@ if [ "$rpmbsz" -gt 0 ]; then
     pos=$((pos + rpmbsz))
 fi
 
-if [ "$usersz" -lt 1024 ]; then
-    echo "  User data:                $usersz bytes"
-elif [ "$usersz" -lt $((1024 * 1024)) ]; then
-    echo "  User data:                $(( (usersz + 1023) / 1024 ))K ($usersz)"
-elif [ "$usersz" -lt $((1024 * 1024 * 1024)) ]; then
-    echo "  User data:                $(( (usersz + 1048575) / 1048576))M ($usersz)"
-else
-    echo "  User data:                $(( (usersz + 1073741823) / 1073741824))G ($usersz)"
+if [ -n "$gp_entries" ]; then
+    gp=0
+    while IFS=: read -r gpimg gpsz; do
+        [ -n "$gpimg" ] || continue
+        echo "  GP partition $gp:           $(format_size "$gpsz")"
+        blocks=$(( gpsz / (128 * 1024) ))
+        check_truncation "$gpimg" "$gpsz"
+        dd if="$gpimg" of="$outimg" conv=sparse bs=128K count=$blocks \
+            seek=$(( pos / (128 * 1024) )) status=none
+        pos=$((pos + gpsz))
+        gp=$((gp + 1))
+    done <<EOF
+$gp_entries
+EOF
 fi
+
+echo "  User data:                $(format_size "$usersz")"
 check_truncation "$userimg" "$usersz"
 dd if="$userimg" of="$outimg" conv=sparse bs=128K seek=$(( pos / (128 * 1024) )) \
     count=$(( (usersz + 128 * 1024 - 1) / (128 * 1024) )) status=none
@@ -213,4 +263,5 @@ truncate -s $pos "$outimg"
 echo ""
 echo "Instantiate by appending to the qemu command line:"
 echo "  -drive file=$outimg,if=none,format=raw,id=emmc-img"
-echo "  -device emmc,boot-partition-size=$bootsz,rpmb-partition-size=$rpmbsz,drive=emmc-img"
+emmc_args="emmc,boot-partition-size=$bootsz,rpmb-partition-size=$rpmbsz"
+echo "  -device $emmc_args$gp_args,drive=emmc-img"
