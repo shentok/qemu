@@ -210,6 +210,7 @@ static void out_cb(void *opaque, int avail)
                 c->stat |= STAT_EOL;
                 if (c->type & CNTL_START) {
                     c->curr = c->base;
+                    fetch_sgd(c, &s->dev);
                 } else {
                     c->stat &= ~STAT_ACTIVE;
                     audio_be_set_active_out(s->audio_be, s->vo, 0);
@@ -323,6 +324,9 @@ static void sgd_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         if (val & CNTL_START) {
             audio_be_set_active_out(s->audio_be, s->vo, 1);
             s->aur.stat = STAT_ACTIVE;
+            if (!s->aur.clen) {
+                fetch_sgd(&s->aur, &s->dev);
+            }
         }
         if (val & CNTL_TERM) {
             audio_be_set_active_out(s->audio_be, s->vo, 0);
