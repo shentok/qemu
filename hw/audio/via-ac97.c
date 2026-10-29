@@ -206,12 +206,10 @@ static void out_cb(void *opaque, int avail)
             c->clen -= copied;
         }
         if (CLEN_LEN(c) == 0) {
-            c->curr += 8;
             if (CLEN_IS_EOL(c)) {
                 c->stat |= STAT_EOL;
                 if (c->type & CNTL_START) {
                     c->curr = c->base;
-                    c->stat |= STAT_PAUSED;
                 } else {
                     c->stat &= ~STAT_ACTIVE;
                     audio_be_set_active_out(s->audio_be, s->vo, 0);
@@ -222,14 +220,14 @@ static void out_cb(void *opaque, int avail)
             }
             if (CLEN_IS_FLAG(c)) {
                 c->stat |= STAT_FLAG;
-                c->stat |= STAT_PAUSED;
                 if (c->type & STAT_FLAG) {
                     via_isa_set_irq(&s->dev, 0, 1);
                 }
             }
             if (CLEN_IS_STOP(c)) {
                 c->stat |= STAT_STOP;
-                c->stat |= STAT_PAUSED;
+                c->stat &= ~STAT_ACTIVE;
+                audio_be_set_active_out(s->audio_be, s->vo, 0);
             }
             c->clen = 0;
             stop = true;
