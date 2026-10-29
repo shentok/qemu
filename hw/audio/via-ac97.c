@@ -164,6 +164,12 @@ static void fetch_sgd(ViaAC97SGDChannel *c, PCIDevice *d)
     }
     c->addr = le32_to_cpu(b[0]);
     c->clen = le32_to_cpu(b[1]);
+    /*
+     * CURR_PTR must point at the *next* descriptor while the current one
+     * is being played: the Linux via82xx driver subtracts one from the
+     * index it derives from this register.
+     */
+    c->curr += 8;
     trace_via_ac97_sgd_fetch(c->curr, c->addr, CLEN_IS_STOP(c) ? 'S' : '-',
                              CLEN_IS_EOL(c) ? 'E' : '-',
                              CLEN_IS_FLAG(c) ? 'F' : '-', CLEN_LEN(c));
