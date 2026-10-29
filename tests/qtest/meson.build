@@ -121,6 +121,7 @@ qtests_i386 = \
    config_all_devices.has_key('CONFIG_PARALLEL') ? ['bios-tables-test'] : []) +             \
   qtests_pci +                                                                              \
   qtests_cxl +                                                                              \
+  (config_all_devices.has_key('CONFIG_VT82C686') ? ['via-ac97-test'] : []) + \
   [
    'hd-geo-test',
    'boot-order-test',
