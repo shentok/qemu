@@ -345,6 +345,16 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         qdev_prop_set_uint32(gicdev, "num-cpu", ms->smp.cpus);
         qdev_prop_set_uint32(gicdev, "num-irq",
                              FSL_IMX8MP_NUM_IRQS + GIC_INTERNAL);
+        /*
+         * The i.MX8MP GIC supports the security extensions, and the boot
+         * firmware runs at EL3 and configures secure interrupts.  Mirror
+         * the CPU's EL3 support so that the GIC does not end up in the
+         * single-security-state mode, where non-secure accesses could
+         * change the group of interrupts owned by EL3.
+         */
+        qdev_prop_set_bit(gicdev, "has-security-extensions",
+                          object_property_get_bool(OBJECT(first_cpu),
+                                                   "has_el3", NULL));
         redist_region_count = qlist_new();
         qlist_append_int(redist_region_count, ms->smp.cpus);
         qdev_prop_set_array(gicdev, "redist-region-count", redist_region_count);
