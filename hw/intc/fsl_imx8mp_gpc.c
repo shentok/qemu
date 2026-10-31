@@ -863,12 +863,26 @@ static void fsl_imx8mp_gpc_init(Object *obj)
                              IMX8MP_GPC_CPU_POWER, ARRAY_SIZE(s->cpu_power));
 }
 
-static const VMStateDescription vmstate_fsl_imx8mp_gpc = {
-    .name = TYPE_IMX8MP_GPC,
+static const VMStateDescription vmstate_fsl_imx8mp_gpc_cpu = {
+    .name = "fsl-imx8mp-gpc/cpu",
     .version_id = 1,
     .minimum_version_id = 1,
     .fields = (const VMStateField[]) {
+        VMSTATE_BOOL(request_wake_gic, FslImx8mpGpcCpuState),
+        VMSTATE_BOOL(wfi, FslImx8mpGpcCpuState),
+        VMSTATE_BOOL(powered, FslImx8mpGpcCpuState),
+        VMSTATE_END_OF_LIST()
+    },
+};
+
+static const VMStateDescription vmstate_fsl_imx8mp_gpc = {
+    .name = TYPE_IMX8MP_GPC,
+    .version_id = 2,
+    .minimum_version_id = 2,
+    .fields = (const VMStateField[]) {
         VMSTATE_UINT32_ARRAY(regs, FslImx8mpGpcState, IMX8MP_GPC_NUM),
+        VMSTATE_STRUCT_ARRAY(cpu, FslImx8mpGpcState, 4, 1,
+                             vmstate_fsl_imx8mp_gpc_cpu, FslImx8mpGpcCpuState),
         VMSTATE_END_OF_LIST()
     },
 };

@@ -343,10 +343,18 @@ static void imx8mp_src_reset(DeviceState *dev)
 
 static const VMStateDescription imx8mp_src_vmstate = {
     .name = TYPE_IMX8MP_SRC,
-    .version_id = 1,
-    .minimum_version_id = 1,
+    .version_id = 2,
+    .minimum_version_id = 2,
     .fields = (const VMStateField[]) {
         VMSTATE_UINT32_ARRAY(regs, FslImx8mpSrcState, FSL_IMX8MP_SRC_NUM_REGS),
+        /*
+         * The GPC's power levels and the run state last applied to the
+         * vCPUs are migrated alongside the registers.  `running` makes
+         * loading a no-op for the ARM power control layer instead of
+         * restarting cores at their warm entry on the incoming side.
+         */
+        VMSTATE_BOOL_ARRAY(powered, FslImx8mpSrcState, 4),
+        VMSTATE_BOOL_ARRAY(running, FslImx8mpSrcState, 4),
         VMSTATE_END_OF_LIST()
     },
 };
