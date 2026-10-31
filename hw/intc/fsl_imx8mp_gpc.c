@@ -17,6 +17,7 @@
 #include "target/arm/arm-powerctl.h"
 #include "target/arm/cpu-qom.h"
 #include "target/arm/cpu.h"
+#include "target/arm/internals.h"
 #include "trace.h"
 
 REG32(GPC_LPCR_A53_BSC, 0x000)
@@ -560,7 +561,13 @@ static uint64_t fsl_imx8mp_gpc_read(void *opaque, hwaddr offset,
 
     switch (idx) {
     case R_GPC_PU_PWRHSK:
-        value = 0x10000000;
+        /*
+         * The ADB400 power handshake is synchronous: for every sync
+         * request bit N the bridge immediately acknowledges with bit
+         * N + 16.  TF-A sets the sync bits and polls the matching ACK
+         * bits when powering the MIX domains up or down.
+         */
+        value = s->regs[idx] | ((s->regs[idx] & 0x0000fff0) << 16);
         break;
     default:
         value = s->regs[idx];
@@ -589,6 +596,13 @@ static void fsl_imx8mp_gpc_write(void *opaque, hwaddr offset,
          * power up request is complete
          */
         s->regs[idx] = 0;
+        break;
+    case R_GPC_PU_PWRHSK:
+        /*
+         * The ACK bits are read-only and derived from the sync bits
+         * in fsl_imx8mp_gpc_read().
+         */
+        s->regs[idx] = value & 0x0000ffff;
         break;
     default:
         s->regs[idx] = value;
@@ -669,7 +683,23 @@ static void fsl_imx8mp_gpc_request_wake_gic(void *opaque, int irq, int level)
         }
 
         if (gic_mode) {
-            imx8mp_src_start_cpu(s->src, irq);
+            ARMCPU *cpu = ARM_CPU(arm_get_cpu_by_id(irq));
+
+            /*
+             * The GIC asserts its wake request while the redistributor is
+             * asleep.  On real hardware the GPC then powers the core back
+             * up through the SRC, which restarts it at the address TF-A
+             * programmed into SRC_GPR1/2 (BL31_START).  TF-A's warm path
+             * restores the CPU context and returns to the OS, which then
+             * clears GICR_WAKER.ProcessorSleep and re-enables ICC_IGRPEN1.
+             *
+             * Only do this if the core actually powered down; otherwise
+             * the signal may still be asserted from before the WFI and
+             * CPU_ON would be an "already on" error.
+             */
+            if (qatomic_read(&cpu->power_state) == PSCI_OFF) {
+                imx8mp_src_start_cpu(s->src, irq);
+            }
         }
     }
 }
@@ -716,10 +746,30 @@ static void fsl_imx8mp_gpc_wfi(void *opaque, int irq, int level)
         }
 
         if (wfi_pdn && !wfi_masked) {
-            CPUState *cs = arm_get_cpu_by_id(irq);
-            ARMCPU *cpu = ARM_CPU(cs);
+            ARMCPU *cpu = ARM_CPU(arm_get_cpu_by_id(irq));
 
-            cpu->power_state = PSCI_OFF;
+            /*
+             * Model the WFI power-down as a real core power-down.  TF-A's
+             * PSCI suspend path sets the SRC resume entry to BL31_START
+             * and parks the core in a permanent WFI loop; the core is not
+             * expected to resume after the WFI instruction.  It has to be
+             * powered up again through the SRC when the GIC raises its
+             * wake request.
+             *
+             * Keep power_state and halt_reason consistent (HALT_PSCI), so
+             * the vCPU sleeps until the GPC/SRC restarts it, and QEMU's
+             * arm_cpu_has_work() invariant holds.
+             */
+            arm_set_cpu_power_state(cpu, PSCI_OFF);
+
+            /*
+             * An interrupt may already have been pending when we powered
+             * down, in which case the GIC has no reason to raise the wake
+             * request again.  Check the current level and wake up now.
+             */
+            if (s->cpu[irq].request_wake_gic) {
+                imx8mp_src_start_cpu(s->src, irq);
+            }
         }
     }
 }
