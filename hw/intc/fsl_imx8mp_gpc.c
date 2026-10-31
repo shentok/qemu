@@ -590,11 +590,23 @@ static void fsl_imx8mp_gpc_write(void *opaque, hwaddr offset,
     switch (idx) {
     case R_GPC_PU_PGC_SW_PUP_REQ:
     case R_GPC_PU_PGC_SW_PDN_REQ:
-    case R_GPC_CPU_PGC_SW_PUP_REQ:
         /*
          * Real HW will clear those bits once as a way to indicate that
          * power up request is complete
          */
+        s->regs[idx] = 0;
+        break;
+    case R_GPC_CPU_PGC_SW_PUP_REQ:
+        /*
+         * A software power-up through the GPC leaves the core's WFI
+         * power-down state, so a later GIC wake request must not restart
+         * it again.
+         */
+        for (unsigned i = 0; i < ARRAY_SIZE(s->cpu); i++) {
+            if (value & BIT(i)) {
+                s->cpu[i].powered_down = false;
+            }
+        }
         s->regs[idx] = 0;
         break;
     case R_GPC_PU_PWRHSK:
@@ -632,6 +644,7 @@ static void fsl_imx8mp_gpc_reset(DeviceState *dev)
     FslImx8mpGpcState *s = IMX8MP_GPC(dev);
 
     memset(s->regs, 0, sizeof(s->regs));
+    memset(s->cpu, 0, sizeof(s->cpu));
 
     s->regs[R_GPC_LPCR_A53_BSC] = 0x00003ff0;
     s->regs[R_GPC_LPCR_A53_AD] = 0x00000020;
@@ -693,12 +706,17 @@ static void fsl_imx8mp_gpc_request_wake_gic(void *opaque, int irq, int level)
              * restores the CPU context and returns to the OS, which then
              * clears GICR_WAKER.ProcessorSleep and re-enables ICC_IGRPEN1.
              *
-             * Only do this if the core actually powered down; otherwise
-             * the signal may still be asserted from before the WFI and
-             * CPU_ON would be an "already on" error.
+             * Only wake a core that was actually powered down through the
+             * GPC WFI path.  The redistributors start out asleep and the
+             * GIC then keeps asserting this request, but the secondaries
+             * are merely sitting in their powered-off reset state at that
+             * point and must be brought up through CPU_ON instead.
              */
-            if (qatomic_read(&cpu->power_state) == PSCI_OFF) {
-                imx8mp_src_start_cpu(s->src, irq);
+            if (s->cpu[irq].powered_down) {
+                s->cpu[irq].powered_down = false;
+                if (qatomic_read(&cpu->power_state) == PSCI_OFF) {
+                    imx8mp_src_start_cpu(s->src, irq);
+                }
             }
         }
     }
@@ -761,6 +779,7 @@ static void fsl_imx8mp_gpc_wfi(void *opaque, int irq, int level)
              * arm_cpu_has_work() invariant holds.
              */
             arm_set_cpu_power_state(cpu, PSCI_OFF);
+            s->cpu[irq].powered_down = true;
 
             /*
              * An interrupt may already have been pending when we powered

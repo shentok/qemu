@@ -22,6 +22,7 @@ struct FslImx8mpGpcState {
     struct {
         bool request_wake_gic;
         bool wfi;
+        bool powered_down;
     } cpu[4];
     FslImx8mpSrcState *src;
 };
