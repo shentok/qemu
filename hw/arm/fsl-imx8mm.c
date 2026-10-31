@@ -34,6 +34,7 @@ static const struct {
     [FSL_IMX8MM_DDR_PHY_BROADCAST] = { 0x3dc00000, 4 * MiB, "ddr_phy_broadcast" },
     [FSL_IMX8MM_DDR_PERF_MON] = { 0x3d800000, 4 * MiB, "ddr_perf_mon" },
     [FSL_IMX8MM_DDR_CTL] = { 0x3d400000, 4 * MiB, "ddr_ctl" },
+    [FSL_IMX8MM_DDR_BLK_CTRL] = { 0x3d000000, 1 * MiB, "ddr_blk_ctrl" },
     [FSL_IMX8MM_DDR_PHY] = { 0x3c000000, 16 * MiB, "ddr_phy" },
     [FSL_IMX8MM_GIC_DIST] = { 0x38800000, 512 * KiB, "gic_dist" },
     [FSL_IMX8MM_GIC_REDIST] = { 0x38880000, 512 * KiB, "gic_redist" },
@@ -168,6 +169,10 @@ static void fsl_imx8mm_init(Object *obj)
 
     object_initialize_child(obj, "snvs", &s->snvs, TYPE_IMX7_SNVS);
 
+    object_initialize_child(obj, "gpcv2", &s->gpc, TYPE_IMX8MM_GPC);
+
+    object_initialize_child(obj, "src", &s->src, TYPE_IMX8MP_SRC);
+
     object_initialize_child(obj, "sysctr", &s->sysctr, TYPE_IMX_SYSCTR);
     object_property_set_uint(OBJECT(&s->sysctr), "base_clk", 24000000,
                              &error_abort);
@@ -283,6 +288,10 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
         if (!qdev_realize(DEVICE(&s->cpu[i]), NULL, errp)) {
             return;
         }
+
+        qdev_connect_gpio_out_named(DEVICE(&s->cpu[i]), "wfi", 0,
+                                    qdev_get_gpio_in_named(DEVICE(&s->gpc),
+                                                           IMX8MP_GPC_WFI, i));
     }
 
     /* GIC */
@@ -294,6 +303,16 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
         qdev_prop_set_uint32(gicdev, "num-cpu", ms->smp.cpus);
         qdev_prop_set_uint32(gicdev, "num-irq",
                              FSL_IMX8MM_NUM_IRQS + GIC_INTERNAL);
+        /*
+         * The i.MX8MM GIC supports the security extensions, and the boot
+         * firmware runs at EL3 and configures secure interrupts.  Mirror
+         * the CPU's EL3 support so that the GIC does not end up in the
+         * single-security-state mode, where non-secure accesses could
+         * change the group of interrupts owned by EL3.
+         */
+        qdev_prop_set_bit(gicdev, "has-security-extensions",
+                          object_property_get_bool(OBJECT(first_cpu),
+                                                   "has_el3", NULL));
         redist_region_count = qlist_new();
         qlist_append_int(redist_region_count, ms->smp.cpus);
         qdev_prop_set_array(gicdev, "redist-region-count", redist_region_count);
@@ -346,6 +365,10 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
                                qdev_get_gpio_in(cpudev, ARM_CPU_VIRQ));
             sysbus_connect_irq(gicsbd, i + 3 * ms->smp.cpus,
                                qdev_get_gpio_in(cpudev, ARM_CPU_VFIQ));
+            irq = qdev_get_gpio_in_named(DEVICE(&s->gpc),
+                                         IMX8MP_GPC_REQUEST_WAKE_GIC, i);
+            qdev_connect_gpio_out_named(DEVICE(gicsbd), ARM_CPU_WAKE_REQUEST, i,
+                                        irq);
 
             if (kvm_enabled()) {
                 if (pmu) {
@@ -374,6 +397,34 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
     }
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->analog), 0,
                     fsl_imx8mm_memmap[FSL_IMX8MM_ANA_PLL].addr);
+
+    /* SRC */
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->src), errp)) {
+        return;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->src), 0,
+                    fsl_imx8mm_memmap[FSL_IMX8MM_SRC].addr);
+
+    /* GPCv2 */
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->gpc), errp)) {
+        return;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->gpc), 0,
+                    fsl_imx8mm_memmap[FSL_IMX8MM_GPC].addr);
+
+    /*
+     * The GPC reports the power state of each core to the SRC, which
+     * combines it with nCPUPORESET and the programmed warm entry address
+     * to decide when a core starts.
+     */
+    for (i = 0; i < ms->smp.cpus; i++) {
+        qemu_irq powered_in;
+
+        powered_in = qdev_get_gpio_in_named(DEVICE(&s->src),
+                                            IMX8MP_SRC_CPU_POWERED, i);
+        qdev_connect_gpio_out_named(DEVICE(&s->gpc), IMX8MP_GPC_CPU_POWER, i,
+                                    powered_in);
+    }
 
     /* System Counter */
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->sysctr), errp)) {
@@ -728,6 +779,7 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MM_CCM:
         case FSL_IMX8MM_GIC_DIST:
         case FSL_IMX8MM_GIC_REDIST:
+        case FSL_IMX8MM_GPC:
         case FSL_IMX8MM_GPIO1 ... FSL_IMX8MM_GPIO5:
         case FSL_IMX8MM_GPT1 ... FSL_IMX8MM_GPT6:
         case FSL_IMX8MM_ECSPI1 ... FSL_IMX8MM_ECSPI3:
@@ -738,6 +790,7 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MM_RAM:
         case FSL_IMX8MM_OCRAM:
         case FSL_IMX8MM_SNVS_HP:
+        case FSL_IMX8MM_SRC:
         case FSL_IMX8MM_SYSCNT_CMP:
         case FSL_IMX8MM_SYSCNT_CTRL:
         case FSL_IMX8MM_SYSCNT_RD:

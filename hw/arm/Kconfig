@@ -659,6 +659,8 @@ config FSL_IMX8MM
     select FSL_IMX8MP_CCM
     select FSL_IMX8MP_DDR
     select FSL_IMX8MP_DDR_PHY
+    select FSL_IMX8MP_GPC
+    select FSL_IMX8MP_SRC
     select GPIO_IMX
     select IMX_FEC
     select IMX_GPT

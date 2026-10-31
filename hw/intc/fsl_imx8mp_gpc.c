@@ -635,9 +635,35 @@ static void fsl_imx8mp_gpc_write(void *opaque, hwaddr offset,
                                  uint64_t value, unsigned size)
 {
     FslImx8mpGpcState *s = opaque;
+    const FslImx8mpGpcClass *k = IMX8MP_GPC_GET_CLASS(s);
     const size_t idx = offset / sizeof(uint32_t);
 
     trace_fsl_imx8mp_gpc_write(offset, fsl_imx8mp_gpc_reg_name(idx), value);
+
+    /*
+     * The PGC only acts while the core's power control register is
+     * armed.  TF-A/U-Boot set it around the trigger and clear it
+     * again afterwards.  The request completes synchronously.
+     */
+    if (offset == k->cpu_pgc_up_trg) {
+        for (unsigned i = 0; i < ARRAY_SIZE(s->cpu); i++) {
+            if (value & BIT(i) && fsl_imx8mp_gpc_core_pcr_enabled(s, i)) {
+                fsl_imx8mp_gpc_power_up_cpu(s, i);
+            }
+        }
+        s->regs[idx] = 0;
+        return;
+    }
+
+    if (offset == k->cpu_pgc_dn_trg) {
+        for (unsigned i = 0; i < ARRAY_SIZE(s->cpu); i++) {
+            if (value & BIT(i) && fsl_imx8mp_gpc_core_pcr_enabled(s, i)) {
+                fsl_imx8mp_gpc_power_down_cpu(s, i);
+            }
+        }
+        s->regs[idx] = 0;
+        return;
+    }
 
     switch (idx) {
     case R_GPC_PU_PGC_SW_PUP_REQ:
@@ -646,27 +672,6 @@ static void fsl_imx8mp_gpc_write(void *opaque, hwaddr offset,
          * Real HW will clear those bits once as a way to indicate that
          * power up request is complete
          */
-        s->regs[idx] = 0;
-        break;
-    case R_GPC_CPU_PGC_SW_PUP_REQ:
-        /*
-         * The PGC only acts while the core's power control register is
-         * armed.  TF-A/U-Boot set it around the trigger and clear it
-         * again afterwards.  The request completes synchronously.
-         */
-        for (unsigned i = 0; i < ARRAY_SIZE(s->cpu); i++) {
-            if (value & BIT(i) && fsl_imx8mp_gpc_core_pcr_enabled(s, i)) {
-                fsl_imx8mp_gpc_power_up_cpu(s, i);
-            }
-        }
-        s->regs[idx] = 0;
-        break;
-    case R_GPC_CPU_PGC_SW_PDN_REQ:
-        for (unsigned i = 0; i < ARRAY_SIZE(s->cpu); i++) {
-            if (value & BIT(i) && fsl_imx8mp_gpc_core_pcr_enabled(s, i)) {
-                fsl_imx8mp_gpc_power_down_cpu(s, i);
-            }
-        }
         s->regs[idx] = 0;
         break;
     case R_GPC_PU_PWRHSK:
@@ -887,25 +892,47 @@ static const VMStateDescription vmstate_fsl_imx8mp_gpc = {
     },
 };
 
+static const FslImx8mpGpcClass fsl_imx8mp_gpc_class = {
+    .cpu_pgc_up_trg = 0xd0,
+    .cpu_pgc_dn_trg = 0xdc,
+};
+
+static const FslImx8mpGpcClass fsl_imx8mm_gpc_class = {
+    .cpu_pgc_up_trg = 0xf0,
+    .cpu_pgc_dn_trg = 0xfc,
+};
+
 static void fsl_imx8mp_gpc_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
+    FslImx8mpGpcClass *k = IMX8MP_GPC_CLASS(klass);
+    const FslImx8mpGpcClass *soc = data;
+
+    if (soc) {
+        k->cpu_pgc_up_trg = soc->cpu_pgc_up_trg;
+        k->cpu_pgc_dn_trg = soc->cpu_pgc_dn_trg;
+    }
 
     device_class_set_legacy_reset(dc, fsl_imx8mp_gpc_reset);
     dc->vmsd  = &vmstate_fsl_imx8mp_gpc;
     dc->desc  = "i.MX GPCv2 Module";
 }
 
-static const TypeInfo fsl_imx8mp_gpc_info = {
-    .name          = TYPE_IMX8MP_GPC,
-    .parent        = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(FslImx8mpGpcState),
-    .instance_init = fsl_imx8mp_gpc_init,
-    .class_init    = fsl_imx8mp_gpc_class_init,
+static const TypeInfo fsl_imx8mp_gpc_types[] = {
+    {
+        .name          = TYPE_IMX8MP_GPC,
+        .parent        = TYPE_SYS_BUS_DEVICE,
+        .instance_size = sizeof(FslImx8mpGpcState),
+        .instance_init = fsl_imx8mp_gpc_init,
+        .class_init    = fsl_imx8mp_gpc_class_init,
+        .class_data    = &fsl_imx8mp_gpc_class,
+    },
+    {
+        .name          = TYPE_IMX8MM_GPC,
+        .parent        = TYPE_IMX8MP_GPC,
+        .class_init    = fsl_imx8mp_gpc_class_init,
+        .class_data    = &fsl_imx8mm_gpc_class,
+    },
 };
 
-static void fsl_imx8mp_gpc_register_type(void)
-{
-    type_register_static(&fsl_imx8mp_gpc_info);
-}
-type_init(fsl_imx8mp_gpc_register_type)
+DEFINE_TYPES(fsl_imx8mp_gpc_types)

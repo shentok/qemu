@@ -15,11 +15,13 @@
 #include "hw/gpio/imx_gpio.h"
 #include "hw/i2c/imx_i2c.h"
 #include "hw/intc/arm_gicv3_common.h"
+#include "hw/intc/fsl_imx8mp_gpc.h"
 #include "hw/misc/imx7_snvs.h"
 #include "hw/misc/imx8mp_analog.h"
 #include "hw/misc/imx8mp_ccm.h"
 #include "hw/misc/imx8mp_ddr.h"
 #include "hw/misc/imx8mp_ddr_phy.h"
+#include "hw/misc/imx8mp_src.h"
 #include "hw/net/imx_fec.h"
 #include "hw/core/or-irq.h"
 #include "hw/pci-host/designware.h"
@@ -64,6 +66,8 @@ struct FslImx8mmState {
     FslImx8mpDdrState  ddr;
     FslImx8mpDdrPhyState  ddr_phy;
     IMX7SNVSState      snvs;
+    FslImx8mpSrcState  src;
+    FslImx8mpGpcState  gpc;
     IMXSysCtrState     sysctr;
     IMXSPIState        spi[FSL_IMX8MM_NUM_ECSPIS];
     IMXI2CState        i2c[FSL_IMX8MM_NUM_I2CS];
@@ -100,6 +104,7 @@ enum FslImx8mmMemoryRegions {
     FSL_IMX8MM_CAAM_MEM,
     FSL_IMX8MM_CCM,
     FSL_IMX8MM_CSU,
+    FSL_IMX8MM_DDR_BLK_CTRL,
     FSL_IMX8MM_DDR_CTL,
     FSL_IMX8MM_DDR_PERF_MON,
     FSL_IMX8MM_DDR_PHY,

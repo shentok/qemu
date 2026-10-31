@@ -17,6 +17,7 @@
 #include "migration/vmstate.h"
 #include "qemu/bitops.h"
 #include "qemu/log.h"
+#include "qemu/units.h"
 #include "trace.h"
 
 REG32(SRC_SCR, 0x0000)
@@ -234,6 +235,15 @@ static void fsl_imx8mp_src_write(void *opaque, hwaddr offset, uint64_t value,
     unsigned long change_mask;
     int i;
 
+    if (reg >= FSL_IMX8MP_SRC_NUM_REGS) {
+        qemu_log_mask(LOG_UNIMP, "[%s]%s: Unimplemented register at offset 0x%"
+                      HWADDR_PRIx "\n", TYPE_IMX8MP_SRC, __func__,
+                      offset);
+        trace_fsl_imx8mp_src_write(offset, fsl_imx8mp_src_reg_name(reg),
+                                   value);
+        return;
+    }
+
     change_mask = s->regs[reg] ^ (uint32_t)value;
 
     switch (reg) {
@@ -309,8 +319,15 @@ static void imx8mp_src_realize(DeviceState *dev, Error **errp)
 {
     FslImx8mpSrcState *s = IMX8MP_SRC(dev);
 
+    /*
+     * Besides the A53 reset and GPR registers at the start of the block,
+     * the SRC also contains a set of peripheral reset control registers
+     * (for example SRC_HDMIPHY_RCR at 0x1000) which the boot firmware
+     * touches.  Map the whole 64 KiB block so those accesses do not
+     * fault; the unimplemented ones are ignored by the accessors.
+     */
     memory_region_init_io(&s->iomem, OBJECT(dev), &imx8mp_src_ops, s,
-                          TYPE_IMX8MP_SRC, 0x1000);
+                          TYPE_IMX8MP_SRC, 64 * KiB);
     sysbus_init_mmio(SYS_BUS_DEVICE(dev), &s->iomem);
 }
 

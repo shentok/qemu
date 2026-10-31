@@ -31,7 +31,24 @@ struct FslImx8mpGpcState {
     qemu_irq cpu_power[4];
 };
 
+/*
+ * The CPU power up/down trigger registers moved between SoC generations.
+ * Everything else the CPU power state machine uses is common.
+ */
+struct FslImx8mpGpcClass {
+    SysBusDeviceClass parent_class;
+
+    uint32_t cpu_pgc_up_trg;
+    uint32_t cpu_pgc_dn_trg;
+};
+
 #define TYPE_IMX8MP_GPC "imx8mp-gpc"
-OBJECT_DECLARE_SIMPLE_TYPE(FslImx8mpGpcState, IMX8MP_GPC)
+OBJECT_DECLARE_TYPE(FslImx8mpGpcState, FslImx8mpGpcClass, IMX8MP_GPC)
+
+/*
+ * i.MX8MM (and i.MX8MN/i.MX8MQ) use the same GPCv2 block as the i.MX8MP,
+ * but the CPU power up/down trigger registers live at different offsets.
+ */
+#define TYPE_IMX8MM_GPC "imx8mm-gpc"
 
 #endif /* FSL_IMX8MP_GPC_H */
