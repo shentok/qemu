@@ -464,6 +464,8 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     }
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->ddr), 0,
                     fsl_imx8mp_memmap[FSL_IMX8MP_DDR_CTL].addr);
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ddr), 1,
+                    fsl_imx8mp_memmap[FSL_IMX8MP_DDR_PERF_MON].addr);
 
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->ddr_phy), errp)) {
         return;
@@ -836,6 +838,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MP_CAAM_RAM:
         case FSL_IMX8MP_CCM:
         case FSL_IMX8MP_DDR_CTL:
+        case FSL_IMX8MP_DDR_PERF_MON:
         case FSL_IMX8MP_DDR_PHY:
         case FSL_IMX8MP_FLEXCAN1 ... FSL_IMX8MP_FLEXCAN2:
         case FSL_IMX8MP_GIC_DIST:
