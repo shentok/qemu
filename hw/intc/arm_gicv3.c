@@ -249,6 +249,7 @@ void gicv3_redist_update(GICv3CPUState *cs)
 {
     gicv3_redist_update_noirqset(cs);
     gicv3_cpuif_update(cs);
+    gicv3_redist_update_wake_request(cs);
 }
 
 /* Update the GIC status after state in the distributor has
@@ -323,6 +324,22 @@ static void gicv3_update_noirqset(GICv3State *s, int start, int len)
     }
 }
 
+void gicv3_redist_update_wake_request(GICv3CPUState *cs)
+{
+    /*
+     * The wake request is only meaningful while the redistributor is
+     * asleep.  Assert it when an interrupt is pending for this CPU so
+     * that a power controller can bring the core back up; deassert it
+     * once the interrupt has been handled, and keep it low while the
+     * redistributor is awake.
+     */
+    if (cs->gicr_waker & GICR_WAKER_ProcessorSleep) {
+        qemu_set_irq(cs->wake_request, cs->hppi.prio != 0xff);
+    } else {
+        qemu_set_irq(cs->wake_request, 0);
+    }
+}
+
 void gicv3_update(GICv3State *s, int start, int len)
 {
     int i;
@@ -330,9 +347,7 @@ void gicv3_update(GICv3State *s, int start, int len)
     gicv3_update_noirqset(s, start, len);
     for (i = 0; i < s->num_cpu; i++) {
         gicv3_cpuif_update(&s->cpu[i]);
-        if (s->cpu[i].gicr_waker & GICR_WAKER_ProcessorSleep) {
-            qemu_set_irq(s->cpu[i].wake_request, 1);
-        }
+        gicv3_redist_update_wake_request(&s->cpu[i]);
     }
 }
 

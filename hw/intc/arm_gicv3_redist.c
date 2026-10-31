@@ -522,10 +522,9 @@ static MemTxResult gicr_writel(GICv3CPUState *cs, hwaddr offset,
         value &= GICR_WAKER_ProcessorSleep;
         if (value & GICR_WAKER_ProcessorSleep) {
             value |= GICR_WAKER_ChildrenAsleep;
-        } else {
-            qemu_set_irq(cs->wake_request, 0);
         }
         cs->gicr_waker = value;
+        gicv3_redist_update_wake_request(cs);
         return MEMTX_OK;
     case GICR_PROPBASER:
         cs->gicr_propbaser = deposit64(cs->gicr_propbaser, 0, 32, value);

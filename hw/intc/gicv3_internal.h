@@ -569,6 +569,13 @@ static inline bool gicv3_intid_is_special(int intid)
 void gicv3_redist_update(GICv3CPUState *cs);
 
 /**
+ * gicv3_redist_update_wake_request:
+ *
+ * Update the wake request output for a redistributor.
+ */
+void gicv3_redist_update_wake_request(GICv3CPUState *cs);
+
+/**
  * gicv3_update:
  * @s: GICv3State
  * @start: first interrupt whose state changed
