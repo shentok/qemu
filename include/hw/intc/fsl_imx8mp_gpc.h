@@ -1,14 +1,14 @@
 #ifndef FSL_IMX8MP_GPC_H
 #define FSL_IMX8MP_GPC_H
 
+#include "hw/core/irq.h"
 #include "hw/core/sysbus.h"
 #include "system/memory.h"
 #include "qom/object.h"
 
-#include "hw/misc/imx8mp_src.h"
-
 #define IMX8MP_GPC_REQUEST_WAKE_GIC "request-wake-gic"
 #define IMX8MP_GPC_WFI "wfi"
+#define IMX8MP_GPC_CPU_POWER "cpu-power"
 
 enum FslImx8mpGpcRegisters {
     IMX8MP_GPC_NUM = 0x1000 / sizeof(uint32_t),
@@ -22,9 +22,11 @@ struct FslImx8mpGpcState {
     struct {
         bool request_wake_gic;
         bool wfi;
-        bool powered_down;
+        bool powered;
     } cpu[4];
-    FslImx8mpSrcState *src;
+
+    /* Per-core power state reported to the SRC */
+    qemu_irq cpu_power[4];
 };
 
 #define TYPE_IMX8MP_GPC "imx8mp-gpc"

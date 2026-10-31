@@ -14,10 +14,6 @@
 #include "hw/core/registerfields.h"
 #include "migration/vmstate.h"
 #include "qemu/module.h"
-#include "target/arm/arm-powerctl.h"
-#include "target/arm/cpu-qom.h"
-#include "target/arm/cpu.h"
-#include "target/arm/internals.h"
 #include "trace.h"
 
 REG32(GPC_LPCR_A53_BSC, 0x000)
@@ -31,8 +27,12 @@ REG32(GPC_LPCR_A53_BSC, 0x000)
     FIELD(GPC_LPCR_A53_BSC, MASK_CORE1_WFI, 17, 1)
     FIELD(GPC_LPCR_A53_BSC, MASK_CORE0_WFI, 16, 1)
 REG32(GPC_LPCR_A53_AD, 0x004)
+    FIELD(GPC_LPCR_A53_AD, EN_C3_IRQ_WUP, 26, 1)
+    FIELD(GPC_LPCR_A53_AD, EN_C2_IRQ_WUP, 24, 1)
     FIELD(GPC_LPCR_A53_AD, EN_C3_WFI_PDN, 18, 1)
     FIELD(GPC_LPCR_A53_AD, EN_C2_WFI_PDN, 16, 1)
+    FIELD(GPC_LPCR_A53_AD, EN_C1_IRQ_WUP, 10, 1)
+    FIELD(GPC_LPCR_A53_AD, EN_C0_IRQ_WUP, 8, 1)
     FIELD(GPC_LPCR_A53_AD, EN_C1_WFI_PDN, 2, 1)
     FIELD(GPC_LPCR_A53_AD, EN_C0_WFI_PDN, 0, 1)
 REG32(GPC_LPCR_M7, 0x008)
@@ -579,6 +579,58 @@ static uint64_t fsl_imx8mp_gpc_read(void *opaque, hwaddr offset,
     return value;
 }
 
+#define GPC_CORE_PGC_PCR(cpuid) (0x800 + (cpuid) * 0x40)
+
+static bool fsl_imx8mp_gpc_core_pcr_enabled(FslImx8mpGpcState *s, int cpuid)
+{
+    return extract32(s->regs[GPC_CORE_PGC_PCR(cpuid) / sizeof(uint32_t)], 0, 1);
+}
+
+static bool fsl_imx8mp_gpc_irq_wup_enabled(FslImx8mpGpcState *s, int cpuid)
+{
+    /* COREx_IRQ_WUP: core 0/1 use bits 8/10, core 2/3 use bits 24/26 */
+    static const int shift[] = { 8, 10, 24, 26 };
+
+    return extract32(s->regs[R_GPC_LPCR_A53_AD], shift[cpuid], 1);
+}
+
+static void fsl_imx8mp_gpc_cpu_set_powered(FslImx8mpGpcState *s, int cpuid,
+                                           bool powered)
+{
+    if (s->cpu[cpuid].powered == powered) {
+        return;
+    }
+
+    s->cpu[cpuid].powered = powered;
+    qemu_set_irq(s->cpu_power[cpuid], powered);
+}
+
+static void fsl_imx8mp_gpc_power_up_cpu(FslImx8mpGpcState *s, int cpuid)
+{
+    fsl_imx8mp_gpc_cpu_set_powered(s, cpuid, true);
+}
+
+static void fsl_imx8mp_gpc_power_down_cpu(FslImx8mpGpcState *s, int cpuid)
+{
+    fsl_imx8mp_gpc_cpu_set_powered(s, cpuid, false);
+}
+
+static void fsl_imx8mp_gpc_wake_cpu(FslImx8mpGpcState *s, int cpuid)
+{
+    /*
+     * Only a core that enabled interrupt wakeup, that is, one which was
+     * suspended through the PSCI CPU_SUSPEND path, may be brought back
+     * by the GPC.  A core in PSCI CPU_OFF does not have IRQ_WUP set and
+     * must be restarted through CPU_ON instead.
+     */
+    if (s->cpu[cpuid].powered ||
+        !fsl_imx8mp_gpc_irq_wup_enabled(s, cpuid)) {
+        return;
+    }
+
+    fsl_imx8mp_gpc_power_up_cpu(s, cpuid);
+}
+
 static void fsl_imx8mp_gpc_write(void *opaque, hwaddr offset,
                                  uint64_t value, unsigned size)
 {
@@ -598,13 +650,21 @@ static void fsl_imx8mp_gpc_write(void *opaque, hwaddr offset,
         break;
     case R_GPC_CPU_PGC_SW_PUP_REQ:
         /*
-         * A software power-up through the GPC leaves the core's WFI
-         * power-down state, so a later GIC wake request must not restart
-         * it again.
+         * The PGC only acts while the core's power control register is
+         * armed.  TF-A/U-Boot set it around the trigger and clear it
+         * again afterwards.  The request completes synchronously.
          */
         for (unsigned i = 0; i < ARRAY_SIZE(s->cpu); i++) {
-            if (value & BIT(i)) {
-                s->cpu[i].powered_down = false;
+            if (value & BIT(i) && fsl_imx8mp_gpc_core_pcr_enabled(s, i)) {
+                fsl_imx8mp_gpc_power_up_cpu(s, i);
+            }
+        }
+        s->regs[idx] = 0;
+        break;
+    case R_GPC_CPU_PGC_SW_PDN_REQ:
+        for (unsigned i = 0; i < ARRAY_SIZE(s->cpu); i++) {
+            if (value & BIT(i) && fsl_imx8mp_gpc_core_pcr_enabled(s, i)) {
+                fsl_imx8mp_gpc_power_down_cpu(s, i);
             }
         }
         s->regs[idx] = 0;
@@ -646,6 +706,13 @@ static void fsl_imx8mp_gpc_reset(DeviceState *dev)
     memset(s->regs, 0, sizeof(s->regs));
     memset(s->cpu, 0, sizeof(s->cpu));
 
+    /*
+     * CPU 0 is the boot CPU: QEMU starts it directly, so its power
+     * domain is already up at reset.  Secondary cores stay off until
+     * the GPC powers them up.
+     */
+    s->cpu[0].powered = true;
+
     s->regs[R_GPC_LPCR_A53_BSC] = 0x00003ff0;
     s->regs[R_GPC_LPCR_A53_AD] = 0x00000020;
     s->regs[R_GPC_LPCR_M7] = 0x00003ff0;
@@ -666,60 +733,48 @@ static void fsl_imx8mp_gpc_set_irq(void *opaque, int irq, int level)
 static void fsl_imx8mp_gpc_request_wake_gic(void *opaque, int irq, int level)
 {
     FslImx8mpGpcState *s = opaque;
+    bool gic_mode;
 
     trace_fsl_imx8mp_gpc_request_wake(irq, level);
 
     s->cpu[irq].request_wake_gic = level != 0;
-
-    if (s->cpu[irq].request_wake_gic) {
-        bool gic_mode;
-
-        switch (irq) {
-        case 0:
-            gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
-                                  IRQ_SRC_C0);
-            break;
-        case 1:
-            gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
-                                  IRQ_SRC_C1);
-            break;
-        case 2:
-            gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
-                                  IRQ_SRC_C2);
-            break;
-        case 3:
-            gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
-                                  IRQ_SRC_C3);
-            break;
-        default:
-            g_assert_not_reached();
-        }
-
-        if (gic_mode) {
-            ARMCPU *cpu = ARM_CPU(arm_get_cpu_by_id(irq));
-
-            /*
-             * The GIC asserts its wake request while the redistributor is
-             * asleep.  On real hardware the GPC then powers the core back
-             * up through the SRC, which restarts it at the address TF-A
-             * programmed into SRC_GPR1/2 (BL31_START).  TF-A's warm path
-             * restores the CPU context and returns to the OS, which then
-             * clears GICR_WAKER.ProcessorSleep and re-enables ICC_IGRPEN1.
-             *
-             * Only wake a core that was actually powered down through the
-             * GPC WFI path.  The redistributors start out asleep and the
-             * GIC then keeps asserting this request, but the secondaries
-             * are merely sitting in their powered-off reset state at that
-             * point and must be brought up through CPU_ON instead.
-             */
-            if (s->cpu[irq].powered_down) {
-                s->cpu[irq].powered_down = false;
-                if (qatomic_read(&cpu->power_state) == PSCI_OFF) {
-                    imx8mp_src_start_cpu(s->src, irq);
-                }
-            }
-        }
+    if (!s->cpu[irq].request_wake_gic) {
+        return;
     }
+
+    switch (irq) {
+    case 0:
+        gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                              IRQ_SRC_C0);
+        break;
+    case 1:
+        gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                              IRQ_SRC_C1);
+        break;
+    case 2:
+        gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                              IRQ_SRC_C2);
+        break;
+    case 3:
+        gic_mode = FIELD_EX32(s->regs[R_GPC_LPCR_A53_BSC], GPC_LPCR_A53_BSC,
+                              IRQ_SRC_C3);
+        break;
+    default:
+        g_assert_not_reached();
+    }
+
+    if (!gic_mode) {
+        return;
+    }
+
+    /*
+     * The GIC asserts its wake request while the redistributor is
+     * asleep.  The GPC powers the core back up and the core restarts at
+     * the warm entry programmed into the SRC GPRs (BL31_START).  TF-A's
+     * warm path restores the CPU context and returns to the OS, which
+     * then clears GICR_WAKER.ProcessorSleep and re-enables ICC_IGRPEN1.
+     */
+    fsl_imx8mp_gpc_wake_cpu(s, irq);
 }
 
 static void fsl_imx8mp_gpc_wfi(void *opaque, int irq, int level)
@@ -763,23 +818,18 @@ static void fsl_imx8mp_gpc_wfi(void *opaque, int irq, int level)
             g_assert_not_reached();
         }
 
-        if (wfi_pdn && !wfi_masked) {
-            ARMCPU *cpu = ARM_CPU(arm_get_cpu_by_id(irq));
-
+        if (wfi_pdn && !wfi_masked &&
+            fsl_imx8mp_gpc_core_pcr_enabled(s, irq)) {
             /*
              * Model the WFI power-down as a real core power-down.  TF-A's
-             * PSCI suspend path sets the SRC resume entry to BL31_START
-             * and parks the core in a permanent WFI loop; the core is not
-             * expected to resume after the WFI instruction.  It has to be
-             * powered up again through the SRC when the GIC raises its
-             * wake request.
-             *
-             * Keep power_state and halt_reason consistent (HALT_PSCI), so
-             * the vCPU sleeps until the GPC/SRC restarts it, and QEMU's
-             * arm_cpu_has_work() invariant holds.
+             * PSCI suspend path programs the SRC warm entry with
+             * BL31_START and parks the core in a permanent WFI loop; the
+             * core is not expected to resume after the WFI instruction.
+             * It has to be powered up again by the GPC when the GIC
+             * raises its wake request, at which point the SRC entry
+             * determines where the core restarts.
              */
-            arm_set_cpu_power_state(cpu, PSCI_OFF);
-            s->cpu[irq].powered_down = true;
+            fsl_imx8mp_gpc_power_down_cpu(s, irq);
 
             /*
              * An interrupt may already have been pending when we powered
@@ -787,7 +837,7 @@ static void fsl_imx8mp_gpc_wfi(void *opaque, int irq, int level)
              * request again.  Check the current level and wake up now.
              */
             if (s->cpu[irq].request_wake_gic) {
-                imx8mp_src_start_cpu(s->src, irq);
+                fsl_imx8mp_gpc_wake_cpu(s, irq);
             }
         }
     }
@@ -809,6 +859,8 @@ static void fsl_imx8mp_gpc_init(Object *obj)
     qdev_init_gpio_in_named(DEVICE(sd), fsl_imx8mp_gpc_request_wake_gic,
                             IMX8MP_GPC_REQUEST_WAKE_GIC, 4);
     qdev_init_gpio_in_named(DEVICE(sd), fsl_imx8mp_gpc_wfi, IMX8MP_GPC_WFI, 4);
+    qdev_init_gpio_out_named(DEVICE(sd), s->cpu_power,
+                             IMX8MP_GPC_CPU_POWER, ARRAY_SIZE(s->cpu_power));
 }
 
 static const VMStateDescription vmstate_fsl_imx8mp_gpc = {

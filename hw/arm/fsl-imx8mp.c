@@ -320,8 +320,8 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
 
         if (i) {
             /*
-             * Secondary CPUs start in powered-down state (and can be
-             * powered up via the SRC system reset controller)
+             * Secondary CPUs start in powered-down state.  The GPC
+             * powers them up and the SRC releases their reset.
              */
             object_property_set_bool(OBJECT(&s->cpu[i]), "start-powered-off",
                                      true, &error_abort);
@@ -448,10 +448,23 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
     /*
      * GPCv2
      */
-    s->gpc.src = &s->src;
     sysbus_realize(SYS_BUS_DEVICE(&s->gpc), errp);
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->gpc), 0,
                     fsl_imx8mp_memmap[FSL_IMX8MP_GPC].addr);
+
+    /*
+     * The GPC reports the power state of each core to the SRC, which
+     * combines it with nCPUPORESET and the programmed warm entry address
+     * to decide when a core starts.
+     */
+    for (i = 0; i < ms->smp.cpus; i++) {
+        qemu_irq powered_in;
+
+        powered_in = qdev_get_gpio_in_named(DEVICE(&s->src),
+                                            IMX8MP_SRC_CPU_POWERED, i);
+        qdev_connect_gpio_out_named(DEVICE(&s->gpc), IMX8MP_GPC_CPU_POWER, i,
+                                    powered_in);
+    }
 
     /* System Counter */
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->sysctr), errp)) {

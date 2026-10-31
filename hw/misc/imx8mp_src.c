@@ -10,14 +10,13 @@
 
 #include "qemu/osdep.h"
 #include "hw/misc/imx8mp_src.h"
-#include "hw/core/cpu.h"
 #include "hw/core/qdev-properties.h"
 #include "hw/core/registerfields.h"
 #include "target/arm/arm-powerctl.h"
+#include "target/arm/internals.h"
 #include "migration/vmstate.h"
 #include "qemu/bitops.h"
 #include "qemu/log.h"
-#include "qemu/main-loop.h"
 #include "trace.h"
 
 REG32(SRC_SCR, 0x0000)
@@ -182,46 +181,49 @@ static uint64_t fsl_imx8mp_src_read(void *opaque, hwaddr offset,
     return value;
 }
 
-/*
- * The reset is asynchronous so we need to defer clearing the reset bit until
- * the work is completed.
- */
-
-struct FslImx8mpSrcResetInfo {
-    FslImx8mpSrcState *s;
-    int reset_bit;
-};
-
-static void fsl_imx8mp_src_clear_reset_bit(CPUState *cpu, run_on_cpu_data data)
+static uint64_t fsl_imx8mp_src_cpu_entry(FslImx8mpSrcState *s, int cpuid)
 {
-    struct FslImx8mpSrcResetInfo *ri = data.host_ptr;
-    FslImx8mpSrcState *s = ri->s;
+    /*
+     * Each core has a 64-bit GPR pair holding the warm reset entry
+     * address shifted right by two.  The upper word contributes bits
+     * [39:24] and the lower word bits [23:2] of the address.
+     */
+    uint32_t hi = s->regs[R_SRC_GPR1 + 2 * cpuid];
+    uint32_t lo = s->regs[R_SRC_GPR1 + 2 * cpuid + 1];
 
-    assert(bql_locked());
-
-    s->regs[R_SRC_A53RCR0] = deposit32(s->regs[R_SRC_A53RCR0],
-                                       ri->reset_bit, 1, 0);
-    trace_fsl_imx8mp_src_clear_reset_bit(fsl_imx8mp_src_reg_name(R_SRC_A53RCR0),
-                                         s->regs[R_SRC_A53RCR0]);
-
-    g_free(ri);
+    return ((uint64_t)(hi & 0xffff) << 24) |
+           ((uint64_t)(lo & 0x3fffff) << 2);
 }
 
-static void fsl_imx8mp_src_defer_clear_reset_bit(FslImx8mpSrcState *s, int cpuid,
-                                             unsigned long reset_shift)
+static void fsl_imx8mp_src_update_cpu(FslImx8mpSrcState *s, int cpuid)
 {
-    struct FslImx8mpSrcResetInfo *ri;
-    CPUState *cpu = arm_get_cpu_by_id(cpuid);
+    bool reset_asserted = !extract32(s->regs[R_SRC_A53RCR1], cpuid, 1);
+    bool should_run = s->powered[cpuid] && !reset_asserted;
 
-    if (!cpu) {
+    if (should_run == s->running[cpuid]) {
         return;
     }
+    s->running[cpuid] = should_run;
 
-    ri = g_new(struct FslImx8mpSrcResetInfo, 1);
-    ri->s = s;
-    ri->reset_bit = reset_shift;
+    if (should_run) {
+        arm_set_cpu_on(cpuid, fsl_imx8mp_src_cpu_entry(s, cpuid), 0, 3, true);
+    } else {
+        CPUState *cs = arm_get_cpu_by_id(cpuid);
 
-    async_run_on_cpu(cpu, fsl_imx8mp_src_clear_reset_bit, RUN_ON_CPU_HOST_PTR(ri));
+        if (cs) {
+            arm_set_cpu_power_state(ARM_CPU(cs), PSCI_OFF);
+        }
+    }
+}
+
+static void fsl_imx8mp_src_cpu_powered(void *opaque, int irq, int level)
+{
+    FslImx8mpSrcState *s = opaque;
+
+    trace_fsl_imx8mp_src_cpu_powered(irq, level);
+
+    s->powered[irq] = level != 0;
+    fsl_imx8mp_src_update_cpu(s, irq);
 }
 
 static void fsl_imx8mp_src_write(void *opaque, hwaddr offset, uint64_t value,
@@ -230,75 +232,40 @@ static void fsl_imx8mp_src_write(void *opaque, hwaddr offset, uint64_t value,
     FslImx8mpSrcState *s = opaque;
     const uint32_t reg = offset / 4;
     unsigned long change_mask;
+    int i;
 
     change_mask = s->regs[reg] ^ (uint32_t)value;
 
     switch (reg) {
     case R_SRC_A53RCR0:
-        if (FIELD_EX32(change_mask, SRC_A53RCR0, CORE_RESET0)) {
-            arm_reset_cpu(0);
-            fsl_imx8mp_src_defer_clear_reset_bit(s, 0, R_SRC_A53RCR0_CORE_RESET0_SHIFT);
-        }
-        if (FIELD_EX32(change_mask, SRC_A53RCR0, CORE_RESET1)) {
-            arm_reset_cpu(1);
-            fsl_imx8mp_src_defer_clear_reset_bit(s, 1, R_SRC_A53RCR0_CORE_RESET1_SHIFT);
-        }
-        if (FIELD_EX32(change_mask, SRC_A53RCR0, CORE_RESET2)) {
-            arm_reset_cpu(2);
-            fsl_imx8mp_src_defer_clear_reset_bit(s, 2, R_SRC_A53RCR0_CORE_RESET2_SHIFT);
-        }
-        if (FIELD_EX32(change_mask, SRC_A53RCR0, CORE_RESET3)) {
-            arm_reset_cpu(3);
-            fsl_imx8mp_src_defer_clear_reset_bit(s, 3, R_SRC_A53RCR0_CORE_RESET3_SHIFT);
+        /*
+         * The A53RCR0 reset bits are level sensitive: writing 1 asserts
+         * the reset, writing 0 releases it.  Unlike A53RCR1 they are not
+         * self-clearing.  Bits 0-3 are the core power-on resets and
+         * bits 4-7 the core resets; both reset the core, while power
+         * sequencing is done by the GPC.
+         */
+        for (i = 0; i < 4; i++) {
+            uint32_t mask = BIT(i) | BIT(i + 4);
+
+            if (change_mask & (uint32_t)value & mask) {
+                arm_reset_cpu(i);
+            }
         }
         s->regs[reg] = value;
         break;
     case R_SRC_A53RCR1:
-        if (FIELD_EX32(change_mask, SRC_A53RCR1, CORE3_ENABLE)) {
-            if (FIELD_EX32(value, SRC_A53RCR1, CORE3_ENABLE)) {
-                /* CORE 3 is brought up */
-                arm_set_cpu_on(3, s->regs[R_SRC_GPR8] << 2, 0, 3, true);
-            } else {
-                /* CORE 3 is shut down */
-                arm_set_cpu_off(3);
-            }
-            /* We clear the reset bit as the processor changed state */
-            fsl_imx8mp_src_defer_clear_reset_bit(s, 3, R_SRC_A53RCR0_CORE_RESET3_SHIFT);
-        }
-        if (FIELD_EX32(change_mask, SRC_A53RCR1, CORE2_ENABLE)) {
-            if (FIELD_EX32(value, SRC_A53RCR1, CORE2_ENABLE)) {
-                /* CORE 2 is brought up */
-                arm_set_cpu_on(2, s->regs[R_SRC_GPR6] << 2, 0, 3, true);
-            } else {
-                /* CORE 2 is shut down */
-                arm_set_cpu_off(2);
-            }
-            /* We clear the reset bit as the processor changed state */
-            fsl_imx8mp_src_defer_clear_reset_bit(s, 2, R_SRC_A53RCR0_CORE_RESET2_SHIFT);
-        }
-        if (FIELD_EX32(change_mask, SRC_A53RCR1, CORE1_ENABLE)) {
-            if (FIELD_EX32(value, SRC_A53RCR1, CORE1_ENABLE)) {
-                /* CORE 1 is brought up */
-                arm_set_cpu_on(1, s->regs[R_SRC_GPR4] << 2, 0, 3, true);
-            } else {
-                /* CORE 1 is shut down */
-                arm_set_cpu_off(1);
-            }
-            /* We clear the reset bit as the processor changed state */
-            fsl_imx8mp_src_defer_clear_reset_bit(s, 1, R_SRC_A53RCR0_CORE_RESET1_SHIFT);
-        }
-        if (FIELD_EX32(change_mask, SRC_A53RCR1, CORE0_ENABLE)) {
-            if (FIELD_EX32(value, SRC_A53RCR1, CORE0_ENABLE)) {
-                /* CORE 1 is brought up */
-                arm_set_cpu_on(0, s->regs[R_SRC_GPR2] << 2, 0, 3, true);
-            } else {
-                /* CORE 1 is shut down */
-                arm_set_cpu_off(0);
-            }
-            /* We clear the reset bit as the processor changed state */
-            fsl_imx8mp_src_defer_clear_reset_bit(s, 0, R_SRC_A53RCR0_CORE_RESET0_SHIFT);
-        }
+        /*
+         * A53RCR1 bits are nCPUPORESET: 0 holds the core in reset and 1
+         * releases it.  A core runs once its power domain is up (GPC)
+         * and its reset is released (SRC), so re-evaluate it here.
+         */
         s->regs[reg] = value;
+        for (i = 0; i < 4; i++) {
+            if (change_mask & BIT(i)) {
+                fsl_imx8mp_src_update_cpu(s, i);
+            }
+        }
         break;
     default:
         if (reg < FSL_IMX8MP_SRC_NUM_REGS) {
@@ -330,25 +297,12 @@ static const struct MemoryRegionOps imx8mp_src_ops = {
     },
 };
 
-void imx8mp_src_start_cpu(FslImx8mpSrcState *s, int cpuid)
+static void imx8mp_src_init(Object *obj)
 {
-    switch (cpuid) {
-    case 0:
-        arm_set_cpu_on(0, s->regs[R_SRC_GPR2] << 2, 0, 3, true);
-        break;
-    case 1:
-        arm_set_cpu_on(1, s->regs[R_SRC_GPR4] << 2, 0, 3, true);
-        break;
-    case 2:
-        arm_set_cpu_on(2, s->regs[R_SRC_GPR6] << 2, 0, 3, true);
-        break;
-    case 3:
-        arm_set_cpu_on(3, s->regs[R_SRC_GPR8] << 2, 0, 3, true);
-        break;
-    default:
-        g_assert_not_reached();
-        break;
-    }
+    FslImx8mpSrcState *s = IMX8MP_SRC(obj);
+
+    qdev_init_gpio_in_named(DEVICE(obj), fsl_imx8mp_src_cpu_powered,
+                            IMX8MP_SRC_CPU_POWERED, ARRAY_SIZE(s->powered));
 }
 
 static void imx8mp_src_realize(DeviceState *dev, Error **errp)
@@ -365,6 +319,16 @@ static void imx8mp_src_reset(DeviceState *dev)
     FslImx8mpSrcState *s = IMX8MP_SRC(dev);
 
     memset(s->regs, 0, sizeof(s->regs));
+    memset(s->powered, 0, sizeof(s->powered));
+    memset(s->running, 0, sizeof(s->running));
+
+    /*
+     * CPU 0 is the boot CPU: QEMU starts it directly and its power
+     * domain is already up, so it is running from the outset.
+     * Secondary cores stay off until the GPC powers them up.
+     */
+    s->powered[0] = true;
+    s->running[0] = true;
 
     s->regs[R_SRC_SCR] = 0xa0;
     s->regs[R_SRC_A53RCR0] = 0xa0000;
@@ -407,6 +371,7 @@ static const TypeInfo imx8mp_src_types[] = {
         .name          = TYPE_IMX8MP_SRC,
         .parent        = TYPE_SYS_BUS_DEVICE,
         .instance_size = sizeof(FslImx8mpSrcState),
+        .instance_init = imx8mp_src_init,
         .class_init    = imx8mp_src_class_init,
     },
 };
