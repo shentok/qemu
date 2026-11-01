@@ -198,6 +198,8 @@ struct MTPState {
     MTPData      *data_in;
     MTPData      *data_out;
     MTPControl   *result;
+    /* A data-in phase ended on a packet boundary, send a ZLP next */
+    bool         data_in_zlp;
     uint32_t     session;
     uint32_t     next_handle;
     bool         readonly;
@@ -1264,6 +1266,8 @@ static void usb_mtp_command(MTPState *s, MTPControl *c)
     uint32_t nres = 0, res0 = 0;
     Error *err = NULL;
 
+    s->data_in_zlp = false;
+
     /* sanity checks */
     if (c->code >= CMD_CLOSE_SESSION && s->session == 0) {
         usb_mtp_queue_result(s, RES_SESSION_NOT_OPEN,
@@ -1521,6 +1525,7 @@ static void usb_mtp_handle_reset(USBDevice *dev)
     s->session = 0;
     usb_mtp_data_free(s->data_in);
     s->data_in = NULL;
+    s->data_in_zlp = false;
     usb_mtp_data_free(s->data_out);
     s->data_out = NULL;
     g_free(s->result);
@@ -1542,6 +1547,7 @@ static void usb_mtp_handle_control(USBDevice *dev, USBPacket *p,
             s->result = NULL;
             usb_mtp_data_free(s->data_in);
             s->data_in = NULL;
+            s->data_in_zlp = false;
             if (s->write_pending) {
                 g_free(s->dataset.filename);
                 s->write_pending = false;
@@ -1875,6 +1881,17 @@ static void usb_mtp_handle_data(USBDevice *dev, USBPacket *p)
 
     switch (p->ep->nr) {
     case EP_DATA_IN:
+        if (s->data_in_zlp) {
+            /*
+             * The previous data phase ended exactly on a packet boundary
+             * but the host asked for more data.  Terminate the transfer
+             * with a zero-length packet, otherwise the host would continue
+             * and read the response container as part of the data phase.
+             */
+            s->data_in_zlp = false;
+            p->status = USB_RET_SUCCESS;
+            return;
+        }
         if (s->data_out != NULL) {
             /* guest bug */
             trace_usb_mtp_stall(s->dev.addr, "awaiting data-out");
@@ -1926,6 +1943,16 @@ static void usb_mtp_handle_data(USBDevice *dev, USBPacket *p)
             }
             d->offset += dlen;
             if (d->offset == d->length) {
+                /*
+                 * The data phase is complete.  If this packet was filled
+                 * completely and the host asked for more data, the
+                 * transfer ended exactly on a packet boundary: queue a
+                 * zero-length packet so that the host sees the end of the
+                 * data phase instead of continuing with the response.
+                 */
+                if (p->short_not_ok && p->actual_length == p->iov.size) {
+                    s->data_in_zlp = true;
+                }
                 usb_mtp_data_free(s->data_in);
                 s->data_in = NULL;
             }
