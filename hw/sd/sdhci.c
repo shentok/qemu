@@ -1813,12 +1813,30 @@ static void sdhci_bus_class_init(ObjectClass *klass, const void *data)
 #define ESDHC_VENDOR_PEREN              (1 << 13)
 #define ESDHC_VENDOR_CKEN               (1 << 14)
 
+/*
+ * i.MX uSDHC "System Control" register.  It shares offset 0x2c with the
+ * standard SDHCI clock control register, but has no internal clock
+ * enable/stable or SD clock enable bits: IPG_PERCLK always clocks the
+ * controller and the card clock is derived from the SDCLKFS/DVS dividers
+ * below.  The software reset bits and DTOCV sit where SDHCI expects the
+ * reset byte and the timeout field, and INITA (80 clock cycles during
+ * card power-up) self-clears in hardware.
+ */
+#define ESDHC_SYSCTRL_DVS_MASK          0x000000f0
+#define ESDHC_SYSCTRL_SDCLKFS_MASK      0x0000ff00
+#define ESDHC_SYSCTRL_DTOCV_MASK        0x000f0000
+#define ESDHC_SYSCTRL_RSTA              (1 << 24)
+#define ESDHC_SYSCTRL_RSTC              (1 << 25)
+#define ESDHC_SYSCTRL_RSTD              (1 << 26)
+#define ESDHC_SYSCTRL_RESET_MASK        (ESDHC_SYSCTRL_RSTA | \
+                                         ESDHC_SYSCTRL_RSTC | \
+                                         ESDHC_SYSCTRL_RSTD)
+
 #define ESDHC_DLL_CTRL                  0x60
 
 #define ESDHC_TUNING_CTRL               0xcc
 #define ESDHC_TUNE_CTRL_STATUS          0x68
 #define ESDHC_WTMK_LVL                  0x44
-#define ESDHC_SYSCTL_RSTA               BIT(24)
 
 /* Undocumented register used by guests working around erratum ERR004536 */
 #define ESDHC_UNDOCUMENTED_REG27        0x6c
@@ -2069,10 +2087,12 @@ static uint64_t usdhc_read(void *opaque, hwaddr offset, unsigned size)
     switch (offset & ~3) {
     case SDHC_PRNSTS:
         value = esdhc_read(opaque, SDHC_PRNSTS, 4);
-        if ((s->vendor_spec & (ESDHC_VENDOR_IPGEN | ESDHC_VENDOR_HCKEN)) ==
-            (ESDHC_VENDOR_IPGEN | ESDHC_VENDOR_HCKEN)) {
-            value |= ESDHC_PRNSTS_SDSTB;
-        }
+        /*
+         * The uSDHC internal card clock is derived from IPG_PERCLK and
+         * cannot be gated off through System Control, so it is always
+         * stable as far as the host driver is concerned.
+         */
+        value |= ESDHC_PRNSTS_SDSTB;
         break;
     case ESDHC_VENDOR_SPEC:
         value = s->vendor_spec;
@@ -2098,9 +2118,31 @@ usdhc_write(void *opaque, hwaddr offset, uint64_t val, unsigned size)
     if ((offset & ~3) == SDHC_CLKCON) {
         uint16_t norintstsen = s->norintstsen;
         uint16_t errintstsen = s->errintstsen;
-        bool reset_all = (val << ((offset & 3) * 8)) & ESDHC_SYSCTL_RSTA;
+        bool reset_all = (val << ((offset & 3) * 8)) & ESDHC_SYSCTRL_RSTA;
 
-        esdhc_write(opaque, offset, val, size);
+        /*
+         * On the i.MX uSDHC this offset is "System Control": SDCLKFS[15:8]
+         * and DVS[7:4] select the card clock dividers, bits 3:0 are
+         * reserved and there are no SDHCI clock enable/stable bits.  The
+         * internal clock is always running, which the SDHCI core expects
+         * to see through the clock status bits, so keep those asserted.
+         * The software reset bits keep their standard positions and DTOCV
+         * overlaps the standard timeout field.
+         */
+        if ((offset & 3) || size != 4) {
+            esdhc_write(opaque, offset, val, size);
+        } else {
+            s->timeoutcon = (value & ESDHC_SYSCTRL_DTOCV_MASK) >> 16;
+            s->clkcon = (value & (ESDHC_SYSCTRL_SDCLKFS_MASK |
+                                  ESDHC_SYSCTRL_DVS_MASK)) |
+                        SDHC_CLOCK_CHK_MASK;
+            /*
+             * Reset-all clears the controller (and with it the clock
+             * state); the command/data resets only affect their own
+             * lines.
+             */
+            sdhci_reset_write(s, (value & ESDHC_SYSCTRL_RESET_MASK) >> 24);
+        }
         if (reset_all) {
             /*
              * U-Boot programs INT_STATUS_EN before issuing another RSTA.
