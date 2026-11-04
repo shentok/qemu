@@ -191,9 +191,6 @@ static void via_pm_trigger_sw_smi(ViaPMState *s, uint8_t val)
 
     /* ACPI specs 3.0, 4.7.2.5 */
     acpi_pm1_cnt_update(&s->ar, val == ACPI_ENABLE, val == ACPI_DISABLE);
-    if (val == ACPI_ENABLE || val == ACPI_DISABLE) {
-        return;
-    }
 
     if (s->gbl_en & VIA_PM_IO_GBLEN_SW_SMI
         && s->gbl_ctl & VIA_PM_IO_GBLCTL_SMI_EN
