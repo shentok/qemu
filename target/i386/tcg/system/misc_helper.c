@@ -209,6 +209,15 @@ void HELPER(wrmsr)(CPUX86State *env)
         }
         env->vm_hsave = val;
         break;
+    /*
+     * AMD SMBASE.  The Award BIOS of the QDI KinetiZ 7B/E programs the
+     * SMM handler location through this MSR during POST.  Without it the
+     * write was silently ignored, SMM entered at the default 0x30000 and
+     * the "Updating ESCD" step never completed.
+     */
+    case 0xc0010111:
+        env->smbase = val & ~0x7fff;
+        break;
 #ifdef TARGET_X86_64
     case MSR_LSTAR:
         env->lstar = val;
@@ -361,6 +370,9 @@ void HELPER(rdmsr)(CPUX86State *env)
         break;
     case MSR_VM_HSAVE_PA:
         val = env->vm_hsave;
+        break;
+    case 0xc0010111: /* AMD SMBASE, see HELPER(wrmsr) */
+        val = env->smbase;
         break;
     case MSR_IA32_PERF_STATUS:
         /* tsc_increment_by_tick */
