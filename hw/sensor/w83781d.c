@@ -263,6 +263,26 @@ static void w83781d_reset_hold(Object *obj, ResetType type)
     regs[0x5d] = 0x48;
     regs[0x5f] = 0x1f;
 
+    /*
+     * Nominal readings of the LM78-compatible register file. Voltages are
+     * reported as 16 mV per LSB and temperatures in degrees Celsius, as
+     * defined by the W83781D datasheet. The values represent a board with
+     * all rails in spec so that a BIOS POST hardware-monitor self test
+     * passes on a machine without real sensors attached.
+     */
+    memset(s->data, 0, sizeof(s->data));
+    s->data[0x20] = 0x80; /* Vcore: 2.048 V */
+    s->data[0x21] = 0x00; /* Vtt/Vio: unused */
+    s->data[0x22] = 0xce; /* +3.3 V */
+    s->data[0x23] = 0xb9; /* +5 V behind the resistor divider */
+    s->data[0x24] = 0xc5; /* +12 V behind the resistor divider */
+    s->data[0x25] = 0xbd; /* -12 V behind the resistor divider */
+    s->data[0x26] = 0xcf; /* -5 V behind the resistor divider */
+    s->data[0x27] = 30;   /* temperature 1 */
+    s->data[0x28] = 0xe1; /* fan 1: 3000 rpm */
+    s->data[0x29] = 0xe1; /* fan 2: 3000 rpm */
+    s->data[0x2a] = 0xff; /* fan 3 */
+
     memset(s->as99127f, 0, sizeof(s->as99127f));
     s->as99127f[0x00] = 0x88;
     s->as99127f[0x01] = 0x10;
