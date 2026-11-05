@@ -23,6 +23,7 @@
  */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "hw/i2c/i2c.h"
 #include "hw/i2c/smbus_slave.h"
 #include "hw/core/qdev-properties.h"
@@ -31,13 +32,18 @@
 #include "migration/vmstate.h"
 #include "qemu/log.h"
 #include "qom/object.h"
+#include "system/reset.h"
+#include "system/runstate.h"
 #include "trace.h"
 
 #define TYPE_W83781D "w83781d"
+#define TYPE_W83781D_LM75 "w83781d-lm75"
 
 OBJECT_DECLARE_SIMPLE_TYPE(W83781DState, W83781D)
+OBJECT_DECLARE_SIMPLE_TYPE(W83781DLM75State, W83781D_LM75)
 
 #define W83781D_SIZE 256
+#define W83781D_AS99127F_SIZE 0x80
 
 struct W83781DState {
     SMBusDevice parent_obj;
@@ -45,8 +51,24 @@ struct W83781DState {
     DeviceState *lm75[2];
     uint8_t regs[0x20];
     uint8_t data[W83781D_SIZE];
+    /*
+     * AS99127F-specific registers. They live behind the LM75 at 0x48 and are
+     * selected by setting bit 7 of the register index.
+     */
+    uint8_t as99127f[W83781D_AS99127F_SIZE];
     uint16_t vendor;
     uint8_t offset;
+};
+
+/*
+ * LM75 thermometer of the AS99127F. Accesses to the extended register range
+ * are forwarded to the parent AS99127F.
+ */
+struct W83781DLM75State {
+    SMBusDevice parent_obj;
+
+    W83781DState *w83781d;
+    uint8_t pointer;
 };
 
 static uint8_t w83781d_get_bank(W83781DState *s)
@@ -113,6 +135,93 @@ static int w83781d_write_data(SMBusDevice *dev, uint8_t *buf, uint8_t len)
     return 0;
 }
 
+static uint8_t w83781d_as99127f_read(W83781DState *s, uint8_t reg)
+{
+    reg &= 0x7f;
+
+    trace_w83781d_receive_byte(I2C_SLAVE(s)->address, reg | 0x80,
+                               s->as99127f[reg]);
+
+    return s->as99127f[reg];
+}
+
+static void w83781d_as99127f_write(W83781DState *s, uint8_t reg, uint8_t val)
+{
+    reg &= 0x7f;
+
+    trace_w83781d_write_byte(I2C_SLAVE(s)->address, reg | 0x80, val);
+
+    switch (reg) {
+    case 0x01:
+        /*
+         * CLKRST: clearing bit 4 resets the machine. The BIOS uses this to
+         * reboot after settings have been saved.
+         */
+        if (!(val & 0x10)) {
+            qemu_system_reset_request(SHUTDOWN_CAUSE_GUEST_RESET);
+        }
+        break;
+    case 0x07:
+        /* GPO15 is wired to the reset line on some boards. */
+        if (val & 0x01) {
+            qemu_system_reset_request(SHUTDOWN_CAUSE_GUEST_RESET);
+        }
+        break;
+    default:
+        break;
+    }
+
+    s->as99127f[reg] = val;
+}
+
+static uint8_t w83781d_lm75_receive_byte(SMBusDevice *dev)
+{
+    W83781DLM75State *s = W83781D_LM75(dev);
+    uint8_t reg = s->pointer++;
+
+    if (reg & 0x80) {
+        return w83781d_as99127f_read(s->w83781d, reg);
+    }
+
+    /* The temperature registers are not modeled. */
+    return 0;
+}
+
+static int w83781d_lm75_write_data(SMBusDevice *dev, uint8_t *buf, uint8_t len)
+{
+    W83781DLM75State *s = W83781D_LM75(dev);
+    uint8_t reg = buf[0];
+
+    for (int i = 1; i < len; i++) {
+        if (reg & 0x80) {
+            w83781d_as99127f_write(s->w83781d, reg, buf[i]);
+        }
+        reg++;
+    }
+
+    s->pointer = reg;
+
+    return 0;
+}
+
+static const VMStateDescription vmstate_w83781d_lm75 = {
+    .name = "w83781d-lm75",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields = (const VMStateField[]) {
+        VMSTATE_SMBUS_DEVICE(parent_obj, W83781DLM75State),
+        VMSTATE_UINT8(pointer, W83781DLM75State),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
+static void w83781d_lm75_reset_hold(Object *obj, ResetType type)
+{
+    W83781DLM75State *s = W83781D_LM75(obj);
+
+    s->pointer = 0;
+}
+
 static const VMStateDescription vmstate_w83781d = {
     .name = "w83781d",
     .version_id = 1,
@@ -120,6 +229,7 @@ static const VMStateDescription vmstate_w83781d = {
     .fields = (const VMStateField[]) {
         VMSTATE_SMBUS_DEVICE(parent_obj, W83781DState),
         VMSTATE_UINT8_ARRAY(data, W83781DState, W83781D_SIZE),
+        VMSTATE_UINT8_ARRAY(as99127f, W83781DState, W83781D_AS99127F_SIZE),
         VMSTATE_UINT8(offset, W83781DState),
         VMSTATE_END_OF_LIST()
     }
@@ -153,17 +263,29 @@ static void w83781d_reset_hold(Object *obj, ResetType type)
     regs[0x5d] = 0x48;
     regs[0x5f] = 0x1f;
 
+    memset(s->as99127f, 0, sizeof(s->as99127f));
+    s->as99127f[0x00] = 0x88;
+    s->as99127f[0x01] = 0x10;
+    s->as99127f[0x03] = 0x02;
+    s->as99127f[0x04] = 0x01;
+    s->as99127f[0x05] = 0x1f;
+    s->as99127f[0x06] = 0x2f;
+
     s->offset = 0;
 }
 
 static void w83781d_realize(DeviceState *dev, Error **errp)
 {
     W83781DState *s = W83781D(dev);
+    I2CBus *bus = I2C_BUS(dev->parent_bus);
+    I2CSlave *lm75;
 
-    for (int i = 0; i < ARRAY_SIZE(s->lm75); i++) {
-        i2c_slave_create_simple(I2C_BUS(dev->parent_bus), TYPE_TMP105,
-                                0x48 + i);
-    }
+    lm75 = i2c_slave_new(TYPE_W83781D_LM75, 0x48);
+    object_property_set_link(OBJECT(lm75), "w83781d", OBJECT(s), &error_abort);
+    i2c_slave_realize_and_unref(lm75, bus, &error_abort);
+    s->lm75[0] = DEVICE(lm75);
+
+    s->lm75[1] = DEVICE(i2c_slave_create_simple(bus, TYPE_TMP105, 0x49));
 }
 
 static void w83781d_init(Object *obj)
@@ -199,9 +321,35 @@ static const TypeInfo w83781d_info = {
     .class_init    = w83781d_class_init,
 };
 
+static const Property w83781d_lm75_props[] = {
+    DEFINE_PROP_LINK("w83781d", W83781DLM75State, w83781d,
+                     TYPE_W83781D, W83781DState *),
+};
+
+static void w83781d_lm75_class_init(ObjectClass *klass, const void *data)
+{
+    SMBusDeviceClass *sc = SMBUS_DEVICE_CLASS(klass);
+    DeviceClass *dc = DEVICE_CLASS(klass);
+    ResettableClass *rc = RESETTABLE_CLASS(klass);
+
+    rc->phases.hold = w83781d_lm75_reset_hold;
+    sc->receive_byte = w83781d_lm75_receive_byte;
+    sc->write_data = w83781d_lm75_write_data;
+    dc->vmsd = &vmstate_w83781d_lm75;
+    device_class_set_props(dc, w83781d_lm75_props);
+}
+
+static const TypeInfo w83781d_lm75_info = {
+    .name          = TYPE_W83781D_LM75,
+    .parent        = TYPE_SMBUS_DEVICE,
+    .instance_size = sizeof(W83781DLM75State),
+    .class_init    = w83781d_lm75_class_init,
+};
+
 static void w83781d_register_types(void)
 {
     type_register_static(&w83781d_info);
+    type_register_static(&w83781d_lm75_info);
 }
 
 type_init(w83781d_register_types)
