@@ -118,6 +118,15 @@ under Linux. Look for a .bin file and pass it as the ``-bios`` option to QEMU:
    -cpu pentium3 \
    -drive if=pflash,format=raw,snapshot=on,file=<bios>.bin
 
+.. note::
+
+   The ASUS CUV4X-LS BIOS reports ``CMOS checksum error - Defaults loaded``
+   and waits for F1 on the first start with a blank CMOS. Pressing F1 loads
+   and stores the default settings, after which resets within the same QEMU
+   session boot without the prompt. QEMU does not persist the RTC NVRAM
+   across process restarts, so a newly started QEMU process starts from a
+   blank CMOS again.
+
 .. [1] Requires ``-device w83781d -device ics94xxx,address=105`` to be added
        to the command line. Also requires the ``x-south-bridge-slot`` option to
        be set to ``4`` rather than ``7``.
