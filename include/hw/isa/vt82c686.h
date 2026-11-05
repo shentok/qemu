@@ -19,6 +19,7 @@ typedef struct {
     uint32_t curr;
     uint32_t addr;
     uint32_t clen;
+    bool restart_pending;
 } ViaAC97SGDChannel;
 
 OBJECT_DECLARE_SIMPLE_TYPE(ViaAC97State, VIA_AC97);

@@ -186,6 +186,15 @@ static void out_cb(void *opaque, int avail)
     if (c->stat & STAT_PAUSED) {
         return;
     }
+    if (c->restart_pending) {
+        /*
+         * The guest acknowledged the EOL interrupt, so the queued
+         * Auto-Start may now wrap back to the first descriptor of the
+         * table and resume from there.
+         */
+        c->restart_pending = false;
+        c->curr = c->base;
+    }
     c->stat |= STAT_ACTIVE;
     while (avail && !stop) {
         if (!c->clen) {
@@ -206,32 +215,56 @@ static void out_cb(void *opaque, int avail)
             c->clen -= copied;
         }
         if (CLEN_LEN(c) == 0) {
-            if (CLEN_IS_EOL(c)) {
+            /*
+             * Remember the flags of the descriptor that just finished
+             * before clen is cleared.
+             */
+            bool eol = CLEN_IS_EOL(c);
+            bool flag = CLEN_IS_FLAG(c);
+            bool stopbit = CLEN_IS_STOP(c);
+            bool autostart = eol && (c->type & CNTL_START);
+            bool eol_irq = eol && (c->type & STAT_EOL);
+
+            c->clen = 0;
+            if (eol) {
                 c->stat |= STAT_EOL;
-                if (c->type & CNTL_START) {
-                    c->curr = c->base;
-                    c->stat |= STAT_PAUSED;
+                if (autostart) {
+                    if (eol_irq) {
+                        /*
+                         * Auto-Start queues the restart until the guest
+                         * has acknowledged the EOL interrupt.  CURR_PTR
+                         * stays one descriptor past the end, which is
+                         * where the engine stopped, and the wrap to the
+                         * table base happens when playback resumes.
+                         */
+                        c->stat |= STAT_PAUSED;
+                        c->restart_pending = true;
+                    } else {
+                        /* Nobody to wait for: restart immediately. */
+                        c->curr = c->base;
+                    }
                 } else {
                     c->stat &= ~STAT_ACTIVE;
                     audio_be_set_active_out(s->audio_be, s->vo, 0);
                 }
-                if (c->type & STAT_EOL) {
+                if (eol_irq) {
                     via_isa_set_irq(&s->dev, 0, 1);
                 }
             }
-            if (CLEN_IS_FLAG(c)) {
+            if (flag) {
                 c->stat |= STAT_FLAG;
                 c->stat |= STAT_PAUSED;
                 if (c->type & STAT_FLAG) {
                     via_isa_set_irq(&s->dev, 0, 1);
                 }
             }
-            if (CLEN_IS_STOP(c)) {
+            if (stopbit) {
                 c->stat |= STAT_STOP;
                 c->stat |= STAT_PAUSED;
             }
-            c->clen = 0;
-            stop = true;
+            if (!autostart || eol_irq || flag || stopbit) {
+                stop = true;
+            }
         }
     }
 }
@@ -305,10 +338,18 @@ static void sgd_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     switch (addr) {
     case 0:
         if (val & STAT_STOP) {
-            s->aur.stat &= ~STAT_PAUSED;
+            s->aur.stat &= ~(STAT_STOP | STAT_PAUSED);
         }
         if (val & STAT_EOL) {
-            s->aur.stat &= ~(STAT_EOL | STAT_PAUSED);
+            s->aur.stat &= ~STAT_EOL;
+            if (s->aur.restart_pending) {
+                /*
+                 * Auto-Start was queued at EOL.  Acknowledging the EOL
+                 * interrupt releases the pause; out_cb() then wraps to
+                 * the table base and resumes playback.
+                 */
+                s->aur.stat &= ~STAT_PAUSED;
+            }
             if (s->aur.type & STAT_EOL) {
                 via_isa_set_irq(&s->dev, 0, 0);
             }
@@ -324,6 +365,10 @@ static void sgd_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         if (val & CNTL_START) {
             audio_be_set_active_out(s->audio_be, s->vo, 1);
             s->aur.stat = STAT_ACTIVE;
+            if (s->aur.restart_pending) {
+                s->aur.restart_pending = false;
+                s->aur.curr = s->aur.base;
+            }
             if (!s->aur.clen) {
                 fetch_sgd(&s->aur, &s->dev);
             }
@@ -332,6 +377,7 @@ static void sgd_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
             audio_be_set_active_out(s->audio_be, s->vo, 0);
             s->aur.stat &= ~(STAT_ACTIVE | STAT_PAUSED);
             s->aur.clen = 0;
+            s->aur.restart_pending = false;
         }
         if (val & CNTL_PAUSE) {
             audio_be_set_active_out(s->audio_be, s->vo, 0);
@@ -355,6 +401,7 @@ static void sgd_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     case 4:
         s->aur.base = val & ~1ULL;
         s->aur.curr = s->aur.base;
+        s->aur.restart_pending = false;
         break;
     case 0x80:
         if (val >> 30) {
@@ -429,6 +476,7 @@ static void via_ac97_reset(DeviceState *dev)
     memset(s->dev.config + PCI_CONFIG_HEADER_SIZE, 0,
            PCI_CONFIG_SPACE_SIZE - PCI_CONFIG_HEADER_SIZE);
 
+    s->aur.restart_pending = false;
     codec_reset(s);
 }
 

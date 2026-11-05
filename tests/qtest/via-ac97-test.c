@@ -34,6 +34,8 @@
 #define CTRL_START          0x80
 
 #define STAT_EOL            0x02
+#define STAT_PAUSED         0x40
+#define STAT_ACTIVE         0x80
 
 #define TYPE_AUTOSTART      0x80
 #define TYPE_16BIT          0x20
@@ -126,6 +128,29 @@ static void test_sgd_pointer(void)
     qtest_quit(s);
 }
 
+static uint32_t via686_linear_pos(QTestState *s, uint32_t bar,
+                                  const uint32_t *offsets,
+                                  const uint32_t *sizes, int entries)
+{
+    uint32_t ptr = qtest_inl(s, bar + SGD_TABLE_ADDR);
+    uint32_t count = qtest_inl(s, bar + SGD_CURR_COUNT) & 0xffffff;
+    uint32_t bufsize = 0;
+    uint32_t base, size, res;
+    int idx, i;
+
+    for (i = 0; i < entries; i++) {
+        bufsize += sizes[i];
+    }
+    idx = ptr <= TABLE_ADDR ? 0 : ((ptr - TABLE_ADDR) / 8 - 1) % entries;
+    size = sizes[idx];
+    base = offsets[idx];
+    res = base + size - count;
+    if (res >= bufsize) {
+        res -= bufsize;
+    }
+    return res;
+}
+
 static void test_sgd_eol_wrap(void)
 {
     /*
@@ -134,14 +159,17 @@ static void test_sgd_eol_wrap(void)
      * wrap: if it were skipped, the engine would already be back at EOL
      * after the short second period.
      */
-    const uint32_t len0 = 17640; /* 100 ms at 44.1 kHz stereo s16 */
-    const uint32_t len1 = 1764;  /* 10 ms at 44.1 kHz stereo s16 */
+    const uint32_t len0 = 35280; /* 200 ms at 44.1 kHz stereo s16 */
+    const uint32_t len1 = 1764;  /*  10 ms at 44.1 kHz stereo s16 */
+    const uint32_t offsets[2] = { 0, len0 };
+    const uint32_t sizes[2] = { len0, len1 };
     QTestState *s = qtest_init(
         "-M pc,x-south-bridge=vt82c686b,x-north-bridge=vt82c694t,"
         "audiodev=snd0 -audiodev none,id=snd0");
     uint32_t table[4];
     uint32_t bar;
     uint32_t cmd;
+    uint32_t count;
     int devfn;
 
     devfn = find_ac97(s);
@@ -169,32 +197,122 @@ static void test_sgd_eol_wrap(void)
                TYPE_AUTOSTART | TYPE_16BIT | TYPE_STEREO | TYPE_INT_EOL);
     qtest_outb(s, bar + SGD_CONTROL, CTRL_START);
 
-    /* Let the audio timer play through the ring and wrap at EOL. */
-    qtest_clock_step(s, 150 * 1000 * 1000LL);
+    /*
+     * Play through both descriptors.  Auto-Start is enabled, but the
+     * restart after EOL is queued until the guest acknowledges the EOL
+     * interrupt, so the engine must be paused here.
+     */
+    qtest_clock_step(s, 250 * 1000 * 1000LL);
 
-    /* The ring must actually have been played up to the EOL descriptor. */
     g_assert_cmphex(qtest_inb(s, bar + SGD_STATUS) & STAT_EOL, ==, STAT_EOL);
+    g_assert_cmphex(qtest_inb(s, bar + SGD_STATUS) & STAT_PAUSED, ==,
+                    STAT_PAUSED);
+    g_assert_cmphex(qtest_inb(s, bar + SGD_STATUS) & STAT_ACTIVE, ==,
+                    STAT_ACTIVE);
 
     /*
-     * At the EOL pause the descriptor that is about to be played is the
-     * first one again, and the count of the descriptor that just finished
-     * is zero.  This is what MorphOS reads to track the ring position.
+     * CURR_PTR stays one descriptor past the end, where the engine
+     * stopped, and CURR_COUNT is zero.  The Linux driver derives the last
+     * descriptor index from that pointer and its position calculation
+     * wraps back to zero.
      */
-    g_assert_cmphex(qtest_inl(s, bar + SGD_TABLE_ADDR), ==, TABLE_ADDR);
+    g_assert_cmphex(qtest_inl(s, bar + SGD_TABLE_ADDR), ==, TABLE_ADDR + 16);
+    g_assert_cmphex(qtest_inl(s, bar + SGD_CURR_COUNT), ==, 0);
+    g_assert_cmpuint(via686_linear_pos(s, bar, offsets, sizes, 2), ==, 0);
+
+    /* The paused engine must not make any progress. */
+    qtest_clock_step(s, 20 * 1000 * 1000LL);
+    g_assert_cmphex(qtest_inl(s, bar + SGD_TABLE_ADDR), ==, TABLE_ADDR + 16);
     g_assert_cmphex(qtest_inl(s, bar + SGD_CURR_COUNT), ==, 0);
 
-    /* Acknowledge EOL and let the engine resume with the first period. */
+    /* Acknowledging EOL releases the queued restart. */
     qtest_outb(s, bar + SGD_STATUS, STAT_EOL);
+    g_assert_cmphex(qtest_inb(s, bar + SGD_STATUS) & STAT_EOL, ==, 0);
+    g_assert_cmphex(qtest_inb(s, bar + SGD_STATUS) & STAT_PAUSED, ==, 0);
+
     qtest_clock_step(s, 20 * 1000 * 1000LL);
 
-    /*
-     * The first descriptor must be fetched and played.  If the wrap had
-     * skipped it, the short second period would already have run out and
-     * the engine would be paused at EOL with CURR_PTR back at the base.
-     */
+    /* The engine wrapped to the table base and is playing the first block. */
     g_assert_cmphex(qtest_inl(s, bar + SGD_TABLE_ADDR), ==, TABLE_ADDR + 8);
-    g_assert_cmpuint(qtest_inl(s, bar + SGD_CURR_COUNT), >, 0);
-    g_assert_cmpuint(qtest_inl(s, bar + SGD_CURR_COUNT), <, len0);
+    count = qtest_inl(s, bar + SGD_CURR_COUNT);
+    g_assert_cmpuint(count, >, 0);
+    g_assert_cmpuint(count, <, len0);
+    g_assert_cmpuint(via686_linear_pos(s, bar, offsets, sizes, 2), >, 0);
+    g_assert_cmpuint(via686_linear_pos(s, bar, offsets, sizes, 2), <, len0);
+
+    /*
+     * Halfway through the long first block there must still be no EOL:
+     * the first descriptor was replayed, not skipped.
+     */
+    qtest_clock_step(s, 100 * 1000 * 1000LL);
+    g_assert_cmphex(qtest_inb(s, bar + SGD_STATUS) & STAT_EOL, ==, 0);
+    g_assert_cmphex(qtest_inl(s, bar + SGD_TABLE_ADDR), ==, TABLE_ADDR + 8);
+    g_assert_cmpuint(qtest_inl(s, bar + SGD_CURR_COUNT), <, count);
+
+    /* After a full pass the engine pauses at EOL again. */
+    qtest_clock_step(s, 120 * 1000 * 1000LL);
+    g_assert_cmphex(qtest_inb(s, bar + SGD_STATUS) & STAT_EOL, ==, STAT_EOL);
+    g_assert_cmphex(qtest_inl(s, bar + SGD_TABLE_ADDR), ==, TABLE_ADDR + 16);
+    g_assert_cmphex(qtest_inl(s, bar + SGD_CURR_COUNT), ==, 0);
+    g_assert_cmpuint(via686_linear_pos(s, bar, offsets, sizes, 2), ==, 0);
+
+    qtest_quit(s);
+}
+
+static void test_sgd_eol_no_irq(void)
+{
+    /*
+     * Without the EOL interrupt there is nobody to acknowledge the end of
+     * the link, so Auto-Start must wrap and continue immediately.
+     */
+    const uint32_t len0 = 17640; /* 100 ms at 44.1 kHz stereo s16 */
+    const uint32_t len1 = 1764;  /*  10 ms at 44.1 kHz stereo s16 */
+    QTestState *s = qtest_init(
+        "-M pc,x-south-bridge=vt82c686b,x-north-bridge=vt82c694t,"
+        "audiodev=snd0 -audiodev none,id=snd0");
+    uint32_t table[4];
+    uint32_t bar;
+    uint32_t cmd;
+    uint32_t count;
+    int devfn;
+
+    devfn = find_ac97(s);
+    g_assert_cmpint(devfn, >=, 0);
+
+    cmd = pci_config_read32(s, devfn, 0x04);
+    pci_config_write32(s, devfn, 0x10, 0xc001);
+    pci_config_write32(s, devfn, 0x04, cmd | 1);
+    bar = pci_config_read32(s, devfn, 0x10) & ~3u;
+    g_assert_cmphex(bar, !=, 0);
+
+    ac97_write(s, bar, AC97_EXT_AUDIO_CTRL, EACS_VRA);
+    ac97_write(s, bar, AC97_PCM_DAC_RATE, 44100);
+
+    table[0] = DATA_ADDR;
+    table[1] = len0;
+    table[2] = DATA_ADDR + len0;
+    table[3] = len1 | DESC_EOL;
+    qtest_memwrite(s, TABLE_ADDR, table, sizeof(table));
+    qtest_memset(s, DATA_ADDR, 0, len0 + len1);
+
+    qtest_outl(s, bar + SGD_TABLE_ADDR, TABLE_ADDR);
+    qtest_outb(s, bar + SGD_TYPE,
+               TYPE_AUTOSTART | TYPE_16BIT | TYPE_STEREO);
+    qtest_outb(s, bar + SGD_CONTROL, CTRL_START);
+
+    /* Play one full pass and 40 ms into the next one. */
+    qtest_clock_step(s, 150 * 1000 * 1000LL);
+
+    g_assert_cmphex(qtest_inb(s, bar + SGD_STATUS) & STAT_PAUSED, ==, 0);
+    g_assert_cmphex(qtest_inb(s, bar + SGD_STATUS) & STAT_ACTIVE, ==,
+                    STAT_ACTIVE);
+
+    /* The EOL status is still recorded, but it did not stop the stream. */
+    g_assert_cmphex(qtest_inb(s, bar + SGD_STATUS) & STAT_EOL, ==, STAT_EOL);
+    g_assert_cmphex(qtest_inl(s, bar + SGD_TABLE_ADDR), ==, TABLE_ADDR + 8);
+    count = qtest_inl(s, bar + SGD_CURR_COUNT);
+    g_assert_cmpuint(count, >, 0);
+    g_assert_cmpuint(count, <, len0);
 
     qtest_quit(s);
 }
@@ -204,5 +322,6 @@ int main(int argc, char **argv)
     g_test_init(&argc, &argv, NULL);
     qtest_add_func("/via-ac97/sgd-pointer", test_sgd_pointer);
     qtest_add_func("/via-ac97/sgd-eol-wrap", test_sgd_eol_wrap);
+    qtest_add_func("/via-ac97/sgd-eol-no-irq", test_sgd_eol_no_irq);
     return g_test_run();
 }
