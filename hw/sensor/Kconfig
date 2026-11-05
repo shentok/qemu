@@ -51,4 +51,3 @@ config MAX31785
 config W83781D
     bool
     depends on SMBUS
-    select TMP105

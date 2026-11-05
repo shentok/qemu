@@ -28,7 +28,6 @@
 #include "hw/i2c/smbus_slave.h"
 #include "hw/core/qdev-properties.h"
 #include "hw/core/resettable.h"
-#include "hw/sensor/tmp105.h"
 #include "migration/vmstate.h"
 #include "qemu/log.h"
 #include "qom/object.h"
@@ -69,6 +68,8 @@ struct W83781DLM75State {
 
     W83781DState *w83781d;
     uint8_t pointer;
+    /* Temperature in 8.8 fixed point format, as reported by the LM75. */
+    uint16_t temperature;
 };
 
 static uint8_t w83781d_get_bank(W83781DState *s)
@@ -189,11 +190,17 @@ static uint8_t w83781d_lm75_receive_byte(SMBusDevice *dev)
     uint8_t reg = s->pointer++;
 
     if (reg & 0x80) {
-        return w83781d_as99127f_read(s->w83781d, reg);
+        return s->w83781d ? w83781d_as99127f_read(s->w83781d, reg) : 0;
     }
 
-    /* The temperature registers are not modeled. */
-    return 0;
+    switch (reg & 0x03) {
+    case 0:
+        return s->temperature >> 8;
+    case 1:
+        return s->temperature & 0xff;
+    default:
+        return 0;
+    }
 }
 
 static int w83781d_lm75_write_data(SMBusDevice *dev, uint8_t *buf, uint8_t len)
@@ -202,7 +209,7 @@ static int w83781d_lm75_write_data(SMBusDevice *dev, uint8_t *buf, uint8_t len)
     uint8_t reg = buf[0];
 
     for (int i = 1; i < len; i++) {
-        if (reg & 0x80) {
+        if ((reg & 0x80) && s->w83781d) {
             w83781d_as99127f_write(s->w83781d, reg, buf[i]);
         }
         reg++;
@@ -220,6 +227,7 @@ static const VMStateDescription vmstate_w83781d_lm75 = {
     .fields = (const VMStateField[]) {
         VMSTATE_SMBUS_DEVICE(parent_obj, W83781DLM75State),
         VMSTATE_UINT8(pointer, W83781DLM75State),
+        VMSTATE_UINT16(temperature, W83781DLM75State),
         VMSTATE_END_OF_LIST()
     }
 };
@@ -229,6 +237,8 @@ static void w83781d_lm75_reset_hold(Object *obj, ResetType type)
     W83781DLM75State *s = W83781D_LM75(obj);
 
     s->pointer = 0;
+    /* Report a plausible, fixed board/CPU temperature of 30 degrees C. */
+    s->temperature = 30 << 8;
 }
 
 static const VMStateDescription vmstate_w83781d = {
@@ -309,12 +319,18 @@ static void w83781d_realize(DeviceState *dev, Error **errp)
     I2CBus *bus = I2C_BUS(dev->parent_bus);
     I2CSlave *lm75;
 
+    /*
+     * The AS99127F contains two LM75-compatible temperature sensors.  Only
+     * the first one forwards extended register accesses to the monitor.
+     */
     lm75 = i2c_slave_new(TYPE_W83781D_LM75, 0x48);
     object_property_set_link(OBJECT(lm75), "w83781d", OBJECT(s), &error_abort);
     i2c_slave_realize_and_unref(lm75, bus, &error_abort);
     s->lm75[0] = DEVICE(lm75);
 
-    s->lm75[1] = DEVICE(i2c_slave_create_simple(bus, TYPE_TMP105, 0x49));
+    lm75 = i2c_slave_new(TYPE_W83781D_LM75, 0x49);
+    i2c_slave_realize_and_unref(lm75, bus, &error_abort);
+    s->lm75[1] = DEVICE(lm75);
 }
 
 static void w83781d_init(Object *obj)
