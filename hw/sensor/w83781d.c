@@ -114,6 +114,15 @@ static int w83781d_write_data(SMBusDevice *dev, uint8_t *buf, uint8_t len)
 
     for (int i = 1; i < len; i++) {
         s->data[s->offset] = buf[i];
+        /*
+         * The configuration registers 0x40..0x5f are read back from regs[],
+         * so mirror writes there as well. Without this the guest sees the
+         * reset value forever, which makes e.g. the ASUS CUV4X-LS hardware
+         * monitor page loop while auto-adjusting the fan divisor in 0x4b.
+         */
+        if (s->offset >= 0x40 && s->offset < 0x60) {
+            s->regs[s->offset - 0x40] = buf[i];
+        }
 
         trace_w83781d_write_byte(i2c->address, s->offset, s->data[s->offset]);
 
