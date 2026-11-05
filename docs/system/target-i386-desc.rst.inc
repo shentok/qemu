@@ -92,7 +92,7 @@ and a VIA VT82C686B south bridge. It can be emulated as follows:
 .. parsed-literal::
 
    |qemu_system_x86| \
-   -M pc,x-south-bridge=vt82c686b-isa,x-north-bridge=vt82c694t
+   -M pc,x-south-bridge=vt82c686b,x-north-bridge=vt82c694t
 
 BIOS Support
 ''''''''''''
@@ -114,10 +114,10 @@ under Linux. Look for a .bin file and pass it as the ``-bios`` option to QEMU:
 .. parsed-literal::
 
    qemu-system-i386 \
-   -M pc,x-south-bridge=vt82c686b-isa,x-north-bridge=vt82c694t,x-south-bridge-slot=7,usb=on \
-   -cpu pentium 3 \
+   -M pc,x-south-bridge=vt82c686b,x-north-bridge=vt82c694t,x-south-bridge-slot=7,usb=on \
+   -cpu pentium3 \
    -drive if=pflash,format=raw,snapshot=on,file=<bios>.bin
 
-.. [1] Requires ``-device device0x48,address=72 -device ics94xxx,address=105``
-       to be added to the command line. Also requires the
-       ``x-south-bridge-slot`` option to be set to ``4`` rather than ``7``.
+.. [1] Requires ``-device w83781d -device ics94xxx,address=105`` to be added
+       to the command line. Also requires the ``x-south-bridge-slot`` option to
+       be set to ``4`` rather than ``7``.
