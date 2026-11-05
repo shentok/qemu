@@ -40,6 +40,8 @@
 #include "hw/intc/i8259.h"
 #include "hw/timer/i8254.h"
 #include "hw/input/i8042.h"
+#include "hw/core/or-irq.h"
+#include "hw/core/qdev-properties.h"
 #include "hw/audio/pcspk.h"
 #include "system/system.h"
 #include "system/xen.h"
@@ -490,7 +492,6 @@ static void handle_a20_line_change(void *opaque, int irq, int level)
     X86CPU *cpu = opaque;
 
     /* XXX: send to all CPUs ? */
-    /* XXX: add logic to handle multiple A20 line sources */
     x86_cpu_set_a20(cpu, level);
 }
 
@@ -991,6 +992,7 @@ static void pc_superio_init(ISABus *isa_bus, bool create_fdctrl,
     int i;
     DriveInfo *fd[MAX_FD];
     qemu_irq *a20_line;
+    DeviceState *a20_or;
     ISADevice *i8042, *port92, *vmmouse;
     bool ambig;
 
@@ -1045,11 +1047,21 @@ static void pc_superio_init(ISABus *isa_bus, bool create_fdctrl,
     }
     port92 = isa_create_simple(isa_bus, TYPE_PORT92);
 
-    a20_line = qemu_allocate_irqs(handle_a20_line_change, first_cpu, 2);
-    qdev_connect_gpio_out_named(DEVICE(i8042),
-                                I8042_A20_LINE, 0, a20_line[0]);
-    qdev_connect_gpio_out_named(DEVICE(port92),
-                                PORT92_A20_LINE, 0, a20_line[1]);
+    /*
+     * Both the keyboard controller and port 0x92 can drive the A20 line,
+     * and the line is asserted if either of them does (they are wire-ORed
+     * on real hardware).
+     */
+    a20_or = qdev_new(TYPE_OR_IRQ);
+    qdev_prop_set_uint16(a20_or, "num-lines", 2);
+    qdev_realize_and_unref(a20_or, NULL, &error_fatal);
+    qdev_connect_gpio_out_named(DEVICE(i8042), I8042_A20_LINE, 0,
+                                qdev_get_gpio_in(a20_or, 0));
+    qdev_connect_gpio_out_named(DEVICE(port92), PORT92_A20_LINE, 0,
+                                qdev_get_gpio_in(a20_or, 1));
+
+    a20_line = qemu_allocate_irqs(handle_a20_line_change, first_cpu, 1);
+    qdev_connect_gpio_out(a20_or, 0, a20_line[0]);
     g_free(a20_line);
 }
 
