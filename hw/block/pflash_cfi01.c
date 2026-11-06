@@ -80,6 +80,9 @@ struct PFlashCFI01 {
     uint8_t cfi_table[0x52];
     uint64_t counter;
     uint32_t writeblock_size;
+    uint32_t page_length;
+    uint64_t page_offset;
+    uint32_t page_bytes;
     MemoryRegion mem;
     char *name;
     void *storage;
@@ -111,6 +114,25 @@ static const VMStateDescription vmstate_pflash_blk_write = {
     }
 };
 
+static bool pflash_page_program_state_needed(void *opaque)
+{
+    PFlashCFI01 *pfl = opaque;
+
+    return pfl->page_bytes != 0;
+}
+
+static const VMStateDescription vmstate_pflash_page_program = {
+    .name = "pflash_cfi01_page_program",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .needed = pflash_page_program_state_needed,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT64(page_offset, PFlashCFI01),
+        VMSTATE_UINT32(page_bytes, PFlashCFI01),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 static const VMStateDescription vmstate_pflash = {
     .name = "pflash_cfi01",
     .version_id = 1,
@@ -125,6 +147,7 @@ static const VMStateDescription vmstate_pflash = {
     },
     .subsections = (const VMStateDescription * const []) {
         &vmstate_pflash_blk_write,
+        &vmstate_pflash_page_program,
         NULL
     }
 };
@@ -252,6 +275,7 @@ static void pflash_set_to_read_array_mode(PFlashCFI01 *pfl)
      */
     pfl->wcycle = 0;
     pfl->cmd = 0x00;
+    pfl->page_bytes = 0;
     memory_region_rom_device_set_romd(&pfl->mem, true);
 }
 
@@ -295,6 +319,7 @@ static uint32_t pflash_read(PFlashCFI01 *pfl, hwaddr offset,
     case 0x50: /* Clear status register */
     case 0x60: /* Block /un)lock */
     case 0x70: /* Status Register */
+    case 0xa0: /* Page program */
     case 0xe8: /* Write block */
         /*
          * Status register read.  Return status from each device in
@@ -623,8 +648,9 @@ static void pflash_write(PFlashCFI01 *pfl, hwaddr offset,
                     pfl->cmd = cmd;
                     pfl->wcycle = 0;
                     break;
-                case 0xa0: /* byte program */
+                case 0xa0: /* page program */
                     pfl->cmd = cmd;
+                    pfl->page_bytes = 0;
                     break;
                 case 0xf0:
                     pfl->cmd = 0;
@@ -635,16 +661,49 @@ static void pflash_write(PFlashCFI01 *pfl, hwaddr offset,
                 }
             }
             break;
-        case 0xa0: /* Byte program */
-            if (!pfl->ro) {
-                pflash_data_write(pfl, offset, value, width, be);
-                pflash_update(pfl, offset, width);
+        case 0xa0: /* Page program */
+            if (pfl->page_length) {
+                hwaddr page_mask = pfl->page_length - 1;
+
+                if (pfl->page_bytes == 0) {
+                    pfl->page_offset = offset & ~page_mask;
+                } else if ((offset & ~page_mask) != pfl->page_offset) {
+                    /*
+                     * A write outside the page being loaded terminates the
+                     * page load and starts a new command sequence.  The
+                     * already loaded bytes have been committed below.
+                     */
+                    pfl->cmd = 0;
+                    pfl->wcycle = 0;
+                    pfl->page_bytes = 0;
+                    pflash_write(pfl, offset, value, width, be);
+                    return;
+                }
+                if (!pfl->ro) {
+                    pflash_data_write(pfl, offset, value, width, be);
+                    pflash_update(pfl, offset, width);
+                } else {
+                    pfl->status |= 0x10; /* Programming error */
+                }
+                pfl->status |= 0x80; /* Ready! */
+                pfl->page_bytes += width;
+                if (pfl->page_bytes >= pfl->page_length) {
+                    pfl->cmd = 0;
+                    pfl->wcycle = 0;
+                    pfl->page_bytes = 0;
+                }
             } else {
-                pfl->status |= 0x10; /* Programming error */
+                /* Single byte program */
+                if (!pfl->ro) {
+                    pflash_data_write(pfl, offset, value, width, be);
+                    pflash_update(pfl, offset, width);
+                } else {
+                    pfl->status |= 0x10; /* Programming error */
+                }
+                pfl->status |= 0x80; /* Ready! */
+                pfl->cmd = 0;
+                pfl->wcycle = 0;
             }
-            pfl->status |= 0x80; /* Ready! */
-            pfl->cmd = 0;
-            pfl->wcycle = 0;
             break;
         case 0xe8: /* Block write */
             /* FIXME check @offset, @width */
@@ -924,6 +983,7 @@ static void pflash_cfi01_realize(DeviceState *dev, Error **errp)
 
     pfl->blk_bytes = g_malloc(pfl->writeblock_size);
     pfl->blk_offset = -1;
+    pfl->page_bytes = 0;
 }
 
 static void pflash_cfi01_system_reset(DeviceState *dev)
@@ -939,6 +999,7 @@ static void pflash_cfi01_system_reset(DeviceState *dev)
     pfl->status = 0x80;
 
     pfl->blk_offset = -1;
+    pfl->page_bytes = 0;
 }
 
 static const Property pflash_cfi01_properties[] = {
@@ -950,6 +1011,8 @@ static const Property pflash_cfi01_properties[] = {
      */
     DEFINE_PROP_UINT32("num-blocks", PFlashCFI01, nb_blocs, 0),
     DEFINE_PROP_UINT64("sector-length", PFlashCFI01, sector_len, 0),
+    /* Page size for the A0 page program command; 0 means single byte */
+    DEFINE_PROP_UINT32("page-length", PFlashCFI01, page_length, 0),
     /* width here is the overall width of this QEMU device in bytes.
      * The QEMU device may be emulating a number of flash devices
      * wired up in parallel; the width of each individual flash

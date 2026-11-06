@@ -82,6 +82,7 @@ static PFlashCFI01 *pc_pflash_create(PCMachineState *pcms,
     DeviceState *dev = qdev_new(TYPE_PFLASH_CFI01);
 
     qdev_prop_set_uint64(dev, "sector-length", FLASH_SECTOR_SIZE);
+    qdev_prop_set_uint32(dev, "page-length", 128);
     qdev_prop_set_uint8(dev, "width", 1);
     qdev_prop_set_uint16(dev, "id1", 0xda);
     qdev_prop_set_uint16(dev, "id3", 0x45);
