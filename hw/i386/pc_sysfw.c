@@ -186,6 +186,16 @@ static void pc_system_flash_map(PCMachineState *pcms,
         gpa = 0x100000000ULL - total_size; /* where the flash is mapped */
         qdev_prop_set_uint32(DEVICE(system_flash), "num-blocks",
                              size / FLASH_SECTOR_SIZE);
+        if (i == 0) {
+            /*
+             * pc_pflash_create() defaults to a 256 KiB Winbond part.
+             * Advertise the 512 KiB sibling when the firmware image is
+             * that large so that firmware reading the ID sees a matching
+             * density.
+             */
+            qdev_prop_set_uint16(DEVICE(system_flash), "id3",
+                                 size == 512 * KiB ? 0x46 : 0x45);
+        }
         sysbus_realize_and_unref(SYS_BUS_DEVICE(system_flash), &error_fatal);
         sysbus_mmio_map(SYS_BUS_DEVICE(system_flash), 0, gpa);
 
