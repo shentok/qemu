@@ -13,6 +13,7 @@
 
 #include "qemu/osdep.h"
 #include "qemu/log.h"
+#include "qemu/timer.h"
 #include "hw/isa/vt82c686.h"
 #include "ac97.h"
 #include "trace.h"
@@ -34,6 +35,16 @@
 #define CNTL_PAUSE  BIT(3)
 
 static void open_voice_out(ViaAC97State *s);
+
+/*
+ * The codec consumes samples, and therefore the SGD engine fetches them,
+ * at the front DAC rate.  The host audio backend only reports how much
+ * room it has once per timer period (10 ms by default), which would make
+ * descriptor completion - and the FLAG/EOL interrupts derived from it -
+ * jitter by that period.  Pump the engine from its own fine grained timer
+ * instead and pace it with the sample clock.
+ */
+#define SGD_PUMP_PERIOD_NS (NANOSECONDS_PER_SECOND / 1000)
 
 static uint16_t codec_rates[] = { 8000, 11025, 16000, 22050, 32000, 44100,
                                   48000 };
@@ -175,16 +186,80 @@ static void fetch_sgd(ViaAC97SGDChannel *c, PCIDevice *d)
                              CLEN_IS_FLAG(c) ? 'F' : '-', CLEN_LEN(c));
 }
 
+static unsigned sgd_bytes_per_frame(ViaAC97SGDChannel *c)
+{
+    unsigned bytes = (c->type & BIT(5)) ? 2 : 1;
+    unsigned channels = (c->type & BIT(4)) ? 2 : 1;
+
+    return bytes * channels;
+}
+
+static void sgd_clock_start(ViaAC97State *s)
+{
+    ViaAC97SGDChannel *c = &s->aur;
+
+    c->clock_valid = true;
+    c->clock_ns = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+    c->clock_frames = 0;
+}
+
+static void sgd_clock_stop(ViaAC97SGDChannel *c)
+{
+    c->clock_valid = false;
+}
+
+/*
+ * Only ever keep a small backlog of sample clock credit.  A short pause
+ * (the guest acknowledging a FLAG or EOL interrupt) is caught up again,
+ * while a stalled backend or a long pause must not be replayed in one
+ * burst once it recovers.
+ */
+static uint64_t sgd_clock_allow(ViaAC97SGDChannel *c, int64_t now, int freq)
+{
+    uint64_t due, cap;
+
+    if (!c->clock_valid || freq <= 0) {
+        return UINT64_MAX;
+    }
+
+    due = muldiv64(now - c->clock_ns, freq, NANOSECONDS_PER_SECOND);
+    cap = MAX(freq / 50, 1); /* 20 ms */
+
+    if (due > c->clock_frames + cap) {
+        /* Drop the excess and keep exactly one backlog worth. */
+        c->clock_ns = now - muldiv64(cap, NANOSECONDS_PER_SECOND, freq);
+        c->clock_frames = 0;
+        due = cap;
+    }
+
+    return due > c->clock_frames ? due - c->clock_frames : 0;
+}
+
 static void out_cb(void *opaque, int avail)
 {
     ViaAC97State *s = opaque;
     ViaAC97SGDChannel *c = &s->aur;
+    unsigned bpf = sgd_bytes_per_frame(c);
+    uint64_t allow;
     int temp, to_copy, copied;
     bool stop = false;
     QEMU_UNINITIALIZED uint8_t tmpbuf[4096];
 
     if (c->stat & STAT_PAUSED) {
         return;
+    }
+    if (!c->clock_valid) {
+        sgd_clock_start(s);
+    }
+    if (bpf) {
+        allow = sgd_clock_allow(c, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL),
+                                CODEC_REG(s, AC97_PCM_Front_DAC_Rate));
+        if (allow != UINT64_MAX) {
+            allow *= bpf;
+            if (allow < avail) {
+                avail = allow;
+            }
+        }
     }
     if (c->restart_pending) {
         /*
@@ -213,6 +288,9 @@ static void out_cb(void *opaque, int avail)
             avail -= copied;
             c->addr += copied;
             c->clen -= copied;
+            if (bpf) {
+                c->clock_frames += copied / bpf;
+            }
         }
         if (CLEN_LEN(c) == 0) {
             /*
@@ -267,6 +345,29 @@ static void out_cb(void *opaque, int avail)
             }
         }
     }
+}
+
+static void sgd_update_pump(ViaAC97State *s)
+{
+    ViaAC97SGDChannel *c = &s->aur;
+
+    if ((c->stat & STAT_ACTIVE) && !(c->stat & STAT_PAUSED)) {
+        timer_mod(s->pump_timer,
+                  qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) + SGD_PUMP_PERIOD_NS);
+    } else {
+        timer_del(s->pump_timer);
+    }
+}
+
+static void sgd_pump(void *opaque)
+{
+    ViaAC97State *s = opaque;
+    ViaAC97SGDChannel *c = &s->aur;
+
+    if ((c->stat & STAT_ACTIVE) && !(c->stat & STAT_PAUSED)) {
+        out_cb(s, INT_MAX);
+    }
+    sgd_update_pump(s);
 }
 
 static void open_voice_out(ViaAC97State *s)
@@ -360,6 +461,7 @@ static void sgd_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
                 via_isa_set_irq(&s->dev, 0, 0);
             }
         }
+        sgd_update_pump(s);
         break;
     case 1:
         if (val & CNTL_START) {
@@ -372,22 +474,29 @@ static void sgd_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
             if (!s->aur.clen) {
                 fetch_sgd(&s->aur, &s->dev);
             }
+            if (!s->aur.clock_valid) {
+                sgd_clock_start(s);
+            }
         }
         if (val & CNTL_TERM) {
             audio_be_set_active_out(s->audio_be, s->vo, 0);
             s->aur.stat &= ~(STAT_ACTIVE | STAT_PAUSED);
             s->aur.clen = 0;
             s->aur.restart_pending = false;
+            sgd_clock_stop(&s->aur);
         }
         if (val & CNTL_PAUSE) {
             audio_be_set_active_out(s->audio_be, s->vo, 0);
             s->aur.stat &= ~STAT_ACTIVE;
             s->aur.stat |= STAT_PAUSED;
+            sgd_clock_stop(&s->aur);
         } else if (!(val & CNTL_PAUSE) && (s->aur.stat & STAT_PAUSED)) {
             audio_be_set_active_out(s->audio_be, s->vo, 1);
             s->aur.stat |= STAT_ACTIVE;
             s->aur.stat &= ~STAT_PAUSED;
+            sgd_clock_start(s);
         }
+        sgd_update_pump(s);
         break;
     case 2:
     {
@@ -477,6 +586,10 @@ static void via_ac97_reset(DeviceState *dev)
            PCI_CONFIG_SPACE_SIZE - PCI_CONFIG_HEADER_SIZE);
 
     s->aur.restart_pending = false;
+    sgd_clock_stop(&s->aur);
+    if (s->pump_timer) {
+        timer_del(s->pump_timer);
+    }
     codec_reset(s);
 }
 
@@ -508,12 +621,16 @@ static void via_ac97_realize(PCIDevice *pci_dev, Error **errp)
     pci_register_bar(pci_dev, 1, PCI_BASE_ADDRESS_SPACE_IO, &s->fm);
     memory_region_init_io(&s->midi, o, &midi_ops, s, "via-ac97.midi", 4);
     pci_register_bar(pci_dev, 2, PCI_BASE_ADDRESS_SPACE_IO, &s->midi);
+
+    s->pump_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, sgd_pump, s);
 }
 
 static void via_ac97_exit(PCIDevice *dev)
 {
     ViaAC97State *s = VIA_AC97(dev);
 
+    timer_del(s->pump_timer);
+    timer_free(s->pump_timer);
     audio_be_close_out(s->audio_be, s->vo);
 }
 
