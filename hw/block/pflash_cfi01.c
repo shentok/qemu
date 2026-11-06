@@ -623,9 +623,8 @@ static void pflash_write(PFlashCFI01 *pfl, hwaddr offset,
                     pfl->cmd = cmd;
                     pfl->wcycle = 0;
                     break;
-                case 0xa0: /* block write */
+                case 0xa0: /* byte program */
                     pfl->cmd = cmd;
-                    pfl->counter = pfl->sector_len - 1;
                     break;
                 case 0xf0:
                     pfl->cmd = 0;
@@ -636,7 +635,17 @@ static void pflash_write(PFlashCFI01 *pfl, hwaddr offset,
                 }
             }
             break;
-        case 0xa0: /* fall through */
+        case 0xa0: /* Byte program */
+            if (!pfl->ro) {
+                pflash_data_write(pfl, offset, value, width, be);
+                pflash_update(pfl, offset, width);
+            } else {
+                pfl->status |= 0x10; /* Programming error */
+            }
+            pfl->status |= 0x80; /* Ready! */
+            pfl->cmd = 0;
+            pfl->wcycle = 0;
+            break;
         case 0xe8: /* Block write */
             /* FIXME check @offset, @width */
             if (pfl->blk_offset == -1 && pfl->counter) {
