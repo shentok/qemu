@@ -57,6 +57,17 @@ struct PCSpkState {
     unsigned int play_pos;
     uint8_t data_on;
     uint8_t dummy_refresh_clock;
+
+    /*
+     * The speaker gate can be toggled for much less than one audio timer
+     * period.  Generate the waveform from the gate timing instead of
+     * only when the audio backend polls us.
+     */
+    int64_t gate_on_ns;
+    int64_t last_gen_ns;
+    int64_t prefill_ns;
+    bool active;
+    bool prefill;
 };
 
 static const char *s_spk = "pcspk";
@@ -80,16 +91,66 @@ static inline void generate_samples(PCSpkState *s)
     }
 }
 
-static void pcspk_callback(void *opaque, int free)
+/*
+ * Write up to n samples of the current waveform to the voice.  The
+ * waveform is periodic and stored in sample_buf, so wrap play_pos.
+ * Return the number of samples actually written.
+ */
+static uint64_t pcspk_emit(PCSpkState *s, uint64_t n)
 {
-    PCSpkState *s = opaque;
+    uint64_t done = 0;
+
+    while (n > 0) {
+        unsigned int chunk = MIN(n, s->samples - s->play_pos);
+
+        chunk = audio_be_write(s->audio_be, s->voice,
+                               &s->sample_buf[s->play_pos], chunk);
+        if (!chunk) {
+            break;
+        }
+        s->play_pos = (s->play_pos + chunk) % s->samples;
+        n -= chunk;
+        done += chunk;
+    }
+
+    return done;
+}
+
+/*
+ * Emit the samples which correspond to the time elapsed since the last
+ * generation.  This makes short gate pulses independent of the audio
+ * timer period.
+ */
+static void pcspk_emit_until(PCSpkState *s, int64_t now)
+{
+    int64_t elapsed = now - s->last_gen_ns;
+    uint64_t n, written;
+
+    if (elapsed <= 0) {
+        return;
+    }
+
+    n = muldiv64(elapsed, PCSPK_SAMPLE_RATE, NANOSECONDS_PER_SECOND);
+    if (n) {
+        written = pcspk_emit(s, n);
+        /*
+         * Only account for samples accepted by the backend; the rest
+         * has to be generated on the next call.
+         */
+        s->last_gen_ns += muldiv64(written, NANOSECONDS_PER_SECOND,
+                                   PCSPK_SAMPLE_RATE);
+    }
+}
+
+static bool pcspk_update_waveform(PCSpkState *s)
+{
     PITChannelInfo ch;
     unsigned int n;
 
     pit_get_channel_info(s->pit, 2, &ch);
 
     if (ch.mode != 3) {
-        return;
+        return false;
     }
 
     n = ch.initial_count;
@@ -103,6 +164,33 @@ static void pcspk_callback(void *opaque, int free)
         generate_samples(s);
     }
 
+    return s->samples != 0;
+}
+
+static void pcspk_callback(void *opaque, int free)
+{
+    PCSpkState *s = opaque;
+    unsigned int n;
+    int64_t now;
+
+    if (!pcspk_update_waveform(s)) {
+        return;
+    }
+
+    now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+    if (!s->prefill && now - s->gate_on_ns >= s->prefill_ns) {
+        /*
+         * The gate has been on for a while.  Start filling the backend
+         * buffer ahead of time to keep a long note from underrunning.
+         */
+        s->prefill = true;
+    }
+
+    if (!s->prefill) {
+        pcspk_emit_until(s, now);
+        return;
+    }
+
     while (free > 0) {
         n = MIN(s->samples - s->play_pos, (unsigned int)free);
         n = audio_be_write(s->audio_be, s->voice, &s->sample_buf[s->play_pos], n);
@@ -111,11 +199,13 @@ static void pcspk_callback(void *opaque, int free)
         s->play_pos = (s->play_pos + n) % s->samples;
         free -= n;
     }
+    s->last_gen_ns = now;
 }
 
 static int pcspk_audio_init(PCSpkState *s)
 {
     struct audsettings as = {PCSPK_SAMPLE_RATE, 1, AUDIO_FORMAT_U8, 0};
+    unsigned int n;
 
     if (s->voice) {
         /* already initialized */
@@ -127,6 +217,15 @@ static int pcspk_audio_init(PCSpkState *s)
         error_report("pcspk: Could not open voice");
         return -1;
     }
+
+    /*
+     * Only generate ahead once a gate has been on for half a backend
+     * buffer.  Shorter pulses are rendered exactly from their timing.
+     */
+    n = audio_be_get_buffer_size_out(s->audio_be, s->voice);
+    s->prefill_ns = n > 0
+        ? muldiv64(n, NANOSECONDS_PER_SECOND, PCSPK_SAMPLE_RATE) / 2
+        : 20 * NANOSECONDS_PER_SECOND / 1000;
 
     return 0;
 }
@@ -155,15 +254,37 @@ static void pcspk_io_write(void *opaque, hwaddr addr, uint64_t val,
 {
     PCSpkState *s = opaque;
     const int gate = val & 1;
+    bool was_active = s->active;
+    bool active;
 
     trace_pcspk_io_write(s->iobase, val);
 
     s->data_on = (val >> 1) & 1;
     pit_set_gate(s->pit, 2, gate);
-    if (s->voice) {
-        if (gate) /* restart */
+    active = gate && s->data_on;
+
+    if (active != was_active) {
+        int64_t now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+
+        if (active) {
+            s->gate_on_ns = now;
+            s->last_gen_ns = now;
+            s->prefill = false;
             s->play_pos = 0;
-        audio_be_set_active_out(s->audio_be, s->voice, gate & s->data_on);
+        } else {
+            /*
+             * Emit the tail of the pulse even if the audio timer never
+             * got a chance to run while the gate was on.
+             */
+            if (s->voice && pcspk_update_waveform(s)) {
+                pcspk_emit_until(s, now);
+            }
+        }
+        s->active = active;
+    }
+
+    if (s->voice) {
+        audio_be_set_active_out(s->audio_be, s->voice, active);
     }
 }
 
