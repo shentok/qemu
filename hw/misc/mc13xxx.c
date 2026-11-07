@@ -16,6 +16,7 @@
 #include "hw/core/qdev-properties.h"
 #include "hw/core/registerfields.h"
 #include "migration/vmstate.h"
+#include "system/runstate.h"
 #include "ui/input.h"
 #include "trace.h"
 
@@ -31,6 +32,14 @@ REG32(MC34708_IS1, 3)
 REG32(MC34708_IM1, 4)
 
 REG32(MC34708_IDENT, 7)
+
+REG32(MC34708_PWRCTRL0, 13)
+    FIELD(MC34708_PWRCTRL0, USEROFFSPI, 3, 1)
+
+REG32(MC34708_PWRCTRL1, 14)
+
+REG32(MC34708_PWRCTRL2, 15)
+    FIELD(MC34708_PWRCTRL2, WDIRESET, 12, 1)
 
 REG32(MC34708_TS_STATUS, 0x2a)
     FIELD(MC34708_TS_STATUS, PEN_DOWN, 0, 1)
@@ -68,6 +77,9 @@ struct MC34708State {
     uint8_t byte;
     uint32_t val;
     bool expect_reg;
+
+    /* Level of the active-low WDI input pin. */
+    bool wdi_level;
 };
 
 static const char *mc34708_reg_name(int reg)
@@ -81,7 +93,11 @@ static const char *mc34708_reg_name(int reg)
         return "Interrupt Status 1";
     case A_MC34708_IM1:
         return "Interrupt Mask 1";
-    case 15:
+    case A_MC34708_PWRCTRL0:
+        return "Power Control 0";
+    case A_MC34708_PWRCTRL1:
+        return "Power Control 1";
+    case A_MC34708_PWRCTRL2:
         return "Power Control 2";
     case A_MC34708_ADC0:
         return "ADC0";
@@ -110,6 +126,28 @@ static void mc34708_update_irq(MC34708State *s)
                   (s->regs[A_MC34708_IS1] & ~s->regs[A_MC34708_IM1]);
 
     qemu_set_irq(s->irq, is_set);
+}
+
+static void mc34708_wdi(void *opaque, int n, int level)
+{
+    MC34708State *s = MC34708(opaque);
+
+    trace_mc34708_wdi(level);
+
+    if (level == s->wdi_level) {
+        return;
+    }
+    s->wdi_level = level;
+
+    if (level) {
+        return; /* WDI is active low. */
+    }
+
+    if (s->regs[A_MC34708_PWRCTRL2] & R_MC34708_PWRCTRL2_WDIRESET_MASK) {
+        qemu_system_reset_request(SHUTDOWN_CAUSE_GUEST_RESET);
+    } else {
+        qemu_system_shutdown_request(SHUTDOWN_CAUSE_GUEST_SHUTDOWN);
+    }
 }
 
 static int mc34708_send(I2CSlave *i2c, uint8_t data)
@@ -181,6 +219,18 @@ static int mc34708_send(I2CSlave *i2c, uint8_t data)
                     }
                 }
                 s->regs[A_MC34708_IS0] |= BIT(R_MC34708_IS0_TSDONEI_SHIFT);
+            }
+            break;
+        case A_MC34708_PWRCTRL0:
+            s->regs[s->reg] = s->val;
+            /*
+             * USEROFFSPI requests User Off/Memory Hold.  QEMU does not
+             * model the PMIC's low-power states, so treat it as a
+             * shutdown request.
+             */
+            if (s->regs[A_MC34708_PWRCTRL0] &
+                R_MC34708_PWRCTRL0_USEROFFSPI_MASK) {
+                qemu_system_shutdown_request(SHUTDOWN_CAUSE_GUEST_SHUTDOWN);
             }
             break;
         default:
@@ -327,6 +377,10 @@ static const VMStateDescription vmstate_mc34708 = {
     .name = TYPE_MC34708,
     .version_id = 1,
     .minimum_version_id = 1,
+    .fields = (const VMStateField[]) {
+        VMSTATE_BOOL(wdi_level, MC34708State),
+        VMSTATE_END_OF_LIST()
+    },
 };
 
 static void mc34708_init(Object *obj)
@@ -336,6 +390,9 @@ static void mc34708_init(Object *obj)
     qdev_prop_set_uint8(DEVICE(s), "address", 8);
 
     qdev_init_gpio_out(DEVICE(s), &s->irq, 1);
+    qdev_init_gpio_in_named(DEVICE(s), mc34708_wdi, "wdi", 1);
+
+    s->wdi_level = true;
 }
 
 static void mc34708_class_init(ObjectClass *klass, const void *data)

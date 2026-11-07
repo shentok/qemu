@@ -111,12 +111,21 @@ static void imx53_qsb_init(MachineState *machine)
             "mc34708", 8));
         qdev_connect_gpio_out(dev, 0,
                               qdev_get_gpio_in(DEVICE(&s->soc.gpio[1]), 6));
+        /* The TQMA53 WDI wiring is not known, so leave it unconnected. */
     } else {
         dev = DEVICE(i2c_slave_create_simple(
             I2C_BUS(qdev_get_child_bus(DEVICE(&s->soc.i2c[0]), "i2c-bus.0")),
             "mc34708", 8));
         qdev_connect_gpio_out(dev, 0,
                               qdev_get_gpio_in(DEVICE(&s->soc.gpio[4]), 23));
+        /*
+         * WDI is connected to the WDOG1 output on pad GPIO_9 (GPIO1_9).
+         * Note that QEMU's i.MX watchdog resets the machine directly, so
+         * this path is only exercised if the guest drives GPIO1_9 as a
+         * GPIO.
+         */
+        qdev_connect_gpio_out(DEVICE(&s->soc.gpio[0]), 9,
+                              qdev_get_gpio_in_named(dev, "wdi", 0));
     }
 
     if (!qtest_enabled()) {
