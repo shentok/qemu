@@ -328,8 +328,7 @@ void HELPER(wrmsr)(CPUX86State *env)
             }
             break;
         }
-        /* XXX: exception? */
-        break;
+        goto error;
     }
     return;
 error:
@@ -507,8 +506,8 @@ void HELPER(rdmsr)(CPUX86State *env)
             break;
         }
         /* XXX: exception? */
-        val = 0;
-        break;
+        raise_exception_err_ra(env, EXCP0D_GPF, 0, GETPC());
+        return;
     }
     env->regs[R_EAX] = (uint32_t)(val);
     env->regs[R_EDX] = (uint32_t)(val >> 32);
