@@ -873,6 +873,82 @@ static const CPUCaches p3_tualatin_cache_info = {
 };
 
 /*
+ * Cache information for the VIA C3 family.  The C3 does not implement
+ * CPUID leaf 2; it reports its caches through CPUID leaves 0x80000005
+ * and 0x80000006.  All models have 64 KiB, 4-way, 32-byte-line L1
+ * instruction and data caches.  Samuel has no L2 cache, while later
+ * models have a 64 KiB L2 cache (16-way on Nehemiah).
+ */
+static CPUCacheInfo via_c3_l1d_cache = {
+    .type = DATA_CACHE,
+    .level = 1,
+    .size = 64 * KiB,
+    .self_init = 1,
+    .line_size = 32,
+    .associativity = 4,
+    .sets = 512,
+    .partitions = 1,
+    .lines_per_tag = 1,
+    .no_invd_sharing = true,
+    .share_level = CPU_TOPOLOGY_LEVEL_CORE,
+};
+
+static CPUCacheInfo via_c3_l1i_cache = {
+    .type = INSTRUCTION_CACHE,
+    .level = 1,
+    .size = 64 * KiB,
+    .self_init = 1,
+    .line_size = 32,
+    .associativity = 4,
+    .sets = 512,
+    .partitions = 1,
+    .lines_per_tag = 1,
+    .no_invd_sharing = true,
+    .share_level = CPU_TOPOLOGY_LEVEL_CORE,
+};
+
+static CPUCacheInfo via_c3_l2_64k_4way_cache = {
+    .type = UNIFIED_CACHE,
+    .level = 2,
+    .size = 64 * KiB,
+    .line_size = 32,
+    .lines_per_tag = 1,
+    .associativity = 4,
+    .sets = 512,
+    .partitions = 1,
+    .share_level = CPU_TOPOLOGY_LEVEL_CORE,
+};
+
+static CPUCacheInfo via_c3_l2_64k_16way_cache = {
+    .type = UNIFIED_CACHE,
+    .level = 2,
+    .size = 64 * KiB,
+    .line_size = 32,
+    .lines_per_tag = 1,
+    .associativity = 16,
+    .sets = 128,
+    .partitions = 1,
+    .share_level = CPU_TOPOLOGY_LEVEL_CORE,
+};
+
+static const CPUCaches via_c3_samuel_cache_info = {
+    .l1d_cache = &via_c3_l1d_cache,
+    .l1i_cache = &via_c3_l1i_cache,
+};
+
+static const CPUCaches via_c3_l2_4way_cache_info = {
+    .l1d_cache = &via_c3_l1d_cache,
+    .l1i_cache = &via_c3_l1i_cache,
+    .l2_cache = &via_c3_l2_64k_4way_cache,
+};
+
+static const CPUCaches via_c3_nehemiah_cache_info = {
+    .l1d_cache = &via_c3_l1d_cache,
+    .l1i_cache = &via_c3_l1i_cache,
+    .l2_cache = &via_c3_l2_64k_16way_cache,
+};
+
+/*
  * Only used for the CPU models with CPUID level < 4.
  * These CPUs (CPUID level < 4) only use CPUID leaf 2 to present
  * cache information.
@@ -1068,6 +1144,13 @@ void x86_cpu_vendor_words2str(char *dst, uint32_t vendor1,
           CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_CMOV | CPUID_PAT | \
           CPUID_PSE36 | CPUID_FXSR)
 #define PENTIUM3_FEATURES (PENTIUM2_FEATURES | CPUID_SSE)
+#define VIA_C3_FEATURES (CPUID_FP87 | CPUID_DE | CPUID_TSC | CPUID_MSR | \
+          CPUID_MCE | CPUID_CX8 | CPUID_MTRR | CPUID_PGE | CPUID_MMX)
+#define VIA_C3_EXT2_FEATURES CPUID_EXT2_3DNOW
+#define VIA_C3_NEHEMIAH_FEATURES (CPUID_FP87 | CPUID_DE | CPUID_PSE | \
+          CPUID_TSC | CPUID_MSR | CPUID_CX8 | CPUID_MTRR | CPUID_PGE | \
+          CPUID_CMOV | CPUID_MMX | CPUID_FXSR | CPUID_SSE)
+#define VIA_C3_NEHEMIAH_EXT2_FEATURES 0
 #define PPRO_FEATURES (CPUID_FP87 | CPUID_DE | CPUID_PSE | CPUID_TSC | \
           CPUID_MSR | CPUID_MCE | CPUID_CX8 | CPUID_PGE | CPUID_CMOV | \
           CPUID_PAT | CPUID_FXSR | CPUID_MMX | CPUID_SSE | CPUID_SSE2 | \
@@ -4039,6 +4122,81 @@ static const X86CPUDefinition builtin_x86_defs[] = {
         .xlevel = 0,
         .model_id = "",
         .cache_info = &p3_tualatin_cache_info,
+    },
+    {
+        .name = "via-cyrix3-samuel",
+        .level = 1,
+        .vendor = CPUID_VENDOR_ZHAOXIN1,
+        .family = 6,
+        .model = 6,
+        .stepping = 0,
+        .features[FEAT_1_EDX] =
+            VIA_C3_FEATURES,
+        .features[FEAT_8000_0001_EDX] =
+            VIA_C3_EXT2_FEATURES,
+        .xlevel = 0x80000005,
+        .model_id = "",
+        .cache_info = &via_c3_samuel_cache_info,
+    },
+    {
+        .name = "via-c3-samuel2",
+        .level = 1,
+        .vendor = CPUID_VENDOR_ZHAOXIN1,
+        .family = 6,
+        .model = 7,
+        .stepping = 0,
+        .features[FEAT_1_EDX] =
+            VIA_C3_FEATURES,
+        .features[FEAT_8000_0001_EDX] =
+            VIA_C3_EXT2_FEATURES,
+        .xlevel = 0x80000006,
+        .model_id = "",
+        .cache_info = &via_c3_l2_4way_cache_info,
+    },
+    {
+        .name = "via-c3-ezra",
+        .level = 1,
+        .vendor = CPUID_VENDOR_ZHAOXIN1,
+        .family = 6,
+        .model = 7,
+        .stepping = 8,
+        .features[FEAT_1_EDX] =
+            VIA_C3_FEATURES,
+        .features[FEAT_8000_0001_EDX] =
+            VIA_C3_EXT2_FEATURES,
+        .xlevel = 0x80000006,
+        .model_id = "",
+        .cache_info = &via_c3_l2_4way_cache_info,
+    },
+    {
+        .name = "via-c3-ezra-t",
+        .level = 1,
+        .vendor = CPUID_VENDOR_ZHAOXIN1,
+        .family = 6,
+        .model = 8,
+        .stepping = 0,
+        .features[FEAT_1_EDX] =
+            VIA_C3_FEATURES,
+        .features[FEAT_8000_0001_EDX] =
+            VIA_C3_EXT2_FEATURES,
+        .xlevel = 0x80000006,
+        .model_id = "",
+        .cache_info = &via_c3_l2_4way_cache_info,
+    },
+    {
+        .name = "via-c3-nehemiah",
+        .level = 1,
+        .vendor = CPUID_VENDOR_ZHAOXIN1,
+        .family = 6,
+        .model = 9,
+        .stepping = 0,
+        .features[FEAT_1_EDX] =
+            VIA_C3_NEHEMIAH_FEATURES,
+        .features[FEAT_8000_0001_EDX] =
+            VIA_C3_NEHEMIAH_EXT2_FEATURES,
+        .xlevel = 0x80000006,
+        .model_id = "",
+        .cache_info = &via_c3_nehemiah_cache_info,
     },
     {
         .name = "athlon",
@@ -10538,10 +10696,11 @@ static void x86_cpu_realizefn(DeviceState *dev, Error **errp)
         }
     }
 
-    /* On AMD CPUs, some CPUID[8000_0001].EDX bits must match the bits on
-     * CPUID[1].EDX.
+    /*
+     * On AMD and VIA/Zhaoxin CPUs, some CPUID[8000_0001].EDX bits must
+     * match the bits on CPUID[1].EDX.
      */
-    if (IS_AMD_CPU(env)) {
+    if (IS_AMD_CPU(env) || IS_ZHAOXIN_CPU(env)) {
         env->features[FEAT_8000_0001_EDX] &= ~CPUID_EXT2_AMD_ALIASES;
         env->features[FEAT_8000_0001_EDX] |= (env->features[FEAT_1_EDX]
            & CPUID_EXT2_AMD_ALIASES);
