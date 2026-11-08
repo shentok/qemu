@@ -422,6 +422,7 @@ typedef enum X86Seg {
 #define MSR_IA32_SPEC_CTRL              0x48
 #define MSR_VIRT_SSBD                   0xc001011f
 #define MSR_IA32_PRED_CMD               0x49
+#define MSR_IA32_BIOS_UPDT_TRIG         0x79
 #define MSR_IA32_UCODE_REV              0x8b
 #define MSR_IA32_CORE_CAPABILITY        0xcf
 

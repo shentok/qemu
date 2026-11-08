@@ -203,6 +203,9 @@ void HELPER(wrmsr)(CPUX86State *env)
         env->pkrs = val;
         tlb_flush(cs);
         break;
+    case MSR_IA32_BIOS_UPDT_TRIG:
+    case MSR_IA32_UCODE_REV:
+        break;
     /*
      * Intel cache-control MSR.  The Award BIOS of the CUV4X-LS writes
      * this on Pentium III models.  KVM accepts the write, so do not
@@ -496,6 +499,9 @@ void HELPER(rdmsr)(CPUX86State *env)
         break;
     case MSR_IA32_BNDCFGS:
         val = env->msr_bndcfgs;
+        break;
+    case MSR_IA32_BIOS_UPDT_TRIG:
+        val = 0;
         break;
      case MSR_IA32_UCODE_REV:
         val = x86_cpu->ucode_rev;
