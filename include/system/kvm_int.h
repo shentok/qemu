@@ -168,7 +168,6 @@ struct KVMState
     uint16_t xen_evtchn_max_pirq;
     char *device;
     OnOffAuto honor_guest_pat;
-    bool ignore_p6_msrs;
 };
 
 void kvm_memory_listener_register(KVMState *s, KVMMemoryListener *kml,
