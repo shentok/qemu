@@ -203,6 +203,13 @@ void HELPER(wrmsr)(CPUX86State *env)
         env->pkrs = val;
         tlb_flush(cs);
         break;
+    /*
+     * Intel cache-control MSR.  The Award BIOS of the CUV4X-LS writes
+     * this on Pentium III models.  KVM accepts the write, so do not
+     * raise #GP here.
+     */
+    case 0x11e: /* MSR_IA32_BBL_CR_CTL3 */
+        break;
     case MSR_VM_HSAVE_PA:
         if (val & (0xfff | ((~0ULL) << env_archcpu(env)->phys_bits))) {
             goto error;
@@ -378,6 +385,19 @@ void HELPER(rdmsr)(CPUX86State *env)
         val = 1000ULL;
         /* CPU multiplier */
         val |= (((uint64_t)4ULL) << 40);
+        break;
+    /*
+     * Intel platform identification, bus ratio and cache-control MSRs.
+     * The Award BIOS of the CUV4X-LS reads these during POST.
+     */
+    case 0x17: /* MSR_IA32_PLATFORM_ID */
+        val = 0;
+        break;
+    case 0x2a: /* MSR_IA32_EBL_CR_POWERON */
+        val = 0;
+        break;
+    case 0x11e: /* MSR_IA32_BBL_CR_CTL3 */
+        val = 0;
         break;
 #ifdef TARGET_X86_64
     case MSR_LSTAR:
