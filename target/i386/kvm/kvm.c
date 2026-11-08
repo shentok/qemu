@@ -2800,6 +2800,28 @@ static bool kvm_rdmsr_core_thread_count(X86CPU *cpu,
     return true;
 }
 
+/*
+ * The Award BIOS of the CUV4X-LS writes Intel P6 cache-control MSRs
+ * (0x88-0x8b, 0x116, 0x119-0x11b, 0x11e) when it detects a Katmai
+ * Pentium III.  KVM injects #GP for MSRs it does not implement, and
+ * the BIOS' #GP handler returns to the faulting WRMSR, so the guest
+ * loops forever.  Ignore these MSRs like TCG does.
+ *
+ * This is only needed for the generic pentium3 model.  Using a
+ * pentium3-coppermine or pentium3-tualatin model avoids the issue.
+ */
+static bool kvm_rdmsr_ignore(X86CPU *cpu, uint32_t msr, uint64_t *val)
+{
+    *val = 0;
+
+    return true;
+}
+
+static bool kvm_wrmsr_ignore(X86CPU *cpu, uint32_t msr, uint64_t val)
+{
+    return true;
+}
+
 static bool kvm_rdmsr_rapl_power_unit(X86CPU *cpu,
                                       uint32_t msr,
                                       uint64_t *val)
@@ -3341,7 +3363,12 @@ static int kvm_vm_enable_notify_vmexit(KVMState *s)
 
 static int kvm_vm_enable_userspace_msr(KVMState *s)
 {
+    static const uint32_t p6_msrs[] = {
+        0x88, 0x89, 0x8a, 0x8b,
+        0x116, 0x119, 0x11a, 0x11b, 0x11e,
+    };
     int ret;
+    size_t i;
 
     ret = kvm_vm_enable_cap(s, KVM_CAP_X86_USER_SPACE_MSR, 0,
                             KVM_MSR_EXIT_REASON_FILTER);
@@ -3357,6 +3384,18 @@ static int kvm_vm_enable_userspace_msr(KVMState *s)
         error_report("Could not install MSR_CORE_THREAD_COUNT handler: %s",
                      strerror(-ret));
         exit(1);
+    }
+
+    if (s->ignore_p6_msrs) {
+        for (i = 0; i < ARRAY_SIZE(p6_msrs); i++) {
+            ret = kvm_filter_msr(s, p6_msrs[i],
+                                 kvm_rdmsr_ignore, kvm_wrmsr_ignore);
+            if (ret < 0) {
+                error_report("Could not install MSR 0x%x handler: %s",
+                             p6_msrs[i], strerror(-ret));
+                exit(1);
+            }
+        }
     }
 
     return 0;
@@ -7100,6 +7139,20 @@ static void kvm_arch_set_honor_guest_pat(Object *obj, int value, Error **errp)
     s->honor_guest_pat = value;
 }
 
+static void kvm_arch_set_ignore_p6_msrs(Object *obj, bool value,
+                                        Error **errp)
+{
+    KVMState *s = KVM_STATE(obj);
+
+    if (s->fd != -1) {
+        error_setg(errp, "Cannot set properties after the accelerator "
+                   "has been initialized");
+        return;
+    }
+
+    s->ignore_p6_msrs = value;
+}
+
 void kvm_arch_accel_class_init(ObjectClass *oc)
 {
     object_class_property_add_enum(oc, "notify-vmexit", "NotifyVMexitOption",
@@ -7149,6 +7202,13 @@ void kvm_arch_accel_class_init(ObjectClass *oc)
     object_class_property_set_description(oc, "honor-guest-pat",
                                           "Disable KVM quirk that ignores guest PAT "
                                           "memory type settings (default: auto)");
+
+    object_class_property_add_bool(oc, "ignore-p6-msrs",
+                                   NULL,
+                                   kvm_arch_set_ignore_p6_msrs);
+    object_class_property_set_description(oc, "ignore-p6-msrs",
+                                          "Ignore Intel P6 cache-control MSRs "
+                                          "instead of injecting #GP");
 }
 
 void kvm_set_max_apic_id(uint32_t max_apic_id)
