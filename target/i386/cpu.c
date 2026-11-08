@@ -234,19 +234,19 @@ struct CPUID2CacheDescriptorInfo cpuid2_cache_descriptors[] = {
  */
 static uint8_t cpuid2_cache_descriptor(CPUCacheInfo *cache, bool *unmacthed)
 {
-    int i;
-
-    assert(cache->size > 0);
-    assert(cache->level > 0);
-    assert(cache->line_size > 0);
-    assert(cache->associativity > 0);
-    for (i = 0; i < ARRAY_SIZE(cpuid2_cache_descriptors); i++) {
-        struct CPUID2CacheDescriptorInfo *d = &cpuid2_cache_descriptors[i];
-        if (d->level == cache->level && d->type == cache->type &&
-            d->size == cache->size && d->line_size == cache->line_size &&
-            d->associativity == cache->associativity) {
-                return i;
-            }
+    if (cache) {
+        assert(cache->size > 0);
+        assert(cache->level > 0);
+        assert(cache->line_size > 0);
+        assert(cache->associativity > 0);
+        for (int i = 0; i < ARRAY_SIZE(cpuid2_cache_descriptors); i++) {
+            struct CPUID2CacheDescriptorInfo *d = &cpuid2_cache_descriptors[i];
+            if (d->level == cache->level && d->type == cache->type &&
+                d->size == cache->size && d->line_size == cache->line_size &&
+                d->associativity == cache->associativity) {
+                    return i;
+                }
+        }
     }
 
     *unmacthed |= true;
