@@ -785,6 +785,94 @@ static const CPUCaches k7_barton_cache_info = {
 };
 
 /*
+ * Cache information for the Intel Pentium III family.  Katmai has an
+ * off-die 512 KiB, 4-way L2; Coppermine has an on-die 256 KiB, 8-way
+ * L2; Tualatin has an on-die 512 KiB, 8-way L2.  All of them have
+ * 16 KiB, 4-way, 32-byte-line L1 instruction and data caches.
+ */
+static CPUCacheInfo p3_l1d_cache = {
+    .type = DATA_CACHE,
+    .level = 1,
+    .size = 16 * KiB,
+    .self_init = 1,
+    .line_size = 32,
+    .associativity = 4,
+    .sets = 128,
+    .partitions = 1,
+    .lines_per_tag = 1,
+    .no_invd_sharing = true,
+    .share_level = CPU_TOPOLOGY_LEVEL_CORE,
+};
+
+static CPUCacheInfo p3_l1i_cache = {
+    .type = INSTRUCTION_CACHE,
+    .level = 1,
+    .size = 16 * KiB,
+    .self_init = 1,
+    .line_size = 32,
+    .associativity = 4,
+    .sets = 128,
+    .partitions = 1,
+    .lines_per_tag = 1,
+    .no_invd_sharing = true,
+    .share_level = CPU_TOPOLOGY_LEVEL_CORE,
+};
+
+static CPUCacheInfo p3_l2_512k_4way_cache = {
+    .type = UNIFIED_CACHE,
+    .level = 2,
+    .size = 512 * KiB,
+    .line_size = 32,
+    .lines_per_tag = 1,
+    .associativity = 4,
+    .sets = 4096,
+    .partitions = 1,
+    .share_level = CPU_TOPOLOGY_LEVEL_CORE,
+};
+
+static CPUCacheInfo p3_l2_256k_8way_cache = {
+    .type = UNIFIED_CACHE,
+    .level = 2,
+    .size = 256 * KiB,
+    .line_size = 32,
+    .lines_per_tag = 1,
+    .associativity = 8,
+    .sets = 1024,
+    .partitions = 1,
+    .share_level = CPU_TOPOLOGY_LEVEL_CORE,
+};
+
+static CPUCacheInfo p3_l2_512k_8way_cache = {
+    .type = UNIFIED_CACHE,
+    .level = 2,
+    .size = 512 * KiB,
+    .line_size = 32,
+    .lines_per_tag = 1,
+    .associativity = 8,
+    .sets = 2048,
+    .partitions = 1,
+    .share_level = CPU_TOPOLOGY_LEVEL_CORE,
+};
+
+static const CPUCaches p3_katmai_cache_info = {
+    .l1d_cache = &p3_l1d_cache,
+    .l1i_cache = &p3_l1i_cache,
+    .l2_cache = &p3_l2_512k_4way_cache,
+};
+
+static const CPUCaches p3_coppermine_cache_info = {
+    .l1d_cache = &p3_l1d_cache,
+    .l1i_cache = &p3_l1i_cache,
+    .l2_cache = &p3_l2_256k_8way_cache,
+};
+
+static const CPUCaches p3_tualatin_cache_info = {
+    .l1d_cache = &p3_l1d_cache,
+    .l1i_cache = &p3_l1i_cache,
+    .l2_cache = &p3_l2_512k_8way_cache,
+};
+
+/*
  * Only used for the CPU models with CPUID level < 4.
  * These CPUs (CPUID level < 4) only use CPUID leaf 2 to present
  * cache information.
@@ -3912,6 +4000,45 @@ static const X86CPUDefinition builtin_x86_defs[] = {
         .xlevel = 0,
         .model_id = "",
         .cache_info = &legacy_intel_cpuid2_cache_info,
+    },
+    {
+        .name = "pentium3-katmai",
+        .level = 3,
+        .vendor = CPUID_VENDOR_INTEL,
+        .family = 6,
+        .model = 7,
+        .stepping = 3,
+        .features[FEAT_1_EDX] =
+            PENTIUM3_FEATURES,
+        .xlevel = 0,
+        .model_id = "",
+        .cache_info = &p3_katmai_cache_info,
+    },
+    {
+        .name = "pentium3-coppermine",
+        .level = 3,
+        .vendor = CPUID_VENDOR_INTEL,
+        .family = 6,
+        .model = 8,
+        .stepping = 10,
+        .features[FEAT_1_EDX] =
+            PENTIUM3_FEATURES,
+        .xlevel = 0,
+        .model_id = "",
+        .cache_info = &p3_coppermine_cache_info,
+    },
+    {
+        .name = "pentium3-tualatin",
+        .level = 3,
+        .vendor = CPUID_VENDOR_INTEL,
+        .family = 6,
+        .model = 11,
+        .stepping = 1,
+        .features[FEAT_1_EDX] =
+            PENTIUM3_FEATURES,
+        .xlevel = 0,
+        .model_id = "",
+        .cache_info = &p3_tualatin_cache_info,
     },
     {
         .name = "athlon",
