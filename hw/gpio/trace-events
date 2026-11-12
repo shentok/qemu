@@ -57,3 +57,8 @@ allwinner_gpio_set(const char *port, int line, int level) "[%s:%d] <- %d"
 allwinner_gpio_read(const char *reg, uint32_t value) "[%s] -> 0x%" PRIx32
 allwinner_gpio_write(const char *reg, uint32_t value) "[%s] <- 0x%" PRIx32
 allwinner_gpio_out_pin(const char *reg, uint32_t pin, uint32_t value) "[%s.%d] <- 0x%" PRIx32
+
+# mpc8xxx.c
+mpc8xxx_gpio_write(uint64_t offset, uint64_t value) "offset 0x%" PRIx64 " value 0x%" PRIx64
+mpc8xxx_gpio_set_irq(int line, int level) "line %d level %d"
+mpc8xxx_gpio_output(int line, int level) "line %d level %d"

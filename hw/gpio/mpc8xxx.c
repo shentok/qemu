@@ -24,6 +24,7 @@
 #include "hw/core/sysbus.h"
 #include "migration/vmstate.h"
 #include "qom/object.h"
+#include "trace.h"
 
 #define TYPE_MPC8XXX_GPIO "mpc8xxx_gpio"
 OBJECT_DECLARE_SIMPLE_TYPE(MPC8XXXGPIOState, MPC8XXX_GPIO)
@@ -105,6 +106,7 @@ static void mpc8xxx_write_data(MPC8XXXGPIOState *s, uint32_t new_data)
 
         if (s->dir & mask) {
             /* Output */
+            trace_mpc8xxx_gpio_output(i, (new_data & mask) != 0);
             qemu_set_irq(s->out[i], (new_data & mask) != 0);
         }
     }
@@ -116,6 +118,8 @@ static void mpc8xxx_gpio_write(void *opaque, hwaddr offset,
                         uint64_t value, unsigned size)
 {
     MPC8XXXGPIOState *s = (MPC8XXXGPIOState *)opaque;
+
+    trace_mpc8xxx_gpio_write(offset, value);
 
     if (size != 4) {
         /* All registers are 32bit */
@@ -163,6 +167,7 @@ static void mpc8xxx_gpio_set_irq(void * opaque, int irq, int level)
     MPC8XXXGPIOState *s = (MPC8XXXGPIOState *)opaque;
     uint32_t mask;
 
+    trace_mpc8xxx_gpio_set_irq(irq, level);
     mask = 0x80000000 >> irq;
     if ((s->dir & mask) == 0) {
         uint32_t old_value = s->dat & mask;
