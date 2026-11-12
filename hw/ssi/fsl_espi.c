@@ -110,6 +110,7 @@ struct FslEspiState {
 
     int16_t burst_length;
     uint8_t rx_skip;
+    bool rxskip_mode;
 };
 
 static const char *fsl_espi_reg_name(uint32_t reg)
@@ -246,38 +247,52 @@ static void fsl_espi_flush_txfifo(FslEspiState *s)
     uint32_t tx;
     uint32_t rx;
 
-    if (s->rx_skip == 0 && s->regs[ESPI_SPCOM] & ESPI_SPMODE_OD) {
-        while (!fifo8_is_empty(&s->tx_fifo) && s->burst_length > 0) {
-            tx = fsl_espi_tx_fifo_pop(s);
+    /*
+     * Write phase: shift out the bytes the guest put into the TX FIFO.
+     * In RXSKIP mode the first RXSKIP bytes are the command bytes of the
+     * write transfer, so they must come from the FIFO as well.
+     */
+    while (s->burst_length > 0 && !fifo8_is_empty(&s->tx_fifo)) {
+        if (s->rxskip_mode && s->rx_skip == 0) {
+            break;
+        }
 
-            /* We need to write one byte at a time */
-            rx = ssi_transfer(s->bus, tx);
+        tx = fsl_espi_tx_fifo_pop(s);
 
-            if (s->regs[ESPI_SPMODE] & ESPI_SPMODE_LOOP) {
-                rx = tx;
-            }
+        /* We need to write one byte at a time */
+        rx = ssi_transfer(s->bus, tx);
 
-            if (s->rx_skip == 0) {
-                fsl_espi_rx_fifo_push(s, rx);
-            }
+        if (s->regs[ESPI_SPMODE] & ESPI_SPMODE_LOOP) {
+            rx = tx;
+        }
 
-            /* Remove 8 bits from the actual burst */
-            s->burst_length--;
+        if (s->rxskip_mode) {
+            s->rx_skip--;
+        } else {
+            fsl_espi_rx_fifo_push(s, rx);
+        }
+
+        /* Remove 8 bits from the actual burst */
+        s->burst_length--;
+    }
+
+    if (!s->rxskip_mode) {
+        if (s->burst_length > 0) {
+            /* Wait for the rest of the TX data.  */
+            return;
         }
     } else {
-        for (; s->rx_skip > 0 && !fifo8_is_empty(&s->tx_fifo); s->rx_skip--) {
-            tx = fsl_espi_tx_fifo_pop(s);
-
-            /* We need to write one byte at a time */
-            ssi_transfer(s->bus, tx);
+        if (s->rx_skip > 0) {
+            /* Still waiting for the write-phase command bytes.  */
+            return;
         }
 
-        while (!fifo8_is_full(&s->rx_fifo) && s->burst_length > 0 &&
-               !fifo8_is_empty(&s->tx_fifo)) {
-            tx = fsl_espi_tx_fifo_pop(s);
-
-            /* We need to write one byte at a time */
-            rx = ssi_transfer(s->bus, tx);
+        /*
+         * Read phase: clock in the remaining bytes by sending dummy data.
+         * The received bytes are what the slave returned.
+         */
+        while (s->burst_length > 0 && !fifo8_is_full(&s->rx_fifo)) {
+            rx = ssi_transfer(s->bus, 0);
 
             fsl_espi_rx_fifo_push(s, rx);
 
@@ -310,6 +325,7 @@ static void fsl_espi_common_reset(FslEspiState *s)
 
     s->burst_length = 0;
     s->rx_skip = 0;
+    s->rxskip_mode = false;
 }
 
 static void fsl_espi_soft_reset(FslEspiState *s)
@@ -415,7 +431,11 @@ static void fsl_espi_write(void *opaque, hwaddr offset, uint64_t value,
         break;
 
     case ESPI_SPIE:
-        if (!(s->regs[ESPI_SPIM] & ~value)) {
+        /* Event bits are write-1-to-clear.  */
+        s->regs[ESPI_SPIE] &= ~value;
+        fsl_espi_tx_fifo_update(s);
+        fsl_espi_rx_fifo_update(s);
+        if (!(s->regs[ESPI_SPIE] & s->regs[ESPI_SPIM])) {
             qemu_set_irq(s->irq, 0);
         }
         break;
@@ -424,6 +444,7 @@ static void fsl_espi_write(void *opaque, hwaddr offset, uint64_t value,
         s->regs[ESPI_SPCOM] = value;
         s->burst_length = EXTRACT(s->regs[ESPI_SPCOM], SPCOM_TRANLEN) + 1;
         s->rx_skip = EXTRACT(s->regs[ESPI_SPCOM], SPCOM_RXSKIP);
+        s->rxskip_mode = s->rx_skip != 0;
 
         trace_fsl_espi_spcom(EXTRACT(s->regs[ESPI_SPCOM], SPCOM_CS),
                              s->regs[ESPI_SPCOM] & SPCOM_DO,
@@ -444,10 +465,10 @@ static void fsl_espi_write(void *opaque, hwaddr offset, uint64_t value,
 
     case ESPI_SPITF:
         if (fsl_espi_is_enabled(s)) {
-            for (i = 0; i < size; ++i) {
-                fsl_espi_tx_fifo_push(s, value);
-                fsl_espi_flush_txfifo(s);
+            for (i = size - 1; i >= 0; --i) {
+                fsl_espi_tx_fifo_push(s, value >> (i * 8));
             }
+            fsl_espi_flush_txfifo(s);
         }
         break;
 
