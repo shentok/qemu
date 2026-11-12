@@ -35,10 +35,13 @@ struct MPC8XXXGPIOState {
     MemoryRegion iomem;
     qemu_irq irq;
     qemu_irq out[32];
+    char *name;
 
     uint32_t dir;
     uint32_t odr;
     uint32_t dat;
+    uint32_t last_data;
+    uint32_t ext;
     uint32_t ier;
     uint32_t imr;
     uint32_t icr;
@@ -52,6 +55,8 @@ static const VMStateDescription vmstate_mpc8xxx_gpio = {
         VMSTATE_UINT32(dir, MPC8XXXGPIOState),
         VMSTATE_UINT32(odr, MPC8XXXGPIOState),
         VMSTATE_UINT32(dat, MPC8XXXGPIOState),
+        VMSTATE_UINT32(last_data, MPC8XXXGPIOState),
+        VMSTATE_UINT32(ext, MPC8XXXGPIOState),
         VMSTATE_UINT32(ier, MPC8XXXGPIOState),
         VMSTATE_UINT32(imr, MPC8XXXGPIOState),
         VMSTATE_UINT32(icr, MPC8XXXGPIOState),
@@ -94,24 +99,58 @@ static uint64_t mpc8xxx_gpio_read(void *opaque, hwaddr offset,
 
 static void mpc8xxx_write_data(MPC8XXXGPIOState *s, uint32_t new_data)
 {
-    uint32_t old_data = s->dat;
-    uint32_t diff = old_data ^ new_data;
+    uint32_t old_out = s->dat & s->dir;
+    uint32_t new_out = new_data & s->dir;
+    uint32_t changed = old_out ^ new_out;
+    int i;
+
+    s->last_data = new_data;
+
+    for (i = 0; i < 32; i++) {
+        uint32_t mask = 0x80000000 >> i;
+
+        if (!(changed & mask)) {
+            continue;
+        }
+
+        trace_mpc8xxx_gpio_output(s->name, i, (new_out & mask) != 0);
+        qemu_set_irq(s->out[i], (new_out & mask) != 0);
+    }
+
+    /* Output pins follow the latch; input pins track the external line. */
+    s->dat = (s->dat & ~s->dir) | new_out;
+}
+
+static void mpc8xxx_gpio_set_dir(MPC8XXXGPIOState *s, uint32_t new_dir)
+{
+    uint32_t changed = s->dir ^ new_dir;
     int i;
 
     for (i = 0; i < 32; i++) {
         uint32_t mask = 0x80000000 >> i;
-        if (!(diff & mask)) {
+
+        if (!(changed & mask)) {
             continue;
         }
 
-        if (s->dir & mask) {
-            /* Output */
-            trace_mpc8xxx_gpio_output(i, (new_data & mask) != 0);
-            qemu_set_irq(s->out[i], (new_data & mask) != 0);
+        if (new_dir & mask) {
+            /* Pin becomes an output: drive the latched data value. */
+            bool level = (s->last_data & mask) != 0;
+
+            s->dat = (s->dat & ~mask) | (level ? mask : 0);
+            trace_mpc8xxx_gpio_output(s->name, i, level);
+            qemu_set_irq(s->out[i], level);
+        } else {
+            /* Pin becomes an input: release it and sample the external line. */
+            bool level = (s->ext & mask) != 0;
+
+            s->dat = (s->dat & ~mask) | (level ? mask : 0);
+            trace_mpc8xxx_gpio_output(s->name, i, 1);
+            qemu_set_irq(s->out[i], 1);
         }
     }
 
-    s->dat = new_data;
+    s->dir = new_dir;
 }
 
 static void mpc8xxx_gpio_write(void *opaque, hwaddr offset,
@@ -119,7 +158,7 @@ static void mpc8xxx_gpio_write(void *opaque, hwaddr offset,
 {
     MPC8XXXGPIOState *s = (MPC8XXXGPIOState *)opaque;
 
-    trace_mpc8xxx_gpio_write(offset, value);
+    trace_mpc8xxx_gpio_write(s->name, offset, value);
 
     if (size != 4) {
         /* All registers are 32bit */
@@ -128,7 +167,7 @@ static void mpc8xxx_gpio_write(void *opaque, hwaddr offset,
 
     switch (offset) {
     case 0x0: /* Direction */
-        s->dir = value;
+        mpc8xxx_gpio_set_dir(s, value);
         break;
     case 0x4: /* Open Drain */
         s->odr = value;
@@ -153,13 +192,21 @@ static void mpc8xxx_gpio_write(void *opaque, hwaddr offset,
 static void mpc8xxx_gpio_reset(DeviceState *dev)
 {
     MPC8XXXGPIOState *s = MPC8XXX_GPIO(dev);
+    int i;
 
     s->dir = 0;
     s->odr = 0;
-    s->dat = 0;
+    s->dat = 0xffffffff;
+    s->last_data = 0;
+    s->ext = 0xffffffff;
     s->ier = 0;
     s->imr = 0;
     s->icr = 0;
+
+    /* All pins are inputs after reset; model the pull-ups as high. */
+    for (i = 0; i < 32; i++) {
+        qemu_set_irq(s->out[i], 1);
+    }
 }
 
 static void mpc8xxx_gpio_set_irq(void * opaque, int irq, int level)
@@ -167,14 +214,13 @@ static void mpc8xxx_gpio_set_irq(void * opaque, int irq, int level)
     MPC8XXXGPIOState *s = (MPC8XXXGPIOState *)opaque;
     uint32_t mask;
 
-    trace_mpc8xxx_gpio_set_irq(irq, level);
+    trace_mpc8xxx_gpio_set_irq(s->name, irq, level);
     mask = 0x80000000 >> irq;
+    s->ext = (s->ext & ~mask) | (level ? mask : 0);
     if ((s->dir & mask) == 0) {
         uint32_t old_value = s->dat & mask;
 
-        s->dat &= ~mask;
-        if (level)
-            s->dat |= mask;
+        s->dat = (s->dat & ~mask) | (level ? mask : 0);
 
         if (!(s->icr & irq) || (old_value && !level)) {
             s->ier |= mask;
@@ -204,11 +250,26 @@ static void mpc8xxx_gpio_initfn(Object *obj)
     qdev_init_gpio_out(dev, s->out, 32);
 }
 
+static void mpc8xxx_gpio_realize(DeviceState *dev, Error **errp)
+{
+    MPC8XXXGPIOState *s = MPC8XXX_GPIO(dev);
+
+    s->name = object_get_canonical_path(OBJECT(dev));
+}
+
+static void mpc8xxx_gpio_finalize(Object *obj)
+{
+    MPC8XXXGPIOState *s = MPC8XXX_GPIO(obj);
+
+    g_free(s->name);
+}
+
 static void mpc8xxx_gpio_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
 
     dc->vmsd = &vmstate_mpc8xxx_gpio;
+    dc->realize = mpc8xxx_gpio_realize;
     device_class_set_legacy_reset(dc, mpc8xxx_gpio_reset);
 }
 
@@ -218,6 +279,7 @@ static const TypeInfo mpc8xxx_gpio_types[] = {
         .parent        = TYPE_SYS_BUS_DEVICE,
         .instance_size = sizeof(MPC8XXXGPIOState),
         .instance_init = mpc8xxx_gpio_initfn,
+        .instance_finalize = mpc8xxx_gpio_finalize,
         .class_init    = mpc8xxx_gpio_class_init,
     },
     {
