@@ -326,18 +326,53 @@ void fdt_plaform_populate(SysBusDevice *sbd, QDevFdtContext *context, int parent
     g_hash_table_destroy(processed);
 }
 
-int qdev_fdt_get_num_regs(const void *fdt, int node)
+/*
+ * Some bindings describe a device's register window in a child node
+ * instead of a "reg" property on the device node itself (e.g. eTSEC
+ * uses a "queue-group" child).  Fall back to the first such child so
+ * the generic DT walker can still map the device's MMIO region.
+ */
+static int qdev_fdt_get_reg_node(const void *fdt, int node)
 {
     const struct fdt_property *reg = fdt_get_property(fdt, node, "reg", NULL);
-    int parent = fdt_parent_offset(fdt, node);
-    int address_cells = fdt_address_cells(fdt, parent);
-    int size_cells = fdt_size_cells(fdt, parent);
-    int entry_size = 4 * (address_cells + size_cells);
+    int child;
+
+    if (reg) {
+        return node;
+    }
+
+    for (child = fdt_first_subnode(fdt, node); child >= 0;
+         child = fdt_next_subnode(fdt, child)) {
+        const char *name = fdt_get_name(fdt, child, NULL);
+
+        if (name && g_str_has_prefix(name, "queue-group@") &&
+            fdt_get_property(fdt, child, "reg", NULL)) {
+            return child;
+        }
+    }
+
+    return -1;
+}
+
+int qdev_fdt_get_num_regs(const void *fdt, int node)
+{
+    int reg_node = qdev_fdt_get_reg_node(fdt, node);
+    const struct fdt_property *reg;
+    int parent;
+    int address_cells;
+    int size_cells;
+    int entry_size;
     int reg_len;
 
-    if (!reg) {
+    if (reg_node < 0) {
         return 0;
     }
+
+    reg = fdt_get_property(fdt, reg_node, "reg", NULL);
+    parent = fdt_parent_offset(fdt, reg_node);
+    address_cells = fdt_address_cells(fdt, parent);
+    size_cells = fdt_size_cells(fdt, parent);
+    entry_size = 4 * (address_cells + size_cells);
 
     reg_len = be32_to_cpu(reg->len);
 
@@ -350,20 +385,23 @@ int qdev_fdt_get_num_regs(const void *fdt, int node)
 
 uint64_t qdev_fdt_get_reg_addr(const void *fdt, int node, int i)
 {
-    const struct fdt_property *reg = fdt_get_property(fdt, node, "reg", NULL);
-    int parent = fdt_parent_offset(fdt, node);
-    int address_cells = fdt_address_cells(fdt, parent);
-    int size_cells = fdt_size_cells(fdt, parent);
-    int entry_size = 4 * (address_cells + size_cells);
+    int reg_node = qdev_fdt_get_reg_node(fdt, node);
+    const struct fdt_property *reg;
+    int parent;
+    int address_cells;
+    int size_cells;
+    int entry_size;
     int num_regs = qdev_fdt_get_num_regs(fdt, node);
 
-    if (num_regs < 0) {
+    if (num_regs < 0 || i >= num_regs) {
         return -1;
     }
 
-    if (i >= num_regs) {
-        return -1;
-    }
+    reg = fdt_get_property(fdt, reg_node, "reg", NULL);
+    parent = fdt_parent_offset(fdt, reg_node);
+    address_cells = fdt_address_cells(fdt, parent);
+    size_cells = fdt_size_cells(fdt, parent);
+    entry_size = 4 * (address_cells + size_cells);
 
     assert(reg);
 
@@ -379,20 +417,23 @@ uint64_t qdev_fdt_get_reg_addr(const void *fdt, int node, int i)
 
 uint64_t qemu_fdt_get_reg_size(const void *fdt, int node, int i)
 {
-    const struct fdt_property *reg = fdt_get_property(fdt, node, "reg", NULL);
-    int parent = fdt_parent_offset(fdt, node);
-    int address_cells = 4 * fdt_address_cells(fdt, parent);
-    int size_cells = 4 * fdt_size_cells(fdt, parent);
-    int entry_size = address_cells + size_cells;
+    int reg_node = qdev_fdt_get_reg_node(fdt, node);
+    const struct fdt_property *reg;
+    int parent;
+    int address_cells;
+    int size_cells;
+    int entry_size;
     int num_regs = qdev_fdt_get_num_regs(fdt, node);
 
-    if (num_regs < 0) {
+    if (num_regs < 0 || i >= num_regs) {
         return -1;
     }
 
-    if (i >= num_regs) {
-        return -1;
-    }
+    reg = fdt_get_property(fdt, reg_node, "reg", NULL);
+    parent = fdt_parent_offset(fdt, reg_node);
+    address_cells = 4 * fdt_address_cells(fdt, parent);
+    size_cells = 4 * fdt_size_cells(fdt, parent);
+    entry_size = address_cells + size_cells;
 
     assert(reg);
 
