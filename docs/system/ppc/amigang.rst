@@ -178,3 +178,65 @@ Running U-Boot
                     -drive id=mydrive,if=none,file=firmware-a1222.img,format=raw \
                     -device sd-card,drive=mydrive \
                     -device sparse-mem,baseaddr=0xffd00000,length=256000,priority=1
+
+Running Linux
+-------------
+
+The ``mpc8544ds`` machine can also boot Linux directly with the A1222
+device tree. The Integrated Display Unit (DIU) is emulated, so the Linux
+``fsl-diu-fb`` driver provides the framebuffer console in the QEMU
+display window.
+
+Build an e500v2 kernel, for example with ``mpc85xx_smp_defconfig``, and
+make sure the following options are enabled:
+
+ * ``CONFIG_FB``
+ * ``CONFIG_FB_FSL_DIU``
+ * ``CONFIG_FRAMEBUFFER_CONSOLE``
+
+Then build a uImage:
+
+.. code-block:: bash
+
+  $ export ARCH=powerpc
+  $ export CROSS_COMPILE=powerpc-linux-
+  $ make mpc85xx_smp_defconfig
+  $ make uImage
+
+The DIU driver only initialises if the ``p1022_ds`` platform code has
+installed its clock and monitor callbacks, which requires the root
+``compatible`` property to match ``fsl,p1022ds``. The stock
+``tabor2.dtb`` identifies only as ``varisys,TABOR``, so patch a copy of
+it and disable the SATA controllers (there are no drives attached and
+libata otherwise retries resets for several minutes). The ``fdtput``
+tool is part of the device tree compiler package; adjust the path to
+the installed DTB if QEMU is installed elsewhere:
+
+.. code-block:: bash
+
+  $ cp /usr/share/qemu/dtb/tabor2.dtb tabor2-linux.dtb
+  $ fdtput -t s tabor2-linux.dtb / compatible "fsl,p1022ds" "varisys,TABOR"
+  $ fdtput -t s tabor2-linux.dtb /soc@fffe00000/sata@18000 status disabled
+  $ fdtput -t s tabor2-linux.dtb /soc@fffe00000/sata@19000 status disabled
+
+QEMU patches the memory size, kernel command line and initrd location
+into a device tree supplied with ``-dtb``, so no further changes are
+needed. Boot the kernel and an initramfs with:
+
+.. code-block:: bash
+
+  $ qemu-system-ppc -M mpc8544ds -dtb tabor2-linux.dtb -m 1G \
+                    -global driver=fsl,,ecm-law,property=ccsrbar-reset,value=0xfffe00000 \
+                    -kernel arch/powerpc/boot/uImage -initrd /path/to/rootfs.cpio \
+                    -append "console=ttyS0,115200 console=tty0" \
+                    -serial stdio -vnc :1
+
+The ``fsl,ecm-law`` device normally resets the CCSR window to
+``0xff700000``, whereas the A1222 device tree uses ``0xfffe00000``.
+The ``-global`` option overrides that reset value; note the doubled
+comma, which escapes the comma in the device name.
+
+Linux switches the console to the DIU framebuffer and shows the boot
+log and login prompt in the QEMU window (or over VNC at display
+``:1``). Only the primary plane is emulated; the additional overlay
+planes registered by the driver are not rendered.
