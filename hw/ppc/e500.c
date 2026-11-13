@@ -15,6 +15,7 @@
  */
 
 #include "qemu/osdep.h"
+#include <libfdt.h>
 #include "qemu/datadir.h"
 #include "qemu/units.h"
 #include "qemu/guest-random.h"
@@ -408,6 +409,37 @@ static int ppce500_load_device_tree(PPCE500MachineState *pms,
         g_free(filename);
         if (!fdt) {
             goto out;
+        }
+
+        /*
+         * Apply the runtime fixups below to the user-supplied device tree as
+         * well.  Otherwise properties such as the memory size, the initrd
+         * location and the kernel command line would be patched only in the
+         * QEMU-side copy, never in the blob written to guest memory.
+         */
+        if (fdt_path_offset(fdt, "/memory") < 0) {
+            qemu_fdt_add_subnode(fdt, "/memory");
+        }
+        qemu_fdt_setprop_cells(fdt, "/memory", "reg",
+                               0, 0, machine->ram_size >> 32,
+                               machine->ram_size);
+
+        if (fdt_path_offset(fdt, "/chosen") < 0) {
+            qemu_fdt_add_subnode(fdt, "/chosen");
+        }
+        if (initrd_size) {
+            qemu_fdt_setprop_cell(fdt, "/chosen", "linux,initrd-start",
+                                  initrd_base);
+            qemu_fdt_setprop_cell(fdt, "/chosen", "linux,initrd-end",
+                                  initrd_base + initrd_size);
+        }
+        if (kernel_base != -1ULL) {
+            qemu_fdt_setprop_cells(fdt, "/chosen", "qemu,boot-kernel",
+                                   0, 0, 0, 0);
+        }
+        if (machine->kernel_cmdline && machine->kernel_cmdline[0]) {
+            qemu_fdt_setprop_string(fdt, "/chosen", "bootargs",
+                                    machine->kernel_cmdline);
         }
         goto done;
     }
