@@ -156,6 +156,7 @@ config E500
     select ETSEC
     select GPIO_MPC8XXX
     select GPIO_POWEROFF
+    select FSL_DIU
     select FSL_ESPI
     select FSL_MPIC
     select PFLASH_CFI01
