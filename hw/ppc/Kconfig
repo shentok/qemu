@@ -182,6 +182,7 @@ config MPC8544DS
     default y
     depends on PPC && FDT
     select E500
+    select FSL_SATA
 
 config VIRTEX
     bool
