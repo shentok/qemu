@@ -467,6 +467,11 @@
 			compatible = "fsl,p1022-guts";
 			reg = <0xe0000 0x1000>;
 			fsl,has-rstcr;
+			/*
+			 * SerDes protocol 9 (lane 0 = PCIe1), matching the
+			 * A1222/Tabor board's PORDEVSR pin strapping.
+			 */
+			fsl,pordevsr = <0x00240000>;
 		};
 
 		power@e0070 {
