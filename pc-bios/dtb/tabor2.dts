@@ -555,7 +555,15 @@
 	};
 
 	pcie@fffe0a000 {
-		ranges = <0x2000000 0x00 0xe0000000 0x0c 0x40000000 0x00 0x20000000 0x1000000 0x00 0x00 0x0f 0xffc20000 0x00 0x10000>;
+		/*
+		 * The A1222 firmware computes the VGA MMIO base as
+		 * PCI_base - 0x20000000, i.e. it assumes the PCI memory
+		 * window starts at 0xC0000000.  QEMU maps the e500 PCI
+		 * bus at that address, so describe that window here
+		 * instead of the 0xC4000000 used by the firmware's own
+		 * outbound window.
+		 */
+		ranges = <0x2000000 0x00 0xe0000000 0x0c 0x00000000 0x00 0x20000000 0x1000000 0x00 0x00 0x0f 0xffc20000 0x00 0x10000>;
 		reg = <0x0f 0xffe0a000 0x00 0x1000>;
 		compatible = "fsl,mpc8548-pcie";
 		device_type = "pci";
