@@ -177,6 +177,8 @@ Running U-Boot
   $ qemu-system-ppc -machine mpc8544ds -dtb tabor2.dtb -m 1G \
                     -drive id=mydrive,if=none,file=firmware-a1222.img,format=raw \
                     -device sd-card,drive=mydrive \
+                    -drive id=tabor,if=none,file=Tabor_debian_8_powerpcspe_5.img,format=raw,snapshot=on \
+                    -device ide-hd,drive=tabor,bus=ide.1 \
                     -device sparse-mem,baseaddr=0xffd00000,length=256000,priority=1 \
                     -serial stdio
 
@@ -189,23 +191,30 @@ which matches the board strapping.
 Booting Linux with the firmware
 -------------------------------
 
-The firmware can boot Linux from the same SD card.  Prepare an image
-whose first partition contains the kernel ``uImage``, the Linux device
-tree and the initrd.  At the ``A1222>`` prompt load them and boot:
+The firmware can boot Linux from the SATA disk.  The Debian 8 image for
+the A1222 (``Tabor_debian_8_powerpcspe_5.img``) has a FAT boot partition
+containing the kernel ``uImage.sdk17.2`` and the device tree, and an
+ext4 root partition.  Attach it to the second emulated SATA port (the
+first port is empty), as in the command above.  At the ``A1222>``
+prompt load the kernel and device tree from the FAT partition and boot
+with the root filesystem on the second partition:
 
 .. code-block:: bash
 
-  A1222> ext2load mmc 0:1 4000000 uImage
-  A1222> ext2load mmc 0:1 6000000 tabor2.dtb
-  A1222> ext2load mmc 0:1 7000000 rootfs.uboot
-  A1222> bootm 4000000 7000000 6000000
+  A1222> setenv bootargs root=/dev/sda2 rootdelay=10 console=ttyS0,115200 console=tty0
+  A1222> sata init
+  A1222> sata device 1
+  A1222> fatload sata 1:1 1000000 uImage.sdk17.2
+  A1222> fatload sata 1:1 2000000 tabor2.dtb
+  A1222> bootm 1000000 - 2000000
 
-The device tree loaded from the SD card must be the Linux-patched copy
-described below; the ``-dtb tabor2.dtb`` passed to QEMU is the stock
-board tree used by the firmware.  The firmware's x86 BIOS emulator
-cannot run QEMU's standard VGA BIOS, so the graphical AmigaBoot menu is
-not available.  Linux still boots and uses the emulated DIU for its
-framebuffer console.
+The device tree on the disk is the stock A1222 tree; the
+``-dtb tabor2.dtb`` passed to QEMU is the tree used by the firmware.
+For the DIU framebuffer console, replace the device tree on the disk
+with the Linux-patched copy described below; otherwise Linux boots with
+the serial console only.  The firmware's x86 BIOS emulator cannot run
+QEMU's standard VGA BIOS, so the graphical AmigaBoot menu is not
+available.
 
 Running Linux
 -------------
