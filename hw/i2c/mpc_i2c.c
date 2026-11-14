@@ -28,6 +28,8 @@
 #include "qom/object.h"
 #include "trace.h"
 
+#include <libfdt.h>
+
 /* #define DEBUG_I2C */
 
 #ifdef DEBUG_I2C
@@ -157,10 +159,15 @@ static void  mpc_i2c_address_send(MPCI2CState *s)
     } else {
         s->address = s->dr;
         s->sr &= ~CSR_RXAK;
-        s->sr |=  CSR_MCF; /* Set after Byte Transfer is completed */
-        s->sr |=  CSR_MIF; /* Set after Byte Transfer is completed */
-        mpc_i2c_irq(s);
     }
+    /*
+     * The address phase always completes, even if the slave did not
+     * acknowledge it, so MCF/MIF must be raised in both cases. Otherwise
+     * the guest polls for MIF until it times out on every bus scan.
+     */
+    s->sr |=  CSR_MCF; /* Set after Byte Transfer is completed */
+    s->sr |=  CSR_MIF; /* Set after Byte Transfer is completed */
+    mpc_i2c_irq(s);
 }
 
 static void  mpc_i2c_data_send(MPCI2CState *s)
@@ -171,10 +178,10 @@ static void  mpc_i2c_data_send(MPCI2CState *s)
         i2c_end_transfer(s->bus);
     } else {
         s->sr &= ~CSR_RXAK;
-        s->sr |=  CSR_MCF; /* Set after Byte Transfer is completed */
-        s->sr |=  CSR_MIF; /* Set after Byte Transfer is completed */
-        mpc_i2c_irq(s);
     }
+    s->sr |=  CSR_MCF; /* Set after Byte Transfer is completed */
+    s->sr |=  CSR_MIF; /* Set after Byte Transfer is completed */
+    mpc_i2c_irq(s);
 }
 
 static void  mpc_i2c_data_recive(MPCI2CState *s)
@@ -183,13 +190,15 @@ static void  mpc_i2c_data_recive(MPCI2CState *s)
     /* get the next byte */
     ret = i2c_recv(s->bus);
     if (ret >= 0) {
-        s->sr |= CSR_MCF; /* Set after Byte Transfer is completed */
-        s->sr |= CSR_MIF; /* Set after Byte Transfer is completed */
-        mpc_i2c_irq(s);
+        s->sr &= ~CSR_RXAK;
     } else {
         DPRINTF("read failed for device");
+        s->sr |= CSR_RXAK;
         ret = 0xff;
     }
+    s->sr |= CSR_MCF; /* Set after Byte Transfer is completed */
+    s->sr |= CSR_MIF; /* Set after Byte Transfer is completed */
+    mpc_i2c_irq(s);
     s->dr = ret;
 }
 
@@ -345,6 +354,17 @@ static void mpc_i2c_handle_device_tree_node_post(DeviceState *dev, int node,
                                                  QDevFdtContext *context)
 {
     MPCI2CState *i2c = MPC_I2C(dev);
+    const char *name = fdt_get_name(context->fdt, node, NULL);
+
+    /*
+     * Several controllers may be present, so give each bus a unique name
+     * derived from its device tree node name (i.e. its unit address) to
+     * make it addressable from the command line (e.g. bus=i2c@3100).
+     */
+    if (name) {
+        g_free(i2c->bus->qbus.name);
+        i2c->bus->qbus.name = g_strdup(name);
+    }
 
     i2c_fdt_populate(i2c->bus, context, node);
 }
