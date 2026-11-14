@@ -35,6 +35,7 @@ OBJECT_DECLARE_SIMPLE_TYPE(FslSataState, FSL_SATA)
 /* Host control register bits */
 #define HCONTROL_ONLINE_PHY_RST     (1u << 31)
 #define HCONTROL_FORCE_OFFLINE      (1u << 30)
+#define HCONTROL_INT_ON_CMD_COMPLETE (1u << 0)
 
 /* SATA superset register bits */
 #define SSTATUS_DET_DEV_PRESENT     0x3u
@@ -59,7 +60,8 @@ OBJECT_DECLARE_SIMPLE_TYPE(FslSataState, FSL_SATA)
 
 /* PRD entry flags */
 #define PRDE_EXT_INDIRECT           (1u << 31)
-#define PRDE_LENGTH_MASK            0x03ffffffu
+#define PRDE_LENGTH_MASK            0x003fffffu
+#define PRDE_MAX_XFER_SIZE          0x00400000u
 
 enum {
     FSL_SATA_CQ        = 0x00,
@@ -126,7 +128,8 @@ static void fsl_sata_update_irq(FslSataState *s)
      * must not trigger the interrupt handler early.
      */
     qemu_set_irq(s->irq,
-                 (s->hstatus & HSTATUS_INT_ON_CMD_COMPLETE) != 0);
+                 (s->hstatus & HSTATUS_INT_ON_CMD_COMPLETE) &&
+                 (s->hcontrol & HCONTROL_INT_ON_CMD_COMPLETE));
 }
 
 static void fsl_sata_bus_irq(void *opaque, int n, int level)
@@ -207,6 +210,13 @@ static int32_t fsl_sata_map_prdt(FslSataState *s, int32_t limit)
                 uint32_t ilen = iddc & PRDE_LENGTH_MASK;
                 uint32_t avail;
 
+                /*
+                 * A zero length encodes the maximum transfer size of 4 MiB.
+                 */
+                if (ilen == 0) {
+                    ilen = PRDE_MAX_XFER_SIZE;
+                }
+
                 if (skip >= ilen) {
                     skip -= ilen;
                     continue;
@@ -221,6 +231,14 @@ static int32_t fsl_sata_map_prdt(FslSataState *s, int32_t limit)
             g_free(ind);
         } else {
             uint32_t avail;
+
+            /*
+             * A zero length encodes the maximum transfer size of 4 MiB.
+             * The U-Boot driver uses this for every full-sized PRD entry.
+             */
+            if (len == 0) {
+                len = PRDE_MAX_XFER_SIZE;
+            }
 
             if (skip >= len) {
                 skip -= len;
