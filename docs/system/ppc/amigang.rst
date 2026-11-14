@@ -177,7 +177,35 @@ Running U-Boot
   $ qemu-system-ppc -machine mpc8544ds -dtb tabor2.dtb -m 1G \
                     -drive id=mydrive,if=none,file=firmware-a1222.img,format=raw \
                     -device sd-card,drive=mydrive \
-                    -device sparse-mem,baseaddr=0xffd00000,length=256000,priority=1
+                    -device sparse-mem,baseaddr=0xffd00000,length=256000,priority=1 \
+                    -serial stdio
+
+The ``tabor2.dtb`` supplied with QEMU describes the A1222 board.  The
+GUTS model reads the ``fsl,pordevsr`` property from its
+``global-utilities`` node to configure the SerDes protocol; the stock
+``tabor2.dtb`` sets it to ``0x00240000`` (protocol 9, lane 0 is PCIe1),
+which matches the board strapping.
+
+Booting Linux with the firmware
+-------------------------------
+
+The firmware can boot Linux from the same SD card.  Prepare an image
+whose first partition contains the kernel ``uImage``, the Linux device
+tree and the initrd.  At the ``A1222>`` prompt load them and boot:
+
+.. code-block:: bash
+
+  A1222> ext2load mmc 0:1 4000000 uImage
+  A1222> ext2load mmc 0:1 6000000 tabor2.dtb
+  A1222> ext2load mmc 0:1 7000000 rootfs.uboot
+  A1222> bootm 4000000 7000000 6000000
+
+The device tree loaded from the SD card must be the Linux-patched copy
+described below; the ``-dtb tabor2.dtb`` passed to QEMU is the stock
+board tree used by the firmware.  The firmware's x86 BIOS emulator
+cannot run QEMU's standard VGA BIOS, so the graphical AmigaBoot menu is
+not available.  Linux still boots and uses the emulated DIU for its
+framebuffer console.
 
 Running Linux
 -------------
