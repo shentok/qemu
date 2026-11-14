@@ -230,7 +230,9 @@ static void gpio_i2c_class_init(ObjectClass *klass, const void *data)
 
     set_bit(DEVICE_CATEGORY_BRIDGE, dc->categories);
     dc->desc = "Virtual GPIO to I2C bridge";
-    gpio_i2c_fdt_class_init(klass);
+    if (gpio_i2c_fdt_class_init) {
+        gpio_i2c_fdt_class_init(klass);
+    }
 }
 
 static const TypeInfo gpio_i2c_info = {

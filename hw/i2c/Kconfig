@@ -33,7 +33,6 @@ config ACPI_SMBUS
 config BITBANG_I2C
     bool
     select I2C
-    select I2C_FDT
 
 config IMX_I2C
     bool

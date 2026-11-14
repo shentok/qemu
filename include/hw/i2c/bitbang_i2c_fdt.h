@@ -9,6 +9,10 @@
 
 #include "qom/object.h"
 
-void gpio_i2c_fdt_class_init(ObjectClass *klass);
+/*
+ * Only provided when CONFIG_I2C_FDT is enabled.  The weak declaration
+ * lets targets without libfdt link the gpio_i2c device model.
+ */
+void __attribute__((weak)) gpio_i2c_fdt_class_init(ObjectClass *klass);
 
 #endif
