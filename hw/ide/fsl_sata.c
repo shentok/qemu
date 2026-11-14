@@ -522,18 +522,25 @@ static void fsl_sata_write(void *opaque, hwaddr addr, uint64_t data,
         bool was_reset = s->hcontrol & HCONTROL_ONLINE_PHY_RST;
 
         s->hcontrol = data;
-        if (data & HCONTROL_FORCE_OFFLINE) {
-            s->hstatus &= ~(HSTATUS_ONLINE | HSTATUS_PHYRDY_SIG);
-        } else if ((data & HCONTROL_ONLINE_PHY_RST) && !was_reset) {
+        if (data & HCONTROL_ONLINE_PHY_RST) {
             /*
+             * ONOFF takes precedence over FORCE_OFFLINE.  U-Boot's
+             * init_sata() brings the controller online by setting both
+             * bits in a single write.
+             *
              * A fresh online/PHY reset raises the PHY ready and
              * signature update events.  Subsequent writes that keep
              * the reset bit set (for example when enabling interrupts
              * in sata_fsl_thaw()) must not raise them again, otherwise
              * the driver mistakes them for error interrupts.
              */
-            s->hstatus |= HSTATUS_ONLINE | HSTATUS_PHYRDY_SIG;
-        } else if (!(data & HCONTROL_ONLINE_PHY_RST)) {
+            if (!was_reset) {
+                s->hstatus |= HSTATUS_ONLINE;
+                if (s->bus.master) {
+                    s->hstatus |= HSTATUS_PHYRDY_SIG;
+                }
+            }
+        } else {
             s->hstatus &= ~(HSTATUS_ONLINE | HSTATUS_PHYRDY_SIG);
         }
         break;

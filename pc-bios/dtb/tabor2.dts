@@ -468,10 +468,14 @@
 			reg = <0xe0000 0x1000>;
 			fsl,has-rstcr;
 			/*
-			 * SerDes protocol 9 (lane 0 = PCIe1), matching the
-			 * A1222/Tabor board's PORDEVSR pin strapping.
+			 * The A1222/Tabor hardware straps SerDes protocol 9
+			 * (serdes1 lane 0 = PCIe1, serdes2 = PCIe3/PCIe2),
+			 * which leaves the on-chip SATA controllers disabled.
+			 * Select protocol 0x16 instead so that the emulated
+			 * SATA1/SATA2 controllers are usable, while keeping
+			 * PCIe1/PCIe2/PCIe3 configured.
 			 */
-			fsl,pordevsr = <0x00240000>;
+			fsl,pordevsr = <0x00580000>;
 		};
 
 		power@e0070 {
