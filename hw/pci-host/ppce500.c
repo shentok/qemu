@@ -15,6 +15,7 @@
  */
 
 #include "qemu/osdep.h"
+#include "qemu/bswap.h"
 #include "hw/core/irq.h"
 #include "hw/core/qdev-dt-interface.h"
 #include "hw/core/qdev-properties.h"
@@ -24,6 +25,8 @@
 #include "hw/pci/pci_host.h"
 #include "hw/pci-host/ppce500.h"
 #include "qom/object.h"
+
+#include <libfdt.h>
 
 #ifdef DEBUG_PCI
 #define pci_debug(fmt, ...) fprintf(stderr, fmt, ## __VA_ARGS__)
@@ -479,6 +482,35 @@ static void e500_pcihost_bridge_realize(PCIDevice *d, Error **errp)
     }
 }
 
+static DeviceState *e500_pcihost_get_interrupt_parent(QDevFdtContext *context,
+                                                      int node)
+{
+    const void *fdt = context->fdt;
+    const struct fdt_property *interrupt_parent;
+    uint32_t phandle;
+    int parent = node;
+
+    interrupt_parent = fdt_get_property(fdt, node, "interrupt-parent", NULL);
+    while (!interrupt_parent && parent > 0) {
+        parent = fdt_parent_offset(fdt, parent);
+        if (parent < 0) {
+            return NULL;
+        }
+        interrupt_parent = fdt_get_property(fdt, parent, "interrupt-parent",
+                                            NULL);
+    }
+
+    if (!interrupt_parent) {
+        return NULL;
+    }
+
+    phandle = ldl_be_p(interrupt_parent->data);
+
+    return g_hash_table_lookup(context->device_map,
+                               GINT_TO_POINTER(fdt_node_offset_by_phandle(
+                                   fdt, phandle)));
+}
+
 static void e500_pcihost_handle_device_tree_node_pre(DeviceState *dev, int node,
                                                      QDevFdtContext *context)
 {
@@ -499,12 +531,33 @@ static void e500_pcihost_handle_device_tree_node_post(DeviceState *dev, int node
     PPCE500PCIState *s = PPC_E500_PCI_HOST_BRIDGE(dev);
     PCIDevice *b = PCI_DEVICE(&s->bridge);
     MemoryRegion *ccsr_space = s->container.container;
+    const struct fdt_property *interrupts;
+    DeviceState *pic;
+    int len;
 
     assert(g_strcmp0(ccsr_space->name, "e500-ccsr") == 0);
 
     memory_region_init_alias(&s->bridge.bar0, OBJECT(dev), "e500-pci-bar0",
                              ccsr_space, 0, int128_get64(ccsr_space->size));
     pci_register_bar(b, 0, PCI_BASE_ADDRESS_SPACE_MEMORY, &s->bridge.bar0);
+
+    /*
+     * The device tree describes a single interrupt for the host bridge,
+     * but INTA to INTD are wired to consecutive interrupt controller
+     * inputs.  Connect all four lines, otherwise the interrupts of three
+     * of them are lost.
+     */
+    interrupts = fdt_getprop(context->fdt, node, "interrupts", &len);
+    pic = e500_pcihost_get_interrupt_parent(context, node);
+    if (interrupts && len >= sizeof(fdt32_t) && pic) {
+        uint32_t base = fdt32_to_cpu(*(const fdt32_t *)interrupts);
+
+        for (int i = 0; i < PCI_NUM_PINS; i++) {
+            sysbus_connect_irq(SYS_BUS_DEVICE(dev), i,
+                               qdev_get_gpio_in(pic, base + i));
+            s->irq_num[i] = base + i;
+        }
+    }
 }
 
 static AddressSpace *e500_pcihost_set_iommu(PCIBus *bus, void *opaque,
