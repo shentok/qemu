@@ -19,6 +19,7 @@
 
 #include "qemu/osdep.h"
 #include "qemu/log.h"
+#include "hw/core/boards.h"
 #include "hw/core/qdev-properties.h"
 #include "hw/core/registerfields.h"
 #include "hw/core/resettable.h"
@@ -35,6 +36,7 @@ struct PPCE500LAWState {
     SysBusDevice parent;
 
     hwaddr ccsrbar_base;
+    bool ccsrbar_from_dtb;
     uint32_t bptr;
     MemoryRegion mmio;
 };
@@ -145,8 +147,22 @@ static void ppce500_law_init(Object *obj)
 static void ppce500_law_reset_hold(Object *obj, ResetType type)
 {
     PPCE500LAWState *s = E500_LAW(obj);
+    MachineState *ms = MACHINE(qdev_get_machine());
 
     s->bptr = 0;
+
+    /*
+     * CCSRBAR resets to the SoC reset address and firmware relocates the
+     * CCSR by writing CCSRBAR.  A directly booted kernel instead takes the
+     * CCSR location from the device tree and never relocates it, so QEMU
+     * has to do what firmware would do and keep the CCSR where the device
+     * tree placed it.
+     */
+    if (ms->dtb && ms->kernel_filename && s->mmio.container &&
+        !s->ccsrbar_from_dtb) {
+        s->ccsrbar_base = s->mmio.container->addr;
+        s->ccsrbar_from_dtb = true;
+    }
 
     memory_region_set_address(s->mmio.container, s->ccsrbar_base);
     ppce500_handle_ccsrbar_changed(s);
