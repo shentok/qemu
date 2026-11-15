@@ -172,15 +172,44 @@ A-Eon A1222 (Varisys TABOR)
 Running U-Boot
 --------------
 
+The SD card image from the firmware release archive has to be prepared
+before QEMU can use it.  QEMU only accepts SD card images whose size is
+a power of two, and the firmware's built in environment starts the
+AmigaBoot menu, which needs a display.  Prepare a copy once:
+
+.. code-block:: bash
+
+  $ cp firmware-a1222.img firmware-a1222-qemu.img
+  $ chmod u+w firmware-a1222-qemu.img
+  $ qemu-img resize -f raw firmware-a1222-qemu.img 64M
+  $ python3 - <<'EOF'
+  p = 'firmware-a1222-qemu.img'
+  d = bytearray(open(p, 'rb').read())
+  i = d.find(b'preboot=ami\x00')
+  assert i >= 0, 'preboot entry not found'
+  d[i:i + 12] = b'preboot=;; \x00'
+  open(p, 'wb').write(d)
+  EOF
+
+The last step replaces ``preboot=ami`` in the default environment, so
+the firmware drops straight to the ``A1222>`` prompt instead of starting
+AmigaBoot.  Without it the AmigaBoot screen appears first; press a key
+there to return to the prompt.
+
 .. code-block:: bash
 
   $ qemu-system-ppc -machine mpc8544ds -dtb tabor2.dtb -m 1G \
-                    -drive id=mydrive,if=none,file=firmware-a1222.img,format=raw \
+                    -drive id=mydrive,if=none,file=firmware-a1222-qemu.img,format=raw \
                     -device sd-card,drive=mydrive \
                     -drive id=tabor,if=none,file=Tabor_debian_8_powerpcspe_5.img,format=raw,snapshot=on \
                     -device ide-hd,drive=tabor,bus=ide.1 \
                     -device sparse-mem,baseaddr=0xffd00000,length=256000,priority=1 \
                     -serial stdio
+
+The firmware image must be the first drive that is not attached to a
+controller (``if=none``): QEMU reads the e500 boot block from the first
+such drive to start the firmware, and the same drive is then used as the
+SD card.
 
 The ``tabor2.dtb`` supplied with QEMU describes the A1222 board.  The
 GUTS model reads the ``fsl,pordevsr`` property from its
@@ -201,12 +230,26 @@ with the root filesystem on the second partition:
 
 .. code-block:: bash
 
-  A1222> setenv bootargs root=/dev/sda2 rootdelay=10 console=ttyS0,115200 console=tty0
+  A1222> setenv bootargs root=/dev/sda2 rootdelay=10 console=ttyS0,115200
   A1222> sata init
   A1222> sata device 1
   A1222> fatload sata 1:1 1000000 uImage.sdk17.2
   A1222> fatload sata 1:1 2000000 tabor2.dtb
   A1222> bootm 1000000 - 2000000
+
+Linux takes over the same serial port and, after a few minutes, prints
+the login prompt:
+
+.. code-block:: bash
+
+  Debian GNU/Linux 8 TaborPowerPCSPE ttyS0
+  TaborPowerPCSPE login:
+
+Most of the boot time is spent in the network init script, which retries
+while no network card is present.  Do not add ``console=tty0`` to the
+command line: the DIU framebuffer console never initialises with the
+stock device tree, and the extra console only makes the serial log
+harder to read.
 
 The device tree on the disk is the stock A1222 tree; the
 ``-dtb tabor2.dtb`` passed to QEMU is the tree used by the firmware.
