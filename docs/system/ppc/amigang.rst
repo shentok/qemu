@@ -259,6 +259,13 @@ writes ``CCSRBAR``, so when both ``-kernel`` and ``-dtb`` are given QEMU
 keeps the CCSR at the address the device tree populated instead of
 applying the reset address.  No extra options are needed for this.
 
+The device tree also lacks the CPU clock properties that the firmware
+adds before starting the kernel.  QEMU fills in ``timebase-frequency``,
+``clock-frequency`` and ``bus-frequency`` when they are missing, so guest
+time advances at the correct rate.  Booting to the login prompt still
+takes several minutes, mostly because the network init script retries
+while no network card is present.
+
 The Integrated Display Unit (DIU) is emulated, so the Linux
 ``fsl-diu-fb`` driver can provide the framebuffer console in the QEMU
 display window.  The stock kernel of the Debian image has no DIU
