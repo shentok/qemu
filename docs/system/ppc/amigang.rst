@@ -211,6 +211,12 @@ controller (``if=none``): QEMU reads the e500 boot block from the first
 such drive to start the firmware, and the same drive is then used as the
 SD card.
 
+The SD card device is required as well.  The firmware's second program
+loader reads ``u-boot.bin`` from the card, so without ``-device
+sd-card`` the boot stops at ``Second program loader running in sram...``,
+and a blank card of the right size fails at the same point.  The card
+has to be backed by the prepared firmware image.
+
 The ``tabor2.dtb`` supplied with QEMU describes the A1222 board.  The
 GUTS model reads the ``fsl,pordevsr`` property from its
 ``global-utilities`` node to configure the SerDes protocol; the stock
