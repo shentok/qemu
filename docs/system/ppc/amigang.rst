@@ -212,20 +212,59 @@ The device tree on the disk is the stock A1222 tree; the
 ``-dtb tabor2.dtb`` passed to QEMU is the tree used by the firmware.
 For the DIU framebuffer console, replace the device tree on the disk
 with the Linux-patched copy described below; otherwise Linux boots with
-the serial console only.  The firmware's x86 BIOS emulator cannot run
-QEMU's standard VGA BIOS, so the graphical AmigaBoot menu is not
-available.
+the serial console only.
+
+The graphical AmigaBoot menu is not available.  The firmware's x86 BIOS
+emulator keeps its own software model of the VGA registers and video
+memory and never accesses the emulated card, and its own INT 10h handler
+only implements a board specific ``AH=0x12``/``BL=0x32`` call instead of
+forwarding to the card's BIOS.  Its VESA call therefore always fails,
+whatever VGA BIOS is supplied, and booting stops with ``No VGA -
+Required for AmigaBoot``.  Use ``-display none`` or the serial console.
 
 Running Linux
 -------------
 
-The ``mpc8544ds`` machine can also boot Linux directly with the A1222
-device tree. The Integrated Display Unit (DIU) is emulated, so the Linux
-``fsl-diu-fb`` driver provides the framebuffer console in the QEMU
-display window.
+The ``mpc8544ds`` machine can also boot Linux directly, without the
+firmware.  The Debian 8 image ships everything that is needed in its FAT
+boot partition: the kernel ``uImage.sdk17.2`` and the device tree
+``tabor2.dtb``.  Copy both files out of the image and boot from the SATA
+disk:
 
-Build an e500v2 kernel, for example with ``mpc85xx_smp_defconfig``, and
-make sure the following options are enabled:
+.. code-block:: bash
+
+  $ qemu-system-ppc -machine mpc8544ds -m 1G -dtb tabor2.dtb \
+                    -kernel uImage.sdk17.2 \
+                    -append "root=/dev/sda2 console=ttyS0,115200" \
+                    -drive id=tabor,if=none,file=Tabor_debian_8_powerpcspe_5.img,format=raw,snapshot=on \
+                    -device ide-hd,drive=tabor,bus=ide.1 \
+                    -serial stdio
+
+The SATA disk has to be attached to the second emulated port; the first
+port is empty on the real board and the firmware expects the disk on
+``sata 1``.
+
+The FAT partition starts at sector 2048 and is 81920 sectors long, so
+the two files can be extracted with:
+
+.. code-block:: bash
+
+  $ dd if=Tabor_debian_8_powerpcspe_5.img of=boot.img bs=512 skip=2048 count=81920
+  $ mcopy -i boot.img ::uImage.sdk17.2 ::tabor2.dtb .
+
+On the real board the firmware relocates the CCSR from its reset address
+``0xff700000`` to ``0xffe00000`` by writing ``CCSRBAR``, and the device
+tree describes the relocated address.  A directly booted kernel never
+writes ``CCSRBAR``, so when both ``-kernel`` and ``-dtb`` are given QEMU
+keeps the CCSR at the address the device tree populated instead of
+applying the reset address.  No extra options are needed for this.
+
+The Integrated Display Unit (DIU) is emulated, so the Linux
+``fsl-diu-fb`` driver can provide the framebuffer console in the QEMU
+display window.  The stock kernel of the Debian image has no DIU
+support; build an e500v2 kernel, for example with
+``mpc85xx_smp_defconfig``, and make sure the following options are
+enabled:
 
  * ``CONFIG_FB``
  * ``CONFIG_FB_FSL_DIU``
@@ -244,17 +283,13 @@ The DIU driver only initialises if the ``p1022_ds`` platform code has
 installed its clock and monitor callbacks, which requires the root
 ``compatible`` property to match ``fsl,p1022ds``. The stock
 ``tabor2.dtb`` identifies only as ``varisys,TABOR``, so patch a copy of
-it and disable the SATA controllers (there are no drives attached and
-libata otherwise retries resets for several minutes). The ``fdtput``
-tool is part of the device tree compiler package; adjust the path to
-the installed DTB if QEMU is installed elsewhere:
+it. The ``fdtput`` tool is part of the device tree compiler package;
+adjust the path to the installed DTB if QEMU is installed elsewhere:
 
 .. code-block:: bash
 
   $ cp /usr/share/qemu/dtb/tabor2.dtb tabor2-linux.dtb
   $ fdtput -t s tabor2-linux.dtb / compatible "fsl,p1022ds" "varisys,TABOR"
-  $ fdtput -t s tabor2-linux.dtb /soc@fffe00000/sata@18000 status disabled
-  $ fdtput -t s tabor2-linux.dtb /soc@fffe00000/sata@19000 status disabled
 
 QEMU patches the memory size, kernel command line and initrd location
 into a device tree supplied with ``-dtb``, so no further changes are
@@ -263,15 +298,9 @@ needed. Boot the kernel and an initramfs with:
 .. code-block:: bash
 
   $ qemu-system-ppc -M mpc8544ds -dtb tabor2-linux.dtb -m 1G \
-                    -global driver=fsl,,ecm-law,property=ccsrbar-reset,value=0xfffe00000 \
                     -kernel arch/powerpc/boot/uImage -initrd /path/to/rootfs.cpio \
                     -append "console=ttyS0,115200 console=tty0" \
                     -serial stdio -vnc :1
-
-The ``fsl,ecm-law`` device normally resets the CCSR window to
-``0xff700000``, whereas the A1222 device tree uses ``0xfffe00000``.
-The ``-global`` option overrides that reset value; note the doubled
-comma, which escapes the comma in the device name.
 
 Linux switches the console to the DIU framebuffer and shows the boot
 log and login prompt in the QEMU window (or over VNC at display
