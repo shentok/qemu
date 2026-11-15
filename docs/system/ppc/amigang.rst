@@ -315,6 +315,80 @@ time advances at the correct rate.  Booting to the login prompt still
 takes several minutes, mostly because the network init script retries
 while no network card is present.
 
+Graphical login
+---------------
+
+The image starts ``lightdm`` on virtual terminal 7 and its
+``/etc/X11/xorg.conf`` pins the graphics card to bus 1, slot 0
+(``BusID "PCI:1:0:0"``).  A card attached directly to the root bus of the
+controller ends up at slot 17 and is then rejected by the X server with
+``no screens found``, so put it behind a PCI-to-PCI bridge:
+
+.. code-block:: bash
+
+  $ qemu-system-ppc -machine mpc8544ds -m 1G -dtb tabor2.dtb \
+                    -kernel uImage -append "root=/dev/sda2 console=ttyS0,115200" \
+                    -drive id=tabor,if=none,file=Tabor_debian_8_powerpcspe_5.img,format=raw,snapshot=on \
+                    -device ide-hd,drive=tabor,bus=ide.1 \
+                    -device i82801b11-bridge,id=br0,bus=pci.1,addr=0x10 \
+                    -device ati-vga,model=rv100,bus=br0,addr=0 \
+                    -device pci-ohci,id=usb0,bus=pci.1,addr=0x12 \
+                    -device usb-kbd,bus=usb0.0,port=1 \
+                    -device usb-mouse,bus=usb0.0,port=2 \
+                    -serial stdio
+
+The ``i82801b11-bridge`` is required instead of ``pci-bridge``: the
+latter always creates a standard hotplug controller, which refuses to
+accept a device in slot 0.  The ``ati-vga`` model ``rv100`` is a Radeon
+RV100, which the image's ``radeon`` driver supports, so the kernel
+provides a framebuffer console and the X server finds the card at
+``PCI:1:0:0``.
+
+The ``ati-vga`` model needs a VGA BIOS.  Any VGA BIOS for the Bochs
+display adapter works; the file is part of the 86Box package, for
+example:
+
+.. code-block:: bash
+
+  $ qemu-system-ppc ... \
+      -device ati-vga,model=rv100,bus=br0,addr=0,romfile=VGABIOS-lgpl-latest.bin
+
+The login manager offers no user list, so type the user name.  The
+accounts in the image are ``amigaone`` and ``root``; both use the
+password ``amigaone``.  There is no ``tabor`` account.
+
+``startx`` from the serial console fails with ``X: user not authorized
+to run the X server`` because ``/etc/X11/Xwrapper.config`` only allows
+users on a local console.  Log in on the graphical login manager
+instead, or set ``allowed_users=anybody`` in that file.
+
+USB keyboard and mouse
+----------------------
+
+The kernel ``uImage.sdk17.2`` on the boot partition (Linux 3.12.19) has
+neither an OHCI nor a UHCI host driver, and QEMU's EHCI controller
+cannot attach the full speed keyboard and mouse models, so USB input
+needs the other kernel on the boot partition, ``uImage``
+(Linux 3.18.24), which contains ``ohci_hcd``:
+
+.. code-block:: bash
+
+  $ qemu-system-ppc ... -device pci-ohci,id=usb0,bus=pci.1,addr=0x12 \
+                        -device usb-kbd,bus=usb0.0,port=1 \
+                        -device usb-mouse,bus=usb0.0,port=2
+
+The devices are attached to the USB bus of the controller
+(``usb0.0``), not to a PCI bus.  Use ``usb-tablet`` instead of
+``usb-mouse`` to get absolute pointer positioning, which matches the
+QEMU window better.  A hub works as well:
+
+.. code-block:: bash
+
+  $ qemu-system-ppc ... -device pci-ohci,id=usb0,bus=pci.1,addr=0x12 \
+                        -device usb-hub,bus=usb0.0,port=1 \
+                        -device usb-kbd,bus=usb0.0,port=1.1 \
+                        -device usb-mouse,bus=usb0.0,port=1.2
+
 The Integrated Display Unit (DIU) is emulated, so the Linux
 ``fsl-diu-fb`` driver can provide the framebuffer console in the QEMU
 display window.  The stock kernel of the Debian image has no DIU
