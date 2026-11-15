@@ -228,7 +228,7 @@ Booting Linux with the firmware
 
 The firmware can boot Linux from the SATA disk.  The Debian 8 image for
 the A1222 (``Tabor_debian_8_powerpcspe_5.img``) has a FAT boot partition
-containing the kernel ``uImage.sdk17.2`` and the device tree, and an
+containing the kernel ``uImage-3.18.24-JM`` and the device tree, and an
 ext4 root partition.  Attach it to the second emulated SATA port (the
 first port is empty), as in the command above.  At the ``A1222>``
 prompt load the kernel and device tree from the FAT partition and boot
@@ -239,7 +239,7 @@ with the root filesystem on the second partition:
   A1222> setenv bootargs root=/dev/sda2 rootdelay=10 console=ttyS0,115200
   A1222> sata init
   A1222> sata device 1
-  A1222> fatload sata 1:1 1000000 uImage.sdk17.2
+  A1222> fatload sata 1:1 1000000 uImage-3.18.24-JM
   A1222> fatload sata 1:1 2000000 tabor2.dtb
   A1222> bootm 1000000 - 2000000
 
@@ -276,14 +276,14 @@ Running Linux
 
 The ``mpc8544ds`` machine can also boot Linux directly, without the
 firmware.  The Debian 8 image ships everything that is needed in its FAT
-boot partition: the kernel ``uImage.sdk17.2`` and the device tree
+boot partition: the kernel ``uImage-3.18.24-JM`` and the device tree
 ``tabor2.dtb``.  Copy both files out of the image and boot from the SATA
 disk:
 
 .. code-block:: bash
 
   $ qemu-system-ppc -machine mpc8544ds -m 1G -dtb tabor2.dtb \
-                    -kernel uImage.sdk17.2 \
+                    -kernel uImage-3.18.24-JM \
                     -append "root=/dev/sda2 console=ttyS0,115200" \
                     -drive id=tabor,if=none,file=Tabor_debian_8_powerpcspe_5.img,format=raw,snapshot=on \
                     -device ide-hd,drive=tabor,bus=ide.1 \
@@ -299,7 +299,7 @@ the two files can be extracted with:
 .. code-block:: bash
 
   $ dd if=Tabor_debian_8_powerpcspe_5.img of=boot.img bs=512 skip=2048 count=81920
-  $ mcopy -i boot.img ::uImage.sdk17.2 ::tabor2.dtb .
+  $ mcopy -i boot.img ::uImage-3.18.24-JM ::tabor2.dtb .
 
 On the real board the firmware relocates the CCSR from its reset address
 ``0xff700000`` to ``0xffe00000`` by writing ``CCSRBAR``, and the device
@@ -327,7 +327,8 @@ controller ends up at slot 17 and is then rejected by the X server with
 .. code-block:: bash
 
   $ qemu-system-ppc -machine mpc8544ds -m 1G -dtb tabor2.dtb \
-                    -kernel uImage -append "root=/dev/sda2 console=ttyS0,115200" \
+                    -kernel uImage-3.18.24-JM \
+                    -append "root=/dev/sda2 console=ttyS0,115200" \
                     -drive id=tabor,if=none,file=Tabor_debian_8_powerpcspe_5.img,format=raw,snapshot=on \
                     -device ide-hd,drive=tabor,bus=ide.1 \
                     -device i82801b11-bridge,id=br0,bus=pci.1,addr=0x10 \
@@ -365,11 +366,13 @@ instead, or set ``allowed_users=anybody`` in that file.
 USB keyboard and mouse
 ----------------------
 
-The kernel ``uImage.sdk17.2`` on the boot partition (Linux 3.12.19) has
-neither an OHCI nor a UHCI host driver, and QEMU's EHCI controller
-cannot attach the full speed keyboard and mouse models, so USB input
-needs the other kernel on the boot partition, ``uImage``
-(Linux 3.18.24), which contains ``ohci_hcd``:
+The boot partition holds two kernels.  Use ``uImage-3.18.24-JM``
+(Linux 3.18.24), which has the ``ohci_hcd`` driver; the ``uImage`` on the
+partition is the same file under a different name.  The older
+``uImage.sdk17.2`` (Linux 3.12.19) has neither an OHCI nor a UHCI host
+driver, and QEMU's EHCI controller cannot attach the full speed keyboard
+and mouse models, so USB input needs the 3.18.24 kernel and an OHCI
+controller:
 
 .. code-block:: bash
 
