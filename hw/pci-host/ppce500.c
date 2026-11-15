@@ -20,6 +20,7 @@
 #include "hw/core/qdev-properties.h"
 #include "migration/vmstate.h"
 #include "hw/pci/pci_device.h"
+#include "hw/pci/pci_bus.h"
 #include "hw/pci/pci_host.h"
 #include "hw/pci-host/ppce500.h"
 #include "qom/object.h"
@@ -372,6 +373,56 @@ static PCIINTxRoute e500_route_intx_pin_to_irq(void *opaque, int pin)
     return route;
 }
 
+/*
+ * Program PCI_INTERRUPT_LINE for the devices below the host bridge.  On
+ * real hardware the firmware assigns the interrupt lines while it
+ * configures the bus; a directly booted kernel has to take the value
+ * from the config space because it does not map the device tree
+ * interrupt specifiers of a PCI device.
+ */
+static void e500_pcihost_assign_irqs(PPCE500PCIState *s, PCIBus *bus,
+                                     int swizzle)
+{
+    PCIBus *child;
+    int i;
+
+    for (i = 0; i < ARRAY_SIZE(bus->devices); i++) {
+        PCIDevice *dev = bus->devices[i];
+        int pin, line;
+
+        if (!dev) {
+            continue;
+        }
+
+        pin = pci_get_byte(dev->config + PCI_INTERRUPT_PIN);
+        if (pin < 1 || pin > PCI_NUM_PINS) {
+            continue;
+        }
+
+        line = (swizzle + PCI_SLOT(dev->devfn) + pin - 1) % PCI_NUM_PINS;
+        pci_set_byte(dev->config + PCI_INTERRUPT_LINE, s->irq_num[line]);
+    }
+
+    QLIST_FOREACH(child, &bus->child, sibling) {
+        e500_pcihost_assign_irqs(s, child,
+                                 swizzle + PCI_SLOT(child->parent_dev->devfn));
+    }
+}
+
+static void e500_pcihost_reset_hold(Object *obj, ResetType type)
+{
+    PPCE500PCIState *s = PPC_E500_PCI_HOST_BRIDGE(obj);
+    PCIBus *bus = PCI_HOST_BRIDGE(obj)->bus;
+
+    /*
+     * The bus reset clears PCI_INTERRUPT_LINE, so the assignment has to
+     * happen afterwards; a parent is reset after its children.
+     */
+    if (bus) {
+        e500_pcihost_assign_irqs(s, bus, 0);
+    }
+}
+
 static const VMStateDescription vmstate_pci_outbound = {
     .name = "pci_outbound",
     .version_id = 0,
@@ -554,12 +605,14 @@ static void e500_pcihost_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     DeviceDeviceTreeIfClass *dt = DEVICE_DT_IF_CLASS(klass);
+    ResettableClass *rc = RESETTABLE_CLASS(klass);
 
     dt->handle_device_tree_node_pre = e500_pcihost_handle_device_tree_node_pre;
     dt->handle_device_tree_node_post = e500_pcihost_handle_device_tree_node_post;
     dc->realize = e500_pcihost_realize;
     device_class_set_props(dc, pcihost_properties);
     dc->vmsd = &vmstate_ppce500_pci;
+    rc->phases.hold = e500_pcihost_reset_hold;
 }
 
 static const TypeInfo e500_pci_types[] = {
