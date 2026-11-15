@@ -356,6 +356,36 @@ static void platform_bus_create_devtree(PPCE500MachineState *pms,
     g_free(node);
 }
 
+/*
+ * Firmware fills in the CPU clocks before starting the kernel, and the
+ * kernel falls back to default values when they are missing.  The timebase
+ * frequency it assumes then does not match the frequency QEMU runs the
+ * timebase at, which makes guest time run at the wrong speed and lets all
+ * kinds of service timeouts fire prematurely.
+ */
+static void ppce500_fixup_cpu_clocks(void *fdt, uint32_t clock_freq,
+                                     uint32_t tb_freq, uint32_t bus_freq)
+{
+    char path[256];
+    int node = -1;
+
+    while ((node = fdt_node_offset_by_prop_value(fdt, node, "device_type",
+                                                 "cpu", 4)) >= 0) {
+        if (fdt_get_path(fdt, node, path, sizeof(path)) < 0) {
+            continue;
+        }
+        if (!fdt_getprop(fdt, node, "timebase-frequency", NULL)) {
+            qemu_fdt_setprop_cell(fdt, path, "timebase-frequency", tb_freq);
+        }
+        if (!fdt_getprop(fdt, node, "clock-frequency", NULL)) {
+            qemu_fdt_setprop_cell(fdt, path, "clock-frequency", clock_freq);
+        }
+        if (!fdt_getprop(fdt, node, "bus-frequency", NULL)) {
+            qemu_fdt_setprop_cell(fdt, path, "bus-frequency", bus_freq);
+        }
+    }
+}
+
 static int ppce500_load_device_tree(PPCE500MachineState *pms,
                                     hwaddr addr,
                                     hwaddr initrd_base,
@@ -441,6 +471,16 @@ static int ppce500_load_device_tree(PPCE500MachineState *pms,
             qemu_fdt_setprop_string(fdt, "/chosen", "bootargs",
                                     machine->kernel_cmdline);
         }
+
+        if (kvm_enabled()) {
+            clock_freq = kvmppc_get_clockfreq();
+            tb_freq = kvmppc_get_tbfreq();
+        } else {
+            clock_freq = pmc->clock_freq;
+            tb_freq = pmc->tb_freq;
+        }
+        ppce500_fixup_cpu_clocks(fdt, clock_freq, tb_freq, pmc->bus_freq);
+
         goto done;
     }
 
