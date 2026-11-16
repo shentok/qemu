@@ -110,9 +110,16 @@ static void ati_vga_switch_mode(ATIVGAState *s)
             DPRINTF("Switching to %dx%d %d %d @ %x\n", h, v, stride, bpp, offs);
             vbe_ioport_write_index(&s->vga, 0, VBE_DISPI_INDEX_ENABLE);
             vbe_ioport_write_data(&s->vga, 0, VBE_DISPI_DISABLED);
-            s->vga.big_endian_fb = (s->regs.config_cntl & APER_0_ENDIAN ||
-                                    s->regs.config_cntl & APER_1_ENDIAN ?
-                                    true : false);
+            /*
+             * The endian bits of CNFG_CNTL select the byte order in which
+             * the card reads the linear aperture.  Drivers which leave
+             * them alone (Linux radeon never programs them) still fill the
+             * framebuffer in the byte order of the platform, so keep the
+             * target endian default instead of overriding it with zero.
+             */
+            if (s->regs.config_cntl & (APER_0_ENDIAN | APER_1_ENDIAN)) {
+                s->vga.big_endian_fb = true;
+            }
             /* reset VBE regs then set up mode */
             s->vga.vbe_regs[VBE_DISPI_INDEX_XRES] = h;
             s->vga.vbe_regs[VBE_DISPI_INDEX_YRES] = v;
