@@ -73,6 +73,7 @@ struct FslImx8mmState {
     IMXI2CState        i2c[FSL_IMX8MM_NUM_I2CS];
     IMXSerialState     uart[FSL_IMX8MM_NUM_UARTS];
     MemoryRegion       ocram;
+    MemoryRegion       ocram_s;
     MemoryRegion       tcm_dtcm;
     MemoryRegion       tcm_itcm;
     MemoryRegion       boot_rom;

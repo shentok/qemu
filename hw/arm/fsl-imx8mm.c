@@ -486,6 +486,15 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
                                 fsl_imx8mm_memmap[FSL_IMX8MM_OCRAM].addr,
                                 &s->ocram);
 
+    if (!memory_region_init_ram(&s->ocram_s, OBJECT(dev), "imx8mm.ocram_s",
+                                fsl_imx8mm_memmap[FSL_IMX8MM_OCRAM_S].size,
+                                errp)) {
+        return;
+    }
+    memory_region_add_subregion(get_system_memory(),
+                                fsl_imx8mm_memmap[FSL_IMX8MM_OCRAM_S].addr,
+                                &s->ocram_s);
+
     /* Tightly Coupled Memory (data) */
     if (!memory_region_init_ram(&s->tcm_dtcm, OBJECT(dev),
                                 fsl_imx8mm_memmap[FSL_IMX8MM_TCM_DTCM].name,
@@ -789,6 +798,7 @@ static void fsl_imx8mm_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MM_PCIE_PHY1:
         case FSL_IMX8MM_RAM:
         case FSL_IMX8MM_OCRAM:
+        case FSL_IMX8MM_OCRAM_S:
         case FSL_IMX8MM_SNVS_HP:
         case FSL_IMX8MM_SRC:
         case FSL_IMX8MM_SYSCNT_CMP:
