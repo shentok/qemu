@@ -8,10 +8,12 @@
  */
 
 #include "qemu/osdep.h"
+#include "qemu/datadir.h"
 #include "qapi/error.h"
 #include "hw/arm/fsl-imx53.h"
 #include "hw/arm/boot.h"
 #include "hw/core/boards.h"
+#include "hw/core/loader.h"
 #include "hw/i2c/i2c.h"
 #include "qemu/error-report.h"
 #include "system/qtest.h"
@@ -47,6 +49,27 @@ static void imx53_qsb_modify_dtb(const struct arm_boot_info *info, void *fdt)
             fdt_nop_node(fdt, offset);
             offset = fdt_node_offset_by_compatible(fdt, offset, dev_str);
         }
+    }
+}
+
+/*
+ * Loads the image specified via -bios into the boot ROM region. Without
+ * -kernel, the CPU then starts executing it at address 0, just like on real
+ * hardware.
+ */
+static void imx53_load_vbootrom(FslImx53State *soc, const char *bios_name,
+                                Error **errp)
+{
+    g_autofree char *filename = NULL;
+
+    filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, bios_name);
+    if (!filename) {
+        error_setg(errp, "Could not find vbootrom image '%s'", bios_name);
+        return;
+    }
+
+    if (load_image_mr(filename, &soc->rom) < 0) {
+        error_setg(errp, "Failed to load vbootrom image '%s'", bios_name);
     }
 }
 
@@ -126,6 +149,10 @@ static void imx53_qsb_init(MachineState *machine)
          */
         qdev_connect_gpio_out(DEVICE(&s->soc.gpio[0]), 9,
                               qdev_get_gpio_in_named(dev, "wdi", 0));
+    }
+
+    if (machine->firmware) {
+        imx53_load_vbootrom(&s->soc, machine->firmware, &error_fatal);
     }
 
     if (!qtest_enabled()) {
