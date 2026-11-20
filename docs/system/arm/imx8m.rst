@@ -33,7 +33,8 @@ Boot options
 ------------
 
 The ``imx8mp-evk`` and ``imx8mm-evk`` machines can start a Linux
-kernel directly using the standard ``-kernel`` functionality.
+kernel directly using the standard ``-kernel`` functionality. The
+``imx8mm-evk`` machine can additionally start from a boot ROM image.
 
 Direct Linux Kernel Boot
 ''''''''''''''''''''''''
@@ -87,6 +88,28 @@ For i.MX 8M Mini EVK:
       -dtb imx8mm-evk.dtb \
       -append "root=/dev/mmcblk2p2" \
       -drive file=sdcard.img,if=sd,bus=2,format=raw,id=mmcblk2
+
+Boot ROM
+''''''''
+
+The ``imx8mm-evk`` machine can also start from a boot ROM image which is
+passed using the ``-bios`` option. The image is loaded into the boot ROM
+region at address 0, where the CPU starts executing in EL3 just like on real
+hardware. This allows for running the complete boot chain, i.e. a boot ROM
+which loads an i.MX boot image (``flash.bin``) containing U-Boot SPL, TF-A
+and U-Boot from an SD card or eMMC.
+
+The boot mode as determined by the ``BOOT_MODE`` pins on real hardware can be
+set using the ``boot-mode`` machine property. USDHC2 is connected to an SD card
+while USDHC3 is connected to an eMMC, like on the real board. For example, to
+start a boot ROM which boots from an SD card attached to USDHC2:
+
+.. code-block:: bash
+
+  $ qemu-system-aarch64 -M imx8mm-evk \
+      -display none -serial null -serial stdio \
+      -bios imx8mm-boot.rom \
+      -drive file=sdcard.img,if=sd,bus=1,format=raw,id=mmcblk1
 
 KVM Acceleration
 ----------------

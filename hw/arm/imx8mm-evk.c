@@ -8,10 +8,12 @@
  */
 
 #include "qemu/osdep.h"
+#include "qemu/datadir.h"
 #include "system/address-spaces.h"
 #include "hw/arm/boot.h"
 #include "hw/arm/fsl-imx8mm.h"
 #include "hw/core/boards.h"
+#include "hw/core/loader.h"
 #include "hw/core/qdev-properties.h"
 #include "system/kvm.h"
 #include "system/qtest.h"
@@ -67,6 +69,26 @@ static void imx8mm_evk_modify_dtb(const struct arm_boot_info *info, void *fdt)
     }
 }
 
+/*
+ * Loads the image specified via -bios into the boot ROM region. The CPU then
+ * starts executing it at address 0 in EL3, just like on real hardware.
+ */
+static void imx8mm_evk_load_vbootrom(FslImx8mmState *soc, const char *bios_name,
+                                     Error **errp)
+{
+    g_autofree char *filename = NULL;
+
+    filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, bios_name);
+    if (!filename) {
+        error_setg(errp, "Could not find vbootrom image '%s'", bios_name);
+        return;
+    }
+
+    if (load_image_mr(filename, &soc->boot_rom) < 0) {
+        error_setg(errp, "Failed to load vbootrom image '%s'", bios_name);
+    }
+}
+
 static void imx8mm_evk_init(MachineState *machine)
 {
     Imx8mmEvkMachineState *ims = IMX8MM_EVK_MACHINE(machine);
@@ -110,6 +132,10 @@ static void imx8mm_evk_init(MachineState *machine)
         carddev = qdev_new(i == 2 ? TYPE_EMMC : TYPE_SD_CARD);
         qdev_prop_set_drive_err(carddev, "drive", blk, &error_fatal);
         qdev_realize_and_unref(carddev, bus, &error_fatal);
+    }
+
+    if (machine->firmware) {
+        imx8mm_evk_load_vbootrom(s, machine->firmware, &error_fatal);
     }
 
     if (!qtest_enabled()) {
