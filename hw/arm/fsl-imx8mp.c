@@ -206,6 +206,8 @@ static void fsl_imx8mp_init(Object *obj)
 
     object_initialize_child(obj, "src", &s->src, TYPE_IMX8MP_SRC);
 
+    object_initialize_child(obj, "ocotp", &s->ocotp, TYPE_IMX8M_OCOTP);
+
     object_initialize_child(obj, "snvs", &s->snvs, TYPE_IMX7_SNVS);
 
     object_initialize_child(obj, "sysctr", &s->sysctr, TYPE_IMX_SYSCTR);
@@ -439,6 +441,16 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
                     fsl_imx8mp_memmap[FSL_IMX8MP_ANA_PLL].addr);
 
     /* SRC */
+    /* OCOTP */
+    object_property_set_uint(OBJECT(&s->ocotp), "num-banks", 96,
+                             &error_abort);
+    object_property_set_bool(OBJECT(&s->ocotp), "imx8mp", true, &error_abort);
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->ocotp), errp)) {
+        return;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->ocotp), 0,
+                    fsl_imx8mp_memmap[FSL_IMX8MP_OCOTP_CTRL].addr);
+
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->src), errp)) {
         return;
     }
@@ -878,6 +890,7 @@ static void fsl_imx8mp_realize(DeviceState *dev, Error **errp)
         case FSL_IMX8MP_PCIE_PHY1:
         case FSL_IMX8MP_RAM:
         case FSL_IMX8MP_SNVS_HP:
+        case FSL_IMX8MP_OCOTP_CTRL:
         case FSL_IMX8MP_SRC:
         case FSL_IMX8MP_SYSCNT_CMP:
         case FSL_IMX8MP_SYSCNT_CTRL:

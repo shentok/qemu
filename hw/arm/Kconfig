@@ -615,6 +615,7 @@ config FSL_IMX7
 
 config FSL_IMX8MP
     bool
+    select FSL_IMX8M_OCOTP
     imply I2C_DEVICES
     imply PCI_DEVICES
     select ARM_GIC
@@ -651,6 +652,7 @@ config FSL_IMX8MP_EVK
 
 config FSL_IMX8MM
     bool
+    select FSL_IMX8M_OCOTP
     imply PCI_DEVICES
     imply I2C_DEVICES
     select ARM_GIC

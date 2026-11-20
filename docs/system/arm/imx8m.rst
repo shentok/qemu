@@ -26,6 +26,7 @@ following devices:
  * 6 General Purpose Timers
  * Secure Non-Volatile Storage (SNVS) including an RTC
  * System Reset Controller
+ * On-Chip OTP Controller (fuses)
  * Clock Tree
  * 1 System Counter
 
@@ -110,6 +111,24 @@ start a boot ROM which boots from an SD card attached to USDHC2:
       -display none -serial null -serial stdio \
       -bios imx8mm-boot.rom \
       -drive file=sdcard.img,if=sd,bus=1,format=raw,id=mmcblk1
+
+Fuses
+-----
+
+The fuses of the On-Chip OTP Controller (OCOTP) are blank by default. They can
+be backed by a raw file of 4 bytes per fuse word (1 KiB for ``imx8mm-evk``,
+1.5 KiB for ``imx8mp-evk``) which makes programmed fuses persistent. Fuse word
+``n`` of bank ``b`` is located at offset ``(b * 4 + n) * 4``. For example:
+
+.. code-block:: bash
+
+  $ truncate -s 1536 fuses.bin
+  $ qemu-system-aarch64 -M imx8mp-evk ... \
+      -drive if=none,id=fuses,file=fuses.bin,format=raw \
+      -global imx8m-ocotp.drive=fuses
+
+Like on real hardware, programmed fuses take effect in the shadow registers
+after the next reset.
 
 KVM Acceleration
 ----------------

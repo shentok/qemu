@@ -22,6 +22,7 @@
 #include "hw/misc/imx8mp_ddr.h"
 #include "hw/misc/imx8mp_ddr_phy.h"
 #include "hw/misc/imx8mp_src.h"
+#include "hw/nvram/imx8m_ocotp.h"
 #include "hw/net/imx_fec.h"
 #include "hw/core/or-irq.h"
 #include "hw/pci-host/designware.h"
@@ -67,6 +68,7 @@ struct FslImx8mmState {
     FslImx8mpDdrPhyState  ddr_phy;
     IMX7SNVSState      snvs;
     FslImx8mpSrcState  src;
+    IMX8MOcotpState    ocotp;
     FslImx8mpGpcState  gpc;
     IMXSysCtrState     sysctr;
     IMXSPIState        spi[FSL_IMX8MM_NUM_ECSPIS];

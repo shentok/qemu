@@ -17,6 +17,7 @@
 #include "hw/misc/fsl_caam.h"
 #include "hw/intc/fsl_imx8mp_gpc.h"
 #include "hw/misc/imx8mp_src.h"
+#include "hw/nvram/imx8m_ocotp.h"
 #include "hw/misc/imx7_snvs.h"
 #include "hw/misc/imx8mp_analog.h"
 #include "hw/misc/imx8mp_ccm.h"
@@ -72,6 +73,7 @@ struct FslImx8mpState {
     FslImx8mpDdrPhyState  ddr_phy;
     IMX7SNVSState      snvs;
     FslImx8mpSrcState  src;
+    IMX8MOcotpState    ocotp;
     FslImx8mpGpcState  gpc;
     IMXSPIState        spi[FSL_IMX8MP_NUM_ECSPIS];
     IMXI2CState        i2c[FSL_IMX8MP_NUM_I2CS];
