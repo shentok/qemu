@@ -134,6 +134,18 @@ static void imx8mm_evk_machine_init(MachineClass *mc)
     mc->get_default_cpu_type = imx8mm_evk_get_default_cpu_type;
 }
 
-DEFINE_MACHINE_EXTENDED("imx8mm-evk", MACHINE, Imx8mmEvkMachineState,
-                        imx8mm_evk_machine_init, false, false,
-                        NULL)
+static void imx8mm_evk_class_init(ObjectClass *oc, const void *data)
+{
+    imx8mm_evk_machine_init(MACHINE_CLASS(oc));
+}
+
+static const TypeInfo imx8mm_evk_machine_types[] = {
+    {
+        .name = TYPE_IMX8MM_EVK_MACHINE,
+        .parent = TYPE_MACHINE,
+        .class_init = imx8mm_evk_class_init,
+        .instance_size = sizeof(Imx8mmEvkMachineState),
+    },
+};
+
+DEFINE_TYPES(imx8mm_evk_machine_types)
