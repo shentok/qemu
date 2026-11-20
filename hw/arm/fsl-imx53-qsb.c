@@ -115,6 +115,7 @@ static void imx53_qsb_init(MachineState *machine)
         DeviceState *carddev;
         BlockBackend *blk;
         DriveInfo *di = drive_get(IF_SD, i, 0);
+        bool emmc;
 
         if (!di) {
             continue;
@@ -122,7 +123,10 @@ static void imx53_qsb_init(MachineState *machine)
 
         blk = blk_by_legacy_dinfo(di);
         bus = qdev_get_child_bus(DEVICE(&s->soc.esdhc[i]), "sd-bus");
-        carddev = qdev_new(TYPE_SD_CARD);
+        /* The TQMA53 module has an eMMC attached to eSDHC3 */
+        emmc = object_dynamic_cast(OBJECT(machine), TYPE_TQMA53_MACHINE) &&
+               i == 2;
+        carddev = qdev_new(emmc ? TYPE_EMMC : TYPE_SD_CARD);
         qdev_prop_set_drive_err(carddev, "drive", blk, &error_fatal);
         qdev_realize_and_unref(carddev, bus, &error_fatal);
     }
