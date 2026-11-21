@@ -240,6 +240,8 @@ static void fsl_imx53_init(Object *obj)
 
     object_initialize_child(obj, "ipu", &s->ipu, TYPE_IMX_IPUV3M);
 
+    object_initialize_child(obj, "iim", &s->iim, TYPE_IMX_IIM);
+
     object_initialize_child(obj, "ahci", &s->sata, TYPE_SYSBUS_AHCI);
 
     object_initialize_child(obj, "eth", &s->eth, TYPE_IMX_FEC);
@@ -515,6 +517,16 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
                        qdev_get_gpio_in(gic, 11));
 
     /*
+     * IIM
+     */
+    qdev_prop_set_uint32(DEVICE(&s->iim), "num-banks", 5);
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->iim), errp)) {
+        return;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->iim), 0,
+                    fsl_imx53_memmap[FSL_IMX53_IIM].addr);
+
+    /*
      * Watchdog
      */
     for (size_t i = 0; i < ARRAY_SIZE(s->wdt); i++) {
@@ -603,6 +615,7 @@ static void fsl_imx53_realize(DeviceState *dev, Error **errp)
         case FSL_IMX53_GPIO1 ... FSL_IMX53_GPIO7:
         case FSL_IMX53_GPT:
         case FSL_IMX53_I2C1 ... FSL_IMX53_I2C3:
+        case FSL_IMX53_IIM:
         case FSL_IMX53_IPU:
         case FSL_IMX53_OCRAM:
         case FSL_IMX53_SATA:

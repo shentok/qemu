@@ -31,6 +31,7 @@
 #include "hw/ssi/imx_spi.h"
 #include "hw/net/flexcan.h"
 #include "hw/net/imx_fec.h"
+#include "hw/nvram/imx_iim.h"
 #include "hw/rtc/imx_srtc.h"
 #include "hw/usb/chipidea.h"
 #include "hw/usb/imx53-usb-misc.h"
@@ -71,6 +72,7 @@ struct FslImx53State {
     IMXFECState        eth;
     FlexcanState       flexcan[FSL_IMX53_NUM_CANS];
     ImxIpuState        ipu;
+    IMXIIMState        iim;
     MemoryRegion       rom;
     MemoryRegion       caam;
     MemoryRegion       ocram;
